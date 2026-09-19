@@ -10,15 +10,16 @@
     
     body {
       font-family: 'Inter', -apple-system, sans-serif;
-      background-color: #0b1120;
-      color: #f8fafc;
+      background-color: #f8fafc;
+      color: #0f172a;
       overflow-x: hidden;
     }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     
     .panel {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(51, 65, 85, 0.8);
+      background: #ffffff;
+      border: 2px solid #0f172a;
+      box-shadow: 0 4px 0 #0f172a;
       backdrop-filter: blur(12px);
     }
     
@@ -28,7 +29,7 @@
       display: block;
     }
     
-    .grid-cyber {
+    . {
       background-image: 
         linear-gradient(rgba(30, 41, 59, 0.5) 1px, transparent 1px),
         linear-gradient(90deg, rgba(30, 41, 59, 0.5) 1px, transparent 1px);
@@ -62,20 +63,20 @@
 
   <div class="max-w-7xl w-full">
     
-    <header class="mb-6 flex justify-between items-end border-b border-slate-800 pb-4">
+    <header class="mb-6 flex justify-between items-end border-b border-slate-200 pb-4">
       <div>
         <div class="flex items-center gap-2 mb-2">
           <span class="px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-400 text-xs font-bold font-mono border border-blue-500/30">TRACK 1</span>
-          <span class="text-slate-400 text-sm font-medium">구조동역학 · 자유진동(Free Vibration)</span>
+          <span class="text-slate-600 text-sm font-medium">구조동역학 · 자유진동(Free Vibration)</span>
         </div>
-        <h1 class="text-3xl font-extrabold tracking-tight text-white glow-text">
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 ">
           점성감쇠 vs 마찰감쇠 (Viscous vs Coulomb Damping)
         </h1>
-        <p class="text-slate-400 text-sm mt-2 max-w-3xl leading-relaxed">
+        <p class="text-slate-600 text-sm mt-2 max-w-3xl leading-relaxed">
           유체 저항에 의한 <strong>점성감쇠(지수함수적 감소)</strong>와 고체 마찰에 의한 <strong>쿨롱 마찰감쇠(선형적 감소 및 정지)</strong>의 차이를 시각적으로 비교합니다.
         </p>
       </div>
-      <a href="index.html" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition">
+      <a href="index.html" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-700 text-slate-800 text-sm font-bold transition">
         &larr; 마스터 허브
       </a>
     </header>
@@ -84,25 +85,25 @@
       
       <!-- Viscous Damping Panel -->
       <div class="panel rounded-2xl p-5 flex flex-col">
-        <h2 class="text-xl font-bold text-slate-200 mb-2 flex items-center gap-2">
+        <h2 class="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-slate-300"></span> 점성감쇠 (Viscous Damping)
         </h2>
-        <p class="text-xs text-slate-400 font-mono mb-4">m·ü + c·u̇ + k·u = 0  (지수함수 포락선 e^(-ζωnt))</p>
+        <p class="text-xs text-slate-600 font-mono mb-4">m·ü + c·u̇ + k·u = 0  (지수함수 포락선 e^(-ζωnt))</p>
         
-        <div class="flex items-center gap-4 mb-4 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+        <div class="flex items-center gap-4 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div class="flex-1">
-            <div class="flex justify-between text-xs text-slate-300 mb-1">
+            <div class="flex justify-between text-xs text-slate-800 mb-1">
               <span>감쇠비 ζ</span>
-              <span id="val-zeta" class="font-bold text-slate-200">0.05 (5%)</span>
+              <span id="val-zeta" class="font-bold text-slate-900">0.05 (5%)</span>
             </div>
             <input type="range" id="slider-zeta" min="0" max="0.2" step="0.01" value="0.05" class="w-full">
           </div>
         </div>
 
-        <div class="relative w-full h-[120px] mb-4 border-b border-slate-700">
+        <div class="relative w-full h-[120px] mb-4 border-b border-slate-200">
           <canvas id="canvas-visc-sys"></canvas>
         </div>
-        <div class="relative flex-1 w-full min-h-[250px] grid-cyber rounded-xl border border-slate-700/50 overflow-hidden">
+        <div class="relative flex-1 w-full min-h-[250px]  rounded-xl border border-slate-200/50 overflow-hidden">
           <canvas id="canvas-visc-plot"></canvas>
         </div>
       </div>
@@ -112,11 +113,11 @@
         <h2 class="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-amber-400"></span> 마찰감쇠 (Coulomb Damping)
         </h2>
-        <p class="text-xs text-slate-400 font-mono mb-4">m·ü + k·u = -μN·sgn(u̇)  (선형적 포락선 및 Stick)</p>
+        <p class="text-xs text-slate-600 font-mono mb-4">m·ü + k·u = -μN·sgn(u̇)  (선형적 포락선 및 Stick)</p>
         
-        <div class="flex items-center gap-4 mb-4 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+        <div class="flex items-center gap-4 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div class="flex-1">
-            <div class="flex justify-between text-xs text-slate-300 mb-1">
+            <div class="flex justify-between text-xs text-slate-800 mb-1">
               <span>동마찰력 μN</span>
               <span id="val-mu" class="font-bold text-amber-400">10 N</span>
             </div>
@@ -124,10 +125,10 @@
           </div>
         </div>
 
-        <div class="relative w-full h-[120px] mb-4 border-b border-slate-700">
+        <div class="relative w-full h-[120px] mb-4 border-b border-slate-200">
           <canvas id="canvas-fric-sys"></canvas>
         </div>
-        <div class="relative flex-1 w-full min-h-[250px] grid-cyber rounded-xl border border-slate-700/50 overflow-hidden">
+        <div class="relative flex-1 w-full min-h-[250px]  rounded-xl border border-slate-200/50 overflow-hidden">
           <canvas id="canvas-fric-plot"></canvas>
         </div>
       </div>
@@ -135,7 +136,7 @@
     </div>
 
     <div class="mt-6 flex justify-center gap-4">
-      <button onclick="resetSim()" class="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-lg  transition flex items-center gap-2">
+      <button onclick="resetSim()" class="px-6 py-3 bg-slate-900 hover:bg-slate-100 text-slate-900 rounded-xl font-bold shadow-lg  transition flex items-center gap-2">
         <span class="text-lg">▶</span> 초기변위 100mm 부여 (재시작)
       </button>
     </div>
@@ -199,7 +200,7 @@
       const cy = h/2;
       
       // Draw surface
-      ctx.strokeStyle = '#334155';
+      ctx.strokeStyle = '#0f172a';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(0, cy + 25);
@@ -217,7 +218,7 @@
 
       // Wall X
       const wallX = Math.max(30, cx - 190);
-      ctx.strokeStyle = '#475569';
+      ctx.strokeStyle = '#0f172a';
       ctx.lineWidth = 5;
       ctx.beginPath();
       ctx.moveTo(wallX, cy - 35);
@@ -279,13 +280,13 @@
       }
 
       // Draw Block
-      ctx.fillStyle = isViscous ? '#0ea5e9' : '#f59e0b';
+      ctx.fillStyle = isViscous ? '#0284c7' : '#d97706';
       ctx.shadowColor = isViscous ? 'rgba(14, 165, 233, 0.5)' : 'rgba(245, 158, 11, 0.5)';
       ctx.shadowBlur = 10;
       ctx.fillRect(blockLeft, cy - 25, 50, 50);
       ctx.shadowBlur = 0;
       
-      ctx.fillStyle = '#0f172a';
+      ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 13px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -299,7 +300,7 @@
       const amp = 1.0;
 
       // Draw Grid
-      ctx.strokeStyle = '#1e293b';
+      ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, cy); ctx.lineTo(w, cy);
@@ -310,7 +311,7 @@
       if (hist.length === 0) return;
 
       // Draw Envelope
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
       for (let i=0; i<hist.length; i++) {
@@ -414,13 +415,13 @@
       if (cv1) drawSystem(cv1.ctx, cv1.w, cv1.h, v_u, true);
       
       const cp1 = setupCanvas('canvas-visc-plot');
-      if (cp1) drawPlot(cp1.ctx, cp1.w, cp1.h, histV, '#38bdf8', true);
+      if (cp1) drawPlot(cp1.ctx, cp1.w, cp1.h, histV, '#0284c7', true);
 
       const cv2 = setupCanvas('canvas-fric-sys');
       if (cv2) drawSystem(cv2.ctx, cv2.w, cv2.h, f_u, false);
 
       const cp2 = setupCanvas('canvas-fric-plot');
-      if (cp2) drawPlot(cp2.ctx, cp2.w, cp2.h, histF, '#fbbf24', false);
+      if (cp2) drawPlot(cp2.ctx, cp2.w, cp2.h, histF, '#d97706', false);
 
       requestAnimationFrame(render);
     }

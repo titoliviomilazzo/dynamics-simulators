@@ -6,12 +6,12 @@
 <title>Sim 41: 반응수정계수(R) 삼중분해 & 이중골조 25% 백업 랩</title>
 <style>
   :root {
-    --bg-dark: #0f172a;
-    --card-bg: #1e293b;
-    --border: #334155;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --accent-blue: #38bdf8;
+    --bg-dark: #f8fafc;
+    --card-bg: #ffffff;
+    --border: #cbd5e1;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --accent-blue: #0284c7;
     --accent-amber: #f59e0b;
     --accent-emerald: #10b981;
     --accent-rose: #f43f5e;
@@ -19,15 +19,15 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
   body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
-  header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+  header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
   .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
   .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
 
   .main-container { flex: 1; display: grid; grid-template-columns: 330px 1fr 310px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
   @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
 
-  .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+  .panel { background: #ffffff; border: 1.5px solid #0f172a; box-shadow: 0 4px 0 #0f172a; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
   .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
 
   .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -35,12 +35,12 @@
   select, input[type="range"] { background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 4px; font-size: 0.85rem; width: 100%; accent-color: var(--accent-blue); }
 
   .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-  button { background: #334155; color: #fff; border: 1px solid var(--border); padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
+  button { background: #0f172a; color: #fff; border: 1.5px solid #0f172a; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
   button:hover { background: #475569; }
-  button.active { background: var(--accent-blue); color: #0f172a; border-color: var(--accent-blue); font-weight: 700; }
+  button.active { background: #0f172a; color: #ffffff; border-color: var(--accent-blue); font-weight: 700; }
 
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-  .stat-card { background: rgba(15, 23, 42, 0.6); padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+  .stat-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
   .stat-card .label { font-size: 0.7rem; color: var(--text-muted); }
   .stat-card .value { font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
   .stat-card.blue .value { color: var(--accent-blue); }
@@ -48,7 +48,7 @@
   .stat-card.emerald .value { color: var(--accent-emerald); }
   .stat-card.rose .value { color: var(--accent-rose); }
 
-  .canvas-wrapper { flex: 1; background: #0b1120; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 380px; }
+  .canvas-wrapper { flex: 1; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 380px; }
   canvas { width: 100%; height: 100%; display: block; }
 
   .takeaway { background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
@@ -167,7 +167,7 @@
     </div>
 
     <div class="panel-title" style="margin-top:0.5rem;">이중골조 횡력 분담률 (Shear Distribution)</div>
-    <div style="background:#0b1120; padding:0.8rem; border-radius:6px; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.5rem;">
+    <div style="background:#ffffff; padding:0.8rem; border-radius:6px; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.5rem;">
       <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
         <span style="color:var(--accent-rose);">전단벽 (Shear Wall) 분담률</span>
         <span id="lblWallShare" style="font-weight:700; color:var(--accent-rose);">75%</span>
@@ -328,7 +328,7 @@
     function yOf(r) { return pad.top + ph - (r / maxR) * ph; }
 
     // Grid
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.strokeStyle = "rgba(15, 23, 42, 0.1)";
     ctx.fillStyle = "var(--text-muted)";
     ctx.font = "11px sans-serif";
 
@@ -387,7 +387,7 @@
     ctx.arc(curX, curY, 7, 0, 2 * Math.PI);
     ctx.fillStyle = "#f59e0b";
     ctx.fill();
-    ctx.strokeStyle = "#fff";
+    ctx.strokeStyle = "#0f172a";
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.lineWidth = 1;
@@ -408,7 +408,7 @@
     ctx.fillText("등변위 Rμ = μ", xOf(1.2), pad.top + 20);
 
     // Axis labels
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = "#0f172a";
     ctx.font = "bold 12px sans-serif";
     ctx.fillText("구조물 고유주기 T (s)", pad.left + pw / 2 - 50, pad.top + ph + 38);
     ctx.save();

@@ -10,15 +10,16 @@
     
     body {
       font-family: 'Inter', -apple-system, sans-serif;
-      background-color: #0b1120;
-      color: #f8fafc;
+      background-color: #f8fafc;
+      color: #0f172a;
       overflow-x: hidden;
     }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     
     .panel {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(51, 65, 85, 0.8);
+      background: #ffffff;
+      border: 2px solid #0f172a;
+      box-shadow: 0 4px 0 #0f172a;
       backdrop-filter: blur(12px);
     }
     
@@ -28,7 +29,7 @@
       display: block;
     }
     
-    .grid-cyber {
+    . {
       background-image: 
         linear-gradient(rgba(30, 41, 59, 0.5) 1px, transparent 1px),
         linear-gradient(90deg, rgba(30, 41, 59, 0.5) 1px, transparent 1px);
@@ -50,13 +51,13 @@
       height: 16px;
       width: 16px;
       border-radius: 50%;
-      background: #38bdf8;
+      background: #0284c7;
       margin-top: -5px;
       cursor: ew-resize;
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
     }
     
-    .glow-text {
+    . {
       text-shadow: 0 0 10px currentColor;
     }
   </style>
@@ -68,21 +69,21 @@
 
   <div class="max-w-7xl w-full">
     
-    <header class="mb-6 flex justify-between items-end border-b border-slate-800 pb-4">
+    <header class="mb-6 flex justify-between items-end border-b border-slate-200 pb-4">
       <div>
         <div class="flex items-center gap-2 mb-2">
           <span class="px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-400 text-xs font-bold font-mono border border-blue-500/30">TRACK 1</span>
-          <span class="text-slate-400 text-sm font-medium">구조동역학 · 모드해석(Modal Analysis)</span>
+          <span class="text-slate-600 text-sm font-medium">구조동역학 · 모드해석(Modal Analysis)</span>
         </div>
-        <h1 class="text-3xl font-extrabold tracking-tight text-white glow-text">
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 ">
           모드 중첩 오케스트라 (Modal Superposition)
         </h1>
-        <p class="text-slate-400 text-sm mt-2 max-w-3xl leading-relaxed">
+        <p class="text-slate-600 text-sm mt-2 max-w-3xl leading-relaxed">
           지진에 흔들리는 건물의 복잡한 거동은 사실 <strong>독립적인 순수 진동(모드)</strong>들의 화음입니다.<br/>
           모드벡터(공간적 형상)와 고유주기(시간적 스케일링)가 중첩되어 실제 응답이 만들어지는 과정을 확인하세요.
         </p>
       </div>
-      <a href="index.html" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition">
+      <a href="index.html" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-700 text-slate-800 text-sm font-bold transition">
         &larr; 마스터 허브
       </a>
     </header>
@@ -94,26 +95,26 @@
         
         <!-- Mode 1 -->
         <div class="panel rounded-2xl p-4 flex flex-col min-h-[220px]">
-          <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
-            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-200 pb-2">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-slate-300 animate-pulse"></span>
               Mode 1 (1차 모드 - 기본 진동)
             </h3>
-            <span class="text-xs font-mono text-slate-400">T₁ = 1.0s</span>
+            <span class="text-xs font-mono text-slate-600">T₁ = 1.0s</span>
           </div>
           <div class="flex-1 grid grid-cols-2 gap-4">
-            <div class="relative w-full h-full min-h-[140px] grid-cyber rounded-lg border border-slate-700/50 overflow-hidden">
+            <div class="relative w-full h-full min-h-[140px]  rounded-lg border border-slate-200/50 overflow-hidden">
               <canvas id="canvas-m1"></canvas>
             </div>
             <div class="flex flex-col justify-center gap-3 pr-2">
-              <div class="text-xs text-slate-300 font-medium">모드 기여도 (PF × Sd)</div>
+              <div class="text-xs text-slate-800 font-medium">모드 기여도 (PF × Sd)</div>
               <input type="range" id="slider-m1" min="-2.0" max="2.0" step="0.1" value="1.0" class="w-full">
               <div class="flex justify-between text-[10px] font-mono text-slate-500">
                 <span>-2.0</span>
-                <span id="val-m1" class="text-slate-200 font-bold">1.0</span>
+                <span id="val-m1" class="text-slate-900 font-bold">1.0</span>
                 <span>+2.0</span>
               </div>
-              <p class="text-[10px] text-slate-400 leading-tight">
+              <p class="text-[10px] text-slate-600 leading-tight">
                 건물 전체가 한 방향으로 부드럽게 휩니다. 전체 지진력의 80% 이상을 지배합니다.
               </p>
             </div>
@@ -122,26 +123,26 @@
 
         <!-- Mode 2 -->
         <div class="panel rounded-2xl p-4 flex flex-col min-h-[220px]">
-          <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-200 pb-2">
             <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
               Mode 2 (2차 모드)
             </h3>
-            <span class="text-xs font-mono text-slate-400">T₂ = 0.3s</span>
+            <span class="text-xs font-mono text-slate-600">T₂ = 0.3s</span>
           </div>
           <div class="flex-1 grid grid-cols-2 gap-4">
-            <div class="relative w-full h-full min-h-[140px] grid-cyber rounded-lg border border-slate-700/50 overflow-hidden">
+            <div class="relative w-full h-full min-h-[140px]  rounded-lg border border-slate-200/50 overflow-hidden">
               <canvas id="canvas-m2"></canvas>
             </div>
             <div class="flex flex-col justify-center gap-3 pr-2">
-              <div class="text-xs text-slate-300 font-medium">모드 기여도 (PF × Sd)</div>
+              <div class="text-xs text-slate-800 font-medium">모드 기여도 (PF × Sd)</div>
               <input type="range" id="slider-m2" min="-1.5" max="1.5" step="0.1" value="0.4" class="w-full">
               <div class="flex justify-between text-[10px] font-mono text-slate-500">
                 <span>-1.5</span>
                 <span id="val-m2" class="text-amber-400 font-bold">0.4</span>
                 <span>+1.5</span>
               </div>
-              <p class="text-[10px] text-slate-400 leading-tight">
+              <p class="text-[10px] text-slate-600 leading-tight">
                 중간층에 변곡점(Inflection)이 생깁니다. 상층부 채찍효과(Whip)를 유발합니다.
               </p>
             </div>
@@ -150,26 +151,26 @@
 
         <!-- Mode 3 -->
         <div class="panel rounded-2xl p-4 flex flex-col min-h-[220px]">
-          <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-200 pb-2">
             <h3 class="text-sm font-bold text-purple-400 flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
               Mode 3 (3차 모드)
             </h3>
-            <span class="text-xs font-mono text-slate-400">T₃ = 0.1s</span>
+            <span class="text-xs font-mono text-slate-600">T₃ = 0.1s</span>
           </div>
           <div class="flex-1 grid grid-cols-2 gap-4">
-            <div class="relative w-full h-full min-h-[140px] grid-cyber rounded-lg border border-slate-700/50 overflow-hidden">
+            <div class="relative w-full h-full min-h-[140px]  rounded-lg border border-slate-200/50 overflow-hidden">
               <canvas id="canvas-m3"></canvas>
             </div>
             <div class="flex flex-col justify-center gap-3 pr-2">
-              <div class="text-xs text-slate-300 font-medium">모드 기여도 (PF × Sd)</div>
+              <div class="text-xs text-slate-800 font-medium">모드 기여도 (PF × Sd)</div>
               <input type="range" id="slider-m3" min="-1.0" max="1.0" step="0.1" value="0.15" class="w-full">
               <div class="flex justify-between text-[10px] font-mono text-slate-500">
                 <span>-1.0</span>
                 <span id="val-m3" class="text-purple-400 font-bold">0.15</span>
                 <span>+1.0</span>
               </div>
-              <p class="text-[10px] text-slate-400 leading-tight">
+              <p class="text-[10px] text-slate-600 leading-tight">
                 변곡점이 2개 발생하며 매우 빠르게 진동합니다. 밑면전단력에는 기여가 적지만 가속도를 증폭시킵니다.
               </p>
             </div>
@@ -181,40 +182,40 @@
       <!-- Right Panel: Superposition -->
       <div class="lg:col-span-7 panel rounded-2xl p-6 flex flex-col min-h-[700px] relative overflow-hidden">
         
-        <div class="flex justify-between items-end mb-4 border-b border-slate-700 pb-4">
+        <div class="flex justify-between items-end mb-4 border-b border-slate-200 pb-4">
           <div>
-            <h2 class="text-lg font-black text-white glow-text flex items-center gap-2">
+            <h2 class="text-lg font-black text-slate-900  flex items-center gap-2">
               <span>🎶</span>
               실제 거동 (응답 중첩, Superposition)
             </h2>
-            <p class="text-xs text-slate-400 font-mono mt-1">u(t) = Φ₁·Y₁(t) + Φ₂·Y₂(t) + Φ₃·Y₃(t)</p>
+            <p class="text-xs text-slate-600 font-mono mt-1">u(t) = Φ₁·Y₁(t) + Φ₂·Y₂(t) + Φ₃·Y₃(t)</p>
           </div>
           <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700">
-              <span class="text-xs text-slate-300 font-medium">속도:</span>
-              <button onclick="setSpeed(0.1)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-300 hover:text-white transition" data-spd="0.1">0.1x</button>
-              <button onclick="setSpeed(0.25)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-600 text-white transition" data-spd="0.25">0.25x (권장)</button>
-              <button onclick="setSpeed(0.5)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-300 hover:text-white transition" data-spd="0.5">0.5x</button>
-              <button onclick="setSpeed(1.0)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-300 hover:text-white transition" data-spd="1.0">1.0x</button>
+            <div class="flex items-center gap-1.5 bg-slate-100/80 px-2.5 py-1.5 rounded-xl border border-slate-200">
+              <span class="text-xs text-slate-800 font-medium">속도:</span>
+              <button onclick="setSpeed(0.1)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-800 hover:text-slate-900 transition" data-spd="0.1">0.1x</button>
+              <button onclick="setSpeed(0.25)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-600 text-slate-900 transition" data-spd="0.25">0.25x (권장)</button>
+              <button onclick="setSpeed(0.5)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-800 hover:text-slate-900 transition" data-spd="0.5">0.5x</button>
+              <button onclick="setSpeed(1.0)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-800 hover:text-slate-900 transition" data-spd="1.0">1.0x</button>
             </div>
-            <button id="btn-anim" onclick="toggleAnim()" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold shadow-lg  transition">
+            <button id="btn-anim" onclick="toggleAnim()" class="px-5 py-2 bg-slate-900 hover:bg-slate-100 text-slate-900 rounded-xl text-sm font-bold shadow-lg  transition">
               ⏸ 일시정지
             </button>
           </div>
         </div>
 
-        <div class="relative flex-1 w-full mt-2 grid-cyber rounded-xl border border-slate-700/50 flex flex-col justify-end min-h-[500px]">
+        <div class="relative flex-1 w-full mt-2  rounded-xl border border-slate-200/50 flex flex-col justify-end min-h-[500px]">
           <canvas id="canvas-super"></canvas>
         </div>
 
-        <div class="mt-6 bg-slate-900/80 rounded-xl p-4 border border-slate-700 flex justify-around">
+        <div class="mt-6 bg-slate-50 rounded-xl p-4 border border-slate-200 flex justify-around">
           <div class="text-center">
             <div class="text-[10px] text-slate-500 font-mono mb-1">상단 변위 (Roof)</div>
-            <div id="roof-disp" class="text-lg font-black text-white">0.0 mm</div>
+            <div id="roof-disp" class="text-lg font-black text-slate-900">0.0 mm</div>
           </div>
           <div class="text-center">
             <div class="text-[10px] text-slate-500 font-mono mb-1">지배 모드</div>
-            <div class="text-lg font-black text-slate-200">Mode 1</div>
+            <div class="text-lg font-black text-slate-900">Mode 1</div>
           </div>
           <div class="text-center">
             <div class="text-[10px] text-slate-500 font-mono mb-1">고주파 노이즈</div>
@@ -237,9 +238,9 @@
       speedScale = val;
       document.querySelectorAll('.btn-spd').forEach(b => {
         if (parseFloat(b.dataset.spd) === val) {
-          b.className = 'btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-600 text-white transition';
+          b.className = 'btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-600 text-slate-900 transition';
         } else {
-          b.className = 'btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-300 hover:text-white transition';
+          b.className = 'btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-800 hover:text-slate-900 transition';
         }
       });
     }
@@ -247,9 +248,9 @@
     // Modal Properties
     // Phi arrays [floor1, floor2, floor3]
     const modes = [
-      { id: 'm1', T: 1.0, color: '#38bdf8', phi: [0.3, 0.7, 1.0], scale: 40, w: 2*Math.PI/1.0 },
-      { id: 'm2', T: 0.3, color: '#fbbf24', phi: [-0.7, -0.2, 1.0], scale: 40, w: 2*Math.PI/0.3 },
-      { id: 'm3', T: 0.1, color: '#c084fc', phi: [1.0, -0.8, 0.3], scale: 40, w: 2*Math.PI/0.1 }
+      { id: 'm1', T: 1.0, color: '#0284c7', phi: [0.3, 0.7, 1.0], scale: 40, w: 2*Math.PI/1.0 },
+      { id: 'm2', T: 0.3, color: '#d97706', phi: [-0.7, -0.2, 1.0], scale: 40, w: 2*Math.PI/0.3 },
+      { id: 'm3', T: 0.1, color: '#7c3aed', phi: [1.0, -0.8, 0.3], scale: 40, w: 2*Math.PI/0.1 }
     ];
 
     // Read Slider states
@@ -268,8 +269,8 @@
       isAnim = !isAnim;
       document.getElementById('btn-anim').textContent = isAnim ? '⏸ 일시정지' : '▶ 재생';
       document.getElementById('btn-anim').className = isAnim 
-        ? 'px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold shadow-lg  transition'
-        : 'px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg  transition';
+        ? 'px-5 py-2 bg-slate-900 hover:bg-slate-100 text-slate-900 rounded-xl text-sm font-bold shadow-lg  transition'
+        : 'px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-900 rounded-xl text-sm font-bold shadow-lg  transition';
     }
 
     // Setup Canvases
@@ -294,7 +295,7 @@
       const bldgW = Math.min(w * 0.4, 60);
 
       // Draw Ground
-      ctx.strokeStyle = '#475569';
+      ctx.strokeStyle = '#0f172a';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(10, groundY);
@@ -343,7 +344,7 @@
 
       // Draw Floor Masses
       for (let i = 1; i <= 3; i++) {
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = '#0f172a';
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -379,7 +380,7 @@
       // Draw Superposition
       const sc = setupCanvas('canvas-super');
       if (sc) {
-        drawBuilding(sc.ctx, sc.w, sc.h, superU, '#f8fafc');
+        drawBuilding(sc.ctx, sc.w, sc.h, superU, '#0f172a');
         
         // Ghostly outlines of individual modes behind superposition
         sc.ctx.globalAlpha = 0.2;
