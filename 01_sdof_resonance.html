@@ -22,10 +22,10 @@
                         linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
       background-size: 24px 24px;
     }
-    .radar-glow {
+    . {
       box-shadow: 0 0 30px -5px rgba(6, 182, 212, 0.15);
     }
-    .neon-pulse-red {
+    . {
       animation: neonPulse 1.2s infinite alternate;
     }
     @keyframes neonPulse {
@@ -36,7 +36,7 @@
 </head>
 <body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-  <div id="sim-app-container" class="w-full max-w-6xl bg-[#0f172a]/95 border border-slate-800 rounded-3xl p-5 md:p-8 shadow-2xl backdrop-blur-xl radar-glow space-y-6">
+  <div id="sim-app-container" class="w-full max-w-6xl bg-[#0f172a]/95 border border-slate-800 rounded-3xl p-5 md:p-8 shadow-2xl backdrop-blur-xl  space-y-6">
     
     <!-- Top Header -->
     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
@@ -55,7 +55,7 @@
       </div>
 
       <div class="flex items-center gap-2.5">
-        <button id="btn-play" onclick="togglePlay()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/30 flex items-center gap-1.5">
+        <button id="btn-play" onclick="togglePlay()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-lg  flex items-center gap-1.5">
           <span id="play-icon">⏸</span>
           <span id="play-text">일시정지</span>
         </button>
@@ -72,7 +72,7 @@
       <div class="lg:col-span-5 bg-[#090d16] border border-slate-800/90 rounded-2xl p-4 flex flex-col justify-between grid-cyber relative min-h-[390px] shadow-inner">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
           <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span class="w-2 h-2 rounded-full bg-slate-300 animate-pulse"></span>
             <span class="text-xs font-bold text-slate-200">1자유도 전단 골조 변위</span>
           </div>
           <span class="text-[11px] font-mono text-slate-400">f<sub>n</sub> = 1.00 Hz (T<sub>n</sub> = 1.00 s)</span>
@@ -83,7 +83,7 @@
         </div>
 
         <div class="flex justify-between items-center text-xs text-slate-400 pt-2 border-t border-slate-800 font-mono">
-          <span class="text-cyan-400 font-bold">
+          <span class="text-slate-200 font-bold">
             변위 u(t): <span id="disp-val" class="font-mono text-white text-sm">0.0 mm</span>
           </span>
           <span class="text-[11px] text-slate-500">Hermite 3차 곡률 응력 컨투어</span>
@@ -95,8 +95,8 @@
         <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
           <span class="text-xs font-bold text-slate-200">실시간 변위 이력 u(t) 및 가진 외력 p(t) 오실로스코프</span>
           <div class="flex items-center gap-3 text-[11px] font-mono font-medium">
-            <span class="flex items-center gap-1.5 text-cyan-400">
-              <span class="w-2 h-2 rounded-full bg-cyan-400 inline-block shadow-sm shadow-cyan-400"></span> u(t) 응답
+            <span class="flex items-center gap-1.5 text-slate-200">
+              <span class="w-2 h-2 rounded-full bg-slate-300 inline-block shadow-sm shadow-cyan-400"></span> u(t) 응답
             </span>
             <span class="flex items-center gap-1.5 text-amber-400">
               <span class="w-2 h-2 rounded-full bg-amber-400 inline-block shadow-sm shadow-amber-400"></span> p(t) 외력
@@ -123,13 +123,13 @@
       <div class="bg-[#090d16]/80 p-4 rounded-2xl border border-slate-800">
         <div class="flex justify-between text-slate-300 mb-2 font-medium">
           <span class="font-bold text-white">감쇠비 &zeta; (Damping Ratio)</span>
-          <span id="zeta-text" class="font-mono font-bold text-cyan-400">0.05 (5%)</span>
+          <span id="zeta-text" class="font-mono font-bold text-slate-200">0.05 (5%)</span>
         </div>
         <input id="slider-zeta" type="range" min="0" max="0.30" step="0.01" value="0.05" oninput="updateParams()"
                class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
         <div class="flex justify-between text-[11px] font-mono text-slate-500 mt-2">
           <span>비감쇠 (0%)</span>
-          <span class="text-cyan-400 font-semibold">RC 일반 (5%)</span>
+          <span class="text-slate-200 font-semibold">RC 일반 (5%)</span>
           <span>고감쇠 (30%)</span>
         </div>
       </div>
@@ -218,15 +218,15 @@
       if (Math.abs(beta - 1.0) < 0.08) {
         reg.innerHTML = '영역: <span class="text-red-400 font-bold">공진 피크 대역 (&omega; &asymp; &omega;n)</span>';
         phase.textContent = '위상차 \u03b8 \u2248 90\u00b0 (외력과 90도 지연)';
-        dafPanel.classList.add('neon-pulse-red', 'border-red-500/50');
+        dafPanel.classList.add('', 'border-red-500/50');
       } else if (beta < 0.7) {
-        reg.innerHTML = '영역: <span class="text-cyan-400 font-bold">강성 지배 대역 (Stiffness controlled)</span>';
+        reg.innerHTML = '영역: <span class="text-slate-200 font-bold">강성 지배 대역 (Stiffness controlled)</span>';
         phase.textContent = '위상차 \u03b8 \u2248 0\u00b0 (외력과 동위상 거동)';
-        dafPanel.classList.remove('neon-pulse-red', 'border-red-500/50');
+        dafPanel.classList.remove('', 'border-red-500/50');
       } else {
         reg.innerHTML = '영역: <span class="text-emerald-400 font-bold">질량 지배 / 면진 대역 (Mass isolated)</span>';
         phase.textContent = '위상차 \u03b8 \u2248 180\u00b0 (외력과 역위상 거동)';
-        dafPanel.classList.remove('neon-pulse-red', 'border-red-500/50');
+        dafPanel.classList.remove('', 'border-red-500/50');
       }
     }
 
@@ -235,8 +235,8 @@
       document.getElementById('play-text').textContent = isRunning ? '일시정지' : '재개';
       document.getElementById('play-icon').textContent = isRunning ? '⏸' : '▶';
       document.getElementById('btn-play').className = isRunning ? 
-        'px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/30 flex items-center gap-1.5' : 
-        'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/30 flex items-center gap-1.5';
+        'px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-lg  flex items-center gap-1.5' : 
+        'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg  flex items-center gap-1.5';
     }
 
     function resetSim() {

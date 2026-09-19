@@ -17,27 +17,16 @@
       font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
     }
-    .badge-pass { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
-    .badge-kds { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-    .badge-fema { background-color: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
-    .badge-demo { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
-    .badge-wind { background-color: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
-    /* .sim-card 3D perspective and dynamic physics handled by dynamics-fx.css & dynamics-fx.js */
+    .badge-pass { background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
+    .badge-kds { background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
+    .badge-fema { background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
+    .badge-demo { background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
+    .badge-wind { background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
 
     .transition-bridge {
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      background: #0f172a;
       position: relative;
       overflow: hidden;
-    }
-    .transition-bridge::after {
-      content: "";
-      position: absolute;
-      top: -50%;
-      right: -20%;
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%);
-      pointer-events: none;
     }
     html {
       scroll-behavior: smooth;
@@ -52,16 +41,16 @@
     <header class="header-dark-3d rounded-3xl p-6 md:p-8 flex flex-wrap items-center justify-between gap-6">
       <div class="space-y-3">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-400/40">
+          <span class="px-3 py-1 rounded-full bg-white/10 text-slate-200 text-xs font-semibold border border-white/15">
             구조동역학 (Structural Dynamics)
           </span>
-          <span class="px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-400/40">
+          <span class="px-3 py-1 rounded-full bg-white/10 text-slate-200 text-xs font-semibold border border-white/15">
             내풍설계 (Wind Engineering)
           </span>
-          <span class="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-400/40">
+          <span class="px-3 py-1 rounded-full bg-white/10 text-slate-200 text-xs font-semibold border border-white/15">
             내진설계 & 규준 (Seismic & KDS 41)
           </span>
-          <span class="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-400/40">
+          <span class="px-3 py-1 rounded-full bg-white/10 text-slate-200 text-xs font-semibold border border-white/15">
             성능기반설계 (Performance-Based & FEMA 356)
           </span>
         </div>
@@ -74,17 +63,17 @@
       </div>
 
       <div class="flex flex-wrap sm:flex-nowrap items-center gap-3 font-mono text-xs">
-        <div class="p-3.5 bg-slate-900/90 border border-slate-700 rounded-2xl text-center min-w-[110px] text-white">
+        <div class="p-3.5 bg-slate-900 border border-slate-700 rounded-2xl text-center min-w-[110px] text-white">
           <span class="text-slate-400 block text-[11px] font-sans"><i class="fa-solid fa-layer-group text-slate-400 mr-1"></i>전공 트랙</span>
           <span class="font-black text-white text-lg">4대 트랙</span>
         </div>
-        <div class="p-3.5 bg-blue-950/90 border border-blue-500/40 rounded-2xl text-center min-w-[110px] text-blue-200">
-          <span class="text-blue-300 block text-[11px] font-sans font-bold"><i class="fa-solid fa-laptop-code text-blue-400 mr-1"></i>통합 시뮬레이터</span>
-          <span class="font-black text-blue-300 text-lg">30개 정본</span>
+        <div class="p-3.5 bg-slate-900 border border-slate-700 rounded-2xl text-center min-w-[110px] text-white">
+          <span class="text-slate-400 block text-[11px] font-sans font-bold"><i class="fa-solid fa-laptop-code text-slate-400 mr-1"></i>통합 시뮬레이터</span>
+          <span class="font-black text-white text-lg">30개 정본</span>
         </div>
-        <div class="p-3.5 bg-purple-950/90 border border-purple-500/40 rounded-2xl text-center min-w-[110px] text-purple-200">
-          <span class="text-purple-300 block text-[11px] font-sans font-bold"><i class="fa-solid fa-bridge-water text-purple-400 mr-1"></i>트랜지션 브릿지</span>
-          <span class="font-black text-purple-300 text-lg">5개 구간</span>
+        <div class="p-3.5 bg-slate-900 border border-slate-700 rounded-2xl text-center min-w-[110px] text-white">
+          <span class="text-slate-400 block text-[11px] font-sans font-bold"><i class="fa-solid fa-bridge-water text-slate-400 mr-1"></i>트랜지션 브릿지</span>
+          <span class="font-black text-white text-lg">5개 구간</span>
         </div>
       </div>
     </header>
@@ -95,76 +84,76 @@
       <div onclick="filterByTrack('dynamics')" class="track-card track-card-1 p-5 rounded-2xl bg-white transition cursor-pointer flex flex-col justify-between space-y-3 group">
         <div>
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-blue-700 font-mono px-2 py-0.5 rounded bg-blue-50 flex items-center gap-1.5 border border-blue-200">
+            <span class="text-xs font-bold text-slate-800 font-mono px-2 py-0.5 rounded bg-slate-100 flex items-center gap-1.5 border border-slate-300">
               <i class="fa-solid fa-wave-square"></i> TRACK 1
             </span>
             <span class="text-[11px] text-slate-500 font-mono font-bold">9개 모듈</span>
           </div>
-          <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-blue-700 transition">
+          <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-slate-700 transition">
             구조동역학 & 진동론
           </h2>
           <p class="text-xs text-slate-600 mt-1 leading-relaxed">
             SDOF 공진, 마찰 vs 점성감쇠, 주파수 응답/Bode, FFT/PSD, Newmark-β 수치적분, 모드 중첩 오케스트라, Rayleigh 직교성.
           </p>
         </div>
-        <span class="text-[11px] font-bold text-blue-700 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
+        <span class="text-[11px] font-bold text-slate-900 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
       </div>
 
       <!-- Track 2 -->
       <div onclick="filterByTrack('wind')" class="track-card track-card-2 p-5 rounded-2xl bg-white transition cursor-pointer flex flex-col justify-between space-y-3 group">
         <div>
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-teal-700 font-mono px-2 py-0.5 rounded bg-teal-50 flex items-center gap-1.5 border border-teal-200">
+            <span class="text-xs font-bold text-slate-800 font-mono px-2 py-0.5 rounded bg-slate-100 flex items-center gap-1.5 border border-slate-300">
               <i class="fa-solid fa-wind"></i> TRACK 2
             </span>
             <span class="text-[11px] text-slate-500 font-mono font-bold">3개 모듈</span>
           </div>
-          <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-teal-700 transition">
+          <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-slate-700 transition">
             내풍공학 & 멀티해저드
           </h2>
           <p class="text-xs text-slate-600 mt-1 leading-relaxed">
             외표면 압력(풍하중) vs 내부 관성력(지진하중) 메커니즘 대조, 지반 채찍 효과 증폭, 초고층 비틀림-횡진동 연성(타이베이 101).
           </p>
         </div>
-        <span class="text-[11px] font-bold text-teal-700 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
+        <span class="text-[11px] font-bold text-slate-900 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
       </div>
 
       <!-- Track 3 -->
       <div onclick="filterByTrack('seismic')" class="track-card track-card-3 p-5 rounded-2xl bg-white transition cursor-pointer flex flex-col justify-between space-y-3 group">
         <div>
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-red-700 font-mono px-2 py-0.5 rounded bg-red-50 flex items-center gap-1.5 border border-red-200">
+            <span class="text-xs font-bold text-slate-800 font-mono px-2 py-0.5 rounded bg-slate-100 flex items-center gap-1.5 border border-slate-300">
               <i class="fa-solid fa-building-shield"></i> TRACK 3
             </span>
             <span class="text-[11px] text-slate-500 font-mono font-bold">13개 모듈</span>
           </div>
-          <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-red-700 transition">
+          <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-slate-700 transition">
             규준 내진설계 & 모달해석
           </h2>
           <p class="text-xs text-slate-600 mt-1 leading-relaxed">
             KDS 41 파이프라인 네비게이터, Chopra 삼분도표/ADRS, R 삼중분해·이중골조, Cd 변위증폭, 주기상한 CuTa, 90% 유효질량, 85% 스케일링.
           </p>
         </div>
-        <span class="text-[11px] font-bold text-red-700 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
+        <span class="text-[11px] font-bold text-slate-900 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
       </div>
 
       <!-- Track 4 -->
       <div onclick="filterByTrack('nonlinear')" class="track-card track-card-4 p-5 rounded-2xl bg-white transition cursor-pointer flex flex-col justify-between space-y-3 group">
         <div>
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-purple-700 font-mono px-2 py-0.5 rounded bg-purple-50 flex items-center gap-1.5 border border-purple-200">
+            <span class="text-xs font-bold text-slate-800 font-mono px-2 py-0.5 rounded bg-slate-100 flex items-center gap-1.5 border border-slate-300">
               <i class="fa-solid fa-chart-line"></i> TRACK 4
             </span>
             <span class="text-[11px] text-slate-500 font-mono font-bold">5개 모듈</span>
           </div>
-          <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-purple-700 transition">
+          <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-slate-700 transition">
             비선형 성능기반설계(PBD)
           </h2>
           <p class="text-xs text-slate-600 mt-1 leading-relaxed">
             Newmark 등변위(R=5 삭감), 능력스펙트럼법(CSM) 성능점 수렴, RC 기둥 3D P-M 상관도, FEMA 356 백본, 4단계 미시손상역학.
           </p>
         </div>
-        <span class="text-[11px] font-bold text-purple-700 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
+        <span class="text-[11px] font-bold text-slate-900 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
       </div>
     </section>
 
@@ -174,9 +163,9 @@
         
         <!-- View Mode Switcher -->
         <div class="flex flex-wrap items-center gap-2 bg-slate-100 p-1 rounded-xl">
-          <button onclick="setViewMode('story')" id="btn-mode-story" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-blue-700 shadow-xs flex items-center gap-1.5">
+          <button onclick="setViewMode('story')" id="btn-mode-story" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 text-white shadow-xs flex items-center gap-1.5">
             <span>전주기 교육 로드맵 (Curriculum Roadmap)</span>
-            <span class="px-1.5 py-0.2 text-[10px] bg-blue-100 text-blue-800 rounded">추천</span>
+            <span class="px-1.5 py-0.2 text-[10px] bg-slate-800 text-slate-200 rounded">추천</span>
           </button>
           <button onclick="setViewMode('tracks')" id="btn-mode-tracks" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
             <span>4대 전공 트랙별 보기 (Academic Tracks)</span>
@@ -184,7 +173,7 @@
           <button onclick="setViewMode('grid')" id="btn-mode-grid" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
             <span>전체 모듈 일람 (Module Index)</span>
           </button>
-          <a href="journey.html" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-[#0071e3] hover:bg-[#0077ed] text-white flex items-center gap-1.5">
+          <a href="journey.html" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1.5">
             <i class="fa-solid fa-compass"></i>
             <span>스토리 저니 (Apple Style) &rarr;</span>
           </a>
@@ -829,19 +818,19 @@
       });
 
       if (mode === "story") {
-        btnStory.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-blue-700 shadow-xs flex items-center gap-1.5";
+        btnStory.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 text-white shadow-xs flex items-center gap-1.5";
         chapterNav.classList.remove("hidden");
         chapterNav.classList.add("flex");
         trackFilter.classList.add("hidden");
         trackFilter.classList.remove("flex");
       } else if (mode === "tracks") {
-        btnTracks.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-blue-700 shadow-xs flex items-center gap-1.5";
+        btnTracks.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 text-white shadow-xs flex items-center gap-1.5";
         chapterNav.classList.add("hidden");
         chapterNav.classList.remove("flex");
         trackFilter.classList.remove("hidden");
         trackFilter.classList.add("flex");
       } else {
-        btnGrid.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-blue-700 shadow-xs flex items-center gap-1.5";
+        btnGrid.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 text-white shadow-xs flex items-center gap-1.5";
         chapterNav.classList.add("hidden");
         chapterNav.classList.remove("flex");
         trackFilter.classList.add("hidden");
@@ -862,24 +851,18 @@
         btn.className = "px-3 py-1 rounded-lg text-xs font-medium transition bg-slate-100 hover:bg-slate-200 text-slate-700";
       });
       const activeBtn = document.getElementById("track-tab-" + cat);
-      if (activeBtn) activeBtn.className = "px-3 py-1 rounded-lg text-xs font-bold transition bg-blue-600 text-white shadow-xs";
+      if (activeBtn) activeBtn.className = "px-3 py-1 rounded-lg text-xs font-bold transition bg-slate-900 text-white shadow-xs";
       render();
     }
 
     function renderCardHTML(sim) {
-      const trackBadgeColor = 
-        sim.trackId === "dynamics" ? "bg-blue-50 text-blue-700 border-blue-200" :
-        sim.trackId === "wind" ? "bg-teal-50 text-teal-700 border-teal-200" :
-        sim.trackId === "seismic" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
-        "bg-purple-50 text-purple-700 border-purple-200";
-
       return `
-        <div class="sim-card p-5 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between shadow-2xs hover:border-blue-300">
+        <div class="sim-card p-5 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between shadow-2xs hover:border-slate-400">
           <div>
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-1.5">
-                <span class="text-xs font-bold text-blue-700 font-mono px-2 py-0.5 rounded bg-blue-50 border border-blue-200">${sim.num}</span>
-                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border ${trackBadgeColor}">${sim.trackName}</span>
+                <span class="text-xs font-bold text-white font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-900">${sim.num}</span>
+                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border bg-slate-100 text-slate-700 border-slate-200">${sim.trackName}</span>
                 <span class="text-[10px] font-mono text-slate-400">Step ${sim.step}/30</span>
               </div>
               <span class="text-[11px] px-2 py-0.5 rounded-md font-medium ${sim.badgeClass}">${sim.status}</span>
@@ -888,8 +871,8 @@
             <div class="text-[11px] font-mono text-slate-400 mb-1">${sim.standard}</div>
             <h3 class="font-bold text-slate-900 text-base mb-2 leading-snug">${sim.title}</h3>
             
-            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-700 mb-3 leading-relaxed">
-              <strong class="text-blue-900 block font-semibold mb-0.5">핵심 공학 탐구 과제 (Core Inquiry):</strong>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-700 mb-3 leading-relaxed">
+              <strong class="text-slate-900 block font-semibold mb-0.5">핵심 공학 탐구 과제 (Core Inquiry):</strong>
               ${sim.leadQuestion}
             </div>
 
@@ -903,7 +886,7 @@
               `).join('')}
             </div>
 
-            <a href="${sim.file}" target="_blank" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-blue-600 text-white text-xs font-bold text-center transition flex items-center justify-center gap-2 group shadow-xs">
+            <a href="${sim.file}" target="_blank" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold text-center transition flex items-center justify-center gap-2 group shadow-xs">
               <i class="fa-solid fa-play text-[10px] opacity-80 group-hover:scale-110 transition-transform"></i>
               <span>시뮬레이터 실행</span>
               <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
@@ -917,30 +900,30 @@
       return `
         <div class="transition-bridge text-white rounded-3xl p-6 md:p-8 my-10 shadow-lg border border-slate-800">
           <div class="flex items-center gap-2 mb-3">
-            <span class="px-3 py-1 rounded-full bg-indigo-500/30 text-indigo-300 text-xs font-bold font-mono border border-indigo-400/30">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-slate-200 text-xs font-semibold font-mono border border-white/15">
               CURRICULUM TRANSITION
             </span>
             <span class="text-xs text-slate-400 font-medium">${trans.title}</span>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-            <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <div class="flex items-center gap-2 mb-2 text-rose-300 font-bold text-xs">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
+              <div class="flex items-center gap-2 mb-2 text-slate-200 font-bold text-xs">
                 <span>[한계 과제]</span>
                 <span>단계별 당면 한계: ${trans.problemTitle}</span>
               </div>
               <p class="text-xs text-slate-300 leading-relaxed">${trans.problemText}</p>
             </div>
 
-            <div class="bg-indigo-950/50 border border-indigo-500/30 rounded-2xl p-5 flex flex-col justify-between">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
               <div>
-                <div class="flex items-center gap-2 mb-2 text-emerald-300 font-bold text-xs">
+                <div class="flex items-center gap-2 mb-2 text-slate-200 font-bold text-xs">
                   <span>[이론적 전개]</span>
                   <span>공학적 해법 및 전개: ${trans.solutionTitle}</span>
                 </div>
                 <p class="text-xs text-slate-300 leading-relaxed">${trans.solutionText}</p>
               </div>
-              <div class="pt-3 mt-3 border-t border-indigo-500/20 text-[11px] font-bold text-indigo-300 flex items-center gap-1">
+              <div class="pt-3 mt-3 border-t border-slate-800 text-[11px] font-bold text-slate-300 flex items-center gap-1">
                 <span>이어지는 챕터: ${trans.nextAct}</span>
                 <span>&darr;</span>
               </div>

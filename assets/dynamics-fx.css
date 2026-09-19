@@ -1,73 +1,39 @@
 /**
- * Dynamics FX v3 — Bold Architectural 3D System
+ * Dynamics FX — Architectural Solid System (Clean & Authentic)
  *
- * Requirements:
- * 1. ZERO mouse-following tilt on buttons or cards (Rock-solid, horizontal stability)
- * 2. Bold, dark 2px defined borders on all boxes
- * 3. Solid 3D extruded drop shadows with tactile elevation on hover/press
- * 4. Distinctive architectural color palette (Deep obsidian, rich Prussian blue, Forest teal, Terracotta, Imperial violet)
+ * Rules:
+ * 1. Zero fluorescent / neon / glowing accents.
+ * 2. Solid ink / dark slate borders and physical drop shadows.
+ * 3. Natural OS cursor (no custom trailing circles or glows).
+ * 4. Quiet, restrained, dignified engineering color scheme.
  */
 
 /* ===================================================================
    0. CANVAS & GLOBAL COLOR PALETTE
-   Technical architectural canvas with fine geometric blueprint dot matrix
    =================================================================== */
 body {
-  background-color: #f1f5f9 !important;
-  background-image: radial-gradient(#94a3b8 1.1px, transparent 1.1px) !important;
-  background-size: 20px 20px !important;
+  background-color: #f8fafc !important;
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px) !important;
+  background-size: 24px 24px !important;
   color: #0f172a !important;
+  cursor: auto !important;
 }
 
 /* ===================================================================
-   1. CURSOR (Minimal Precision Follower)
+   1. CURSOR — DISABLED (Default OS Precision Cursor)
    =================================================================== */
-.awwwards-cursor-dot {
-  position: fixed;
-  top: 0; left: 0;
-  width: 7px; height: 7px;
-  background: #0f172a;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99999;
-  transform: translate(-50%, -50%);
-  transition: width 0.15s ease, height 0.15s ease, background-color 0.15s ease;
-  will-change: transform;
-}
-
+.awwwards-cursor-dot,
 .awwwards-cursor-ring {
-  position: fixed;
-  top: 0; left: 0;
-  width: 32px; height: 32px;
-  border: 1.5px solid rgba(15, 23, 42, 0.45);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99998;
-  transform: translate(-50%, -50%);
-  transition: width 0.2s ease, height 0.2s ease, border-color 0.2s ease;
-  will-change: transform;
-}
-
-body.cursor-hover .awwwards-cursor-dot {
-  width: 4px; height: 4px;
-  background: #2563eb;
-}
-body.cursor-hover .awwwards-cursor-ring {
-  width: 44px; height: 44px;
-  border-color: rgba(37, 99, 235, 0.7);
-  background: rgba(37, 99, 235, 0.05);
-}
-body.cursor-active .awwwards-cursor-ring {
-  width: 24px; height: 24px;
-  border-color: #0f172a;
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* ===================================================================
-   2. BOLD 3D BOX & BORDER SYSTEM
-   - 2px dark solid borders on all boxes
-   - 3D physical extruded shadow
-   - Clean vertical elevation on hover (NO mouse-following tilt)
-   - Tactile depression on active/click
+   2. SOLID 3D BOX & BORDER SYSTEM
+   - 2px dark solid ink borders
+   - Solid extruded drop shadow (no neon blur or color glow)
+   - Vertical elevation on hover, tactile depression on click
    =================================================================== */
 
 /* Master Box Definition */
@@ -80,66 +46,49 @@ section.bg-white,
 .transition-bridge,
 .dynamics-topbar {
   border: 2px solid #0f172a !important;
-  border-radius: 1.1rem !important;
-  box-shadow: 0 5px 0 #0f172a, 0 10px 24px -2px rgba(15, 23, 42, 0.12) !important;
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.18s ease !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 4px 0 #0f172a, 0 10px 20px -2px rgba(15, 23, 42, 0.08) !important;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.15s ease !important;
   position: relative;
   overflow: hidden;
   background-color: #ffffff;
 }
 
-/* Hover: Physical 3D Elevation */
+/* Hover: Physical Elevation */
 .sim-card:hover,
 .track-card:hover,
 .zentry-3d-panel:hover {
-  transform: translateY(-4px) !important;
-  box-shadow: 0 9px 0 #0f172a, 0 18px 32px -4px rgba(15, 23, 42, 0.18) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 7px 0 #0f172a, 0 14px 24px -4px rgba(15, 23, 42, 0.12) !important;
 }
 
-/* Click / Active: 3D Press Down */
+/* Click / Active: Tactile Compression */
 .sim-card:active,
 .track-card:active,
 .zentry-3d-panel:active {
   transform: translateY(2px) !important;
-  box-shadow: 0 2px 0 #0f172a, 0 4px 8px rgba(15, 23, 42, 0.1) !important;
+  box-shadow: 0 1px 0 #0f172a, 0 2px 4px rgba(15, 23, 42, 0.08) !important;
 }
 
-/* Track Card Color Identities */
-.track-card-1 {
-  border-color: #1d4ed8 !important;
-  box-shadow: 0 5px 0 #1e3a8a, 0 10px 24px -2px rgba(30, 58, 138, 0.14) !important;
-}
-.track-card-1:hover {
-  box-shadow: 0 9px 0 #1e3a8a, 0 18px 32px -4px rgba(30, 58, 138, 0.22) !important;
-}
-
-.track-card-2 {
-  border-color: #0f766e !important;
-  box-shadow: 0 5px 0 #115e59, 0 10px 24px -2px rgba(17, 94, 89, 0.14) !important;
-}
-.track-card-2:hover {
-  box-shadow: 0 9px 0 #115e59, 0 18px 32px -4px rgba(17, 94, 89, 0.22) !important;
-}
-
-.track-card-3 {
-  border-color: #b91c1c !important;
-  box-shadow: 0 5px 0 #7f1d1d, 0 10px 24px -2px rgba(127, 29, 29, 0.14) !important;
-}
-.track-card-3:hover {
-  box-shadow: 0 9px 0 #7f1d1d, 0 18px 32px -4px rgba(127, 29, 29, 0.22) !important;
-}
-
+/* Track Cards: Clean Unified Ink Borders (No neon / colored borders) */
+.track-card-1,
+.track-card-2,
+.track-card-3,
 .track-card-4 {
-  border-color: #7e22ce !important;
-  box-shadow: 0 5px 0 #581c87, 0 10px 24px -2px rgba(88, 28, 135, 0.14) !important;
-}
-.track-card-4:hover {
-  box-shadow: 0 9px 0 #581c87, 0 18px 32px -4px rgba(88, 28, 135, 0.22) !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 4px 0 #0f172a, 0 10px 20px -2px rgba(15, 23, 42, 0.08) !important;
 }
 
-/* Inner Callout Boxes */
+.track-card-1:hover,
+.track-card-2:hover,
+.track-card-3:hover,
+.track-card-4:hover {
+  box-shadow: 0 7px 0 #0f172a, 0 14px 24px -4px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Inner Callout Boxes: Quiet Slate Tint */
 .sim-card .p-2\.5.rounded-xl,
 .p-2\.5.bg-slate-50,
 .p-3\.5.bg-slate-50,
@@ -150,7 +99,7 @@ section.bg-white,
 }
 
 /* ===================================================================
-   3. BUTTON SYSTEM — STRICTLY FLAT, NO TILT, PHYSICAL 3D BEVEL
+   3. BUTTON SYSTEM — SOLID OBSIDIAN & TACTILE INK
    =================================================================== */
 button,
 a.dynamics-back-btn,
@@ -158,44 +107,61 @@ a.dynamics-back-btn,
 [role="button"] {
   border: 2px solid #0f172a !important;
   border-radius: 0.75rem !important;
-  box-shadow: 0 3.5px 0 #0f172a !important;
+  box-shadow: 0 3px 0 #0f172a !important;
   transform: none !important;
   transform-style: flat !important;
   transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.12s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.15s ease,
-              filter 0.12s ease !important;
+              background-color 0.15s ease !important;
   font-weight: 700 !important;
+  background-color: #0f172a !important;
+  color: #ffffff !important;
 }
 
-/* Hover: Clean upward 3D step, NO rotational tilt */
+/* Hover: Step up, solid slate hover */
 button:hover,
 a.dynamics-back-btn:hover,
 .sim-card a:hover,
 [role="button"]:hover {
+  background-color: #1e293b !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 5.5px 0 #0f172a, 0 8px 16px -2px rgba(15, 23, 42, 0.2) !important;
-  filter: brightness(1.06);
+  box-shadow: 0 5px 0 #0f172a, 0 8px 16px -2px rgba(15, 23, 42, 0.15) !important;
+  filter: none !important;
 }
 
-/* Active / Click: Tactile 3D press, compresses shadow */
+/* Active / Click: Tactile compression */
 button:active,
 a.dynamics-back-btn:active,
 .sim-card a:active,
 [role="button"]:active,
 .btn-pressed {
+  background-color: #020617 !important;
   transform: translateY(2px) !important;
   box-shadow: 0 1px 0 #0f172a !important;
-  filter: brightness(0.93);
+  filter: none !important;
+}
+
+/* Secondary / Light Buttons */
+.btn-secondary,
+.btn-outline {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 2px solid #0f172a !important;
+  box-shadow: 0 3px 0 #0f172a !important;
+}
+.btn-secondary:hover,
+.btn-outline:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
 }
 
 /* ===================================================================
-   4. HERO HEADER — HIGH CONTRAST OBSIDIAN 3D THEME
+   4. HERO HEADER — HIGH-DENSITY OBSIDIAN MATTE
    =================================================================== */
 header.header-dark-3d {
-  background: linear-gradient(135deg, #0b1120 0%, #0f172a 60%, #1e293b 100%) !important;
+  background: #0f172a !important;
   border: 2px solid #0f172a !important;
-  box-shadow: 0 8px 0 #020617, 0 20px 36px -4px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 6px 0 #020617, 0 16px 30px -4px rgba(0, 0, 0, 0.25) !important;
   color: #ffffff !important;
 }
 
@@ -209,44 +175,29 @@ header.header-dark-3d p {
 }
 
 header.header-dark-3d .font-mono > div {
-  background: rgba(15, 23, 42, 0.8) !important;
+  background: #1e293b !important;
   border: 1.5px solid #334155 !important;
   box-shadow: 0 3px 0 #020617 !important;
+  color: #f8fafc !important;
 }
 
 /* ===================================================================
    5. TRANSITION BRIDGES & SUBPAGE TOPBAR
    =================================================================== */
 .transition-bridge {
-  background: linear-gradient(135deg, #090d16 0%, #111827 50%, #090d16 100%) !important;
-  border: 2px solid #1e293b !important;
-  box-shadow: 0 6px 0 #020617, 0 16px 32px rgba(0, 0, 0, 0.35) !important;
+  background: #0f172a !important;
+  border: 2px solid #0f172a !important;
+  box-shadow: 0 5px 0 #020617, 0 12px 24px rgba(0, 0, 0, 0.2) !important;
 }
 
 .dynamics-topbar {
   border: 2px solid #0f172a !important;
-  box-shadow: 0 4px 0 #0f172a, 0 10px 20px -2px rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 3px 0 #0f172a, 0 8px 16px -2px rgba(15, 23, 42, 0.06) !important;
   background: #ffffff !important;
 }
 
-/* Subtle ambient spotlight for depth cues without tilt */
-.card-ambient-spotlight {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(
-    circle 320px at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(37, 99, 235, 0.07) 0%,
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 1;
-}
-
-.sim-card:hover .card-ambient-spotlight,
-.track-card:hover .card-ambient-spotlight,
-.zentry-3d-panel:hover .card-ambient-spotlight {
-  opacity: 1;
+/* Spotlights & Sheens: Disabled */
+.card-ambient-spotlight,
+.card-specular-sheen {
+  display: none !important;
 }
