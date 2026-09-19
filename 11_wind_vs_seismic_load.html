@@ -3,8 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>11. 고층건물 풍하중 vs 지진하중 횡력 비교 시뮬레이터</title>
+<title>11. 고층건물 풍하중 vs 지진하중 횡력 비교 시뮬레이터 (A/B 병렬 검수)</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Three.js & OrbitControls for Option B -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <style>
   :root {
     --bg-main: #f8fafc;
@@ -18,7 +22,6 @@
     --accent-cyan: #0891b2;
     --accent-red: #dc2626;
     --accent-amber: #d97706;
-    --accent-emerald: #059669;
     --font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -237,7 +240,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
   .canvas-title {
     font-size: 13px;
@@ -247,21 +252,29 @@
     align-items: center;
     gap: 8px;
   }
-  .canvas-legend {
+  .view-switcher-bar {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 6px;
+    background: #e2e8f0;
+    padding: 3px;
+    border-radius: 8px;
+  }
+  .view-btn {
+    padding: 5px 12px;
     font-size: 11.5px;
-    font-weight: 600;
+    font-weight: 700;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+    color: var(--text-secondary);
   }
-  .legend-item { display: flex; align-items: center; gap: 5px; }
-  .legend-dot { width: 9px; height: 9px; border-radius: 2px; }
-  .comparison-grid {
-    display: grid;
-    grid-template-columns: 280px 1fr 1fr;
-    gap: 14px;
-  }
-  @media (max-width: 960px) {
-    .comparison-grid { grid-template-columns: 1fr; }
+  .view-btn.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
   .anim-mode-group {
     display: inline-flex;
@@ -272,7 +285,7 @@
     gap: 2px;
   }
   .anim-btn {
-    padding: 3px 8px;
+    padding: 4px 9px;
     border-radius: 4px;
     border: none;
     background: transparent;
@@ -288,13 +301,69 @@
     color: #0f172a;
     box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   }
+  .canvas-legend {
+    display: flex;
+    gap: 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 2px; }
+
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 290px 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 960px) {
+    .comparison-grid { grid-template-columns: 1fr; }
+  }
+
+  .viewer-col {
+    position: relative;
+    height: 440px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    overflow: hidden;
+  }
+  .chart-col {
+    position: relative;
+    height: 440px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    overflow: hidden;
+  }
   canvas {
     display: block;
     width: 100%;
-    border-radius: 6px;
-    background: #ffffff;
-    border: 1px solid #f1f5f9;
+    height: 100%;
   }
+
+  #threeContainer {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: none;
+  }
+  #threeHud {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    font-size: 10px;
+    font-family: monospace;
+    color: #475569;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e1;
+    pointer-events: none;
+    z-index: 10;
+  }
+
   .bottom-insight {
     background: #ffffff;
     border: 1px solid var(--border-color);
@@ -309,9 +378,9 @@
     gap: 12px;
   }
 </style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-  <script src="assets/dynamics-fx.js" defer></script>
+<link rel="stylesheet" href="assets/dynamics-fx.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body>
 
@@ -319,7 +388,7 @@
   <header>
     <div class="header-left">
       <h1>11. 고층건물 풍하중(Wind) vs 지진하중(Seismic) 횡력 비교</h1>
-      <p>높이별 표면 풍압력(H^1.5) vs 질량비례 관성력 | 층별 횡하중 분포, 층전단력, 전복모멘트 교차(Crossover) 시뮬레이션</p>
+      <p>A/B 병렬 검수: <strong>[A안] CAD 정밀 도면</strong> vs <strong>[B안] Three.js 실시간 3D 뷰어</strong></p>
     </div>
     <a href="index.html" class="nav-badge">← 마스터 대시보드</a>
   </header>
@@ -426,11 +495,13 @@
     <div class="main-content">
       <div class="canvas-wrapper">
         <div class="canvas-header">
-          <div class="canvas-title">
-            <i class="fa-solid fa-building-columns text-blue-600"></i>
-            <span>건물 입면 형상 & 층별 횡하중(Fx) 및 층전단력(Vx) 프로파일</span>
+          <!-- A/B 선택 스위처 -->
+          <div class="view-switcher-bar">
+            <button id="btnViewA" class="view-btn active" onclick="switchView('A')">📐 A안: CAD 정밀 도면 (2D)</button>
+            <button id="btnViewB" class="view-btn" onclick="switchView('B')">🌐 B안: Three.js 3D 뷰어 (3D)</button>
           </div>
-          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <div class="anim-mode-group">
               <button class="anim-btn active" id="btnModeCompare" onclick="setAnimMode('compare')">⚖️ 복합 비교</button>
               <button class="anim-btn" id="btnModeWind" onclick="setAnimMode('wind')">🌪️ 풍하중 기류</button>
@@ -450,9 +521,21 @@
         </div>
 
         <div class="comparison-grid">
-          <div><canvas id="bldgCanvas" height="440"></canvas></div>
-          <div><canvas id="forceCanvas" height="440"></canvas></div>
-          <div><canvas id="shearCanvas" height="440"></canvas></div>
+          <!-- 1열: 입면 뷰어 (A: 2D CAD Canvas / B: Three.js WebGL Container) -->
+          <div class="viewer-col">
+            <canvas id="bldgCanvas"></canvas>
+            <div id="threeContainer">
+              <div id="threeHud">🖱️ 좌클릭 드래그: 3D 회전 | 우클릭: 이동 | 스크롤: 줌</div>
+            </div>
+          </div>
+          <!-- 2열: 횡하중 Fi 프로파일 -->
+          <div class="chart-col">
+            <canvas id="forceCanvas"></canvas>
+          </div>
+          <!-- 3열: 층전단력 Vx 프로파일 -->
+          <div class="chart-col">
+            <canvas id="shearCanvas"></canvas>
+          </div>
         </div>
       </div>
 
@@ -469,6 +552,10 @@
 </div>
 
 <script>
+// =============================================================================
+// GLOBAL STATE & PARAMETERS
+// =============================================================================
+let activeView = 'A'; // 'A' (CAD 2D) or 'B' (Three.js 3D)
 let stories = 20;
 let floorH = 3.3;
 let bldgWidth = 30.0;
@@ -489,27 +576,19 @@ let currentVSeismic = [];
 let hoverFloor = -1;
 let hoverCanvasType = null; // 'force' or 'shear'
 
-// Aerodynamic wind particle system
-const windParticles = [];
-const NUM_WIND_PARTICLES = 36;
-for (let i = 0; i < NUM_WIND_PARTICLES; i++) {
-  windParticles.push({
-    x: Math.random() * 280,
-    y: 50 + Math.random() * 320,
-    speed: 1.2 + Math.random() * 2.2,
-    len: 12 + Math.random() * 18,
-    alpha: 0.25 + Math.random() * 0.55
+// Streamline particles for Option A (2D CAD)
+const streamlines2D = [];
+for (let i = 0; i < 22; i++) {
+  streamlines2D.push({
+    x: Math.random() * 290,
+    y: 40 + Math.random() * 340,
+    speed: 1.5 + Math.random() * 2.0,
+    len: 14 + Math.random() * 20,
+    alpha: 0.35 + Math.random() * 0.45
   });
 }
 
-function setAnimMode(mode) {
-  animMode = mode;
-  document.getElementById('btnModeCompare').classList.toggle('active', mode === 'compare');
-  document.getElementById('btnModeWind').classList.toggle('active', mode === 'wind');
-  document.getElementById('btnModeSeismic').classList.toggle('active', mode === 'seismic');
-}
-
-// DOM
+// DOM Elements
 const rangeStories = document.getElementById('rangeStories');
 const rangeFloorH = document.getElementById('rangeFloorH');
 const rangeWidth = document.getElementById('rangeWidth');
@@ -539,6 +618,36 @@ const forceCanvas = document.getElementById('forceCanvas');
 const forceCtx = forceCanvas.getContext('2d');
 const shearCanvas = document.getElementById('shearCanvas');
 const shearCtx = shearCanvas.getContext('2d');
+const threeContainer = document.getElementById('threeContainer');
+
+// =============================================================================
+// VIEW SWITCHER (Option A vs Option B)
+// =============================================================================
+function switchView(view) {
+  activeView = view;
+  document.getElementById('btnViewA').classList.toggle('active', view === 'A');
+  document.getElementById('btnViewB').classList.toggle('active', view === 'B');
+
+  if (view === 'A') {
+    bldgCanvas.style.display = 'block';
+    threeContainer.style.display = 'none';
+  } else {
+    bldgCanvas.style.display = 'none';
+    threeContainer.style.display = 'block';
+    if (!threeRenderer) {
+      initThreeScene();
+    }
+    resizeThree();
+    rebuildThreeBuilding();
+  }
+}
+
+function setAnimMode(mode) {
+  animMode = mode;
+  document.getElementById('btnModeCompare').classList.toggle('active', mode === 'compare');
+  document.getElementById('btnModeWind').classList.toggle('active', mode === 'wind');
+  document.getElementById('btnModeSeismic').classList.toggle('active', mode === 'seismic');
+}
 
 function setPresetStories(n) {
   stories = n;
@@ -546,6 +655,9 @@ function setPresetStories(n) {
   updateAnalysis();
 }
 
+// =============================================================================
+// PHYSICS & CODE CALCULATIONS (KDS 41 12 00 & KDS 41 17 00)
+// =============================================================================
 function updateAnalysis() {
   const totalH = stories * floorH;
   valStories.textContent = `${stories} 층 (${totalH.toFixed(1)} m)`;
@@ -560,9 +672,7 @@ function updateAnalysis() {
   }
 
   // 1. 풍하중 계산 (KDS 41 12 00)
-  let alpha = 0.22;
-  let zb = 10.0;
-  let zg = 350.0;
+  let alpha = 0.22, zb = 10.0, zg = 350.0;
   if (exposure === 'C') { alpha = 0.15; zb = 5.0; zg = 250.0; }
   else if (exposure === 'D') { alpha = 0.10; zb = 3.0; zg = 200.0; }
 
@@ -577,23 +687,18 @@ function updateAnalysis() {
     const qz = q0 * Kz;
     const Gf = 1.85;
     const Cp = 1.30;
-    const pz = qz * Gf * Cp;
-    const Fi_w = (pz * tribArea) / 1000.0;
+    const pz = qz * Gf * Cp; // N/m²
+    const Fi_w = (pz * tribArea) / 1000.0; // kN
     currentFWind.push(Fi_w);
   }
 
-  // 2. 지진하중 계산 (KDS 41 17 00)
-  const Tn = 0.0488 * Math.pow(totalH, 0.75);
-  const Sd1 = Sds / 2.5;
-  let Cs = Sds / (R / 1.0);
-  const Cs_max = Sd1 / (Tn * (R / 1.0));
-  const Cs_min = 0.044 * Sds;
-  Cs = Math.min(Cs, Cs_max);
-  Cs = Math.max(Cs, Cs_min);
-
-  const floorWeight = (bldgWidth * bldgWidth * 0.8) * 11.0;
-  const W_total = floorWeight * stories;
-  const Vbase_s = Cs * W_total;
+  // 2. 지진하중 계산 (KDS 41 17 00 등가정적해석법)
+  const floorArea = bldgWidth * bldgWidth;
+  const floorWeight = floorArea * 11.5; // 11.5 kN/m²
+  const totalW = floorWeight * stories;
+  const Tn = 0.07 * Math.pow(totalH, 0.75); // 근사고유주기
+  const Cs = Math.min(Sds / (R / 1.0), Sds / (Tn * (R / 1.0)));
+  const Vbase_s = Math.max(0.044 * Sds * totalW, Cs * totalW);
 
   let kExp = 1.0;
   if (Tn <= 0.5) kExp = 1.0;
@@ -612,13 +717,15 @@ function updateAnalysis() {
     currentFSeismic.push(Fi_s);
   }
 
-  // 3. 층전단력 및 OTM
+  // 3. 층전단력 및 전복모멘트(OTM)
   currentVWind = new Array(stories);
   currentVSeismic = new Array(stories);
   let cumW = 0.0, cumS = 0.0;
   for (let i = stories - 1; i >= 0; i--) {
-    cumW += currentFWind[i]; cumS += currentFSeismic[i];
-    currentVWind[i] = cumW; currentVSeismic[i] = cumS;
+    cumW += currentFWind[i];
+    cumS += currentFSeismic[i];
+    currentVWind[i] = cumW;
+    currentVSeismic[i] = cumS;
   }
 
   let otmW = 0.0, otmS = 0.0;
@@ -651,44 +758,42 @@ function updateAnalysis() {
     progressFill.style.background = '#dc2626';
     progressFill.style.width = `${Math.min(100, Math.round((baseVs / (baseVw + baseVs)) * 100))}%`;
   }
-}
 
-function updateWindParticles(w, h, bldgLeft, bldgW, groundY, padTop) {
-  const totalH = groundY - padTop;
-  for (let p of windParticles) {
-    const altRatio = Math.max(0, Math.min(1, (groundY - p.y) / totalH));
-    const vFactor = Math.pow(Math.max(0.15, altRatio), 0.35) * (V0 / 32.0);
-    p.x += p.speed * 2.2 * vFactor;
-
-    // Windward deflection
-    if (p.x > bldgLeft - 35 && p.x < bldgLeft + 15) {
-      if (p.y < padTop + 35) {
-        p.y -= 1.4; // deflect up over roof
-      } else {
-        p.y += (p.y > (groundY + padTop) / 2) ? 0.4 : -0.4;
-      }
-    }
-    // Deflect over roof
-    if (p.x >= bldgLeft && p.x <= bldgLeft + bldgW) {
-      if (p.y > padTop - 12) p.y = padTop - 12;
-    }
-
-    if (p.x > w + 20) {
-      p.x = -20;
-      p.y = padTop + Math.random() * (groundY - padTop);
-    }
+  if (activeView === 'B' && threeRenderer) {
+    rebuildThreeBuilding();
   }
 }
 
-// 1. 고품격 건축 구조 시뮬레이션 캔버스
-function drawBuilding(hArr) {
+// =============================================================================
+// RESIZE LOGIC (NO CANVAS COLLAPSE BUG)
+// =============================================================================
+function handleResize() {
+  const dpr = window.devicePixelRatio || 1;
+
+  // 1. 2D Canvases Sizing
+  [bldgCanvas, forceCanvas, shearCanvas].forEach((c) => {
+    const rect = c.parentElement.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    c.width = Math.round(w * dpr);
+    c.height = Math.round(h * dpr);
+  });
+
+  // 2. Three.js Sizing
+  if (threeRenderer) {
+    resizeThree();
+  }
+
+  updateAnalysis();
+}
+
+// =============================================================================
+// OPTION A: CAD / BIM ARCHITECTURAL TECHNICAL DRAWING (2D)
+// =============================================================================
+function drawCADBuilding() {
   const dpr = window.devicePixelRatio || 1;
   const w = bldgCanvas.clientWidth;
-  const h = 440;
-  bldgCanvas.width = Math.round(w * dpr);
-  bldgCanvas.height = Math.round(h * dpr);
-  bldgCanvas.style.width = w + 'px';
-  bldgCanvas.style.height = h + 'px';
+  const h = bldgCanvas.clientHeight;
 
   bldgCtx.setTransform(1, 0, 0, 1, 0, 0);
   bldgCtx.clearRect(0, 0, bldgCanvas.width, bldgCanvas.height);
@@ -696,58 +801,62 @@ function drawBuilding(hArr) {
   bldgCtx.scale(dpr, dpr);
 
   const padTop = 50;
-  const groundY = h - 65;
+  const groundY = h - 60;
   const totalPlotH = groundY - padTop;
   const floorH_px = totalPlotH / stories;
 
-  const bldgW = Math.min(110, Math.max(80, w * 0.36));
+  const bldgW = Math.min(105, Math.max(75, w * 0.34));
   const bldgBaseLeft = (w - bldgW) / 2 + 15;
 
-  // 지반 암반층 (Geotechnical Bedrock Strata)
-  const soilGrad = bldgCtx.createLinearGradient(0, groundY, 0, h);
-  soilGrad.addColorStop(0, '#f1f5f9');
-  soilGrad.addColorStop(0.35, '#e2e8f0');
-  soilGrad.addColorStop(1, '#cbd5e1');
-  bldgCtx.fillStyle = soilGrad;
+  // 1. 배경 미세 그리드 (CAD Blueprint Grid)
+  bldgCtx.strokeStyle = '#f8fafc';
+  bldgCtx.lineWidth = 1;
+  for (let gx = 0; gx < w; gx += 20) {
+    bldgCtx.beginPath(); bldgCtx.moveTo(gx, 0); bldgCtx.lineTo(gx, h); bldgCtx.stroke();
+  }
+  for (let gy = 0; gy < h; gy += 20) {
+    bldgCtx.beginPath(); bldgCtx.moveTo(0, gy); bldgCtx.lineTo(w, gy); bldgCtx.stroke();
+  }
+
+  // 2. 지반 및 기반암층 (Technical Soil Profile)
+  bldgCtx.fillStyle = '#f8fafc';
   bldgCtx.fillRect(0, groundY, w, h - groundY);
 
-  // 지표면 기준선
   bldgCtx.strokeStyle = '#334155';
-  bldgCtx.lineWidth = 2.5;
+  bldgCtx.lineWidth = 2;
   bldgCtx.beginPath();
   bldgCtx.moveTo(0, groundY);
   bldgCtx.lineTo(w, groundY);
   bldgCtx.stroke();
 
-  // 지반 암반 해칭선
-  bldgCtx.strokeStyle = '#94a3b8';
+  // 지반 암반 해칭선 (45도 CAD 사선)
+  bldgCtx.strokeStyle = '#cbd5e1';
   bldgCtx.lineWidth = 1;
-  for (let gx = -20; gx < w + 20; gx += 22) {
+  for (let gx = -20; gx < w + 20; gx += 18) {
     bldgCtx.beginPath();
-    bldgCtx.moveTo(gx, groundY + 16);
-    bldgCtx.lineTo(gx + 16, h);
+    bldgCtx.moveTo(gx, groundY + 12);
+    bldgCtx.lineTo(gx + 14, h);
     bldgCtx.stroke();
   }
 
-  // 매트 기초 슬래브 (Mat Footing)
-  bldgCtx.fillStyle = '#94a3b8';
-  bldgCtx.fillRect(bldgBaseLeft - 14, groundY, bldgW + 28, 14);
+  // 매트 기초 (Mat Foundation)
+  bldgCtx.fillStyle = '#e2e8f0';
+  bldgCtx.fillRect(bldgBaseLeft - 12, groundY, bldgW + 24, 12);
   bldgCtx.strokeStyle = '#475569';
   bldgCtx.lineWidth = 1.5;
-  bldgCtx.strokeRect(bldgBaseLeft - 14, groundY, bldgW + 28, 14);
+  bldgCtx.strokeRect(bldgBaseLeft - 12, groundY, bldgW + 24, 12);
 
-  // 지반 명칭 라벨
   bldgCtx.fillStyle = '#64748b';
   bldgCtx.font = 'bold 9px monospace';
   bldgCtx.textAlign = 'left';
-  bldgCtx.fillText(`기반암 지지층 (Bedrock Layer)`, 12, groundY + 38);
+  bldgCtx.fillText(`▼ GL ±0.00 / MAT FOUNDATION`, 10, groundY + 36);
 
-  // 물리적 진동 및 횡변위 계산
+  // 3. 물리적 진동 및 횡변위 계산
   const isSeismic = (animMode === 'seismic' || animMode === 'compare');
   const isWind = (animMode === 'wind' || animMode === 'compare');
-  const groundSway = isSeismic ? Math.sin(animTime * 3.2) * 4.5 : 0;
-  const topSway = isSeismic ? Math.sin(animTime * 3.2 - 0.45) * 15.0 : 0;
-  const windStaticDeflect = isWind ? 6.5 : 0;
+  const groundSway = isSeismic ? Math.sin(animTime * 3.2) * 3.5 : 0;
+  const topSway = isSeismic ? Math.sin(animTime * 3.2 - 0.45) * 14.0 : 0;
+  const windStaticDeflect = isWind ? 6.0 : 0;
 
   const nodeL = [];
   const nodeR = [];
@@ -761,142 +870,124 @@ function drawBuilding(hArr) {
     nodeR.push({ x: bldgBaseLeft + bldgW + totalDx, y: y });
   }
 
-  // 커튼월 글래스 외장 그라데이션
-  const glassGrad = bldgCtx.createLinearGradient(bldgBaseLeft, 0, bldgBaseLeft + bldgW, 0);
-  glassGrad.addColorStop(0.0, '#0f172a');
-  glassGrad.addColorStop(0.2, '#1e293b');
-  glassGrad.addColorStop(0.5, '#0369a1');
-  glassGrad.addColorStop(0.75, '#0284c7');
-  glassGrad.addColorStop(1.0, '#0f172a');
-
-  bldgCtx.fillStyle = glassGrad;
+  // 4. 중앙 전단벽 코어 (Central Shear Core Wall)
+  const coreW = bldgW * 0.38;
+  bldgCtx.fillStyle = '#f1f5f9';
   bldgCtx.beginPath();
-  bldgCtx.moveTo(nodeL[0].x, nodeL[0].y);
-  for (let i = 1; i <= stories; i++) bldgCtx.lineTo(nodeL[i].x, nodeL[i].y);
-  for (let i = stories; i >= 0; i--) bldgCtx.lineTo(nodeR[i].x, nodeR[i].y);
+  const cL0 = (nodeL[0].x + nodeR[0].x) / 2 - coreW / 2;
+  const cR0 = cL0 + coreW;
+  const cLt = (nodeL[stories].x + nodeR[stories].x) / 2 - coreW / 2;
+  const cRt = cLt + coreW;
+  bldgCtx.moveTo(cL0, nodeL[0].y);
+  bldgCtx.lineTo(cLt, nodeL[stories].y);
+  bldgCtx.lineTo(cRt, nodeR[stories].y);
+  bldgCtx.lineTo(cR0, nodeR[0].y);
   bldgCtx.closePath();
   bldgCtx.fill();
 
-  // 층별 슬래브 및 창호 수직 멀리온
-  for (let i = 0; i < stories; i++) {
-    const nl1 = nodeL[i], nl2 = nodeL[i + 1];
-    const nr1 = nodeR[i], nr2 = nodeR[i + 1];
-    const floorY = nl2.y;
-
-    // 스팬드럴 글래스 띠
-    bldgCtx.fillStyle = '#0f172a';
+  // 코어 내부 사선 해칭 (Shear Wall Pattern)
+  bldgCtx.strokeStyle = '#e2e8f0';
+  bldgCtx.lineWidth = 1;
+  for (let i = 0; i < stories; i += 2) {
+    const cy1 = nodeL[i].y;
+    const cy2 = nodeL[i + 1].y;
+    const cx1 = (nodeL[i].x + nodeR[i].x) / 2 - coreW / 2;
+    const cx2 = cx1 + coreW;
     bldgCtx.beginPath();
-    bldgCtx.moveTo(nl2.x, floorY);
-    bldgCtx.lineTo(nr2.x, floorY);
-    bldgCtx.lineTo(nr2.x, floorY + 4);
-    bldgCtx.lineTo(nl2.x, floorY + 4);
-    bldgCtx.closePath();
-    bldgCtx.fill();
+    bldgCtx.moveTo(cx1, cy1);
+    bldgCtx.lineTo(cx2, cy2);
+    bldgCtx.stroke();
+  }
 
-    // 슬래브 엣지 라인
-    bldgCtx.strokeStyle = '#cbd5e1';
-    bldgCtx.lineWidth = 1.2;
+  // 5. 층별 슬래브 (Floor Slabs) & 외곽 기둥 (Columns)
+  for (let i = 0; i <= stories; i++) {
+    const nl = nodeL[i], nr = nodeR[i];
+
+    // 슬래브 (두께 3px 솔리드 라인)
+    bldgCtx.strokeStyle = '#334155';
+    bldgCtx.lineWidth = 2.5;
     bldgCtx.beginPath();
-    bldgCtx.moveTo(nl2.x, floorY);
-    bldgCtx.lineTo(nr2.x, floorY);
+    bldgCtx.moveTo(nl.x, nl.y);
+    bldgCtx.lineTo(nr.x, nr.y);
     bldgCtx.stroke();
 
-    // 창호 수직 멀리온 (3분할)
-    bldgCtx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-    bldgCtx.lineWidth = 1;
-    for (let m = 1; m <= 2; m++) {
-      const mRatio = m / 3.0;
-      const mxTop = nl2.x + (nr2.x - nl2.x) * mRatio;
-      const mxBot = nl1.x + (nr1.x - nl1.x) * mRatio;
-      bldgCtx.beginPath();
-      bldgCtx.moveTo(mxBot, nl1.y);
-      bldgCtx.lineTo(mxTop, nl2.y);
-      bldgCtx.stroke();
+    // 주요 층 번호 CAD 텍스트 (5F 단위)
+    if (i > 0 && (i % 5 === 0 || i === stories)) {
+      bldgCtx.fillStyle = '#64748b';
+      bldgCtx.font = 'bold 9px monospace';
+      bldgCtx.textAlign = 'right';
+      bldgCtx.fillText(`${i}F`, nl.x - 8, nl.y + 3);
     }
   }
 
-  // 1층 대형 로비 아트리움
-  bldgCtx.fillStyle = 'rgba(245, 158, 11, 0.35)';
+  // 외곽 메인 기둥 (Left/Right Perimeter Columns)
+  bldgCtx.strokeStyle = '#0f172a';
+  bldgCtx.lineWidth = 3.0;
+  // 좌측 기둥
   bldgCtx.beginPath();
-  bldgCtx.moveTo(nodeL[0].x + 4, nodeL[0].y);
-  bldgCtx.lineTo(nodeL[1].x + 4, nodeL[1].y);
-  bldgCtx.lineTo(nodeR[1].x - 4, nodeR[1].y);
-  bldgCtx.lineTo(nodeR[0].x - 4, nodeR[0].y);
-  bldgCtx.closePath();
-  bldgCtx.fill();
-
-  // 출입구 캐노피
-  bldgCtx.fillStyle = '#475569';
-  bldgCtx.fillRect(nodeL[0].x - 8, nodeL[0].y - 12, 14, 3);
-
-  // 옥상 기계실(Penthouse) & 항공장애등(Beacon)
-  const roofL = nodeL[stories], roofR = nodeR[stories];
-  const roofMidX = (roofL.x + roofR.x) / 2;
-  const pentW = bldgW * 0.55;
-  const pentH = 14;
-
-  bldgCtx.fillStyle = '#334155';
-  bldgCtx.fillRect(roofMidX - pentW / 2, roofL.y - pentH, pentW, pentH);
-  bldgCtx.strokeStyle = '#475569';
-  bldgCtx.lineWidth = 1.5;
-  bldgCtx.strokeRect(roofMidX - pentW / 2, roofL.y - pentH, pentW, pentH);
-
-  bldgCtx.strokeStyle = '#64748b';
-  bldgCtx.lineWidth = 2;
+  bldgCtx.moveTo(nodeL[0].x, nodeL[0].y);
+  for (let i = 1; i <= stories; i++) bldgCtx.lineTo(nodeL[i].x, nodeL[i].y);
+  bldgCtx.stroke();
+  // 우측 기둥
   bldgCtx.beginPath();
-  bldgCtx.moveTo(roofMidX, roofL.y - pentH);
-  bldgCtx.lineTo(roofMidX, roofL.y - pentH - 12);
+  bldgCtx.moveTo(nodeR[0].x, nodeR[0].y);
+  for (let i = 1; i <= stories; i++) bldgCtx.lineTo(nodeR[i].x, nodeR[i].y);
   bldgCtx.stroke();
 
-  // 깜빡이는 적색 항공장애등
-  const beaconGlow = 0.4 + 0.6 * Math.abs(Math.sin(animTime * 5.0));
-  bldgCtx.fillStyle = `rgba(239, 68, 68, ${beaconGlow})`;
+  // 구조 중심선 (Dash-Dot Center Axis)
+  const roofMidX = (nodeL[stories].x + nodeR[stories].x) / 2;
+  const baseMidX = (nodeL[0].x + nodeR[0].x) / 2;
+  bldgCtx.strokeStyle = '#94a3b8';
+  bldgCtx.lineWidth = 1;
+  bldgCtx.setLineDash([8, 4, 2, 4]);
   bldgCtx.beginPath();
-  bldgCtx.arc(roofMidX, roofL.y - pentH - 12, 3.5, 0, Math.PI * 2);
-  bldgCtx.fill();
+  bldgCtx.moveTo(baseMidX, groundY + 12);
+  bldgCtx.lineTo(roofMidX, nodeL[stories].y - 20);
+  bldgCtx.stroke();
+  bldgCtx.setLineDash([]);
 
-  // 동적 공기역학 기류 파티클 (isWind 시)
+  // 6. 공기역학 바람 유선 (Aerodynamic Streamlines, isWind 시)
   if (isWind) {
-    updateWindParticles(w, h, bldgBaseLeft, bldgW, groundY, padTop);
-    for (let p of windParticles) {
+    const totalH = groundY - padTop;
+    for (let p of streamlines2D) {
+      const altRatio = Math.max(0, Math.min(1, (groundY - p.y) / totalH));
+      const vFactor = Math.pow(Math.max(0.15, altRatio), 0.35) * (V0 / 32.0);
+      p.x += p.speed * 2.5 * vFactor;
+
+      // 건물 앞에서 유선 굴절 (Windward upward deflection)
+      if (p.x > bldgBaseLeft - 30 && p.x < bldgBaseLeft + 10) {
+        if (p.y < padTop + 40) p.y -= 1.2;
+        else p.y += (p.y > (groundY + padTop) / 2) ? 0.35 : -0.35;
+      }
+      if (p.x > w + 20) {
+        p.x = -15;
+        p.y = padTop + Math.random() * (groundY - padTop);
+      }
+
       bldgCtx.strokeStyle = `rgba(8, 145, 178, ${p.alpha})`;
-      bldgCtx.lineWidth = 1.8;
+      bldgCtx.lineWidth = 1.5;
       bldgCtx.beginPath();
       bldgCtx.moveTo(p.x, p.y);
       bldgCtx.lineTo(p.x - p.len, p.y);
       bldgCtx.stroke();
-
-      bldgCtx.fillStyle = '#0891b2';
-      bldgCtx.beginPath();
-      bldgCtx.arc(p.x, p.y, 1.8, 0, Math.PI * 2);
-      bldgCtx.fill();
     }
-
-    // 후류 소용돌이 (Leeward Wake Vortex)
-    const eddyY1 = padTop + totalPlotH * 0.35 + Math.sin(animTime * 4.0) * 8;
-    const eddyX1 = roofR.x + 25;
-    bldgCtx.strokeStyle = 'rgba(8, 145, 178, 0.25)';
-    bldgCtx.lineWidth = 1.5;
-    bldgCtx.beginPath();
-    bldgCtx.arc(eddyX1, eddyY1, 10, 0, Math.PI * 1.5);
-    bldgCtx.stroke();
   }
 
-  // 층별 횡하중 벡터 화살표 (Fi)
+  // 7. 층별 횡하중 벡터 화살표 (Fi)
   const maxF = Math.max(...currentFWind, ...currentFSeismic, 1.0);
   const stepFloor = stories > 25 ? 3 : (stories > 15 ? 2 : 1);
 
   for (let i = 0; i < stories; i += stepFloor) {
     const fY = nodeL[i + 1].y;
 
-    // 풍하중 벡터 (Cyan, 좌측에서 건물을 미는 압력)
+    // 풍하중 벡터 (Cyan, 좌측 가압)
     if (isWind && currentFWind[i]) {
-      const arrowLen = Math.min(50, (currentFWind[i] / maxF) * 45);
-      const tipX = nodeL[i + 1].x - 4;
+      const arrowLen = Math.min(45, (currentFWind[i] / maxF) * 40);
+      const tipX = nodeL[i + 1].x - 3;
       const startX = tipX - arrowLen;
 
       bldgCtx.strokeStyle = '#0891b2';
-      bldgCtx.lineWidth = 2;
+      bldgCtx.lineWidth = 1.8;
       bldgCtx.beginPath();
       bldgCtx.moveTo(startX, fY);
       bldgCtx.lineTo(tipX, fY);
@@ -911,14 +1002,14 @@ function drawBuilding(hArr) {
       bldgCtx.fill();
     }
 
-    // 지진하중 벡터 (Red, 우측으로 작용하는 질량 관성력)
+    // 지진하중 벡터 (Red, 우측 관성력)
     if (isSeismic && currentFSeismic[i]) {
-      const arrowLen = Math.min(50, (currentFSeismic[i] / maxF) * 45);
-      const startX = nodeR[i + 1].x + 4;
+      const arrowLen = Math.min(45, (currentFSeismic[i] / maxF) * 40);
+      const startX = nodeR[i + 1].x + 3;
       const tipX = startX + arrowLen;
 
       bldgCtx.strokeStyle = '#dc2626';
-      bldgCtx.lineWidth = 2;
+      bldgCtx.lineWidth = 1.8;
       bldgCtx.beginPath();
       bldgCtx.moveTo(startX, fY);
       bldgCtx.lineTo(tipX, fY);
@@ -934,35 +1025,250 @@ function drawBuilding(hArr) {
     }
   }
 
-  // 옥상 층수 & 높이 타이틀 태그
-  bldgCtx.fillStyle = '#0f172a';
-  bldgCtx.font = 'bold 12px Pretendard, sans-serif';
-  bldgCtx.textAlign = 'center';
-  bldgCtx.fillText(`${stories}F (${(stories * floorH).toFixed(1)}m)`, roofMidX, padTop - 25);
+  // 8. 좌측 CAD 치수선 (Dimension Line: H)
+  const dimX = 24;
+  const dimTopY = nodeL[stories].y;
+  const dimBotY = groundY;
 
-  bldgCtx.fillStyle = '#64748b';
-  bldgCtx.font = '10px monospace';
-  bldgCtx.fillText(`B = ${bldgWidth.toFixed(0)}m · 층고 ${floorH.toFixed(1)}m`, roofMidX, padTop - 11);
+  bldgCtx.strokeStyle = '#64748b';
+  bldgCtx.lineWidth = 1;
+  bldgCtx.beginPath();
+  bldgCtx.moveTo(dimX, dimTopY);
+  bldgCtx.lineTo(dimX, dimBotY);
+  // 상/하단 틱마크 (45도 사선)
+  bldgCtx.moveTo(dimX - 4, dimTopY + 4); bldgCtx.lineTo(dimX + 4, dimTopY - 4);
+  bldgCtx.moveTo(dimX - 4, dimBotY + 4); bldgCtx.lineTo(dimX + 4, dimBotY - 4);
+  bldgCtx.stroke();
+
+  bldgCtx.save();
+  bldgCtx.translate(dimX - 6, (dimTopY + dimBotY) / 2);
+  bldgCtx.rotate(-Math.PI / 2);
+  bldgCtx.fillStyle = '#334155';
+  bldgCtx.font = 'bold 10px monospace';
+  bldgCtx.textAlign = 'center';
+  bldgCtx.fillText(`H = ${(stories * floorH).toFixed(1)}m`, 0, 0);
+  bldgCtx.restore();
+
+  // 상단 제원 태그
+  bldgCtx.fillStyle = '#0f172a';
+  bldgCtx.font = 'bold 11px Pretendard, sans-serif';
+  bldgCtx.textAlign = 'center';
+  bldgCtx.fillText(`${stories}F (${(stories * floorH).toFixed(1)}m) · B=${bldgWidth.toFixed(0)}m`, roofMidX, padTop - 20);
 
   bldgCtx.restore();
 }
 
-// 2. 히어로 등급 하중 및 층전단력 프로파일 차트
+// =============================================================================
+// OPTION B: THREE.JS REAL-TIME 3D SKYSCRAPER VIEWER (WebGL)
+// =============================================================================
+let threeScene, threeCamera, threeRenderer, threeControls;
+let floorMeshes = [];
+let threeParticles;
+const THREE_NUM_PARTICLES = 60;
+let threeParticlePositions;
+
+function initThreeScene() {
+  const container = document.getElementById('threeContainer');
+  const w = container.clientWidth || 290;
+  const h = container.clientHeight || 440;
+
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color(0xf8fafc);
+
+  threeCamera = new THREE.PerspectiveCamera(40, w / h, 1, 1000);
+  threeCamera.position.set(48, 38, 55);
+
+  threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  threeRenderer.setPixelRatio(window.devicePixelRatio || 1);
+  threeRenderer.setSize(w, h);
+  threeRenderer.shadowMap.enabled = true;
+  container.appendChild(threeRenderer.domElement);
+
+  threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+  threeControls.enableDamping = true;
+  threeControls.dampingFactor = 0.08;
+  threeControls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't go below ground
+  threeControls.target.set(0, 16, 0);
+  threeControls.update();
+
+  // 조명 설정 (Architectural Studio Lighting)
+  const ambLight = new THREE.AmbientLight(0xffffff, 0.75);
+  threeScene.add(ambLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
+  dirLight.position.set(30, 50, 40);
+  dirLight.castShadow = true;
+  threeScene.add(dirLight);
+
+  const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.35);
+  dirLight2.position.set(-30, 20, -30);
+  threeScene.add(dirLight2);
+
+  // 바닥 그리드 (Ground Grid)
+  const gridHelper = new THREE.GridHelper(70, 20, 0x64748b, 0xe2e8f0);
+  gridHelper.position.y = 0;
+  threeScene.add(gridHelper);
+
+  // 3D 공기역학 파티클 (3D Streamlines)
+  const pGeom = new THREE.BufferGeometry();
+  threeParticlePositions = new Float32Array(THREE_NUM_PARTICLES * 3);
+  for (let i = 0; i < THREE_NUM_PARTICLES; i++) {
+    threeParticlePositions[i * 3 + 0] = -35 + Math.random() * 70; // X
+    threeParticlePositions[i * 3 + 1] = 1 + Math.random() * 40;   // Y
+    threeParticlePositions[i * 3 + 2] = -20 + Math.random() * 40; // Z
+  }
+  pGeom.setAttribute('position', new THREE.BufferAttribute(threeParticlePositions, 3));
+
+  const pMat = new THREE.PointsMaterial({
+    color: 0x0891b2,
+    size: 1.6,
+    transparent: true,
+    opacity: 0.75
+  });
+  threeParticles = new THREE.Points(pGeom, pMat);
+  threeScene.add(threeParticles);
+}
+
+function resizeThree() {
+  if (!threeRenderer || !threeCamera) return;
+  const container = document.getElementById('threeContainer');
+  const w = container.clientWidth || 290;
+  const h = container.clientHeight || 440;
+  threeCamera.aspect = w / h;
+  threeCamera.updateProjectionMatrix();
+  threeRenderer.setSize(w, h);
+}
+
+function rebuildThreeBuilding() {
+  if (!threeScene) return;
+
+  // 기존 층 메쉬 삭제
+  floorMeshes.forEach(m => threeScene.remove(m));
+  floorMeshes = [];
+
+  const bldgScale = 0.55;
+  const slabW = (bldgWidth / 2.0) * bldgScale;
+  const slabD = (bldgWidth / 2.0) * bldgScale;
+  const slabH = 0.45;
+  const totalH3D = stories * (floorH * bldgScale * 0.45);
+  const storyH3D = totalH3D / stories;
+
+  // 층별 슬래브 및 코어 생성
+  for (let i = 0; i < stories; i++) {
+    const group = new THREE.Group();
+    const yPos = (i + 1) * storyH3D;
+
+    // 슬래브 메쉬
+    const slabGeom = new THREE.BoxGeometry(slabW, slabH, slabD);
+    const slabMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.25,
+      metalness: 0.1
+    });
+    const slabMesh = new THREE.Mesh(slabGeom, slabMat);
+    slabMesh.castShadow = true;
+    slabMesh.receiveShadow = true;
+
+    // 슬래브 엣지 라인 (Sharp Architectural Outlines)
+    const edges = new THREE.EdgesGeometry(slabGeom);
+    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x334155, linewidth: 1.5 }));
+    slabMesh.add(line);
+
+    // 4개 코너 기둥 (Corner Columns)
+    const colH = storyH3D - slabH;
+    const colGeom = new THREE.BoxGeometry(0.5, colH, 0.5);
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+    const colOffset = slabW / 2 - 0.4;
+
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+      const col = new THREE.Mesh(colGeom, colMat);
+      col.position.set(cx * colOffset, -colH / 2, cz * colOffset);
+      slabMesh.add(col);
+    });
+
+    // 중앙 유리 코어 (Translucent Core)
+    const coreGeom = new THREE.BoxGeometry(slabW * 0.4, storyH3D, slabD * 0.4);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x93c5fd,
+      transparent: true,
+      opacity: 0.25,
+      roughness: 0.1
+    });
+    const coreMesh = new THREE.Mesh(coreGeom, coreMat);
+    coreMesh.position.y = -storyH3D / 2;
+    slabMesh.add(coreMesh);
+
+    group.position.set(0, yPos, 0);
+    group.userData = { baseY: yPos, storyIndex: i };
+    threeScene.add(group);
+    floorMeshes.push(group);
+  }
+
+  // 옥상 기계실 (Penthouse)
+  if (floorMeshes.length > 0) {
+    const topSlab = floorMeshes[floorMeshes.length - 1];
+    const pentGeom = new THREE.BoxGeometry(slabW * 0.5, 1.4, slabD * 0.5);
+    const pentMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+    const pentMesh = new THREE.Mesh(pentGeom, pentMat);
+    pentMesh.position.set(0, 0.9, 0);
+    topSlab.add(pentMesh);
+  }
+
+  // 카메라 타겟을 건물 중앙 높이로 자동 조정
+  if (threeControls) {
+    threeControls.target.set(0, totalH3D * 0.45, 0);
+    threeControls.update();
+  }
+}
+
+function updateThreeAnimation() {
+  if (!threeRenderer || activeView !== 'B') return;
+
+  const isSeismic = (animMode === 'seismic' || animMode === 'compare');
+  const isWind = (animMode === 'wind' || animMode === 'compare');
+
+  // 1. 3D 층별 물리 변위 (Modal Sway & Wind Deflection)
+  const topSway = isSeismic ? Math.sin(animTime * 3.2) * 2.8 : 0;
+  const windDeflect = isWind ? 1.2 : 0;
+
+  floorMeshes.forEach((mesh, idx) => {
+    const ratio = (idx + 1) / stories;
+    const dx = (topSway * Math.pow(ratio, 1.4)) + (windDeflect * Math.pow(ratio, 1.8));
+    mesh.position.x = dx;
+  });
+
+  // 2. 3D 공기역학 파티클 이동
+  if (threeParticles && isWind) {
+    const pos = threeParticles.geometry.attributes.position.array;
+    for (let i = 0; i < THREE_NUM_PARTICLES; i++) {
+      pos[i * 3 + 0] += 0.45 * (V0 / 32.0); // X 속도
+      if (pos[i * 3 + 0] > 35) {
+        pos[i * 3 + 0] = -35;
+        pos[i * 3 + 1] = 1 + Math.random() * 40;
+        pos[i * 3 + 2] = -20 + Math.random() * 40;
+      }
+    }
+    threeParticles.geometry.attributes.position.needsUpdate = true;
+  }
+
+  threeControls.update();
+  threeRenderer.render(threeScene, threeCamera);
+}
+
+// =============================================================================
+// DUAL CHARTS (Force & Shear Profile)
+// =============================================================================
 function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal, type) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth;
-  const h = 440;
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
+  const h = canvas.clientHeight;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
   ctx.scale(dpr, dpr);
 
-  const padLeft = 55, padRight = 25, padTop = 45, padBot = 45;
+  const padLeft = 52, padRight = 24, padTop = 42, padBot = 42;
   const plotW = w - padLeft - padRight;
   const plotH = h - padTop - padBot;
 
@@ -971,13 +1277,13 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   let xMax = Math.max(maxW, maxS, minMaxVal) * 1.15;
 
   // 플롯 배경
-  ctx.fillStyle = '#fcfdfe';
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(padLeft, padTop, plotW, plotH);
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   ctx.strokeRect(padLeft, padTop, plotW, plotH);
 
-  // X축 그리드 및 눈금
+  // X축 눈금 & 그리드
   ctx.strokeStyle = '#f1f5f9';
   ctx.lineWidth = 1;
   for (let g = 0; g <= 4; g++) {
@@ -986,10 +1292,10 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.fillStyle = '#94a3b8';
     ctx.font = '10px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(Math.round((g / 4) * xMax).toLocaleString(), x, padTop + plotH + 16);
+    ctx.fillText(Math.round((g / 4) * xMax).toLocaleString(), x, padTop + plotH + 15);
   }
 
-  // Y축 높이 그리드
+  // Y축 층수 눈금
   ctx.textAlign = 'right';
   for (let f = 0; f <= stories; f += (stories > 20 ? 5 : 2)) {
     const y = (padTop + plotH) - (f / stories) * plotH;
@@ -999,11 +1305,10 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.fillText(f === 0 ? '0' : `${f}F`, padLeft - 6, y + 3);
   }
 
-  // (1) 풍하중 그라데이션 영역 채우기 (Cyan Gradient)
+  // 1. 풍하중 영역 채우기 (Cyan)
   const windAreaGrad = ctx.createLinearGradient(padLeft, 0, padLeft + plotW, 0);
   windAreaGrad.addColorStop(0, 'rgba(8, 145, 178, 0.03)');
-  windAreaGrad.addColorStop(1, 'rgba(8, 145, 178, 0.20)');
-
+  windAreaGrad.addColorStop(1, 'rgba(8, 145, 178, 0.18)');
   ctx.fillStyle = windAreaGrad;
   ctx.beginPath();
   ctx.moveTo(padLeft, padTop + plotH);
@@ -1012,15 +1317,14 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
     ctx.lineTo(x, y);
   }
-  ctx.lineTo(padLeft, (padTop + plotH) - plotH);
+  ctx.lineTo(padLeft, padTop);
   ctx.closePath();
   ctx.fill();
 
-  // (2) 지진하중 그라데이션 영역 채우기 (Red Gradient)
+  // 2. 지진하중 영역 채우기 (Red)
   const seismicAreaGrad = ctx.createLinearGradient(padLeft, 0, padLeft + plotW, 0);
   seismicAreaGrad.addColorStop(0, 'rgba(220, 38, 38, 0.03)');
-  seismicAreaGrad.addColorStop(1, 'rgba(220, 38, 38, 0.18)');
-
+  seismicAreaGrad.addColorStop(1, 'rgba(220, 38, 38, 0.16)');
   ctx.fillStyle = seismicAreaGrad;
   ctx.beginPath();
   ctx.moveTo(padLeft, padTop + plotH);
@@ -1029,13 +1333,13 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
     ctx.lineTo(x, y);
   }
-  ctx.lineTo(padLeft, (padTop + plotH) - plotH);
+  ctx.lineTo(padLeft, padTop);
   ctx.closePath();
   ctx.fill();
 
-  // (3) 풍하중 곡선 (Cyan Solid 3px)
+  // 3. 풍하중 곡선 (Cyan Solid 2.5px)
   ctx.strokeStyle = '#0891b2';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   for (let i = 0; i < stories; i++) {
     const x = padLeft + (windData[i] / xMax) * plotW;
@@ -1045,9 +1349,9 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   }
   ctx.stroke();
 
-  // (4) 지진하중 곡선 (Red Solid 3px)
+  // 4. 지진하중 곡선 (Red Solid 2.5px)
   ctx.strokeStyle = '#dc2626';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   for (let i = 0; i < stories; i++) {
     const x = padLeft + (seismicData[i] / xMax) * plotW;
@@ -1057,7 +1361,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   }
   ctx.stroke();
 
-  // (5) 교차점(Crossover Point) 자동 감지 및 핀포인트 배지
+  // 5. 하중 역전점(Crossover Point) 감지 & 펄스 마커
   let crossIdx = -1;
   for (let i = 0; i < stories - 1; i++) {
     if ((windData[i] <= seismicData[i] && windData[i + 1] >= seismicData[i + 1]) ||
@@ -1068,26 +1372,24 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   }
 
   if (crossIdx >= 0) {
-    const frac = (seismicData[crossIdx] - windData[crossIdx]) / 
+    const frac = (seismicData[crossIdx] - windData[crossIdx]) /
                  ((windData[crossIdx + 1] - windData[crossIdx]) - (seismicData[crossIdx + 1] - seismicData[crossIdx]) || 1);
     const exactFloor = crossIdx + 1 + Math.max(0, Math.min(1, frac));
     const crossX = padLeft + (windData[crossIdx] / xMax) * plotW;
     const crossY = (padTop + plotH) - (exactFloor / stories) * plotH;
 
-    // 펄스 타겟 링
-    const pulseR = 5 + 2 * Math.sin(animTime * 4.0);
-    ctx.strokeStyle = '#f59e0b';
+    const pulseR = 5 + 1.8 * Math.sin(animTime * 4.0);
+    ctx.strokeStyle = '#d97706';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(crossX, crossY, pulseR, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = '#f59e0b';
+    ctx.fillStyle = '#d97706';
     ctx.beginPath();
     ctx.arc(crossX, crossY, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // 역전점 태그 배지
     const badgeText = `★ ${type === 'force' ? '횡력' : '전단력'} 역전: ${exactFloor.toFixed(1)}F (${(exactFloor * floorH).toFixed(1)}m)`;
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 10px monospace';
@@ -1095,7 +1397,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.fillText(badgeText, crossX + 8, crossY - 6);
   }
 
-  // (6) 마우스 호버 크로스헤어 & 수치 콜아웃
+  // 6. 마우스 호버 크로스헤어
   if (hoverFloor >= 0 && hoverCanvasType === type) {
     const hY = (padTop + plotH) - ((hoverFloor + 1) / stories) * plotH;
     ctx.strokeStyle = '#475569';
@@ -1110,44 +1412,54 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     const wVal = Math.round(windData[hoverFloor]);
     const sVal = Math.round(seismicData[hoverFloor]);
 
-    // 툴팁 박스
     ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
-    ctx.roundRect(padLeft + 10, hY - 26, 175, 22, 4);
+    ctx.roundRect(padLeft + 10, hY - 24, 180, 20, 4);
     ctx.fill();
 
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`${hoverFloor + 1}F: 풍 ${wVal.toLocaleString()}kN | 지진 ${sVal.toLocaleString()}kN`, padLeft + 16, hY - 11);
+    ctx.fillText(`${hoverFloor + 1}F: 풍 ${wVal.toLocaleString()}kN | 지진 ${sVal.toLocaleString()}kN`, padLeft + 16, hY - 10);
   }
 
-  // 플롯 타이틀
+  // 차트 타이틀
   ctx.font = 'bold 12px Pretendard, sans-serif';
   ctx.fillStyle = '#0f172a';
   ctx.textAlign = 'left';
-  ctx.fillText(title, padLeft, padTop - 16);
+  ctx.fillText(title, padLeft, padTop - 14);
 
   ctx.restore();
 }
 
-// 60FPS 상시 렌더링 애니메이션 루프
+// =============================================================================
+// MAIN 60FPS RAF ANIMATION LOOP
+// =============================================================================
 let animId = null;
-function animate(timestamp) {
+function animate() {
   animTime += 0.025;
-  drawBuilding(currentHArr);
+
+  if (activeView === 'A') {
+    drawCADBuilding();
+  } else {
+    updateThreeAnimation();
+  }
+
   drawProfile(forceCanvas, forceCtx, currentHArr, currentFWind, currentFSeismic, '층별 횡하중 Fi [kN]', 100, 'force');
   drawProfile(shearCanvas, shearCtx, currentHArr, currentVWind, currentVSeismic, '층전단력 Vx [kN]', 500, 'shear');
+
   animId = requestAnimationFrame(animate);
 }
 
-// 마우스 호버 상호작용
+// =============================================================================
+// EVENT LISTENERS & INITIALIZATION
+// =============================================================================
 [
   { c: forceCanvas, type: 'force' },
   { c: shearCanvas, type: 'shear' }
 ].forEach(({ c, type }) => {
   c.addEventListener('mousemove', (e) => {
     const rect = c.getBoundingClientRect();
-    const padTop = 45, padBot = 45;
+    const padTop = 42, padBot = 42;
     const plotH = rect.height - padTop - padBot;
     const mouseY = e.clientY - rect.top;
     if (mouseY >= padTop && mouseY <= padTop + plotH) {
@@ -1165,7 +1477,6 @@ function animate(timestamp) {
   });
 });
 
-// Listeners
 rangeStories.addEventListener('input', (e) => { stories = parseInt(e.target.value); updateAnalysis(); });
 rangeFloorH.addEventListener('input', (e) => { floorH = parseFloat(e.target.value); updateAnalysis(); });
 rangeWidth.addEventListener('input', (e) => { bldgWidth = parseFloat(e.target.value); updateAnalysis(); });
@@ -1174,9 +1485,9 @@ selectExposure.addEventListener('change', (e) => { exposure = e.target.value; up
 rangeSds.addEventListener('input', (e) => { Sds = parseFloat(e.target.value); updateAnalysis(); });
 selectR.addEventListener('change', (e) => { R = parseFloat(e.target.value); updateAnalysis(); });
 
-window.addEventListener('resize', () => { updateAnalysis(); });
+window.addEventListener('resize', handleResize);
 window.addEventListener('load', () => {
-  updateAnalysis();
+  handleResize();
   animate();
 });
 </script>
