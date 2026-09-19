@@ -21,6 +21,11 @@
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <script src="assets/dynamics-fx.js" defer></script>
+  <!-- Three.js & OrbitControls for 3D BIM -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Canonical Chart Engine -->
+  <script src="assets/dynamics-chart-canonical.js"></script>
 </head>
 <body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
@@ -77,14 +82,22 @@
       <div class="lg:col-span-4 bg-slate-50/70 border border-slate-200 rounded-xl p-4 flex flex-col justify-between light-grid relative min-h-[460px]">
         <div class="flex items-center justify-between border-b border-slate-200 pb-2">
           <div>
-            <span class="text-sm font-bold text-slate-900 block">3층 전단골조 진동 거동</span>
+            <span class="text-sm font-bold text-slate-900 block">3층 전단골조 진동 거동 (3D BIM + CAD)</span>
             <span id="frame-period-text" class="text-[11px] font-mono text-slate-500">T₁=0.65s, T₂=0.23s, T₃=0.16s</span>
           </div>
-          <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-white text-blue-700 border border-slate-200">m=400t/층</span>
+          <div class="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-xs font-semibold">
+            <button id="btnView3D" onclick="switchFrameView('3D')" class="px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs">🏢 3D BIM</button>
+            <button id="btnView2D" onclick="switchFrameView('2D')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📐 2D CAD</button>
+          </div>
         </div>
 
-        <div class="relative flex-1 w-full my-2 min-h-[300px]">
-          <canvas id="frameCanvas" class="w-full h-full block"></canvas>
+        <div class="relative flex-1 w-full my-2 min-h-[320px] rounded-lg overflow-hidden border border-slate-200 bg-white">
+          <div id="threeFrameContainer" class="w-full h-full absolute inset-0">
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[10.5px] font-mono text-slate-600 bg-white/95 px-2.5 py-1 rounded border border-slate-300 pointer-events-none z-10 shadow-xs">
+              🖱️ 좌클릭: 3D 회전 | 우클릭: 이동 | 휠: 줌
+            </div>
+          </div>
+          <canvas id="frameCanvas" class="w-full h-full block absolute inset-0" style="display: none;"></canvas>
         </div>
 
         <!-- Frame Displacements & Modal Shears -->
@@ -212,7 +225,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
         
         <!-- ABSSUM Card -->
-        <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between space-y-2">
+        <div id="abssum-card" class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between space-y-2">
           <div class="flex justify-between items-start">
             <span class="font-bold text-slate-700 text-sm">단순 절댓값 합 (ABSSUM)</span>
             <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">&sum; |V<sub>bn</sub>|</span>
@@ -227,7 +240,7 @@
         </div>
 
         <!-- SRSS Card -->
-        <div class="p-3.5 rounded-xl bg-white border border-blue-200 shadow-xs flex flex-col justify-between space-y-2">
+        <div id="srss-card" class="p-3.5 rounded-xl bg-white border border-blue-200 shadow-xs flex flex-col justify-between space-y-2">
           <div class="flex justify-between items-start">
             <span class="font-bold text-blue-800 text-sm">SRSS 제곱합제곱근</span>
             <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-mono">&radic;(&sum; V<sub>bn</sub>&sup2;)</span>
@@ -737,7 +750,260 @@
       ctx.stroke();
     }
 
-    function drawFrame() {
+    // =========================================================================
+    // 3D BIM FRAME & VIEW SWITCHER (Three.js)
+    // =========================================================================
+    let activeFrameView = '3D';
+    let threeFrameScene, threeFrameCamera, threeFrameRenderer, threeFrameControls;
+    let slabMeshes = [];
+    let colMeshes = [];
+    let baseMesh = null;
+    let threeDimGroup = null;
+
+    function switchFrameView(view) {
+      activeFrameView = view;
+      document.getElementById('btnView3D').className = view === '3D' 
+        ? 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs' 
+        : 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+      document.getElementById('btnView2D').className = view === '2D' 
+        ? 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs' 
+        : 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+      
+      const container = document.getElementById('threeFrameContainer');
+      const canvas2D = document.getElementById('frameCanvas');
+      if (view === '3D') {
+        container.style.display = 'block';
+        canvas2D.style.display = 'none';
+        if (!threeFrameRenderer) initThreeFrame();
+        resizeThreeFrame();
+      } else {
+        container.style.display = 'none';
+        canvas2D.style.display = 'block';
+      }
+    }
+
+    function createCADSprite(text, color = '#0f172a', bg = 'rgba(255, 255, 255, 0.94)', border = '#cbd5e1') {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = bg;
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 4;
+      if (ctx.roundRect) ctx.roundRect(8, 8, 496, 112, 16);
+      else ctx.rect(8, 8, 496, 112);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = color;
+      ctx.font = 'bold 44px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 256, 64);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.minFilter = THREE.LinearFilter;
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const sp = new THREE.Sprite(mat);
+      sp.scale.set(4.8, 1.2, 1);
+      return sp;
+    }
+
+    function initThreeFrame() {
+      const container = document.getElementById('threeFrameContainer');
+      const w = container.clientWidth || 300;
+      const h = container.clientHeight || 320;
+
+      threeFrameScene = new THREE.Scene();
+      threeFrameScene.background = new THREE.Color(0xf8fafc);
+
+      threeFrameCamera = new THREE.PerspectiveCamera(38, w / h, 0.5, 500);
+      threeFrameCamera.position.set(22, 18, 28);
+
+      threeFrameRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      threeFrameRenderer.setPixelRatio(window.devicePixelRatio || 1);
+      threeFrameRenderer.setSize(w, h);
+      threeFrameRenderer.shadowMap.enabled = true;
+      container.appendChild(threeFrameRenderer.domElement);
+
+      threeFrameControls = new THREE.OrbitControls(threeFrameCamera, threeFrameRenderer.domElement);
+      threeFrameControls.enableDamping = true;
+      threeFrameControls.dampingFactor = 0.08;
+      threeFrameControls.maxPolarAngle = Math.PI / 2 - 0.02;
+      threeFrameControls.target.set(0, 6.5, 0);
+      threeFrameControls.update();
+
+      // 조명 (Architectural Studio Lighting)
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.85);
+      threeFrameScene.add(ambLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+      dirLight.position.set(20, 35, 25);
+      dirLight.castShadow = true;
+      threeFrameScene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.3);
+      fillLight.position.set(-20, 15, -20);
+      threeFrameScene.add(fillLight);
+
+      // 바닥 지반 그리드 (Ground Grid)
+      const grid = new THREE.GridHelper(36, 18, 0x94a3b8, 0xe2e8f0);
+      grid.position.y = 0;
+      threeFrameScene.add(grid);
+
+      buildThreeFrameModel();
+    }
+
+    function resizeThreeFrame() {
+      if (!threeFrameRenderer || !threeFrameCamera) return;
+      const container = document.getElementById('threeFrameContainer');
+      const w = container.clientWidth || 300;
+      const h = container.clientHeight || 320;
+      threeFrameCamera.aspect = w / h;
+      threeFrameCamera.updateProjectionMatrix();
+      threeFrameRenderer.setSize(w, h);
+    }
+
+    function buildThreeFrameModel() {
+      slabMeshes = [];
+      colMeshes = [];
+      if (threeDimGroup) threeFrameScene.remove(threeDimGroup);
+      threeDimGroup = new THREE.Group();
+      threeFrameScene.add(threeDimGroup);
+
+      const slabW = 8.0;
+      const slabD = 6.0;
+      const slabH = 0.45;
+      const storyH = 3.6;
+
+      // 1. 기초 매트 슬래브 (Foundation Base Slab)
+      const baseGeom = new THREE.BoxGeometry(slabW * 1.25, 0.8, slabD * 1.25);
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.4 });
+      baseMesh = new THREE.Mesh(baseGeom, baseMat);
+      baseMesh.position.set(0, 0.4, 0);
+      baseMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(baseGeom), new THREE.LineBasicMaterial({ color: 0x475569 })));
+      threeFrameScene.add(baseMesh);
+
+      // 2. 3개 층 (1F, 2F, 3F) 슬래브 & 각 층 4개 코너 기둥
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 });
+      const slabEdgesMat = new THREE.LineBasicMaterial({ color: 0x334155, linewidth: 1.5 });
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3 });
+
+      const colOffsetX = slabW / 2 - 0.45;
+      const colOffsetZ = slabD / 2 - 0.45;
+      const colRadius = 0.24;
+
+      for (let s = 1; s <= 3; s++) {
+        // 층 슬래브 그룹
+        const sGroup = new THREE.Group();
+        const slabGeom = new THREE.BoxGeometry(slabW, slabH, slabD);
+        const sMesh = new THREE.Mesh(slabGeom, slabMat);
+        sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(slabGeom), slabEdgesMat));
+        sGroup.add(sMesh);
+
+        const yLevel = 0.8 + s * storyH;
+        sGroup.position.set(0, yLevel, 0);
+        sGroup.userData = { baseY: yLevel, story: s };
+        threeFrameScene.add(sGroup);
+        slabMeshes.push(sGroup);
+
+        // 해당 층 4개 기둥 (s-1층과 s층 슬래브 연결)
+        const storyCols = [];
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+          const colGeom = new THREE.CylinderGeometry(colRadius, colRadius, storyH - slabH, 12);
+          const col = new THREE.Mesh(colGeom, colMat);
+          const colBaseY = 0.8 + (s - 1) * storyH + (storyH - slabH) / 2;
+          col.position.set(cx * colOffsetX, colBaseY, cz * colOffsetZ);
+          col.userData = { cx: cx * colOffsetX, cz: cz * colOffsetZ, baseY: colBaseY, story: s };
+          threeFrameScene.add(col);
+          storyCols.push(col);
+        });
+        colMeshes.push(storyCols);
+      }
+
+      // 3. 3D CAD 정밀 치수선 (H = 12.0m & 층별 표고 태그)
+      const dimX = -slabW / 2 - 2.5;
+      const totalH = 0.8 + 3 * storyH;
+      const hPoints = [
+        new THREE.Vector3(-slabW / 2, 0.8, 0), new THREE.Vector3(dimX - 0.5, 0.8, 0),
+        new THREE.Vector3(-slabW / 2, totalH, 0), new THREE.Vector3(dimX - 0.5, totalH, 0),
+        new THREE.Vector3(dimX, 0.8, 0), new THREE.Vector3(dimX, totalH, 0),
+        new THREE.Vector3(dimX - 0.4, 0.4, 0), new THREE.Vector3(dimX + 0.4, 1.2, 0),
+        new THREE.Vector3(dimX - 0.4, totalH - 0.4, 0), new THREE.Vector3(dimX + 0.4, totalH + 0.4, 0)
+      ];
+      const hGeom = new THREE.BufferGeometry().setFromPoints(hPoints);
+      threeDimGroup.add(new THREE.LineSegments(hGeom, new THREE.LineBasicMaterial({ color: 0x475569 })));
+
+      const hSprite = createCADSprite('H = 12.0m', '#0f172a');
+      hSprite.position.set(dimX - 2.4, totalH / 2, 0);
+      threeDimGroup.add(hSprite);
+
+      // 층별 표고 마커
+      const elevTags = ['▼ GL ±0.00', '▼ 1F (+3.6m)', '▼ 2F (+7.2m)', '▼ 3F Roof (+10.8m)'];
+      for (let i = 0; i <= 3; i++) {
+        const y = 0.8 + i * storyH;
+        const tag = createCADSprite(elevTags[i], i === 3 ? '#dc2626' : '#475569');
+        tag.scale.set(4.0, 1.0, 1);
+        tag.position.set(slabW / 2 + 2.2, y, slabD / 2);
+        threeDimGroup.add(tag);
+      }
+    }
+
+    function updateThreeFrameAnimation(u1_m, u2_m, u3_m, baseShift_m) {
+      if (!threeFrameRenderer || activeFrameView !== '3D') return;
+
+      const scaleFactor = 12.0; // 3D 시각적 가시성 스케일
+      const bX = baseShift_m * scaleFactor;
+      const x1 = (baseShift_m + u1_m) * scaleFactor;
+      const x2 = (baseShift_m + u2_m) * scaleFactor;
+      const x3 = (baseShift_m + u3_m) * scaleFactor;
+
+      // 기초면 지반 진동
+      if (baseMesh) baseMesh.position.x = bX;
+
+      // 슬래브 층별 변위
+      const xs = [x1, x2, x3];
+      slabMeshes.forEach((sGroup, idx) => {
+        sGroup.position.x = xs[idx];
+      });
+
+      // 기둥 실시간 휨 경사 및 이동
+      const storyH = 3.6;
+      const prevXs = [bX, x1, x2];
+      for (let s = 0; s < 3; s++) {
+        const lowerX = prevXs[s];
+        const upperX = xs[s];
+        const midX = (lowerX + upperX) / 2;
+        const drift = upperX - lowerX;
+        const tiltZ = -Math.atan2(drift, storyH);
+
+        colMeshes[s].forEach(col => {
+          col.position.x = col.userData.cx + midX;
+          col.rotation.z = tiltZ;
+        });
+      }
+
+      threeFrameControls.update();
+      threeFrameRenderer.render(threeFrameScene, threeFrameCamera);
+    }
+
+    // =========================================================================
+    // 2D CAD FRAME RENDERER (대체 뷰)
+    // =========================================================================
+    function drawCurvedCol(ctx, x0, y0, x1, y1) {
+      ctx.beginPath();
+      const steps = 16;
+      for (let i = 0; i <= steps; i++) {
+        const s = i / steps;
+        const h = 3 * s * s - 2 * s * s * s;
+        const curX = x0 + (x1 - x0) * h;
+        const curY = y0 + (y1 - y0) * s;
+        if (i === 0) ctx.moveTo(curX, curY);
+        else ctx.lineTo(curX, curY);
+      }
+      ctx.stroke();
+    }
+
+    function drawFrame2D(u1_m, u2_m, u3_m, baseShift) {
       const w = frameCanvas.width / window.devicePixelRatio;
       const h = frameCanvas.height / window.devicePixelRatio;
       fctx.clearRect(0, 0, w, h);
@@ -747,19 +1013,6 @@
       const storyH = (gy - 45) / 3;
       const bay = Math.min(160, w * 0.5);
       const halfBay = bay / 2;
-
-      const baseShift = (groundDisp * 80);
-
-      const q1 = modes[0].q;
-      const q2 = modes[1].q;
-      const q3 = modes[2].q;
-
-      const u1_m = phi[0][0]*q1 + phi[0][1]*q2 + phi[0][2]*q3;
-      const u2_m = phi[1][0]*q1 + phi[1][1]*q2 + phi[1][2]*q3;
-      const u3_m = phi[2][0]*q1 + phi[2][1]*q2 + phi[2][2]*q3;
-
-      document.getElementById('disp-text').textContent = 
-        `u₃=${(u3_m * 100).toFixed(1)}cm, u₂=${(u2_m * 100).toFixed(1)}cm, u₁=${(u1_m * 100).toFixed(1)}cm`;
 
       const dispScale = 400;
       const bx0 = cx + baseShift;
@@ -772,7 +1025,7 @@
       const y2 = gy - storyH * 2;
       const y3 = gy - storyH * 3;
 
-      // Reference line
+      // 기준선
       fctx.strokeStyle = '#e2e8f0';
       fctx.lineWidth = 1;
       fctx.setLineDash([3, 3]);
@@ -782,7 +1035,7 @@
       fctx.stroke();
       fctx.setLineDash([]);
 
-      // Columns
+      // 기둥
       fctx.strokeStyle = (isQuaking || Math.abs(u3_m) > 0.005) ? '#0284c7' : '#64748b';
       fctx.lineWidth = 4;
       fctx.lineCap = 'round';
@@ -795,24 +1048,24 @@
       drawCurvedCol(fctx, bx1 + halfBay, y1, bx2 + halfBay, y2);
       drawCurvedCol(fctx, bx2 + halfBay, y2, bx3 + halfBay, y3);
 
-      // Slabs
+      // 슬래브
       function drawFloor(x, y, label, massText) {
         const sw = bay + 30;
         const sh = 13;
-        fctx.fillStyle = '#1e293b';
-        fctx.strokeStyle = '#0f172a';
+        fctx.fillStyle = '#ffffff';
+        fctx.strokeStyle = '#334155';
         fctx.lineWidth = 1.5;
         fctx.beginPath();
         fctx.roundRect(x - sw/2, y - sh/2, sw, sh, 3);
         fctx.fill(); fctx.stroke();
 
-        fctx.fillStyle = '#38bdf8';
+        fctx.fillStyle = '#0891b2';
         fctx.beginPath();
         fctx.arc(x - halfBay, y, 3.5, 0, Math.PI*2);
         fctx.arc(x + halfBay, y, 3.5, 0, Math.PI*2);
         fctx.fill();
 
-        fctx.fillStyle = '#ffffff';
+        fctx.fillStyle = '#0f172a';
         fctx.font = 'bold 10px Pretendard, sans-serif';
         fctx.textAlign = 'center';
         fctx.textBaseline = 'middle';
@@ -828,7 +1081,7 @@
       drawFloor(bx2, y2, '2F', '400t');
       drawFloor(bx3, y3, '3F (Roof)', '400t');
 
-      // Foundation Base
+      // 기초
       const baseW = bay + 60;
       fctx.fillStyle = '#f1f5f9';
       fctx.strokeStyle = '#475569';
@@ -837,7 +1090,6 @@
       fctx.rect(bx0 - baseW/2, y0, baseW, 8);
       fctx.fill(); fctx.stroke();
 
-      // Hatching
       fctx.strokeStyle = '#94a3b8';
       fctx.lineWidth = 1.5;
       for (let x = bx0 - baseW/2 + 5; x <= bx0 + baseW/2 - 5; x += 10) {
@@ -848,6 +1100,28 @@
       }
     }
 
+    function drawFrame() {
+      const q1 = modes[0].q;
+      const q2 = modes[1].q;
+      const q3 = modes[2].q;
+
+      const u1_m = phi[0][0]*q1 + phi[0][1]*q2 + phi[0][2]*q3;
+      const u2_m = phi[1][0]*q1 + phi[1][1]*q2 + phi[1][2]*q3;
+      const u3_m = phi[2][0]*q1 + phi[2][1]*q2 + phi[2][2]*q3;
+
+      document.getElementById('disp-text').textContent = 
+        `u₃=${(u3_m * 100).toFixed(1)}cm, u₂=${(u2_m * 100).toFixed(1)}cm, u₁=${(u1_m * 100).toFixed(1)}cm`;
+
+      if (activeFrameView === '3D') {
+        updateThreeFrameAnimation(u1_m, u2_m, u3_m, groundDisp * 80 * 0.0025);
+      } else {
+        drawFrame2D(u1_m, u2_m, u3_m, groundDisp * 80);
+      }
+    }
+
+    // =========================================================================
+    // RESPONSE SPECTRUM (정본 차팅 엔진 및 변곡점 비차폐 배지 적용)
+    // =========================================================================
     function drawSpectrum() {
       const w = specCanvas.width / window.devicePixelRatio;
       const h = specCanvas.height / window.devicePixelRatio;
@@ -861,7 +1135,11 @@
       const maxG = currentDisplayMaxG;
       const maxSaPlot = maxG * 9.806;
 
-      // Coordinate axes
+      // 플롯 배경
+      sctx.fillStyle = '#ffffff';
+      sctx.fillRect(marginL, 10, plotW, plotH);
+
+      // 좌표축
       sctx.strokeStyle = '#cbd5e1';
       sctx.lineWidth = 1.5;
       sctx.beginPath();
@@ -902,7 +1180,7 @@
         sctx.fillText(`${tVal.toFixed(1)}s`, x, h - marginB + 16);
       });
 
-      // KDS 41 Design Spectrum (SDS=0.55g, SD1=0.22g, TS=0.40s)
+      // 1. KDS 41 설계스펙트럼 (SDS=0.55g, SD1=0.22g, TS=0.40s)
       sctx.strokeStyle = '#d97706';
       sctx.lineWidth = 1.5;
       sctx.setLineDash([4, 4]);
@@ -921,7 +1199,6 @@
       sctx.stroke();
       sctx.setLineDash([]);
 
-      // Label for KDS 41 curve
       sctx.fillStyle = '#d97706';
       sctx.font = 'bold 9px Pretendard, sans-serif';
       sctx.textAlign = 'left';
@@ -929,7 +1206,34 @@
       const kdsLabelY = (h - marginB) - ((0.48 * 9.806) / maxSaPlot) * plotH;
       sctx.fillText('KDS 41 설계스펙트럼 (5%)', kdsLabelX, Math.max(16, kdsLabelY - 6));
 
-      // Draw Damping Curves
+      // 2. 5% RC 표준 스펙트럼 곡선 아래 은은한 파스텔 틴트 채색 (어두운 색상 배제)
+      const rcDamp = dampingConfigs[2];
+      if (rcDamp && rcDamp.oscillators.length > 0) {
+        sctx.fillStyle = 'rgba(37, 99, 235, 0.07)';
+        sctx.beginPath();
+        sctx.moveTo(marginL, h - marginB);
+        rcDamp.oscillators.forEach(o => {
+          const x = marginL + (o.T / 3.0) * plotW;
+          const y = (h - marginB) - (o.peakSa / maxSaPlot) * plotH;
+          sctx.lineTo(x, y);
+        });
+        sctx.lineTo(marginL + plotW, h - marginB);
+        sctx.closePath();
+        sctx.fill();
+      }
+
+      // 곡선 포인트 수집 (충돌 회피 평가용)
+      const specCurvePoints = [];
+      if (rcDamp) {
+        rcDamp.oscillators.forEach(o => {
+          specCurvePoints.push({
+            x: marginL + (o.T / 3.0) * plotW,
+            y: (h - marginB) - (o.peakSa / maxSaPlot) * plotH
+          });
+        });
+      }
+
+      // 3. 감쇠비별 응답스펙트럼 곡선 렌더링
       dampingConfigs.forEach(dc => {
         const isHighlight = (activeDamping === 'all' || activeDamping === dc.zeta);
         
@@ -947,7 +1251,6 @@
         sctx.stroke();
         sctx.setLineDash([]);
 
-        // Points
         if (isHighlight) {
           dc.oscillators.forEach(o => {
             const x = marginL + (o.T / 3.0) * plotW;
@@ -960,35 +1263,63 @@
         }
       });
 
-      // Mode Period Badges on the Spectrum
+      // 4. 모드 주기 피크 마커 & 비차폐 스마트 뱃지 (DynamicsChartCanonical 적용)
       const modeColors = ['#059669', '#2563eb', '#7c3aed'];
       modes.forEach((m, idx) => {
         const x = marginL + (m.T / 3.0) * plotW;
         const y = (h - marginB) - (m.peakSa / maxSaPlot) * plotH;
 
+        // 수직 점선 가이드
         sctx.strokeStyle = modeColors[idx];
-        sctx.lineWidth = 1.5;
-        sctx.setLineDash([2, 2]);
+        sctx.lineWidth = 1.2;
+        sctx.setLineDash([3, 2]);
         sctx.beginPath();
         sctx.moveTo(x, h - marginB);
         sctx.lineTo(x, y);
         sctx.stroke();
         sctx.setLineDash([]);
 
+        // 피크 마커 앵커
         sctx.fillStyle = modeColors[idx];
         sctx.beginPath();
-        sctx.arc(x, y, 4.5, 0, Math.PI*2);
+        sctx.arc(x, y, 4, 0, Math.PI * 2);
         sctx.fill();
 
-        sctx.fillStyle = '#0f172a';
-        sctx.font = 'bold 9px Pretendard, sans-serif';
-        sctx.textAlign = 'center';
-        const labelOffset = (idx === 1 && isCloseMode) ? -16 : -8;
-        const modeLabel = (idx === 1 && isCloseMode) ? `M2 (0.62s🚨)` : `M${idx+1} (${m.T.toFixed(2)}s)`;
-        sctx.fillText(modeLabel, x, Math.max(14, y + labelOffset));
+        // 뱃지 텍스트
+        const modeLabel = (idx === 1 && isCloseMode) 
+          ? `M2: 0.62s🚨` 
+          : `M${idx+1}: ${m.T.toFixed(2)}s (${(m.peakSa / 9.806).toFixed(2)}g)`;
+
+        const badgeW = (idx === 1 && isCloseMode) ? 88 : 96;
+        const badgeH = 18;
+        const plotRect = { left: marginL, top: 12, width: plotW, height: plotH };
+
+        if (window.DynamicsChartCanonical) {
+          const pos = DynamicsChartCanonical.getBestCalloutPlacement(x, y, badgeW, badgeH, plotRect, specCurvePoints);
+
+          // 이격 거리가 있을 경우 CAD 엘보 지시선 연결
+          if (Math.hypot((pos.x + badgeW/2) - x, (pos.y + badgeH/2) - y) > 16) {
+            DynamicsChartCanonical.drawLeaderLine(sctx, x, y, pos.x, pos.y, badgeW, badgeH, modeColors[idx]);
+          }
+
+          // 라이트 카드 배지 렌더링
+          DynamicsChartCanonical.drawAutoBadge(sctx, modeLabel, pos.x, pos.y, {
+            maxW: 110,
+            baseFontSize: 8.5,
+            bg: 'rgba(255, 255, 255, 0.96)',
+            border: modeColors[idx],
+            textColor: '#0f172a',
+            height: badgeH,
+            radius: 4,
+            paddingX: 5
+          });
+        }
       });
     }
 
+    // =========================================================================
+    // MAIN LOOP & AWWWARDS ZENTRY CARD TILT
+    // =========================================================================
     function mainLoop() {
       stepPhysics();
       drawGroundMotion();
@@ -997,9 +1328,32 @@
       requestAnimationFrame(mainLoop);
     }
 
+    // Zentry 3D 카드 틸트 인터랙션 (Awwwards 05_Hover_Effects/21 참조)
+    function initZentryTilt() {
+      ['cqc-card', 'srss-card', 'abssum-card'].forEach(id => {
+        const card = document.getElementById(id);
+        if (!card) return;
+        card.style.transition = 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease';
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * -6;
+          const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * 6;
+          card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        });
+      });
+    }
+
     recomputeRhoMatrix();
     setTimeout(() => {
+      initThreeFrame();
       resizeAll();
+      resizeThreeFrame();
+      initZentryTilt();
       mainLoop();
     }, 50);
   </script>
