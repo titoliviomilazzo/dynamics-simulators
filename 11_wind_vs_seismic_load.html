@@ -992,9 +992,9 @@ function rebuildThreeBuilding() {
     glassMesh.position.y = -glassH / 2;
     slabMesh.add(glassMesh);
 
-    // C. 스팬드럴 밴드 (Spandrel Band, 층간 어두운 띠)
+    // C. 스팬드럴 밴드 (Spandrel Band, 층간 아키텍처럴 슬레이트 띠)
     const spandrelGeom = new THREE.BoxGeometry(slabW * 0.99, glassH * 0.22, slabD * 0.99);
-    const spandrelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+    const spandrelMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3 });
     const spandrelMesh = new THREE.Mesh(spandrelGeom, spandrelMat);
     spandrelMesh.position.y = -glassH * 0.11;
     slabMesh.add(spandrelMesh);
@@ -1002,7 +1002,7 @@ function rebuildThreeBuilding() {
     // D. 4개 코너 기둥 (Corner Structural Columns)
     const colH = storyH3D - slabH;
     const colGeom = new THREE.BoxGeometry(0.55, colH, 0.55);
-    const colMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 });
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3 });
     const colOffset = slabW / 2 - 0.35;
 
     [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
@@ -1014,9 +1014,9 @@ function rebuildThreeBuilding() {
     // E. 중앙 엘리베이터/계단 전단벽 코어 (Central Shear Core)
     const coreGeom = new THREE.BoxGeometry(slabW * 0.38, storyH3D, slabD * 0.38);
     const coreMat = new THREE.MeshStandardMaterial({
-      color: 0x64748b,
+      color: 0x94a3b8,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.25,
       roughness: 0.3
     });
     const coreMesh = new THREE.Mesh(coreGeom, coreMat);
@@ -1024,7 +1024,7 @@ function rebuildThreeBuilding() {
     slabMesh.add(coreMesh);
 
     // F. 창호 수직 멀리온 라인 (Curtain Wall Mullions Grid)
-    const mullionMat = new THREE.LineBasicMaterial({ color: 0x1e293b, transparent: true, opacity: 0.45 });
+    const mullionMat = new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.4 });
     const mullionPts = [];
     const numBays = 3;
     for (let b = 1; b < numBays; b++) {
@@ -1043,7 +1043,7 @@ function rebuildThreeBuilding() {
     // G. 1층 그랜드 로비 출입구 캐노피 (Entrance Canopy on 1F)
     if (i === 0) {
       const canopyGeom = new THREE.BoxGeometry(slabW * 0.5, 0.25, 2.4);
-      const canopyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
+      const canopyMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.2 });
       const canopyMesh = new THREE.Mesh(canopyGeom, canopyMat);
       canopyMesh.position.set(0, -glassH * 0.5, slabD / 2 + 1.2);
       slabMesh.add(canopyMesh);
@@ -1469,12 +1469,12 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   }
 
   // ---------------------------------------------------------------------------
-  // [1안 / 4안] 델타(차이) 영역 분할 채색 (Differential Dominance Fill)
+  // [1안 / 4안] 델타(차이) 영역 분할 채색 (소프트 파스텔 틴트 - 어두운 색상 절대 배제)
   // ---------------------------------------------------------------------------
   if (chartStyle === 'delta' || chartStyle === 'all') {
     if (crossIdx >= 0) {
-      // 1) 지진 지배 구간 (0층 ~ 역전점): 두 곡선 사이 면적 Red 채색
-      ctx.fillStyle = 'rgba(220, 38, 38, 0.12)';
+      // 1) 지진 지배 구간 (0층 ~ 역전점): 두 곡선 사이 면적 소프트 Red 채색 (0.08)
+      ctx.fillStyle = 'rgba(220, 38, 38, 0.08)';
       ctx.beginPath();
       // 풍하중 곡선 따라 올라감
       ctx.moveTo(padLeft, padTop + plotH);
@@ -1496,13 +1496,13 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
 
       // 지진 지배 구간 텍스트 워터마크
       const midSeismicY = (padTop + plotH + crossY) / 2;
-      ctx.fillStyle = 'rgba(220, 38, 38, 0.7)';
+      ctx.fillStyle = '#dc2626';
       ctx.font = 'bold 9px Pretendard, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(`◄ 지진 지배 구간 (Seismic)`, padLeft + 12, midSeismicY);
+      ctx.fillText(`◄ 지진 지배 구간 (Seismic)`, padLeft + 10, midSeismicY);
 
-      // 2) 풍하중 지배 구간 (역전점 ~ 최상층): 두 곡선 사이 면적 Cyan 채색
-      ctx.fillStyle = 'rgba(8, 145, 178, 0.15)';
+      // 2) 풍하중 지배 구간 (역전점 ~ 최상층): 두 곡선 사이 면적 소프트 Cyan 채색 (0.08)
+      ctx.fillStyle = 'rgba(8, 145, 178, 0.08)';
       ctx.beginPath();
       ctx.moveTo(crossX, crossY);
       for (let i = crossIdx + 1; i < stories; i++) {
@@ -1521,10 +1521,34 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
 
       // 풍하중 지배 구간 텍스트 워터마크
       const midWindY = (padTop + crossY) / 2;
-      ctx.fillStyle = 'rgba(8, 145, 178, 0.85)';
+      ctx.fillStyle = '#0891b2';
       ctx.font = 'bold 9px Pretendard, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(`◄ 풍하중 역전 지배 (Wind)`, padLeft + 12, midWindY);
+      ctx.fillText(`◄ 풍하중 역전 지배 (Wind)`, padLeft + 10, midWindY);
+    } else {
+      // 교차점이 없는 경우: 단일 하중이 전 층 지배할 때도 은은한 라이트 파스텔 틴트만 적용
+      const isSeismicAll = seismicData[0] > windData[0];
+      ctx.fillStyle = isSeismicAll ? 'rgba(220, 38, 38, 0.06)' : 'rgba(8, 145, 178, 0.06)';
+      ctx.beginPath();
+      ctx.moveTo(padLeft, padTop + plotH);
+      for (let i = 0; i < stories; i++) {
+        const x = padLeft + (windData[i] / xMax) * plotW;
+        const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
+        ctx.lineTo(x, y);
+      }
+      for (let i = stories - 1; i >= 0; i--) {
+        const x = padLeft + (seismicData[i] / xMax) * plotW;
+        const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(padLeft, padTop + plotH);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = isSeismicAll ? '#dc2626' : '#0891b2';
+      ctx.font = 'bold 9px Pretendard, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(isSeismicAll ? '◄ 전 층 지진 지배 (Seismic Dominant)' : '◄ 전 층 풍하중 지배 (Wind Dominant)', padLeft + 10, padTop + plotH / 2);
     }
   }
 
@@ -1584,7 +1608,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   // [3안 / 4안] 스마트 앵커 뱃지 및 역전 관통 가이드라인
   // ---------------------------------------------------------------------------
   if (crossIdx >= 0) {
-    // 역전 관통 수평 가이드선 (Dashed line spanning entire plot width)
+    // 역전 관통 수평 가이드선
     if (chartStyle === 'dual' || chartStyle === 'all') {
       ctx.strokeStyle = '#d97706';
       ctx.lineWidth = 1.2;
@@ -1609,35 +1633,87 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.arc(crossX, crossY, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // 역전점 태그 배지
+    // 역전점 태그 배지 (라이트 필 카드 + 자동 위치 클램핑)
     const badgeText = `★ ${type === 'force' ? '횡력' : '전단력'} 역전: ${exactFloor.toFixed(1)}F (${(exactFloor * floorH).toFixed(1)}m)`;
-    ctx.fillStyle = '#0f172a';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold 9.5px monospace';
+    const crossTextW = ctx.measureText(badgeText).width;
+    let tagX = crossX + 8;
+    if (tagX + crossTextW + 8 > padLeft + plotW) {
+      tagX = crossX - crossTextW - 10;
+    }
+    const pillW = crossTextW + 10;
+    const pillH = 18;
+    const pillY = crossY - 14;
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 1;
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(tagX - 4, pillY, pillW, pillH, 4);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillRect(tagX - 4, pillY, pillW, pillH);
+      ctx.strokeRect(tagX - 4, pillY, pillW, pillH);
+    }
+    ctx.fillStyle = '#92400e';
     ctx.textAlign = 'left';
-    ctx.fillText(badgeText, crossX + 8, crossY - 6);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(badgeText, tagX + 1, pillY + pillH / 2);
+    ctx.textBaseline = 'alphabetic';
   }
 
-  // [3안 / 4안] 밑면전단력 Vb 스마트 플로팅 뱃지 (Shear 차트 하단)
+  // [3안 / 4안] 밑면전단력 Vb 스마트 플로팅 뱃지 (Shear 차트 하단 자동 텍스트/박스 조절 & 라이트 카드)
   if ((chartStyle === 'dual' || chartStyle === 'all') && type === 'shear') {
     const ratioVal = (seismicData[0] / (windData[0] || 1)).toFixed(1);
     const vbBadge = `밑면전단력 Vb: 지진 ${Math.round(seismicData[0]).toLocaleString()}kN (${ratioVal}배) vs 풍 ${Math.round(windData[0]).toLocaleString()}kN`;
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-    if (ctx.roundRect) ctx.roundRect(padLeft + 8, padTop + plotH - 26, 260, 20, 4);
-    else ctx.fillRect(padLeft + 8, padTop + plotH - 26, 260, 20);
-    ctx.fill();
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 9.5px monospace';
+    // 폰트 크기 자동 조절 (컨테이너 폭에 맞춤)
+    let badgeFontSize = 9.5;
+    ctx.font = `bold ${badgeFontSize}px Pretendard, monospace`;
+    let badgeMetrics = ctx.measureText(vbBadge);
+    const maxBadgeW = plotW - 16;
+    while (badgeMetrics.width + 18 > maxBadgeW && badgeFontSize > 7.5) {
+      badgeFontSize -= 0.5;
+      ctx.font = `bold ${badgeFontSize}px Pretendard, monospace`;
+      badgeMetrics = ctx.measureText(vbBadge);
+    }
+
+    const badgeW = badgeMetrics.width + 18;
+    const badgeH = 22;
+    // 우측 하단 배치 및 경계 클램핑 (박스 안과 캔버스 영역 완벽 수용)
+    const badgeX = Math.max(padLeft + 6, padLeft + plotW - badgeW - 6);
+    const badgeY = padTop + plotH - badgeH - 6;
+
+    // 밝고 산뜻한 라이트 카드 스타일 (어두운 배경 절대 배제)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 5);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+      ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+    }
+
+    // 선명한 텍스트 렌더링
+    ctx.fillStyle = '#0f172a';
     ctx.textAlign = 'left';
-    ctx.fillText(vbBadge, padLeft + 14, padTop + plotH - 12);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(vbBadge, badgeX + 9, badgeY + badgeH / 2);
+    ctx.textBaseline = 'alphabetic';
   }
 
   // ---------------------------------------------------------------------------
-  // 마우스 호버 크로스헤어
+  // 마우스 호버 크로스헤어 (라이트 툴팁 카드)
   // ---------------------------------------------------------------------------
   if (hoverFloor >= 0 && hoverCanvasType === type) {
     const hY = (padTop + plotH) - ((hoverFloor + 1) / stories) * plotH;
-    ctx.strokeStyle = '#475569';
+    ctx.strokeStyle = '#94a3b8';
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
@@ -1648,16 +1724,34 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
 
     const wVal = Math.round(windData[hoverFloor]);
     const sVal = Math.round(seismicData[hoverFloor]);
+    const hoverText = `${hoverFloor + 1}F: 풍 ${wVal.toLocaleString()}kN | 지진 ${sVal.toLocaleString()}kN`;
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
-    if (ctx.roundRect) ctx.roundRect(padLeft + 10, hY - 24, 185, 20, 4);
-    else ctx.fillRect(padLeft + 10, hY - 24, 185, 20);
-    ctx.fill();
-
-    ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 10px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`${hoverFloor + 1}F: 풍 ${wVal.toLocaleString()}kN | 지진 ${sVal.toLocaleString()}kN`, padLeft + 16, hY - 10);
+    const hTextW = ctx.measureText(hoverText).width;
+    const hBoxW = hTextW + 16;
+    const hBoxH = 22;
+    let hBoxY = hY - 26;
+    if (hBoxY < padTop + 2) hBoxY = hY + 6;
+    const hBoxX = Math.min(padLeft + plotW - hBoxW - 4, Math.max(padLeft + 6, padLeft + 10));
+
+    // 라이트 툴팁
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(hBoxX, hBoxY, hBoxW, hBoxH, 4);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillRect(hBoxX, hBoxY, hBoxW, hBoxH);
+      ctx.strokeRect(hBoxX, hBoxY, hBoxW, hBoxH);
+    }
+
+    ctx.fillStyle = '#0f172a';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(hoverText, hBoxX + 8, hBoxY + hBoxH / 2);
+    ctx.textBaseline = 'alphabetic';
   }
 
   // 차트 타이틀
