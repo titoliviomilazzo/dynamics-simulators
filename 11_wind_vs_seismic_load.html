@@ -398,6 +398,7 @@
 <link rel="stylesheet" href="assets/dynamics-fx.css">
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
 <script src="assets/dynamics-fx.js" defer></script>
+<script src="assets/dynamics-chart-canonical.js"></script>
 </head>
 <body>
 
@@ -519,9 +520,9 @@
           </div>
 
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <!-- 차트 디자인 개선 4대 옵션 스위처 -->
+            <!-- 차트 디자인 정본 (4안 올인원 확정) -->
             <div class="chart-style-bar" style="display: flex; gap: 3px; background: #f1f5f9; padding: 2px; border-radius: 6px; border: 1px solid #cbd5e1;">
-              <button class="chart-style-btn active" id="btnChart4" onclick="setChartStyle('all')">✨ 4안: 올인원 통합</button>
+              <button class="chart-style-btn active" id="btnChart4" onclick="setChartStyle('all')">⭐ 정본: 4안 올인원</button>
               <button class="chart-style-btn" id="btnChart1" onclick="setChartStyle('delta')">📊 1안: 델타 분할</button>
               <button class="chart-style-btn" id="btnChart2" onclick="setChartStyle('lollipop')">📍 2안: 롤리팝 이산</button>
               <button class="chart-style-btn" id="btnChart3" onclick="setChartStyle('dual')">📐 3안: 듀얼축·뱃지</button>
