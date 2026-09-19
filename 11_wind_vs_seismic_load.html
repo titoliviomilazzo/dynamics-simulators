@@ -284,6 +284,23 @@
     border: 1px solid #e2e8f0;
     gap: 2px;
   }
+  .chart-style-btn {
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chart-style-btn:hover { color: #0f172a; }
+  .chart-style-btn.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
   .anim-btn {
     padding: 4px 9px;
     border-radius: 4px;
@@ -502,10 +519,18 @@
           </div>
 
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <!-- 차트 디자인 개선 4대 옵션 스위처 -->
+            <div class="chart-style-bar" style="display: flex; gap: 3px; background: #f1f5f9; padding: 2px; border-radius: 6px; border: 1px solid #cbd5e1;">
+              <button class="chart-style-btn active" id="btnChart4" onclick="setChartStyle('all')">✨ 4안: 올인원 통합</button>
+              <button class="chart-style-btn" id="btnChart1" onclick="setChartStyle('delta')">📊 1안: 델타 분할</button>
+              <button class="chart-style-btn" id="btnChart2" onclick="setChartStyle('lollipop')">📍 2안: 롤리팝 이산</button>
+              <button class="chart-style-btn" id="btnChart3" onclick="setChartStyle('dual')">📐 3안: 듀얼축·뱃지</button>
+            </div>
+
             <div class="anim-mode-group">
               <button class="anim-btn active" id="btnModeCompare" onclick="setAnimMode('compare')">⚖️ 복합 비교</button>
-              <button class="anim-btn" id="btnModeWind" onclick="setAnimMode('wind')">🌪️ 풍하중 기류</button>
-              <button class="anim-btn" id="btnModeSeismic" onclick="setAnimMode('seismic')">⚡ 지진 진동</button>
+              <button class="anim-btn" id="btnModeWind" onclick="setAnimMode('wind')">🌪️ 풍하중</button>
+              <button class="anim-btn" id="btnModeSeismic" onclick="setAnimMode('seismic')">⚡ 지진하중</button>
             </div>
             <div class="canvas-legend">
               <div class="legend-item">
@@ -1346,6 +1371,20 @@ function drawCADBuilding() {
 }
 
 // =============================================================================
+// CHART STYLES (4 SELECTABLE DESIGN OPTIONS)
+// =============================================================================
+let chartStyle = 'all'; // 'all' (4안), 'delta' (1안), 'lollipop' (2안), 'dual' (3안)
+
+function setChartStyle(style) {
+  chartStyle = style;
+  ['delta', 'lollipop', 'dual', 'all'].forEach((s, idx) => {
+    const btnNum = idx === 3 ? 4 : (idx + 1);
+    const btn = document.getElementById(`btnChart${btnNum}`);
+    if (btn) btn.classList.toggle('active', s === style);
+  });
+}
+
+// =============================================================================
 // DUAL CHARTS (Force & Shear Profile)
 // =============================================================================
 function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal, type) {
@@ -1358,7 +1397,12 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   ctx.save();
   ctx.scale(dpr, dpr);
 
-  const padLeft = 52, padRight = 24, padTop = 42, padBot = 42;
+  // 듀얼 Y축 공간 확보 (좌: 층수 48px, 우: 표고m 46px)
+  const isDualAxis = (chartStyle === 'dual' || chartStyle === 'all');
+  const padLeft = 48;
+  const padRight = isDualAxis ? 46 : 24;
+  const padTop = 44;
+  const padBot = 44;
   const plotW = w - padLeft - padRight;
   const plotH = h - padTop - padBot;
 
@@ -1382,52 +1426,137 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.fillStyle = '#94a3b8';
     ctx.font = '10px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(Math.round((g / 4) * xMax).toLocaleString(), x, padTop + plotH + 15);
+    ctx.fillText(Math.round((g / 4) * xMax).toLocaleString(), x, padTop + plotH + 16);
   }
 
-  // Y축 층수 눈금
+  // Y축 좌측 층수(Stories) 눈금
   ctx.textAlign = 'right';
   for (let f = 0; f <= stories; f += (stories > 20 ? 5 : 2)) {
     const y = (padTop + plotH) - (f / stories) * plotH;
     ctx.beginPath(); ctx.moveTo(padLeft, y); ctx.lineTo(padLeft + plotW, y); ctx.stroke();
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '10px monospace';
+    ctx.fillStyle = '#64748b';
+    ctx.font = 'bold 10px monospace';
     ctx.fillText(f === 0 ? '0' : `${f}F`, padLeft - 6, y + 3);
   }
 
-  // 1. 풍하중 영역 (Cyan)
-  const windAreaGrad = ctx.createLinearGradient(padLeft, 0, padLeft + plotW, 0);
-  windAreaGrad.addColorStop(0, 'rgba(8, 145, 178, 0.03)');
-  windAreaGrad.addColorStop(1, 'rgba(8, 145, 178, 0.18)');
-  ctx.fillStyle = windAreaGrad;
-  ctx.beginPath();
-  ctx.moveTo(padLeft, padTop + plotH);
-  for (let i = 0; i < stories; i++) {
-    const x = padLeft + (windData[i] / xMax) * plotW;
-    const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
-    ctx.lineTo(x, y);
+  // Y축 우측 실제 표고(Elevation in meters) 눈금 (3안, 4안)
+  if (isDualAxis) {
+    ctx.textAlign = 'left';
+    for (let f = 0; f <= stories; f += (stories > 20 ? 5 : 2)) {
+      const y = (padTop + plotH) - (f / stories) * plotH;
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px monospace';
+      ctx.fillText(`${(f * floorH).toFixed(0)}m`, padLeft + plotW + 6, y + 3);
+    }
   }
-  ctx.lineTo(padLeft, padTop);
-  ctx.closePath();
-  ctx.fill();
 
-  // 2. 지진하중 영역 (Red)
-  const seismicAreaGrad = ctx.createLinearGradient(padLeft, 0, padLeft + plotW, 0);
-  seismicAreaGrad.addColorStop(0, 'rgba(220, 38, 38, 0.03)');
-  seismicAreaGrad.addColorStop(1, 'rgba(220, 38, 38, 0.16)');
-  ctx.fillStyle = seismicAreaGrad;
-  ctx.beginPath();
-  ctx.moveTo(padLeft, padTop + plotH);
-  for (let i = 0; i < stories; i++) {
-    const x = padLeft + (seismicData[i] / xMax) * plotW;
-    const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
-    ctx.lineTo(x, y);
+  // 교차점(Crossover Point) 계산
+  let crossIdx = -1;
+  for (let i = 0; i < stories - 1; i++) {
+    if ((windData[i] <= seismicData[i] && windData[i + 1] >= seismicData[i + 1]) ||
+        (windData[i] >= seismicData[i] && windData[i + 1] <= seismicData[i + 1])) {
+      crossIdx = i;
+      break;
+    }
   }
-  ctx.lineTo(padLeft, padTop);
-  ctx.closePath();
-  ctx.fill();
+  let exactFloor = 0, crossX = 0, crossY = 0;
+  if (crossIdx >= 0) {
+    const frac = (seismicData[crossIdx] - windData[crossIdx]) /
+                 ((windData[crossIdx + 1] - windData[crossIdx]) - (seismicData[crossIdx + 1] - seismicData[crossIdx]) || 1);
+    exactFloor = crossIdx + 1 + Math.max(0, Math.min(1, frac));
+    crossX = padLeft + (windData[crossIdx] / xMax) * plotW;
+    crossY = (padTop + plotH) - (exactFloor / stories) * plotH;
+  }
 
-  // 3. 곡선
+  // ---------------------------------------------------------------------------
+  // [1안 / 4안] 델타(차이) 영역 분할 채색 (Differential Dominance Fill)
+  // ---------------------------------------------------------------------------
+  if (chartStyle === 'delta' || chartStyle === 'all') {
+    if (crossIdx >= 0) {
+      // 1) 지진 지배 구간 (0층 ~ 역전점): 두 곡선 사이 면적 Red 채색
+      ctx.fillStyle = 'rgba(220, 38, 38, 0.12)';
+      ctx.beginPath();
+      // 풍하중 곡선 따라 올라감
+      ctx.moveTo(padLeft, padTop + plotH);
+      for (let i = 0; i <= crossIdx; i++) {
+        const x = padLeft + (windData[i] / xMax) * plotW;
+        const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(crossX, crossY);
+      // 지진하중 곡선 따라 내려옴
+      for (let i = crossIdx; i >= 0; i--) {
+        const x = padLeft + (seismicData[i] / xMax) * plotW;
+        const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(padLeft, padTop + plotH);
+      ctx.closePath();
+      ctx.fill();
+
+      // 지진 지배 구간 텍스트 워터마크
+      const midSeismicY = (padTop + plotH + crossY) / 2;
+      ctx.fillStyle = 'rgba(220, 38, 38, 0.7)';
+      ctx.font = 'bold 9px Pretendard, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`◄ 지진 지배 구간 (Seismic)`, padLeft + 12, midSeismicY);
+
+      // 2) 풍하중 지배 구간 (역전점 ~ 최상층): 두 곡선 사이 면적 Cyan 채색
+      ctx.fillStyle = 'rgba(8, 145, 178, 0.15)';
+      ctx.beginPath();
+      ctx.moveTo(crossX, crossY);
+      for (let i = crossIdx + 1; i < stories; i++) {
+        const x = padLeft + (windData[i] / xMax) * plotW;
+        const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
+        ctx.lineTo(x, y);
+      }
+      for (let i = stories - 1; i > crossIdx; i--) {
+        const x = padLeft + (seismicData[i] / xMax) * plotW;
+        const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(crossX, crossY);
+      ctx.closePath();
+      ctx.fill();
+
+      // 풍하중 지배 구간 텍스트 워터마크
+      const midWindY = (padTop + crossY) / 2;
+      ctx.fillStyle = 'rgba(8, 145, 178, 0.85)';
+      ctx.font = 'bold 9px Pretendard, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`◄ 풍하중 역전 지배 (Wind)`, padLeft + 12, midWindY);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // [2안 / 4안] 롤리팝 이산 층하중 바 (Lollipop Floor Force CAD)
+  // ---------------------------------------------------------------------------
+  if (chartStyle === 'lollipop' || chartStyle === 'all') {
+    const stepLollipop = stories > 25 ? 3 : (stories > 15 ? 2 : 1);
+    for (let i = 0; i < stories; i += stepLollipop) {
+      const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
+      const xw = padLeft + (windData[i] / xMax) * plotW;
+      const xs = padLeft + (seismicData[i] / xMax) * plotW;
+
+      // 층 가이드 스템 라인
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padLeft, y); ctx.lineTo(Math.max(xw, xs), y); ctx.stroke();
+
+      // 풍하중 롤리팝 점 (Cyan)
+      ctx.fillStyle = '#0891b2';
+      ctx.beginPath(); ctx.arc(xw, y, 2.5, 0, Math.PI * 2); ctx.fill();
+
+      // 지진하중 롤리팝 점 (Red)
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath(); ctx.arc(xs, y, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 솔리드 곡선 렌더링 (Wind Cyan, Seismic Red)
+  // ---------------------------------------------------------------------------
+  // 풍하중 곡선
   ctx.strokeStyle = '#0891b2';
   ctx.lineWidth = 2.5;
   ctx.beginPath();
@@ -1439,6 +1568,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   }
   ctx.stroke();
 
+  // 지진하중 곡선
   ctx.strokeStyle = '#dc2626';
   ctx.lineWidth = 2.5;
   ctx.beginPath();
@@ -1450,23 +1580,23 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   }
   ctx.stroke();
 
-  // 4. 역전점(Crossover Point) 감지 & 펄스 마커
-  let crossIdx = -1;
-  for (let i = 0; i < stories - 1; i++) {
-    if ((windData[i] <= seismicData[i] && windData[i + 1] >= seismicData[i + 1]) ||
-        (windData[i] >= seismicData[i] && windData[i + 1] <= seismicData[i + 1])) {
-      crossIdx = i;
-      break;
-    }
-  }
-
+  // ---------------------------------------------------------------------------
+  // [3안 / 4안] 스마트 앵커 뱃지 및 역전 관통 가이드라인
+  // ---------------------------------------------------------------------------
   if (crossIdx >= 0) {
-    const frac = (seismicData[crossIdx] - windData[crossIdx]) /
-                 ((windData[crossIdx + 1] - windData[crossIdx]) - (seismicData[crossIdx + 1] - seismicData[crossIdx]) || 1);
-    const exactFloor = crossIdx + 1 + Math.max(0, Math.min(1, frac));
-    const crossX = padLeft + (windData[crossIdx] / xMax) * plotW;
-    const crossY = (padTop + plotH) - (exactFloor / stories) * plotH;
+    // 역전 관통 수평 가이드선 (Dashed line spanning entire plot width)
+    if (chartStyle === 'dual' || chartStyle === 'all') {
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padLeft, crossY);
+      ctx.lineTo(padLeft + plotW, crossY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
 
+    // 펄스 타겟 마커
     const pulseR = 5 + 1.8 * Math.sin(animTime * 4.0);
     ctx.strokeStyle = '#d97706';
     ctx.lineWidth = 2;
@@ -1479,6 +1609,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.arc(crossX, crossY, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
+    // 역전점 태그 배지
     const badgeText = `★ ${type === 'force' ? '횡력' : '전단력'} 역전: ${exactFloor.toFixed(1)}F (${(exactFloor * floorH).toFixed(1)}m)`;
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 10px monospace';
@@ -1486,7 +1617,24 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.fillText(badgeText, crossX + 8, crossY - 6);
   }
 
-  // 5. 마우스 호버 크로스헤어
+  // [3안 / 4안] 밑면전단력 Vb 스마트 플로팅 뱃지 (Shear 차트 하단)
+  if ((chartStyle === 'dual' || chartStyle === 'all') && type === 'shear') {
+    const ratioVal = (seismicData[0] / (windData[0] || 1)).toFixed(1);
+    const vbBadge = `밑면전단력 Vb: 지진 ${Math.round(seismicData[0]).toLocaleString()}kN (${ratioVal}배) vs 풍 ${Math.round(windData[0]).toLocaleString()}kN`;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    if (ctx.roundRect) ctx.roundRect(padLeft + 8, padTop + plotH - 26, 260, 20, 4);
+    else ctx.fillRect(padLeft + 8, padTop + plotH - 26, 260, 20);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 9.5px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(vbBadge, padLeft + 14, padTop + plotH - 12);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 마우스 호버 크로스헤어
+  // ---------------------------------------------------------------------------
   if (hoverFloor >= 0 && hoverCanvasType === type) {
     const hY = (padTop + plotH) - ((hoverFloor + 1) / stories) * plotH;
     ctx.strokeStyle = '#475569';
@@ -1501,8 +1649,9 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     const wVal = Math.round(windData[hoverFloor]);
     const sVal = Math.round(seismicData[hoverFloor]);
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
-    ctx.roundRect(padLeft + 10, hY - 24, 180, 20, 4);
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    if (ctx.roundRect) ctx.roundRect(padLeft + 10, hY - 24, 185, 20, 4);
+    else ctx.fillRect(padLeft + 10, hY - 24, 185, 20);
     ctx.fill();
 
     ctx.fillStyle = '#38bdf8';
@@ -1511,6 +1660,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.fillText(`${hoverFloor + 1}F: 풍 ${wVal.toLocaleString()}kN | 지진 ${sVal.toLocaleString()}kN`, padLeft + 16, hY - 10);
   }
 
+  // 차트 타이틀
   ctx.font = 'bold 12px Pretendard, sans-serif';
   ctx.fillStyle = '#0f172a';
   ctx.textAlign = 'left';
