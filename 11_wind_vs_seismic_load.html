@@ -976,8 +976,8 @@ function rebuildThreeBuilding() {
 
     // D. 4개 코너 기둥 (Corner Structural Columns)
     const colH = storyH3D - slabH;
-    const colGeom = new THREE.BoxGeometry(0.5, colH, 0.5);
-    const colMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+    const colGeom = new THREE.BoxGeometry(0.55, colH, 0.55);
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 });
     const colOffset = slabW / 2 - 0.35;
 
     [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
@@ -998,14 +998,34 @@ function rebuildThreeBuilding() {
     coreMesh.position.y = -storyH3D / 2;
     slabMesh.add(coreMesh);
 
-    // F. 1층 그랜드 로비 출입구 캐노피 (Entrance Canopy on 1F)
+    // F. 창호 수직 멀리온 라인 (Curtain Wall Mullions Grid)
+    const mullionMat = new THREE.LineBasicMaterial({ color: 0x1e293b, transparent: true, opacity: 0.45 });
+    const mullionPts = [];
+    const numBays = 3;
+    for (let b = 1; b < numBays; b++) {
+      const bx = -slabW / 2 + (slabW / numBays) * b;
+      // 앞면 / 뒷면 멀리온
+      mullionPts.push(new THREE.Vector3(bx, 0, slabD / 2), new THREE.Vector3(bx, -glassH, slabD / 2));
+      mullionPts.push(new THREE.Vector3(bx, 0, -slabD / 2), new THREE.Vector3(bx, -glassH, -slabD / 2));
+      const bz = -slabD / 2 + (slabD / numBays) * b;
+      // 좌측 / 우측 멀리온
+      mullionPts.push(new THREE.Vector3(-slabW / 2, 0, bz), new THREE.Vector3(-slabW / 2, -glassH, bz));
+      mullionPts.push(new THREE.Vector3(slabW / 2, 0, bz), new THREE.Vector3(slabW / 2, -glassH, bz));
+    }
+    const mullionGeom = new THREE.BufferGeometry().setFromPoints(mullionPts);
+    slabMesh.add(new THREE.LineSegments(mullionGeom, mullionMat));
+
+    // G. 1층 그랜드 로비 출입구 캐노피 (Entrance Canopy on 1F)
     if (i === 0) {
-      const canopyGeom = new THREE.BoxGeometry(slabW * 0.45, 0.2, 2.2);
-      const canopyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a });
+      const canopyGeom = new THREE.BoxGeometry(slabW * 0.5, 0.25, 2.4);
+      const canopyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
       const canopyMesh = new THREE.Mesh(canopyGeom, canopyMat);
-      canopyMesh.position.set(0, -glassH * 0.5, slabD / 2 + 1.1);
+      canopyMesh.position.set(0, -glassH * 0.5, slabD / 2 + 1.2);
       slabMesh.add(canopyMesh);
     }
+
+    // [중요 수정] slabMesh를 group에 추가하여 모든 층이 3D 씬에 완벽히 렌더링되도록 함
+    group.add(slabMesh);
 
     group.position.set(0, yPos, 0);
     group.userData = { baseY: yPos, storyIndex: i };
@@ -1019,7 +1039,7 @@ function rebuildThreeBuilding() {
 
     // 기계실
     const pentGeom = new THREE.BoxGeometry(slabW * 0.52, 1.8, slabD * 0.52);
-    const pentMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+    const pentMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 });
     const pentMesh = new THREE.Mesh(pentGeom, pentMat);
     pentMesh.position.set(0, 1.1, 0);
     pentMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(pentGeom), new THREE.LineBasicMaterial({ color: 0x0f172a })));
@@ -1151,22 +1171,48 @@ function updateThreeVectorVisibility() {
   });
 }
 
+// =============================================================================
+// THREE.JS 3D STATIC CANTILEVER DEFLECTION (정적 횡변위 탄성곡선 - 흔들림 없음)
+// =============================================================================
 function updateThreeAnimation() {
   if (!threeRenderer || activeView !== 'B') return;
 
   const isSeismic = (animMode === 'seismic' || animMode === 'compare');
   const isWind = (animMode === 'wind' || animMode === 'compare');
 
-  // 1. 3D 모달 지진 진동 & 풍하중 정적 변위
-  const topSway = isSeismic ? Math.sin(animTime * 3.2) * 2.8 : 0;
-  const windDeflect = isWind ? 1.2 : 0;
+  // [정적하중 원칙 적용] KDS 41 풍하중 및 등가정적 지진하중은 시간 진동이 아닌 "정적 횡하중"임
+  // 따라서 시간에 따른 sin() 진동을 완전히 배제하고, 순수 정적 캔틸레버 탄성 휨 변형 형상으로 표시
+  const baseVw = currentVWind[0] || 1.0;
+  const baseVs = currentVSeismic[0] || 1.0;
+  let govLoad = 0;
+  if (animMode === 'wind') govLoad = baseVw;
+  else if (animMode === 'seismic') govLoad = baseVs;
+  else govLoad = Math.max(baseVw, baseVs);
+
+  // 최상층 정적 목표 변위 (Top Static Drift)
+  const targetTopDrift = Math.min(4.5, Math.max(1.2, (govLoad / 4500.0) * 3.5));
+  const totalH3D = stories * (floorH * 0.52 * 0.45);
 
   floorMeshes.forEach((mesh, idx) => {
-    // 0번은 기초
-    if (idx === 0) return;
-    const ratio = idx / stories;
-    const dx = (topSway * Math.pow(ratio, 1.4)) + (windDeflect * Math.pow(ratio, 1.8));
-    mesh.position.x = dx;
+    // 0번은 기초 (절대 고정단, 변위=0, 회전=0)
+    if (idx === 0) {
+      mesh.position.x = 0;
+      mesh.rotation.z = 0;
+      return;
+    }
+
+    const zRatio = idx / stories; // 1층: 1/stories, 최상층: 1.0
+
+    // 순수 캔틸레버 고정단 휨 형상 함수: psi(z) = 1.5 * z^2 - 0.5 * z^3
+    // z=0 (기초면)에서 psi(0)=0, psi'(0)=0 (바닥에 100% 완전 고정, 흔들림 전혀 없음)
+    const cantileverShape = 1.5 * Math.pow(zRatio, 2) - 0.5 * Math.pow(zRatio, 3);
+    const staticDx = targetTopDrift * cantileverShape;
+
+    // 캔틸레버 층별 처짐 회전각 (Tilt Angle): theta = d(dx)/dz
+    const tilt = (targetTopDrift / totalH3D) * (3.0 * zRatio - 1.5 * Math.pow(zRatio, 2));
+
+    mesh.position.x = staticDx;
+    mesh.rotation.z = -tilt * 0.28; // 자연스러운 캔틸레버 휨 경사
   });
 
   // 2. 항공장애등 점멸 애니메이션 (1Hz)
@@ -1176,11 +1222,11 @@ function updateThreeAnimation() {
     beaconMesh.material.color.setRGB(1.0 * glow, 0.15, 0.15);
   }
 
-  // 3. 3D 공기역학 파티클 이동
+  // 3. 3D 공기역학 파티클 이동 (바람 모드 시 시각적 기류 보조)
   if (threeParticles && isWind) {
     const pos = threeParticles.geometry.attributes.position.array;
     for (let i = 0; i < THREE_NUM_PARTICLES; i++) {
-      pos[i * 3 + 0] += 0.48 * (V0 / 32.0);
+      pos[i * 3 + 0] += 0.45 * (V0 / 32.0);
       if (pos[i * 3 + 0] > 40) {
         pos[i * 3 + 0] = -40;
         pos[i * 3 + 1] = 1 + Math.random() * 45;
@@ -1195,7 +1241,7 @@ function updateThreeAnimation() {
 }
 
 // =============================================================================
-// OPTION A: 2D CAD DRAWING (FALLBACK)
+// OPTION A: 2D CAD DRAWING (정적 캔틸레버 탄성곡선 연동)
 // =============================================================================
 function drawCADBuilding() {
   const dpr = window.devicePixelRatio || 1;
@@ -1238,20 +1284,21 @@ function drawCADBuilding() {
   bldgCtx.lineWidth = 1.5;
   bldgCtx.strokeRect(bldgBaseLeft - 12, groundY, bldgW + 24, 12);
 
-  // 3. 물리 변위 계산
+  // 3. 정적 캔틸레버 횡변위 계산 (흔들림 없음, 바닥 u=0, u'=0 완전 고정)
   const isSeismic = (animMode === 'seismic' || animMode === 'compare');
   const isWind = (animMode === 'wind' || animMode === 'compare');
-  const groundSway = isSeismic ? Math.sin(animTime * 3.2) * 3.5 : 0;
-  const topSway = isSeismic ? Math.sin(animTime * 3.2 - 0.45) * 14.0 : 0;
-  const windStaticDeflect = isWind ? 6.0 : 0;
+  const baseVw = currentVWind[0] || 1.0;
+  const baseVs = currentFSeismic[0] || 1.0;
+  const govLoad = animMode === 'wind' ? baseVw : (animMode === 'seismic' ? baseVs : Math.max(baseVw, baseVs));
+  const topStaticDeflect = Math.min(18, Math.max(6, (govLoad / 4500.0) * 15.0));
 
   const nodeL = [];
   const nodeR = [];
   for (let i = 0; i <= stories; i++) {
     const ratio = i / stories;
-    const dynamicSway = groundSway + (topSway - groundSway) * Math.pow(ratio, 1.4);
-    const windDeflect = windStaticDeflect * Math.pow(ratio, 1.8);
-    const totalDx = dynamicSway + windDeflect;
+    // 순수 캔틸레버 형상: 1.5 * r^2 - 0.5 * r^3 (r=0일 때 변위=0, 기울기=0)
+    const cantileverShape = 1.5 * Math.pow(ratio, 2) - 0.5 * Math.pow(ratio, 3);
+    const totalDx = topStaticDeflect * cantileverShape;
     const y = groundY - i * floorH_px;
     nodeL.push({ x: bldgBaseLeft + totalDx, y: y });
     nodeR.push({ x: bldgBaseLeft + bldgW + totalDx, y: y });
