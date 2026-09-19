@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 34: 반전 0 — 강체(F=ma) vs 채찍(유연 골조) 42% 지진력 폭증</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .light-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-lg space-y-5">
+    
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            반전 0: "건물은 한 덩어리다(F=ma)"의 배신 — 강체 vs 채찍(유연) 42% 폭증
+          </h1>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-red-50 text-red-700 border border-red-200">
+            강의노트 §5.1 &middot; 오프닝 핵심 반전
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-1 font-medium">
+          무한 강성 강체 가정(2,589 kN) 대비, 층별 유연성에 의해 지붕이 채찍처럼 튀어 실제 지진력은 3,686 kN으로 42% 더 커집니다.
+        </p>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center gap-2">
+        <button id="btn-toggle" onclick="toggleSim()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">
+          일시정지
+        </button>
+        <button onclick="resetSim()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition">
+          초기화
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Comparison: Left Rigid vs Right Flexible -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      
+      <!-- 1. Left (5 Cols): Rigid Body Assumption (F = M_total * PGA) -->
+      <div class="lg:col-span-5 bg-slate-50/70 border border-slate-200 rounded-xl p-4 flex flex-col justify-between light-grid relative min-h-[440px]">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+          <div>
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">통념의 가정</span>
+            <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+              무한 강성 강체 건물 (T = 0)
+            </span>
+          </div>
+          <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-white text-slate-700 border border-slate-200">
+            F = M &middot; a<sub>g</sub>
+          </span>
+        </div>
+
+        <div class="relative flex-1 w-full my-2 min-h-[260px]">
+          <canvas id="canvasRigid" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Rigid Stats -->
+        <div class="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-1.5">
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-500">지붕 가속도:</span>
+            <span class="font-mono font-bold text-slate-800">a<sub>roof</sub> = a<sub>g</sub> = 0.220g</span>
+          </div>
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-500">밑면전단력 V<sub>rigid</sub>:</span>
+            <span class="font-mono font-bold text-slate-900 text-sm">2,589 kN (기준 100%)</span>
+          </div>
+          <div class="text-[11px] text-red-600 font-semibold pt-1 border-t border-slate-100 flex items-center gap-1">
+            <span>⚠️ 실제보다 42% 과소평가 (위험한 가정)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Right (7 Cols): Real Flexible 3-Story Frame (Whip Effect) -->
+      <div class="lg:col-span-7 bg-white border border-red-200 rounded-xl p-4 flex flex-col justify-between min-h-[440px] space-y-3 ring-1 ring-red-500/10">
+        <div class="flex items-center justify-between border-red-100 pb-2">
+          <div>
+            <span class="text-xs font-bold text-red-600 uppercase tracking-wider block">실제 동역학 거동</span>
+            <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+              3층 유연 골조 — 채찍 효과 (T₁ = 0.65s)
+            </span>
+          </div>
+          <span class="text-xs font-mono font-bold px-2.5 py-1 rounded bg-red-50 text-red-700 border border-red-200">
+            V = &sum; m<sub>i</sub> &middot; a<sub>i</sub>(t)
+          </span>
+        </div>
+
+        <div class="relative flex-1 w-full my-2 min-h-[260px]">
+          <canvas id="canvasFlexible" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Flexible Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs font-mono">
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+            <span class="text-slate-500 text-[11px] block font-sans">지붕 가속도 증폭 (채찍 현상)</span>
+            <span class="font-bold text-red-700 text-sm">a₃ = 0.415g (지반의 1.9배!)</span>
+          </div>
+          <div class="p-2.5 bg-red-50 rounded-xl border border-red-200">
+            <span class="text-red-700 text-[11px] block font-sans font-bold">실제 밑면전단력 V<sub>SRSS</sub></span>
+            <span class="font-bold text-red-900 text-sm">3,686 kN (+42% 폭증)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Core Engineering Takeaway -->
+    <div class="p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-slate-700 leading-relaxed space-y-1.5">
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px]">강의 대본 (마스터노트 §5.1)</span>
+        <strong class="text-slate-900 text-sm">"건물이 유연해서 손해를 봅니다 — F=ma는 깨지지 않았습니다"</strong>
+      </div>
+      <p>
+        "건물을 보면 한 덩어리로 보입니다. 그래서 <strong>F = ma</strong>로 전체 질량에 지반가속도를 곱하면 끝날 것 같습니다. 
+        하지만 이것은 건물이 무한히 뻣뻣하다고 가정한 것입니다. 실제 건물은 고무줄로 연결된 추 세 개와 같아서, 지반이 밀면 1층이 먼저 가고 2층이 늦게 따르고 <strong>지붕이 제일 늦게 채찍처럼 튑니다</strong>.
+        층마다 가속도 a가 전부 다르기 때문에, 실제 지진력은 강체 계산값보다 <strong>42% 더 커집니다</strong>."
+      </p>
+    </div>
+
+  </div>
+
+  <script>
+    let isRunning = true;
+    let time = 0;
+    const dt = 0.016;
+
+    const canvasRigid = document.getElementById('canvasRigid');
+    const ctxRigid = canvasRigid.getContext('2d');
+
+    const canvasFlex = document.getElementById('canvasFlexible');
+    const ctxFlex = canvasFlex.getContext('2d');
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      [canvasRigid, canvasFlex].forEach(c => {
+        const r = c.parentElement.getBoundingClientRect();
+        c.width = r.width * dpr;
+        c.height = r.height * dpr;
+      });
+      ctxRigid.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctxFlex.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    setTimeout(resize, 40);
+
+    function toggleSim() {
+      isRunning = !isRunning;
+      document.getElementById('btn-toggle').innerText = isRunning ? '일시정지' : '재생';
+    }
+
+    function resetSim() {
+      time = 0;
+    }
+
+    function drawColumn(ctx, x0, y0, x1, y1, width, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i <= 20; i++) {
+        const s = i / 20;
+        const h = 3 * s * s - 2 * s * s * s;
+        const curX = x0 + (x1 - x0) * h;
+        const curY = y0 + (y1 - y0) * s;
+        if (i === 0) ctx.moveTo(curX, curY);
+        else ctx.lineTo(curX, curY);
+      }
+      ctx.stroke();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (isRunning) time += dt;
+
+      const dpr = window.devicePixelRatio || 1;
+      const wR = canvasRigid.width / dpr;
+      const hR = canvasRigid.height / dpr;
+      const wF = canvasFlex.width / dpr;
+      const hF = canvasFlex.height / dpr;
+
+      ctxRigid.clearRect(0, 0, wR, hR);
+      ctxFlex.clearRect(0, 0, wF, hF);
+
+      // Ground displacement (El Centro-like harmonic packet)
+      const ug = 18 * Math.sin(time * 3.5) * Math.cos(time * 0.8);
+
+      // --- Draw Rigid Body Building ---
+      const cxR = wR * 0.5;
+      const gyR = hR - 40;
+      const fHR = (gyR - 40) / 3;
+      const bayR = 70;
+
+      // Base ground line
+      ctxRigid.fillStyle = '#64748b';
+      ctxRigid.fillRect(cxR + ug - bayR - 20, gyR, (bayR + 20) * 2, 8);
+      ctxRigid.strokeStyle = '#475569';
+      ctxRigid.strokeRect(cxR + ug - bayR - 20, gyR, (bayR + 20) * 2, 8);
+
+      // Rigid body: columns don't bend! Pure translation with ground
+      ctxRigid.fillStyle = 'rgba(148, 163, 184, 0.25)';
+      ctxRigid.strokeStyle = '#475569';
+      ctxRigid.lineWidth = 3;
+      ctxRigid.strokeRect(cxR + ug - bayR, gyR - 3 * fHR, bayR * 2, 3 * fHR);
+      ctxRigid.fillRect(cxR + ug - bayR, gyR - 3 * fHR, bayR * 2, 3 * fHR);
+
+      // Rigid floor lines
+      for (let i = 1; i <= 3; i++) {
+        const fy = gyR - i * fHR;
+        ctxRigid.fillStyle = '#334155';
+        ctxRigid.fillRect(cxR + ug - bayR - 6, fy - 4, (bayR + 6) * 2, 8);
+        ctxRigid.fillStyle = '#ffffff';
+        ctxRigid.font = 'bold 9px monospace';
+        ctxRigid.textAlign = 'center';
+        ctxRigid.fillText(`${i}F (a = a_g)`, cxR + ug, fy + 3);
+      }
+
+      // Acceleration vector arrow at roof
+      ctxRigid.strokeStyle = '#64748b';
+      ctxRigid.lineWidth = 2;
+      ctxRigid.beginPath();
+      ctxRigid.moveTo(cxR + ug, gyR - 3 * fHR - 15);
+      ctxRigid.lineTo(cxR + ug + ug * 0.8, gyR - 3 * fHR - 15);
+      ctxRigid.stroke();
+
+      // --- Draw Flexible 3-Story Frame (Whip Effect) ---
+      const cxF = wF * 0.5;
+      const gyF = hF - 40;
+      const fHF = (gyF - 40) / 3;
+      const bayF = 75;
+
+      // Flexible floor displacements (1st mode + 2nd mode whip amplification)
+      const u1 = ug + 14 * Math.sin(time * 3.5 - 0.4);
+      const u2 = ug + 26 * Math.sin(time * 3.5 - 0.7);
+      const u3 = ug + 44 * Math.sin(time * 3.5 - 1.1); // Whipping roof!
+
+      // Base ground line
+      ctxFlex.fillStyle = '#dc2626';
+      ctxFlex.fillRect(cxF + ug - bayF - 20, gyF, (bayF + 20) * 2, 8);
+      ctxFlex.strokeStyle = '#991b1b';
+      ctxFlex.strokeRect(cxF + ug - bayF - 20, gyF, (bayF + 20) * 2, 8);
+
+      const disps = [ug, u1, u2, u3];
+
+      // Draw columns with Hermite bending
+      for (let story = 0; story < 3; story++) {
+        const botDisp = disps[story];
+        const topDisp = disps[story + 1];
+        const yBot = gyF - story * fHF;
+        const yTop = gyF - (story + 1) * fHF;
+
+        // Left column
+        drawColumn(ctxFlex, cxF + botDisp - bayF, yBot, cxF + topDisp - bayF, yTop, 4, '#dc2626');
+        // Right column
+        drawColumn(ctxFlex, cxF + botDisp + bayF, yBot, cxF + topDisp + bayF, yTop, 4, '#dc2626');
+      }
+
+      // Draw slabs
+      for (let i = 1; i <= 3; i++) {
+        const fy = gyF - i * fHF;
+        const u = disps[i];
+        ctxFlex.fillStyle = '#1e293b';
+        ctxFlex.fillRect(cxF + u - bayF - 6, fy - 5, (bayF + 6) * 2, 10);
+
+        ctxFlex.fillStyle = '#ffffff';
+        ctxFlex.font = 'bold 9px monospace';
+        ctxFlex.textAlign = 'center';
+        if (i === 3) {
+          ctxFlex.fillText(`지붕 채찍: a₃ = 1.9 a_g`, cxF + u, fy + 3);
+        } else {
+          ctxFlex.fillText(`${i}F (400t)`, cxF + u, fy + 3);
+        }
+      }
+
+      // Big red acceleration vector arrow at roof showing whip amplification
+      const whipAcc = (u3 - ug) * 1.5;
+      ctxFlex.strokeStyle = '#dc2626';
+      ctxFlex.lineWidth = 3;
+      ctxFlex.beginPath();
+      ctxFlex.moveTo(cxF + u3, gyF - 3 * fHF - 18);
+      ctxFlex.lineTo(cxF + u3 + whipAcc, gyF - 3 * fHF - 18);
+      ctxFlex.stroke();
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>24. 철근콘크리트 기둥 3D 90도 쿼터 P-M-M 상관곡면 & 강도감소계수(φ) 설계기준 시뮬레이터</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<!-- Three.js & OrbitControls CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent-blue: #2563eb;
+    --accent-indigo: #4f46e5;
+    --accent-emerald: #059669;
+    --accent-amber: #d97706;
+    --accent-orange: #ea580c;
+    --accent-red: #dc2626;
+    --dark-surface: #0b1120;
+    --font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-family);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.5;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: center;
+  }
+  .app-container {
+    width: 100%;
+    max-width: 1560px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  header {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 10px 16px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left h1 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-left p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .nav-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #f1f5f9;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent-indigo);
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    transition: all 0.15s;
+  }
+  .nav-badge:hover { background: #e2e8f0; }
+  .grid-layout {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 1180px) {
+    .grid-layout { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 13px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .preset-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+  .preset-btn {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 3px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.25;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover {
+    background: #e2e8f0;
+    color: var(--text-primary);
+    border-color: #cbd5e1;
+  }
+  .preset-btn.active {
+    background: #eff6ff;
+    color: var(--accent-blue);
+    border-color: #93c5fd;
+    font-weight: 700;
+  }
+  .form-group {
+    margin-bottom: 8px;
+  }
+  .form-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+  }
+  .form-val {
+    font-family: monospace;
+    color: var(--accent-blue);
+    font-weight: 700;
+    font-size: 11.5px;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-blue);
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    outline: none;
+  }
+  .btn-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 6px;
+    margin-bottom: 10px;
+  }
+  .action-btn {
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .action-btn:hover { background: #f1f5f9; color: var(--text-primary); }
+  .action-btn.primary {
+    background: var(--accent-blue);
+    color: #ffffff;
+    border-color: var(--accent-blue);
+  }
+  .action-btn.primary:hover { background: #1d4ed8; }
+  .metrics-card {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10.5px;
+  }
+  .metric-name { color: var(--text-secondary); font-weight: 500; }
+  .metric-val { font-family: monospace; font-weight: 700; color: var(--text-primary); }
+  .status-badge {
+    padding: 2px 7px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .right-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .hero-triple-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 1280px) {
+    .hero-triple-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 860px) {
+    .hero-triple-grid { grid-template-columns: 1fr; }
+  }
+  .canvas-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+  .canvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .canvas-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .canvas-legend {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10.5px;
+    color: var(--text-secondary);
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-color { width: 9px; height: 9px; border-radius: 2px; }
+  .orbit-tip {
+    position: absolute;
+    bottom: 10px;
+    left: 12px;
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--text-secondary);
+    padding: 3px 9px;
+    border-radius: 9999px;
+    font-size: 9.5px;
+    font-weight: 600;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .triple-bottom-grid {
+    display: grid;
+    grid-template-columns: 310px 340px 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 1400px) {
+    .triple-bottom-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 860px) {
+    .triple-bottom-grid { grid-template-columns: 1fr; }
+  }
+  .hud-box {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    height: 100%;
+    color: var(--text-primary);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .hud-tag-banner {
+    padding: 6px 9px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .hud-row {
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+  .hud-label {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1px;
+  }
+  .hud-desc { color: var(--text-secondary); }
+  .progress-track {
+    width: 100%;
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    transition: width 0.1s, background-color 0.2s;
+  }
+  .bottom-insight {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent-indigo);
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+</style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+<div class="app-container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-left">
+      <h1>
+        <span>24. 철근콘크리트 기둥 3D 90° 쿼터 P-M-M 상관곡면 & 강도감소계수(φ) 설계기준 시뮬레이터</span>
+      </h1>
+      <p>KDS 14 20 20 변형률 평면 가설 및 2축 휨(Biaxial) 3D 제1사분면 90° 절단 상관곡면과 2D 정방형 포락선이 마우스 오르빗으로 실시간 동기화됩니다.</p>
+    </div>
+    <a href="index.html" class="nav-badge">
+      <span>← 마스터 대시보드</span>
+    </a>
+  </header>
+
+  <!-- MAIN GRID -->
+  <div class="grid-layout">
+
+    <!-- LEFT CONTROLS -->
+    <div class="panel">
+      <div class="section-title">
+        <span>📍 8대 주요 설계 한계점 점프</span>
+      </div>
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="setPreset('P0')">P0<br><span style="font-size:9px">순수압축</span></button>
+        <button class="preset-btn" onclick="setPreset('Pmax')" style="color:#ea580c;font-weight:bold">0.80P0<br><span style="font-size:9px">설계상한</span></button>
+        <button class="preset-btn" onclick="setPreset('CompLimit')" style="color:#d97706;font-weight:bold">압축지배<br><span style="font-size:9px">εt=εy</span></button>
+        <button class="preset-btn" onclick="setPreset('Balanced')" style="color:#2563eb;font-weight:bold">균형점 Pb<br><span style="font-size:9px">Mb 최대</span></button>
+        <button class="preset-btn" onclick="setPreset('Transition')">천이점<br><span style="font-size:9px">εt=0.0035</span></button>
+        <button class="preset-btn" onclick="setPreset('TensionLimit')" style="color:#059669;font-weight:bold">인장지배<br><span style="font-size:9px">εt=0.005</span></button>
+        <button class="preset-btn" onclick="setPreset('PureFlex')">순수휨 M0<br><span style="font-size:9px">Pn=0</span></button>
+        <button class="preset-btn" onclick="setPreset('PureTension')" style="color:#dc2626;font-weight:bold">순수인장<br><span style="font-size:9px">Pnt</span></button>
+      </div>
+
+      <div class="section-title" style="margin-top:6px">
+        <span>⚙️ 중립축(c/h) & 2축 휨 각도(θ) 제어</span>
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>중립축 깊이비 c / h</span>
+          <span class="form-val" id="valCH">0.56</span>
+        </div>
+        <input type="range" id="sliderCH" min="0.06" max="2.40" step="0.01" value="0.56" oninput="onCHSlider(this.value)">
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>2축 휨 편심 모멘트 각도 θ (0°~90°)</span>
+          <span class="form-val" id="valBiaxialAngle">0.0° (1축 Mx)</span>
+        </div>
+        <input type="range" id="sliderAngle" min="0" max="90" step="5" value="0" oninput="onAngleSlider(this.value)">
+      </div>
+
+      <div class="btn-group">
+        <button class="action-btn primary" id="btnPlay" onclick="togglePlay()">▶ 3D 궤적 스윕</button>
+        <button class="action-btn" onclick="resetAll()">🔄 기본값 복원</button>
+      </div>
+
+      <div class="section-title" style="margin-top:9px">
+        <span>📐 단면 치수 & 재료 강도 파라미터</span>
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>기둥 단면 폭 b (mm)</span>
+          <span class="form-val" id="valB">600 mm</span>
+        </div>
+        <input type="range" id="sliderB" min="400" max="1000" step="50" value="600" oninput="updateParams()">
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>기둥 단면 높이 h (mm)</span>
+          <span class="form-val" id="valH">600 mm</span>
+        </div>
+        <input type="range" id="sliderH" min="400" max="1000" step="50" value="600" oninput="updateParams()">
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>콘크리트 압축강도 f'ck (MPa)</span>
+          <span class="form-val" id="valFck">30 MPa</span>
+        </div>
+        <input type="range" id="sliderFck" min="21" max="50" step="1" value="30" oninput="updateParams()">
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>철근 항복강도 fy (MPa)</span>
+          <span class="form-val" id="valFy">400 MPa</span>
+        </div>
+        <input type="range" id="sliderFy" min="400" max="600" step="100" value="400" oninput="updateParams()">
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>주철근 배근비 ρg (%)</span>
+          <span class="form-val" id="valRho">2.0 %</span>
+        </div>
+        <input type="range" id="sliderRho" min="1.0" max="4.0" step="0.2" value="2.0" oninput="updateParams()">
+      </div>
+
+      <!-- METRICS -->
+      <div class="metrics-card">
+        <div class="metric-row">
+          <span class="metric-name">KDS 파괴 모드</span>
+          <span id="badgeStatus" class="status-badge" style="background:#dcfce7;color:#15803d">인장지배</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">강도감소계수 (φ)</span>
+          <span class="metric-val" id="valPhi">0.850</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">공칭 하중 (Pn, Mx, My)</span>
+          <span class="metric-val" id="valNominal">0 kN, 0, 0 kNm</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">설계 하중 (φPn, φMx, φMy)</span>
+          <span class="metric-val" id="valDesign" style="color:#ea580c">0 kN, 0, 0 kNm</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">최외단 인장변형률 (εt)</span>
+          <span class="metric-val" id="valEpsT">0.0050</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Whitney 블록 깊이 (a)</span>
+          <span class="metric-val" id="valA">0.0 mm</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">하중 편심거리 (e = M/P)</span>
+          <span class="metric-val" id="valEcc">0.0 mm</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT CONTAINER (HERO VISUALIZATION) -->
+    <div class="right-container">
+
+      <!-- TOP HERO TRIPLE GRID: 2D MEMBER DEFORMATION + 2D PM ENVELOPE + 3D 90-DEG QUARTER SURFACE -->
+      <div class="hero-triple-grid">
+
+        <!-- 1. 2D COLUMN MEMBER DEFORMATION (P, Rz BENDING & AXIAL SHORTENING) -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>🧱 2D 기둥 부재 거동 (P, Rz 휨·축 변형)</span>
+            </div>
+            <div class="canvas-legend">
+              <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>축력 P</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#4f46e5"></div><span>모멘트 Rz</span></div>
+            </div>
+          </div>
+          <canvas id="columnDeformCanvas" height="330"></canvas>
+        </div>
+
+        <!-- 2. 2D BALANCED PM CANVAS (ULTRA-SMOOTH SPLINE ENVELOPE) -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>📈 2D P-M 단면 슬라이스 (완전 매끄러운 스플라인)</span>
+            </div>
+            <div class="canvas-legend">
+              <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>공칭 Pn-Mn</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>설계 φPn-φMn</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#94a3b8;border:1px dashed #64748b"></div><span>0.80P0</span></div>
+            </div>
+          </div>
+          <canvas id="interactionCanvas" height="330"></canvas>
+        </div>
+
+        <!-- 3. 3D 90-DEG QUARTER INTERACTION SURFACE (FAST THREE.JS) -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>🌐 3D 90° 쿼터 상관곡면 (제1사분면 Cutaway)</span>
+            </div>
+            <button class="action-btn" style="padding:2px 8px;font-size:10px;background:#f8fafc;color:var(--text-secondary);border-color:var(--border-color)" onclick="reset3DCamera()">뷰 리셋</button>
+          </div>
+          <div id="threeContainer" style="width:100%;height:330px;position:relative">
+            <canvas id="canvas3d" style="width:100%;height:100%"></canvas>
+            <div class="orbit-tip">🖱️ 3D 오르빗: 좌클릭 회전 | 휠 줌 | 우클릭 이동</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM TRIPLE GRID: STRAIN HERO, SECTION STRESS HERO, HUD -->
+      <div class="triple-bottom-grid">
+
+        <!-- 1. STRAIN DISTRIBUTION HERO -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>📐 단면 변형률 평면 (Strain Distribution)</span>
+            </div>
+          </div>
+          <canvas id="strainCanvas" height="205"></canvas>
+        </div>
+
+        <!-- 2. STRESS & FORCES (WHITNEY BLOCK) HERO -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>🧱 Whitney 등가응력블록 & 힘 평형</span>
+            </div>
+          </div>
+          <canvas id="stressCanvas" height="205"></canvas>
+        </div>
+
+        <!-- 3. KDS DESIGN CRITERIA HUD -->
+        <div class="hud-box">
+          <div id="hudTagBanner" class="hud-tag-banner" style="background:#064e3b;color:#34d399">
+            <span id="hudTagTitle">🟢 인장지배 (Tension-Controlled)</span>
+            <span id="hudDamagePct" style="font-family:monospace;font-size:10px">φ = 0.850</span>
+          </div>
+
+          <div class="progress-track">
+            <div id="phiProgress" class="progress-fill" style="width:100%;background:#10b981"></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:2px">
+            <div class="hud-row">
+              <div class="hud-label">⚖️ 파괴 형태 및 연성 평가</div>
+              <div id="hudModeDesc" class="hud-desc">인장철근이 충분히 항복하여 파괴 전 대변형 경고를 주는 연성 거동.</div>
+            </div>
+
+            <div class="hud-row">
+              <div class="hud-label">🛡️ 강도감소계수(φ) 안전율 철학</div>
+              <div id="hudPhiDesc" class="hud-desc">연성 거동 확보로 설계 안전율 최고 우대 (φ = 0.850).</div>
+            </div>
+
+            <div class="hud-row">
+              <div class="hud-label">💡 축력에 의한 모멘트 증폭률</div>
+              <div id="hudMomentGainDesc" class="hud-desc">적정 축압축력 덕분에 순수 휨 대비 모멘트 강도 1.35배 증폭 중.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- BOTTOM INSIGHT -->
+  <div class="bottom-insight">
+    <span style="font-size:20px">💡</span>
+    <div>
+      <strong>20년차 구조기술사의 KDS 14 20 P-M 상관도 실무 직관:</strong>
+      "실무에서 기둥은 1축 휨이 아닌 <strong>X, Y 양방향 지진력과 풍하중을 동시에 받는 2축 휨(Biaxial Bending)</strong> 상태이므로, P-M 곡선은 <strong>3D 90° 쿼터 절단 곡면(Quarter Interaction Surface)</strong>으로 이해하는 것이 가장 직관적입니다. 
+      상단 3D 뷰에서 보듯 <strong>축압축력이 실릴 때 모멘트 강도가 $1.7$배까지 부풀어 오르는 배(Bulge) 형상</strong>이 쿼터 쉘의 우람한 돔으로 확인되며, 내부의 $\phi$ 설계강도 곡면 안쪽만이 KDS 구조기준을 만족하는 절대 안전 영역입니다."
+    </div>
+  </div>
+
+</div>
+
+<script>
+// STATE
+let colB = 600.0;
+let colH = 600.0;
+let fck = 30.0;
+let fy = 400.0;
+let rhoG = 0.020;
+let cover = 60.0;
+let chRatio = 0.56;
+let biaxialAngleDeg = 0.0; // 0 ~ 90 deg
+let isPlaying = false;
+let playDirection = 1;
+let animReq = null;
+let pulsePhase = 0;
+
+// CANVASES
+const deformCanvas = document.getElementById('columnDeformCanvas');
+const deformCtx = deformCanvas.getContext('2d');
+const pmCanvas = document.getElementById('interactionCanvas');
+const pmCtx = pmCanvas.getContext('2d');
+const strainCanvas = document.getElementById('strainCanvas');
+const strainCtx = strainCanvas.getContext('2d');
+const stressCanvas = document.getElementById('stressCanvas');
+const stressCtx = stressCanvas.getContext('2d');
+
+function resizeCanvas(c) {
+  const rect = c.getBoundingClientRect();
+  const dpr = Math.max(window.devicePixelRatio || 1, 2.0);
+  c.width = Math.round(rect.width * dpr);
+  c.height = Math.round(rect.height * dpr);
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+}
+
+// KDS 14 20 / ACI 318 SECTION SOLVER
+function getBeta1() {
+  if (fck <= 28.0) return 0.85;
+  return Math.max(0.65, 0.85 - 0.007 * (fck - 28.0));
+}
+
+function getRebarLayers() {
+  const Ag = colB * colH;
+  const Ast = Ag * rhoG;
+  const d_prime = cover;
+  const d = colH - cover;
+  return [
+    { y: d_prime,      As: Ast * 0.40, name: '상단 압축철근' },
+    { y: colH / 2.0,   As: Ast * 0.20, name: '중단 사이철근' },
+    { y: d,            As: Ast * 0.40, name: '하단 인장철근' }
+  ];
+}
+
+function computeP0() {
+  const Ag = colB * colH;
+  const Ast = Ag * rhoG;
+  const P0 = (0.85 * fck * (Ag - Ast) + fy * Ast) / 1000.0; // kN
+  const Pn_max = 0.80 * P0;
+  const Pnt = (-fy * Ast) / 1000.0;
+  return { P0, Pn_max, Pnt };
+}
+
+function computePM(c, angleDeg = 0) {
+  const beta1 = getBeta1();
+  const a = beta1 * c;
+  const ecu = 0.0033;
+  const Es = 200000.0;
+  const ey = fy / Es;
+  const d = colH - cover;
+
+  let Cc = 0;
+  let y_bar_c = 0;
+  if (a <= colH) {
+    Cc = 0.85 * fck * colB * a;
+    y_bar_c = a / 2.0;
+  } else {
+    Cc = 0.85 * fck * colB * colH;
+    y_bar_c = colH / 2.0;
+  }
+
+  let Pn_internal = Cc;
+  let Mn_x_internal = Cc * (colH / 2.0 - y_bar_c);
+
+  const layers = getRebarLayers();
+  const steelDetails = [];
+
+  for (let lay of layers) {
+    const yi = lay.y;
+    const Asi = lay.As;
+    const eps_si = ecu * (c - yi) / c;
+    const fsi = Math.max(-fy, Math.min(fy, Es * eps_si));
+    const conc_deduct = (yi <= a) ? 0.85 * fck : 0.0;
+    const Fsi = Asi * (fsi - conc_deduct);
+
+    Pn_internal += Fsi;
+    Mn_x_internal += Fsi * (colH / 2.0 - yi);
+
+    steelDetails.push({ y: yi, eps: eps_si, fsi: fsi, Fsi: Fsi / 1000.0 });
+  }
+
+  const Pn_kN = Pn_internal / 1000.0;
+  const Mn_base_kNm = Mn_x_internal / 1000000.0;
+  const eps_t = ecu * (d - c) / c;
+
+  // Biaxial decomposition (Bresler contour approximation in 1st quadrant)
+  const rad = (angleDeg * Math.PI) / 180.0;
+  const aspectMod = colB / colH;
+  const Mn_kNm = Mn_base_kNm * (Math.cos(rad) + Math.sin(rad) * aspectMod * 0.95);
+  const Mn_x = Mn_base_kNm * Math.cos(rad);
+  const Mn_y = Mn_base_kNm * Math.sin(rad) * aspectMod;
+
+  let phi = 0.65;
+  let mode = "압축지배 (취성 파괴)";
+  if (eps_t >= 0.005) {
+    phi = 0.85;
+    mode = "인장지배 (연성 파괴)";
+  } else if (eps_t <= ey) {
+    phi = 0.65;
+    mode = "압축지배 (취성 파괴)";
+  } else {
+    phi = 0.65 + (eps_t - ey) * (0.85 - 0.65) / (0.005 - ey);
+    mode = "천이지배 (전이 구간)";
+  }
+
+  const p0_data = computeP0();
+  const phiPn_kN = (Pn_kN > 0) ? Math.min(phi * Pn_kN, phi * p0_data.Pn_max) : phi * Pn_kN;
+  const phiMn_kNm = phi * Mn_kNm;
+  const phiMn_x = phi * Mn_x;
+  const phiMn_y = phi * Mn_y;
+
+  return {
+    c, a, beta1, Pn: Pn_kN, Mn: Mn_kNm, Mn_x, Mn_y,
+    phi, phiPn: phiPn_kN, phiMn: phiMn_kNm, phiMn_x, phiMn_y,
+    eps_t, mode, steelDetails,
+    ecc: (Math.abs(Pn_kN) > 1e-3) ? (Mn_kNm / Pn_kN) * 1000.0 : 0.0
+  };
+}
+
+function getBalancedPoint() {
+  const ecu = 0.0033;
+  const ey = fy / 200000.0;
+  const d = colH - cover;
+  const cb = d * (ecu / (ecu + ey));
+  return computePM(cb, biaxialAngleDeg);
+}
+
+function getPureFlexure() {
+  let c_low = 10.0;
+  let c_high = colH * 0.6;
+  for (let i = 0; i < 40; i++) {
+    const c_mid = (c_low + c_high) / 2.0;
+    const pt = computePM(c_mid, biaxialAngleDeg);
+    if (pt.Pn > 0) c_high = c_mid;
+    else c_low = c_mid;
+  }
+  return computePM((c_low + c_high) / 2.0, biaxialAngleDeg);
+}
+
+function computeFullEnvelope(angleDeg = 0) {
+  const pts = [];
+  const n = 420;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    // quadratic-exponential distribution to densely sample around balance point and pure flexure
+    const c = 5.0 + (colH * 3.2 - 5.0) * Math.pow(t, 2.0);
+    pts.push(computePM(c, angleDeg));
+  }
+  return pts;
+}
+
+// Catmull-Rom Cubic Bezier Spline Renderer for Silk-Smooth Curves
+function drawSmoothSpline(ctx, points, tension = 0.5) {
+  if (!points || points.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+
+  if (points.length === 2) {
+    ctx.lineTo(points[1].x, points[1].y);
+    ctx.stroke();
+    return;
+  }
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = (i > 0) ? points[i - 1] : points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = (i < points.length - 2) ? points[i + 2] : p2;
+
+    const cp1x = p1.x + (p2.x - p0.x) / 6.0 * tension;
+    const cp1y = p1.y + (p2.y - p0.y) / 6.0 * tension;
+    const cp2x = p2.x - (p3.x - p1.x) / 6.0 * tension;
+    const cp2y = p2.y - (p3.y - p1.y) / 6.0 * tension;
+
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+  }
+  ctx.stroke();
+}
+
+// -------------------------------------------------------------
+// 3D 90-DEGREE QUARTER BIAXIAL INTERACTION SURFACE (THREE.JS)
+// -------------------------------------------------------------
+let scene3d, camera3d, renderer3d, controls3d;
+let operatingSphereMesh, operatingLineMesh, operatingLineGeom;
+let isThreeAvailable = (typeof THREE !== 'undefined');
+
+function initThree3D() {
+  const container = document.getElementById('threeContainer');
+  const w = container.clientWidth || 360;
+  const h = container.clientHeight || 330;
+
+  if (!isThreeAvailable) return;
+
+  scene3d = new THREE.Scene();
+  scene3d.background = new THREE.Color(0xf8fafc);
+
+  camera3d = new THREE.PerspectiveCamera(38, w / h, 1, 3000);
+  camera3d.position.set(180, 130, 220);
+
+  renderer3d = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d'), antialias: true });
+  renderer3d.setSize(w, h);
+  renderer3d.setPixelRatio(Math.max(window.devicePixelRatio || 1, 2.0));
+
+  if (typeof THREE.OrbitControls !== 'undefined') {
+    controls3d = new THREE.OrbitControls(camera3d, renderer3d.domElement);
+    controls3d.enableDamping = true;
+    controls3d.dampingFactor = 0.08;
+    controls3d.maxPolarAngle = Math.PI * 0.85;
+    controls3d.target.set(30, 10, 30);
+  }
+
+  // Soft Studio Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.90);
+  scene3d.add(ambientLight);
+
+  const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.95);
+  dirLight1.position.set(160, 320, 200);
+  scene3d.add(dirLight1);
+
+  const dirLight2 = new THREE.DirectionalLight(0xe2e8f0, 0.45);
+  dirLight2.position.set(-160, 150, -150);
+  scene3d.add(dirLight2);
+
+  // Light Floor Grid
+  const gridHelper = new THREE.GridHelper(260, 10, 0xcbd5e1, 0xe2e8f0);
+  gridHelper.position.set(30, -60, 30);
+  scene3d.add(gridHelper);
+
+  // Group for 90-deg Quarter PM Surface
+  window.surfaceGroup = new THREE.Group();
+  scene3d.add(window.surfaceGroup);
+
+  // Operating Point Sphere & Vector Line
+  operatingSphereMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(5.2, 16, 16),
+    new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: 0xb91c1c, emissiveIntensity: 0.5, roughness: 0.2 })
+  );
+  scene3d.add(operatingSphereMesh);
+
+  operatingLineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)]);
+  operatingLineMesh = new THREE.Line(operatingLineGeom, new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 2.2 }));
+  scene3d.add(operatingLineMesh);
+
+  build3DStaticShell();
+  const currentC = chRatio * colH;
+  const curPM = computePM(currentC, biaxialAngleDeg);
+  update3DOperatingPoint(curPM, computeP0());
+
+  animateThreeLoop();
+}
+
+function reset3DCamera() {
+  if (camera3d) {
+    camera3d.position.set(180, 130, 220);
+    if (controls3d) controls3d.target.set(30, 10, 30);
+  }
+}
+
+// 3D Shell is only regenerated on Section/Material Parameter Change
+function build3DStaticShell() {
+  if (!scene3d || !window.surfaceGroup) return;
+
+  while (window.surfaceGroup.children.length > 0) {
+    const obj = window.surfaceGroup.children[0];
+    if (obj.geometry) obj.geometry.dispose();
+    window.surfaceGroup.remove(obj);
+  }
+
+  const p0_data = computeP0();
+  const maxP = p0_data.P0;
+  const minP = p0_data.Pnt;
+  const pScale = 160.0 / (maxP - minP);
+  const mScale = 0.105;
+
+  const nAngles = 20; // 0 to 90 degrees (quarter)
+  const nHeights = 32;
+
+  // 1. Nominal 90-deg Quarter Shell
+  const geomQuarter = new THREE.BufferGeometry();
+  const posNom = [];
+  const indicesNom = [];
+
+  for (let i = 0; i <= nHeights; i++) {
+    const tH = i / nHeights;
+    const c = 7.0 + (colH * 3.0 - 7.0) * (tH * tH);
+    const basePM = computePM(c, 0);
+    const zPos = (basePM.Pn - minP) * pScale - 60;
+
+    for (let j = 0; j <= nAngles; j++) {
+      const theta = (j / nAngles) * (Math.PI / 2.0); // 0 to 90 deg only
+      const deg = (theta * 180.0) / Math.PI;
+      const cur = computePM(c, deg);
+      const xPos = cur.Mn_x * mScale;
+      const yPos = cur.Mn_y * mScale;
+
+      posNom.push(xPos, zPos, yPos);
+    }
+  }
+
+  for (let i = 0; i < nHeights; i++) {
+    for (let j = 0; j < nAngles; j++) {
+      const a = i * (nAngles + 1) + j;
+      const b = (i + 1) * (nAngles + 1) + j;
+      const c = (i + 1) * (nAngles + 1) + (j + 1);
+      const d = i * (nAngles + 1) + (j + 1);
+
+      indicesNom.push(a, b, d);
+      indicesNom.push(b, c, d);
+    }
+  }
+
+  geomQuarter.setAttribute('position', new THREE.Float32BufferAttribute(posNom, 3));
+  geomQuarter.setIndex(indicesNom);
+  geomQuarter.computeVertexNormals();
+
+  const matNominal = new THREE.MeshPhongMaterial({
+    color: 0x0284c7,
+    transparent: true,
+    opacity: 0.50,
+    side: THREE.DoubleSide,
+    shininess: 70
+  });
+  const meshNom = new THREE.Mesh(geomQuarter, matNominal);
+  window.surfaceGroup.add(meshNom);
+
+  const wireMat = new THREE.MeshBasicMaterial({ color: 0x0369a1, wireframe: true, transparent: true, opacity: 0.25 });
+  const meshWire = new THREE.Mesh(geomQuarter, wireMat);
+  window.surfaceGroup.add(meshWire);
+
+  // 2. Cutaway Wall Faces (theta=0 and theta=90 inner walls)
+  // Wall 1: theta = 0 (My = 0 plane)
+  const wallGeom1 = new THREE.BufferGeometry();
+  const wallPos1 = [];
+  const wallIdx1 = [];
+  for (let i = 0; i <= nHeights; i++) {
+    const tH = i / nHeights;
+    const c = 7.0 + (colH * 3.0 - 7.0) * (tH * tH);
+    const cur = computePM(c, 0);
+    const zPos = (cur.Pn - minP) * pScale - 60;
+    const xPos = cur.Mn_x * mScale;
+    wallPos1.push(0, zPos, 0);
+    wallPos1.push(xPos, zPos, 0);
+  }
+  for (let i = 0; i < nHeights; i++) {
+    const a = i * 2;
+    const b = (i + 1) * 2;
+    const c = (i + 1) * 2 + 1;
+    const d = i * 2 + 1;
+    wallIdx1.push(a, b, d);
+    wallIdx1.push(b, c, d);
+  }
+  wallGeom1.setAttribute('position', new THREE.Float32BufferAttribute(wallPos1, 3));
+  wallGeom1.setIndex(wallIdx1);
+  wallGeom1.computeVertexNormals();
+  const wallMat = new THREE.MeshPhongMaterial({ color: 0xbae6fd, side: THREE.DoubleSide, transparent: true, opacity: 0.60 });
+  const wallMesh1 = new THREE.Mesh(wallGeom1, wallMat);
+  window.surfaceGroup.add(wallMesh1);
+
+  // Wall 2: theta = 90 deg (Mx = 0 plane)
+  const wallGeom2 = new THREE.BufferGeometry();
+  const wallPos2 = [];
+  const wallIdx2 = [];
+  for (let i = 0; i <= nHeights; i++) {
+    const tH = i / nHeights;
+    const c = 7.0 + (colH * 3.0 - 7.0) * (tH * tH);
+    const cur = computePM(c, 90);
+    const zPos = (cur.Pn - minP) * pScale - 60;
+    const yPos = cur.Mn_y * mScale;
+    wallPos2.push(0, zPos, 0);
+    wallPos2.push(0, zPos, yPos);
+  }
+  for (let i = 0; i < nHeights; i++) {
+    const a = i * 2;
+    const b = (i + 1) * 2;
+    const c = (i + 1) * 2 + 1;
+    const d = i * 2 + 1;
+    wallIdx2.push(a, b, d);
+    wallIdx2.push(b, c, d);
+  }
+  wallGeom2.setAttribute('position', new THREE.Float32BufferAttribute(wallPos2, 3));
+  wallGeom2.setIndex(wallIdx2);
+  wallGeom2.computeVertexNormals();
+  const wallMesh2 = new THREE.Mesh(wallGeom2, wallMat);
+  window.surfaceGroup.add(wallMesh2);
+
+  // 3. 0.80 P0 Cap Disc (90-degree Quarter Sector)
+  const capZ = (p0_data.Pn_max - minP) * pScale - 60;
+  const capGeom = new THREE.CylinderGeometry(75, 75, 1.2, 20, 1, false, 0, Math.PI / 2.0);
+  const capMat = new THREE.MeshBasicMaterial({ color: 0xfca5a5, transparent: true, opacity: 0.40, side: THREE.DoubleSide });
+  const capMesh = new THREE.Mesh(capGeom, capMat);
+  capMesh.position.set(0, capZ, 0);
+  window.surfaceGroup.add(capMesh);
+}
+
+// Ultra-fast 60fps update of 3D operating point (0.01ms overhead)
+function update3DOperatingPoint(curPM, p0_data) {
+  if (!operatingSphereMesh || !operatingLineGeom) return;
+  const maxP = p0_data.P0;
+  const minP = p0_data.Pnt;
+  const pScale = 160.0 / (maxP - minP);
+  const mScale = 0.105;
+
+  const curZ = (curPM.Pn - minP) * pScale - 60;
+  const curX = curPM.Mn_x * mScale;
+  const curY = curPM.Mn_y * mScale;
+
+  operatingSphereMesh.position.set(curX, curZ, curY);
+  operatingLineGeom.setFromPoints([
+    new THREE.Vector3(0, curZ, 0),
+    new THREE.Vector3(curX, curZ, curY)
+  ]);
+}
+
+function animateThreeLoop() {
+  requestAnimationFrame(animateThreeLoop);
+  if (controls3d) controls3d.update();
+  if (renderer3d && scene3d && camera3d) {
+    renderer3d.render(scene3d, camera3d);
+  }
+}
+
+// UI EVENTS
+function setPreset(name) {
+  const p0_data = computeP0();
+  const ecu = 0.0033;
+  const ey = fy / 200000.0;
+  const d = colH - cover;
+
+  if (name === 'P0') {
+    chRatio = 2.40;
+  } else if (name === 'Pmax') {
+    chRatio = 1.30;
+  } else if (name === 'CompLimit') {
+    chRatio = (d * (ecu / (ecu + ey))) / colH + 0.05;
+  } else if (name === 'Balanced') {
+    chRatio = (d * (ecu / (ecu + ey))) / colH;
+  } else if (name === 'Transition') {
+    chRatio = (d * (ecu / (ecu + 0.0035))) / colH;
+  } else if (name === 'TensionLimit') {
+    chRatio = (d * (ecu / (ecu + 0.0050))) / colH;
+  } else if (name === 'PureFlex') {
+    chRatio = getPureFlexure().c / colH;
+  } else if (name === 'PureTension') {
+    chRatio = 0.06;
+  }
+
+  document.getElementById('sliderCH').value = chRatio.toFixed(2);
+  updateAll();
+}
+
+function onCHSlider(val) {
+  chRatio = parseFloat(val);
+  if (isPlaying) togglePlay();
+  updateAll();
+}
+
+function onAngleSlider(val) {
+  biaxialAngleDeg = parseFloat(val);
+  document.getElementById('valBiaxialAngle').innerText = `${biaxialAngleDeg.toFixed(0)}° (${biaxialAngleDeg === 0 ? '1축 Mx' : (biaxialAngleDeg === 90 ? '1축 My' : '2축 합성')})`;
+  updateAll();
+}
+
+function updateParams() {
+  colB = parseFloat(document.getElementById('sliderB').value);
+  colH = parseFloat(document.getElementById('sliderH').value);
+  fck = parseFloat(document.getElementById('sliderFck').value);
+  fy = parseFloat(document.getElementById('sliderFy').value);
+  rhoG = parseFloat(document.getElementById('sliderRho').value) / 100.0;
+
+  document.getElementById('valB').innerText = `${colB.toFixed(0)} mm`;
+  document.getElementById('valH').innerText = `${colH.toFixed(0)} mm`;
+  document.getElementById('valFck').innerText = `${fck.toFixed(0)} MPa`;
+  document.getElementById('valFy').innerText = `${fy.toFixed(0)} MPa`;
+  document.getElementById('valRho').innerText = `${(rhoG * 100).toFixed(1)} %`;
+
+  updateAll(true);
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('btnPlay');
+  if (isPlaying) {
+    btn.innerText = '⏸ 스윕 정지';
+    btn.classList.add('primary');
+    animateLoop();
+  } else {
+    btn.innerText = '▶ 3D 궤적 스윕';
+    if (animReq) cancelAnimationFrame(animReq);
+  }
+}
+
+function resetAll() {
+  if (isPlaying) togglePlay();
+  colB = 600.0;
+  colH = 600.0;
+  fck = 30.0;
+  fy = 400.0;
+  rhoG = 0.020;
+  chRatio = 0.56;
+  biaxialAngleDeg = 0.0;
+
+  document.getElementById('sliderB').value = 600;
+  document.getElementById('sliderH').value = 600;
+  document.getElementById('sliderFck').value = 30;
+  document.getElementById('sliderFy').value = 400;
+  document.getElementById('sliderRho').value = 2.0;
+  document.getElementById('sliderCH').value = 0.56;
+  document.getElementById('sliderAngle').value = 0;
+  document.getElementById('valBiaxialAngle').innerText = `0.0° (1축 Mx)`;
+
+  updateParams();
+  reset3DCamera();
+}
+
+function animateLoop() {
+  if (!isPlaying) return;
+  chRatio += playDirection * 0.007;
+  if (chRatio >= 2.30) {
+    chRatio = 2.30;
+    playDirection = -1;
+  } else if (chRatio <= 0.08) {
+    chRatio = 0.08;
+    playDirection = 1;
+  }
+  document.getElementById('sliderCH').value = chRatio.toFixed(2);
+  updateAll(false);
+  animReq = requestAnimationFrame(animateLoop);
+}
+
+// UPDATE ALL
+function updateAll(isParamChange = false) {
+  document.getElementById('valCH').innerText = chRatio.toFixed(2);
+  const currentC = chRatio * colH;
+  const curPM = computePM(currentC, biaxialAngleDeg);
+  const p0_data = computeP0();
+  const flexPt = getPureFlexure();
+
+  document.getElementById('valPhi').innerText = curPM.phi.toFixed(3);
+  document.getElementById('valNominal').innerText = `${curPM.Pn.toFixed(0)} kN, ${curPM.Mn_x.toFixed(0)}, ${curPM.Mn_y.toFixed(0)} kNm`;
+  document.getElementById('valDesign').innerText = `${curPM.phiPn.toFixed(0)} kN, ${curPM.phiMn_x.toFixed(0)}, ${curPM.phiMn_y.toFixed(0)} kNm`;
+  document.getElementById('valEpsT').innerText = curPM.eps_t.toFixed(4);
+  document.getElementById('valA').innerText = `${curPM.a.toFixed(1)} mm (β1=${curPM.beta1.toFixed(2)})`;
+  document.getElementById('valEcc').innerText = `${curPM.ecc.toFixed(1)} mm`;
+
+  updateHUD(curPM, p0_data, flexPt);
+
+  drawColumnDeformation2D(curPM, p0_data);
+  drawInteractionDiagram(curPM, p0_data);
+  drawStrainProfile(curPM);
+  drawStressBlock(curPM);
+
+  if (isParamChange) {
+    build3DStaticShell();
+  }
+  update3DOperatingPoint(curPM, p0_data);
+}
+
+function updateHUD(pm, p0_data, flexPt) {
+  const banner = document.getElementById('hudTagBanner');
+  const tagTitle = document.getElementById('hudTagTitle');
+  const pctText = document.getElementById('hudDamagePct');
+  const fill = document.getElementById('phiProgress');
+  const badge = document.getElementById('badgeStatus');
+  const modeDesc = document.getElementById('hudModeDesc');
+  const phiDesc = document.getElementById('hudPhiDesc');
+  const momentGainDesc = document.getElementById('hudMomentGainDesc');
+
+  const momentGain = (flexPt.Mn > 0) ? (pm.Mn / flexPt.Mn).toFixed(2) : '1.00';
+
+  pctText.innerText = `φ = ${pm.phi.toFixed(3)}`;
+  const phiPct = Math.round(((pm.phi - 0.65) / (0.85 - 0.65)) * 100);
+  fill.style.width = `${Math.max(5, Math.min(100, phiPct))}%`;
+
+  if (pm.Pn > p0_data.Pn_max) {
+    badge.style.background = '#fee2e2'; badge.style.color = '#b91c1c'; badge.innerText = '0.80P0 초과 비허용';
+    banner.style.background = '#fef2f2'; banner.style.color = '#dc2626'; banner.style.border = '1px solid #fecaca';
+    tagTitle.innerText = '🚨 KDS 우발편심 한계 초과 (Pn > 0.80P0)';
+    fill.style.background = '#ef4444';
+    modeDesc.innerText = '시공 오차로 인한 최소 우발 편심(e_min ≈ 0.1h)을 감당할 수 없어 설계가 불가능한 금지 구역.';
+    phiDesc.innerText = '설계 시 축하중은 최대 φPn,max = 0.80 φ P0 로 강제 절단 제한됨.';
+  } else if (pm.eps_t >= 0.005) {
+    badge.style.background = '#dcfce7'; badge.style.color = '#15803d'; badge.innerText = '인장지배 (연성)';
+    banner.style.background = '#f0fdf4'; banner.style.color = '#16a34a'; banner.style.border = '1px solid #bbf7d0';
+    tagTitle.innerText = '🟢 인장지배 (Tension-Controlled)';
+    fill.style.background = '#10b981';
+    modeDesc.innerText = '인장철근이 항복점(εy)을 훨씬 지나 εt ≥ 0.005까지 대변형 항복. 파괴 전 눈에 띄는 처짐으로 대피 시간 확보.';
+    phiDesc.innerText = '바람직한 연성 파괴 형태이므로 KDS 기준상 최고 우대 안전율 적용 (φ = 0.850).';
+  } else if (pm.eps_t <= fy / 200000.0) {
+    badge.style.background = '#ffedd5'; badge.style.color = '#c2410c'; badge.innerText = '압축지배 (취성)';
+    banner.style.background = '#fff7ed'; banner.style.color = '#ea580c'; banner.style.border = '1px solid #fed7aa';
+    tagTitle.innerText = '🟠 압축지배 (Compression-Controlled)';
+    fill.style.background = '#f97316';
+    modeDesc.innerText = '철근이 항복하기 전에 콘크리트 압축부가 먼저 폭발적으로 분쇄되는 취성 파괴. 사전 경고 없이 붕괴 위험.';
+    phiDesc.innerText = '치명적인 인명 사상 위험이 있으므로 기준에서 가장 가혹한 안전율 적용 (φ = 0.650, 35% 강도 삭감).';
+  } else {
+    badge.style.background = '#fef9c3'; badge.style.color = '#a16207'; badge.innerText = '천이지배 (전이구간)';
+    banner.style.background = '#fefce8'; banner.style.color = '#ca8a04'; banner.style.border = '1px solid #fef08a';
+    tagTitle.innerText = '🟡 천이지배 (Transition Zone)';
+    fill.style.background = '#eab308';
+    modeDesc.innerText = '압축파쇄와 인장항복의 경계 영역. 철근이 항복하되 변형률이 0.005에 미달하여 부분 연성 발휘.';
+    phiDesc.innerText = '철근 변형률(εt)에 비례하여 φ = 0.65에서 0.85로 선형 보간 비례 할인.';
+  }
+
+  momentGainDesc.innerText = (pm.Pn >= 0)
+    ? `순수 휨(M0=${flexPt.Mn.toFixed(0)}kNm) 대비 축압축력의 구속 효과로 모멘트 강도 ${momentGain}배 발휘 중.`
+    : `축인장력(Pn < 0)으로 인해 콘크리트 인장 균열이 가속화되어 모멘트 강도 급감.`;
+}
+
+// -------------------------------------------------------------
+// 1. DRAW 2D COLUMN MEMBER DEFORMATION (P, Rz BENDING & DEFORMED SHAPE)
+// -------------------------------------------------------------
+function drawColumnDeformation2D(curPM, p0_data) {
+  const w = deformCanvas.parentElement.clientWidth - 24;
+  const h = 330;
+  deformCanvas.style.width = w + 'px';
+  deformCanvas.style.height = h + 'px';
+  resizeCanvas(deformCanvas);
+
+  deformCtx.clearRect(0, 0, w, h);
+
+  // Background
+  deformCtx.fillStyle = '#ffffff';
+  deformCtx.fillRect(0, 0, w, h);
+
+  // Geometry Constants
+  const baseX = w * 0.50;
+  const baseY = h - 42;
+  const baseH = 190;
+  const baseW = 54;
+
+  // Kinematic Scaling
+  // 1. Axial deformation
+  const maxP0 = Math.max(1, p0_data.P0);
+  const pRatio = curPM.Pn / maxP0;
+  let deltaH = 0;
+  let deltaW = 0;
+  if (curPM.Pn >= 0) {
+    deltaH = -Math.min(26, Math.max(0, pRatio) * 22);
+    deltaW = Math.abs(deltaH) * 0.35;
+  } else {
+    const tRatio = Math.abs(curPM.Pn) / (Math.abs(p0_data.Pnt) + 1e-5);
+    deltaH = Math.min(22, tRatio * 18);
+    deltaW = -deltaH * 0.25;
+  }
+  const colH_px = Math.max(120, baseH + deltaH);
+  const colW_px = Math.max(36, baseW + deltaW);
+
+  // 2. Bending lateral deflection (Cantilever under end moment M)
+  const maxM_ref = 1000.0;
+  const mRatio = curPM.Mn / maxM_ref;
+  const deltaTip = Math.max(-55, Math.min(55, mRatio * 44));
+
+  const nSegments = 30;
+  const leftPts = [];
+  const rightPts = [];
+  const centerPts = [];
+
+  for (let i = 0; i <= nSegments; i++) {
+    const s = i / nSegments;
+    const y = baseY - s * colH_px;
+    const sway = deltaTip * (1.0 - Math.cos((Math.PI * 0.5) * s));
+    const slope = deltaTip * ((Math.PI * 0.5) / colH_px) * Math.sin((Math.PI * 0.5) * s);
+    const cx = baseX + sway;
+
+    centerPts.push({ x: cx, y: y, s: s, slope: slope });
+    leftPts.push({ x: cx - colW_px * 0.5, y: y });
+    rightPts.push({ x: cx + colW_px * 0.5, y: y });
+  }
+
+  const tipPt = centerPts[centerPts.length - 1];
+
+  // Grid & Guide lines
+  deformCtx.strokeStyle = '#f8fafc';
+  deformCtx.lineWidth = 1;
+  deformCtx.beginPath();
+  deformCtx.moveTo(baseX, 15);
+  deformCtx.lineTo(baseX, baseY);
+  deformCtx.stroke();
+
+  // Fixed Base / Footing (Ground Hatch)
+  const footW = colW_px + 70;
+  const footH = 14;
+  deformCtx.fillStyle = '#f1f5f9';
+  deformCtx.strokeStyle = '#94a3b8';
+  deformCtx.lineWidth = 1.5;
+  deformCtx.fillRect(baseX - footW / 2, baseY, footW, footH);
+  deformCtx.strokeRect(baseX - footW / 2, baseY, footW, footH);
+
+  // Ground Hatch lines
+  deformCtx.strokeStyle = '#cbd5e1';
+  deformCtx.lineWidth = 1.2;
+  for (let gx = baseX - footW / 2 + 5; gx <= baseX + footW / 2; gx += 10) {
+    deformCtx.beginPath();
+    deformCtx.moveTo(gx, baseY + footH);
+    deformCtx.lineTo(gx - 6, baseY + footH + 8);
+    deformCtx.stroke();
+  }
+
+  // Undistorted Initial Ghost Boundary (Dotted light outline)
+  deformCtx.save();
+  deformCtx.strokeStyle = '#e2e8f0';
+  deformCtx.lineWidth = 1.2;
+  deformCtx.setLineDash([3, 3]);
+  deformCtx.strokeRect(baseX - baseW / 2, baseY - baseH, baseW, baseH);
+  deformCtx.restore();
+
+  // Deformed Concrete Column Body
+  deformCtx.save();
+  deformCtx.beginPath();
+  deformCtx.moveTo(leftPts[0].x, leftPts[0].y);
+  for (let i = 1; i < leftPts.length; i++) deformCtx.lineTo(leftPts[i].x, leftPts[i].y);
+  for (let i = rightPts.length - 1; i >= 0; i--) deformCtx.lineTo(rightPts[i].x, rightPts[i].y);
+  deformCtx.closePath();
+
+  const colGrad = deformCtx.createLinearGradient(baseX - baseW, baseY, baseX + baseW + deltaTip, baseY - colH_px);
+  colGrad.addColorStop(0, '#f8fafc');
+  colGrad.addColorStop(0.5, '#f1f5f9');
+  colGrad.addColorStop(1, '#e2e8f0');
+  deformCtx.fillStyle = colGrad;
+  deformCtx.fill();
+  deformCtx.strokeStyle = '#64748b';
+  deformCtx.lineWidth = 1.8;
+  deformCtx.stroke();
+  deformCtx.restore();
+
+  // Internal Longitudinal Rebars (Left & Right)
+  const coverPx = 6.5;
+  deformCtx.save();
+  const leftTension = (curPM.Mn > 20);
+  deformCtx.strokeStyle = leftTension ? '#0284c7' : '#ea580c';
+  deformCtx.lineWidth = 2.4;
+  deformCtx.beginPath();
+  for (let i = 0; i < centerPts.length; i++) {
+    const rx = centerPts[i].x - (colW_px * 0.5 - coverPx);
+    const ry = centerPts[i].y;
+    if (i === 0) deformCtx.moveTo(rx, ry); else deformCtx.lineTo(rx, ry);
+  }
+  deformCtx.stroke();
+
+  const rightTension = (curPM.Mn < -20);
+  deformCtx.strokeStyle = rightTension ? '#0284c7' : '#dc2626';
+  deformCtx.lineWidth = 2.4;
+  deformCtx.beginPath();
+  for (let i = 0; i < centerPts.length; i++) {
+    const rx = centerPts[i].x + (colW_px * 0.5 - coverPx);
+    const ry = centerPts[i].y;
+    if (i === 0) deformCtx.moveTo(rx, ry); else deformCtx.lineTo(rx, ry);
+  }
+  deformCtx.stroke();
+  deformCtx.restore();
+
+  // Transverse Ties (Hoops)
+  deformCtx.save();
+  deformCtx.strokeStyle = '#94a3b8';
+  deformCtx.lineWidth = 1.4;
+  const nTies = 6;
+  for (let t = 1; t <= nTies; t++) {
+    const idx = Math.round((t / (nTies + 1)) * nSegments);
+    const pL = leftPts[idx];
+    const pR = rightPts[idx];
+    deformCtx.beginPath();
+    deformCtx.moveTo(pL.x + 3, pL.y);
+    deformCtx.lineTo(pR.x - 3, pR.y);
+    deformCtx.stroke();
+  }
+  deformCtx.restore();
+
+  // Dynamic Flexural Tension Cracks (if M is significant)
+  if (Math.abs(curPM.Mn) > 120) {
+    deformCtx.save();
+    deformCtx.strokeStyle = '#0369a1';
+    deformCtx.lineWidth = 1.2;
+    const nCracks = Math.min(4, Math.floor(Math.abs(curPM.Mn) / 220) + 1);
+    for (let c = 1; c <= nCracks; c++) {
+      const idx = Math.round((c * 0.15) * nSegments);
+      const startPt = (curPM.Mn > 0) ? leftPts[idx] : rightPts[idx];
+      const dir = (curPM.Mn > 0) ? 1 : -1;
+      const cLen = 6 + (Math.abs(curPM.Mn) / maxM_ref) * 12;
+      deformCtx.beginPath();
+      deformCtx.moveTo(startPt.x, startPt.y);
+      deformCtx.lineTo(startPt.x + dir * (cLen * 0.6), startPt.y - 1.5);
+      deformCtx.lineTo(startPt.x + dir * cLen, startPt.y + 1);
+      deformCtx.stroke();
+    }
+    deformCtx.restore();
+  }
+
+  // DYNAMIC AXIAL FORCE ARROW (P) on Column Top
+  const isComp = (curPM.Pn >= 0);
+  const pNorm = Math.min(1.8, Math.abs(curPM.Pn) / (p0_data.P0 * 0.75 + 1e-5));
+  const pArrowLen = 18 + pNorm * 28;
+  const pArrCol = isComp ? '#dc2626' : '#0284c7';
+  const tx = tipPt.x;
+  const ty = tipPt.y;
+
+  deformCtx.save();
+  deformCtx.strokeStyle = pArrCol;
+  deformCtx.fillStyle = pArrCol;
+  deformCtx.lineWidth = 2.8 + pNorm * 0.8;
+  deformCtx.lineCap = 'round';
+
+  if (isComp) {
+    deformCtx.beginPath();
+    deformCtx.moveTo(tx, ty - pArrowLen);
+    deformCtx.lineTo(tx, ty);
+    deformCtx.stroke();
+
+    deformCtx.beginPath();
+    deformCtx.moveTo(tx, ty);
+    deformCtx.lineTo(tx - 5.5, ty - 9);
+    deformCtx.lineTo(tx + 5.5, ty - 9);
+    deformCtx.closePath();
+    deformCtx.fill();
+
+    deformCtx.font = 'bold 10px monospace';
+    deformCtx.textAlign = 'center';
+    deformCtx.fillText(`P = ${curPM.Pn.toFixed(0)} kN (압축)`, tx, ty - pArrowLen - 6);
+  } else {
+    deformCtx.beginPath();
+    deformCtx.moveTo(tx, ty);
+    deformCtx.lineTo(tx, ty - pArrowLen);
+    deformCtx.stroke();
+
+    deformCtx.beginPath();
+    deformCtx.moveTo(tx, ty - pArrowLen);
+    deformCtx.lineTo(tx - 5.5, ty - pArrowLen + 9);
+    deformCtx.lineTo(tx + 5.5, ty - pArrowLen + 9);
+    deformCtx.closePath();
+    deformCtx.fill();
+
+    deformCtx.font = 'bold 10px monospace';
+    deformCtx.textAlign = 'center';
+    deformCtx.fillText(`P = ${curPM.Pn.toFixed(0)} kN (인장)`, tx, ty - pArrowLen - 6);
+  }
+  deformCtx.restore();
+
+  // DYNAMIC MOMENT ARROW (Rz: In-Plane 2D Rotation about Z-axis perpendicular to screen)
+  const absM = Math.abs(curPM.Mn);
+  if (absM > 10) {
+    const mNorm = Math.min(1.8, absM / 650.0);
+    const mRadius = 24 + mNorm * 18;
+    const mCol = '#4f46e5';
+
+    deformCtx.save();
+    deformCtx.strokeStyle = mCol;
+    deformCtx.fillStyle = mCol;
+    deformCtx.lineWidth = 2.2 + mNorm * 1.0;
+    deformCtx.lineCap = 'round';
+
+    const rotCenterX = tx;
+    const rotCenterY = ty;
+    const startAng = Math.PI * 1.05;
+    const endAng = Math.PI * 1.95;
+
+    deformCtx.beginPath();
+    deformCtx.arc(rotCenterX, rotCenterY, mRadius, startAng, endAng, false);
+    deformCtx.stroke();
+
+    const arrowX = rotCenterX + mRadius * Math.cos(endAng);
+    const arrowY = rotCenterY + mRadius * Math.sin(endAng);
+    const tangent = endAng + Math.PI / 2.0;
+
+    const headLen = 6 + mNorm * 2;
+    deformCtx.beginPath();
+    deformCtx.moveTo(arrowX, arrowY);
+    deformCtx.lineTo(arrowX - headLen * Math.cos(tangent - 0.45), arrowY - headLen * Math.sin(tangent - 0.45));
+    deformCtx.lineTo(arrowX - headLen * Math.cos(tangent + 0.45), arrowY - headLen * Math.sin(tangent + 0.45));
+    deformCtx.closePath();
+    deformCtx.fill();
+
+    deformCtx.font = 'bold 10px monospace';
+    deformCtx.textAlign = 'left';
+    deformCtx.fillText(`M(Rz) = ${curPM.Mn.toFixed(0)} kNm`, arrowX + 5, arrowY + 2);
+    deformCtx.restore();
+  }
+
+  // HUD Info Badge
+  deformCtx.save();
+  deformCtx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+  deformCtx.strokeStyle = '#e2e8f0';
+  deformCtx.lineWidth = 1;
+  deformCtx.beginPath();
+  deformCtx.rect(10, h - 68, 140, 56);
+  deformCtx.fill();
+  deformCtx.stroke();
+
+  deformCtx.font = 'bold 9px Pretendard, sans-serif';
+  deformCtx.fillStyle = '#475569';
+  deformCtx.fillText('변형량 (Deformation)', 16, h - 53);
+
+  deformCtx.font = '9px monospace';
+  deformCtx.fillStyle = '#0f172a';
+  const signSway = deltaTip >= 0 ? '+' : '';
+  deformCtx.fillText(`횡처짐 Δ : ${signSway}${deltaTip.toFixed(1)} mm`, 16, h - 39);
+  const signH = deltaH >= 0 ? '+' : '';
+  deformCtx.fillText(`축단축 ΔH : ${signH}${deltaH.toFixed(1)} mm`, 16, h - 25);
+  deformCtx.restore();
+
+  // Coordinate Legend
+  deformCtx.save();
+  deformCtx.font = 'bold 9px monospace';
+  deformCtx.fillStyle = '#64748b';
+  deformCtx.textAlign = 'right';
+  deformCtx.fillText('화면 수직 Z축 휨 (Rz)', w - 10, h - 14);
+  deformCtx.restore();
+}
+
+// -------------------------------------------------------------
+// 2. DRAW 2D PM INTERACTION DIAGRAM (ULTRA-SMOOTH SPLINE ENVELOPE)
+// -------------------------------------------------------------
+function drawInteractionDiagram(curPM, p0_data) {
+  const w = pmCanvas.parentElement.clientWidth - 24;
+  const h = 330;
+  pmCanvas.style.width = w + 'px';
+  pmCanvas.style.height = h + 'px';
+  resizeCanvas(pmCanvas);
+
+  pmCtx.clearRect(0, 0, w, h);
+
+  // Clean White Background
+  pmCtx.fillStyle = '#ffffff';
+  pmCtx.fillRect(0, 0, w, h);
+
+  const padLeft = 52;
+  const padRight = 24;
+  const padTop = 22;
+  const padBottom = 34;
+  const plotW = w - padLeft - padRight;
+  const plotH = h - padTop - padBottom;
+
+  const pts = computeFullEnvelope(biaxialAngleDeg);
+  const maxP = p0_data.P0 * 1.10;
+  const minP = p0_data.Pnt * 1.15;
+  const rangeP = maxP - minP;
+
+  let maxM = 0;
+  pts.forEach(p => { if (p.Mn > maxM) maxM = p.Mn; });
+  maxM = Math.max(800, maxM * 1.12);
+
+  const mapX = (m) => padLeft + (Math.max(0, m) / maxM) * plotW;
+  const mapY = (p) => padTop + (1.0 - (p - minP) / rangeP) * plotH;
+
+  // Grid Lines (Subtle Light Slate)
+  pmCtx.strokeStyle = '#f1f5f9';
+  pmCtx.lineWidth = 1;
+  const mStep = maxM > 1200 ? 300 : 200;
+  for (let m = mStep; m < maxM; m += mStep) {
+    const x = Math.round(mapX(m)) + 0.5;
+    pmCtx.beginPath(); pmCtx.moveTo(x, padTop); pmCtx.lineTo(x, padTop + plotH); pmCtx.stroke();
+    pmCtx.fillStyle = '#64748b'; pmCtx.font = '9.5px monospace'; pmCtx.textAlign = 'center';
+    pmCtx.fillText(`${m}`, x, padTop + plotH + 13);
+  }
+  const pStep = maxP > 10000 ? 3000 : 2000;
+  for (let p = 0; p < maxP; p += pStep) {
+    const y = Math.round(mapY(p)) + 0.5;
+    pmCtx.beginPath(); pmCtx.moveTo(padLeft, y); pmCtx.lineTo(padLeft + plotW, y); pmCtx.stroke();
+    pmCtx.fillStyle = '#64748b'; pmCtx.font = '9.5px monospace'; pmCtx.textAlign = 'right';
+    pmCtx.fillText(`${p}`, padLeft - 6, y + 3);
+  }
+
+  // Zero P Axis
+  const zeroY = Math.round(mapY(0)) + 0.5;
+  pmCtx.strokeStyle = '#cbd5e1';
+  pmCtx.lineWidth = 1.2;
+  pmCtx.beginPath(); pmCtx.moveTo(padLeft, zeroY); pmCtx.lineTo(padLeft + plotW, zeroY); pmCtx.stroke();
+
+  // Outer Border Axes
+  pmCtx.strokeStyle = '#94a3b8';
+  pmCtx.lineWidth = 1.4;
+  pmCtx.beginPath();
+  pmCtx.moveTo(padLeft, padTop);
+  pmCtx.lineTo(padLeft, padTop + plotH);
+  pmCtx.lineTo(padLeft + plotW, padTop + plotH);
+  pmCtx.stroke();
+
+  pmCtx.fillStyle = '#334155';
+  pmCtx.font = 'bold 10px Pretendard, sans-serif';
+  pmCtx.textAlign = 'center';
+  pmCtx.fillText('휨모멘트 M (kNm)', padLeft + plotW / 2, padTop + plotH + 26);
+
+  pmCtx.save();
+  pmCtx.translate(14, padTop + plotH / 2);
+  pmCtx.rotate(-Math.PI / 2);
+  pmCtx.fillText('축력 P (kN)', 0, 0);
+  pmCtx.restore();
+
+  // 0.80 P0 Cut-off dashed line
+  const yCapNominal = mapY(p0_data.Pn_max);
+  pmCtx.save();
+  pmCtx.strokeStyle = '#94a3b8';
+  pmCtx.lineWidth = 1.5;
+  pmCtx.setLineDash([4, 4]);
+  pmCtx.beginPath();
+  pmCtx.moveTo(padLeft, yCapNominal);
+  pmCtx.lineTo(padLeft + plotW * 0.45, yCapNominal);
+  pmCtx.stroke();
+  pmCtx.fillStyle = '#64748b';
+  pmCtx.font = 'bold 9px monospace';
+  pmCtx.textAlign = 'left';
+  pmCtx.fillText(`0.80P0 = ${p0_data.Pn_max.toFixed(0)} kN`, padLeft + plotW * 0.47, yCapNominal + 3);
+  pmCtx.restore();
+
+  // Shaded Soft Gradient for Nominal Area
+  pmCtx.save();
+  pmCtx.beginPath();
+  pts.forEach((pt, idx) => {
+    const x = mapX(pt.Mn);
+    const y = mapY(pt.Pn);
+    if (idx === 0) pmCtx.moveTo(x, y);
+    else pmCtx.lineTo(x, y);
+  });
+  pmCtx.lineTo(mapX(0), mapY(p0_data.Pnt));
+  pmCtx.closePath();
+  const grad = pmCtx.createLinearGradient(padLeft, padTop, padLeft + plotW, padTop + plotH);
+  grad.addColorStop(0, 'rgba(37, 99, 235, 0.08)');
+  grad.addColorStop(1, 'rgba(37, 99, 235, 0.01)');
+  pmCtx.fillStyle = grad;
+  pmCtx.fill();
+  pmCtx.restore();
+
+  // Points mapped for smooth spline interpolation
+  const ptsNom = pts.map(pt => ({ x: mapX(pt.Mn), y: mapY(pt.Pn) }));
+  const ptsDesign = pts.map(pt => ({ x: mapX(pt.phiMn), y: mapY(pt.phiPn) }));
+
+  // Draw Smooth Nominal Curve (Royal Blue #2563eb, Catmull-Rom Spline)
+  pmCtx.save();
+  pmCtx.strokeStyle = '#2563eb';
+  pmCtx.lineWidth = 2.8;
+  pmCtx.lineCap = 'round';
+  pmCtx.lineJoin = 'round';
+  pmCtx.shadowColor = 'rgba(37, 99, 235, 0.25)';
+  pmCtx.shadowBlur = 4;
+  drawSmoothSpline(pmCtx, ptsNom, 0.35);
+  pmCtx.restore();
+
+  // Draw Smooth Design Curve (Crimson Red #dc2626, Catmull-Rom Spline)
+  pmCtx.save();
+  pmCtx.strokeStyle = '#dc2626';
+  pmCtx.lineWidth = 2.6;
+  pmCtx.lineCap = 'round';
+  pmCtx.lineJoin = 'round';
+  pmCtx.shadowColor = 'rgba(220, 38, 38, 0.25)';
+  pmCtx.shadowBlur = 4;
+  drawSmoothSpline(pmCtx, ptsDesign, 0.35);
+  pmCtx.restore();
+
+  // Balanced Point Landmark
+  const bPt = getBalancedPoint();
+  const xB = mapX(bPt.Mn);
+  const yB = mapY(bPt.Pn);
+  pmCtx.fillStyle = '#2563eb';
+  pmCtx.beginPath(); pmCtx.arc(xB, yB, 4.5, 0, Math.PI * 2); pmCtx.fill();
+  pmCtx.strokeStyle = '#ffffff'; pmCtx.lineWidth = 1.5; pmCtx.stroke();
+  pmCtx.fillStyle = '#1e40af';
+  pmCtx.font = 'bold 9.5px Pretendard, sans-serif';
+  pmCtx.textAlign = 'right';
+  pmCtx.fillText(`Pb=${bPt.Pn.toFixed(0)}k, Mb=${bPt.Mn.toFixed(0)}`, xB - 6, yB - 4);
+
+  // Pure Flexure Landmark
+  const flexPt = getPureFlexure();
+  const xF = mapX(flexPt.Mn);
+  const yF = mapY(flexPt.Pn);
+  pmCtx.fillStyle = '#475569';
+  pmCtx.beginPath(); pmCtx.arc(xF, yF, 4, 0, Math.PI * 2); pmCtx.fill();
+  pmCtx.textAlign = 'left';
+  pmCtx.fillText(`M0=${flexPt.Mn.toFixed(0)}kNm`, xF + 6, yF - 4);
+
+  // Operating Points
+  const curX = mapX(curPM.Mn);
+  const curY = mapY(curPM.Pn);
+  const curDesignX = mapX(curPM.phiMn);
+  const curDesignY = mapY(curPM.phiPn);
+
+  // Pulse Rings
+  pulsePhase = (pulsePhase + 0.05) % (Math.PI * 2);
+  const pulseR = 7 + Math.sin(pulsePhase) * 2.5;
+
+  // Nominal Pulse Target
+  pmCtx.strokeStyle = 'rgba(37, 99, 235, 0.4)';
+  pmCtx.lineWidth = 3;
+  pmCtx.beginPath(); pmCtx.arc(curX, curY, pulseR, 0, Math.PI * 2); pmCtx.stroke();
+  pmCtx.fillStyle = '#2563eb';
+  pmCtx.beginPath(); pmCtx.arc(curX, curY, 4.5, 0, Math.PI * 2); pmCtx.fill();
+  pmCtx.strokeStyle = '#ffffff'; pmCtx.lineWidth = 1.5; pmCtx.stroke();
+
+  // Design Pulse Target
+  pmCtx.strokeStyle = 'rgba(220, 38, 38, 0.4)';
+  pmCtx.lineWidth = 3;
+  pmCtx.beginPath(); pmCtx.arc(curDesignX, curDesignY, pulseR, 0, Math.PI * 2); pmCtx.stroke();
+  pmCtx.fillStyle = '#dc2626';
+  pmCtx.beginPath(); pmCtx.arc(curDesignX, curDesignY, 4.5, 0, Math.PI * 2); pmCtx.fill();
+  pmCtx.strokeStyle = '#ffffff'; pmCtx.lineWidth = 1.5; pmCtx.stroke();
+}
+
+// -------------------------------------------------------------
+// 2. DRAW STRAIN PROFILE (CLEAN LIGHT, HIGH-DPI)
+// -------------------------------------------------------------
+function drawStrainProfile(pm) {
+  const w = strainCanvas.parentElement.clientWidth - 24;
+  const h = 205;
+  strainCanvas.style.width = w + 'px';
+  strainCanvas.style.height = h + 'px';
+  resizeCanvas(strainCanvas);
+
+  strainCtx.clearRect(0, 0, w, h);
+  strainCtx.fillStyle = '#ffffff';
+  strainCtx.fillRect(0, 0, w, h);
+
+  const padLeft = 45;
+  const padRight = 45;
+  const padTop = 24;
+  const padBottom = 28;
+  const colHeightPx = h - padTop - padBottom;
+  const zeroAxisX = w * 0.48;
+
+  const ecu = 0.0033;
+  const maxEps = 0.008;
+  const scaleEps = (w * 0.38) / maxEps;
+
+  // Zero Vertical Axis
+  strainCtx.strokeStyle = '#cbd5e1';
+  strainCtx.lineWidth = 1.8;
+  strainCtx.beginPath();
+  strainCtx.moveTo(zeroAxisX, padTop);
+  strainCtx.lineTo(zeroAxisX, padTop + colHeightPx);
+  strainCtx.stroke();
+
+  const naY = padTop + (pm.c / colH) * colHeightPx;
+  const topEpsX = zeroAxisX + ecu * scaleEps;
+  const botEps = ecu * (colH - pm.c) / pm.c;
+  const botEpsX = zeroAxisX - botEps * scaleEps;
+
+  // Compression Gradient Wedge (Rose)
+  if (naY > padTop) {
+    strainCtx.save();
+    const gradC = strainCtx.createLinearGradient(zeroAxisX, padTop, topEpsX, padTop);
+    gradC.addColorStop(0, 'rgba(225, 29, 72, 0.04)');
+    gradC.addColorStop(1, 'rgba(225, 29, 72, 0.28)');
+    strainCtx.fillStyle = gradC;
+    strainCtx.beginPath();
+    strainCtx.moveTo(zeroAxisX, padTop);
+    strainCtx.lineTo(topEpsX, padTop);
+    strainCtx.lineTo(zeroAxisX, Math.min(padTop + colHeightPx, naY));
+    strainCtx.closePath();
+    strainCtx.fill();
+    strainCtx.restore();
+  }
+
+  // Tension Gradient Wedge (Sky Blue)
+  if (naY < padTop + colHeightPx) {
+    strainCtx.save();
+    const gradT = strainCtx.createLinearGradient(zeroAxisX, padTop + colHeightPx, botEpsX, padTop + colHeightPx);
+    gradT.addColorStop(0, 'rgba(2, 132, 199, 0.04)');
+    gradT.addColorStop(1, 'rgba(2, 132, 199, 0.28)');
+    strainCtx.fillStyle = gradT;
+    strainCtx.beginPath();
+    strainCtx.moveTo(zeroAxisX, Math.max(padTop, naY));
+    strainCtx.lineTo(botEpsX, padTop + colHeightPx);
+    strainCtx.lineTo(zeroAxisX, padTop + colHeightPx);
+    strainCtx.closePath();
+    strainCtx.fill();
+    strainCtx.restore();
+  }
+
+  // Strain Profile Line
+  strainCtx.save();
+  strainCtx.strokeStyle = '#0284c7';
+  strainCtx.lineWidth = 2.4;
+  strainCtx.lineCap = 'round';
+  strainCtx.shadowColor = 'rgba(2, 132, 199, 0.3)';
+  strainCtx.shadowBlur = 4;
+  strainCtx.beginPath();
+  strainCtx.moveTo(topEpsX, padTop);
+  strainCtx.lineTo(botEpsX, padTop + colHeightPx);
+  strainCtx.stroke();
+  strainCtx.restore();
+
+  // Neutral Axis Line (Gold Dash)
+  if (naY >= padTop && naY <= padTop + colHeightPx) {
+    strainCtx.strokeStyle = '#d97706';
+    strainCtx.lineWidth = 1.5;
+    strainCtx.setLineDash([4, 4]);
+    strainCtx.beginPath();
+    strainCtx.moveTo(15, naY);
+    strainCtx.lineTo(w - 15, naY);
+    strainCtx.stroke();
+
+    strainCtx.fillStyle = '#b45309';
+    strainCtx.font = 'bold 9.5px monospace';
+    strainCtx.textAlign = 'left';
+    strainCtx.fillText(`N.A. c=${pm.c.toFixed(0)}mm`, 18, naY - 4);
+  }
+
+  // Top Strain Label Badge
+  strainCtx.fillStyle = '#e11d48';
+  strainCtx.font = 'bold 9.5px monospace';
+  strainCtx.textAlign = 'left';
+  strainCtx.fillText(`εcu = 0.0033`, Math.min(topEpsX + 4, w - 85), padTop - 7);
+
+  // Bottom Strain Label Badge
+  strainCtx.fillStyle = (pm.eps_t >= 0.005) ? '#059669' : '#ea580c';
+  strainCtx.textAlign = 'right';
+  strainCtx.fillText(`εt = ${pm.eps_t.toFixed(4)}`, Math.max(botEpsX - 4, 85), padTop + colHeightPx + 18);
+
+  // Boundary text
+  strainCtx.fillStyle = '#64748b';
+  strainCtx.font = '9px Pretendard, sans-serif';
+  strainCtx.textAlign = 'center';
+  strainCtx.fillText('상단 압축', zeroAxisX, padTop - 7);
+  strainCtx.fillText('하단 인장', zeroAxisX, padTop + colHeightPx + 18);
+}
+
+// -------------------------------------------------------------
+// 3. DRAW STRESS BLOCK & INTERNAL FORCES EQUILIBRIUM
+// -------------------------------------------------------------
+function drawStressBlock(pm) {
+  const w = stressCanvas.parentElement.clientWidth - 24;
+  const h = 205;
+  stressCanvas.style.width = w + 'px';
+  stressCanvas.style.height = h + 'px';
+  resizeCanvas(stressCanvas);
+
+  stressCtx.clearRect(0, 0, w, h);
+  stressCtx.fillStyle = '#ffffff';
+  stressCtx.fillRect(0, 0, w, h);
+
+  const padTop = 22;
+  const padBottom = 26;
+  const colHeightPx = h - padTop - padBottom;
+
+  // SECTION STRESS BLOCK (LEFT-CENTER)
+  const secW = 68;
+  const secX = w * 0.32;
+
+  // Concrete Section Box
+  stressCtx.fillStyle = '#f8fafc';
+  stressCtx.strokeStyle = '#cbd5e1';
+  stressCtx.lineWidth = 1.6;
+  stressCtx.fillRect(secX - secW / 2, padTop, secW, colHeightPx);
+  stressCtx.strokeRect(secX - secW / 2, padTop, secW, colHeightPx);
+
+  // Whitney Stress Block: a = beta1 * c (Soft Amber Fill)
+  const aPx = Math.min(colHeightPx, (pm.a / colH) * colHeightPx);
+  if (aPx > 0) {
+    stressCtx.save();
+    stressCtx.fillStyle = '#ffedd5';
+    stressCtx.strokeStyle = '#ea580c';
+    stressCtx.lineWidth = 1.6;
+    stressCtx.fillRect(secX - secW / 2, padTop, secW, aPx);
+    stressCtx.strokeRect(secX - secW / 2, padTop, secW, aPx);
+
+    // Hatches
+    stressCtx.strokeStyle = 'rgba(234, 88, 12, 0.35)';
+    stressCtx.lineWidth = 1;
+    for (let y = padTop + 6; y < padTop + aPx; y += 6) {
+      stressCtx.beginPath();
+      stressCtx.moveTo(secX - secW / 2, y);
+      stressCtx.lineTo(secX + secW / 2, y);
+      stressCtx.stroke();
+    }
+    stressCtx.restore();
+
+    // Resultant Cc Arrow
+    const ccY = padTop + aPx / 2.0;
+    stressCtx.fillStyle = '#ea580c';
+    stressCtx.strokeStyle = '#ea580c';
+    stressCtx.lineWidth = 2.2;
+    stressCtx.beginPath();
+    stressCtx.moveTo(secX + secW / 2 + 4, ccY);
+    stressCtx.lineTo(secX + secW / 2 + 30, ccY);
+    stressCtx.stroke();
+
+    stressCtx.beginPath();
+    stressCtx.moveTo(secX + secW / 2 + 4, ccY);
+    stressCtx.lineTo(secX + secW / 2 + 11, ccY - 3.5);
+    stressCtx.lineTo(secX + secW / 2 + 11, ccY + 3.5);
+    stressCtx.closePath();
+    stressCtx.fill();
+
+    stressCtx.font = 'bold 9px monospace';
+    stressCtx.textAlign = 'left';
+    stressCtx.fillStyle = '#c2410c';
+    stressCtx.fillText(`Cc=0.85f'ck·ba`, secX + secW / 2 + 34, ccY - 2);
+    stressCtx.fillText(`a=${pm.a.toFixed(0)}mm`, secX + secW / 2 + 34, ccY + 8);
+  }
+
+  // Steel Layers & Forces
+  const d_prime_px = (cover / colH) * colHeightPx;
+  const d_px = ((colH - cover) / colH) * colHeightPx;
+  const mid_px = colHeightPx / 2.0;
+
+  const rebarYLocs = [
+    { y: padTop + d_prime_px, detail: pm.steelDetails[0] },
+    { y: padTop + mid_px,      detail: pm.steelDetails[1] },
+    { y: padTop + d_px,       detail: pm.steelDetails[2] }
+  ];
+
+  rebarYLocs.forEach((rb, idx) => {
+    const isTension = (rb.detail.Fsi < 0);
+    const col = isTension ? '#0284c7' : '#dc2626';
+
+    // Rebar Dot
+    stressCtx.fillStyle = col;
+    stressCtx.beginPath();
+    stressCtx.arc(secX, rb.y, 4.2, 0, Math.PI * 2);
+    stressCtx.fill();
+    stressCtx.strokeStyle = '#ffffff';
+    stressCtx.lineWidth = 1.4;
+    stressCtx.stroke();
+
+    // Rebar Force Text
+    const fVal = rb.detail.Fsi;
+    stressCtx.fillStyle = col;
+    stressCtx.font = 'bold 9px monospace';
+    stressCtx.textAlign = 'right';
+    const tag = idx === 0 ? 'Fs1' : (idx === 1 ? 'Fs2' : 'Fs3');
+    stressCtx.fillText(`${tag}=${fVal.toFixed(0)}kN`, secX - secW / 2 - 6, rb.y + 3);
+  });
+
+  // Section Centroid Line
+  const cyY = padTop + colHeightPx / 2.0;
+  stressCtx.strokeStyle = '#94a3b8';
+  stressCtx.lineWidth = 1.0;
+  stressCtx.setLineDash([3, 3]);
+  stressCtx.beginPath();
+  stressCtx.moveTo(secX - secW / 2 - 10, cyY);
+  stressCtx.lineTo(secX + secW / 2 + 10, cyY);
+  stressCtx.stroke();
+  stressCtx.setLineDash([]);
+  stressCtx.font = 'bold 8.5px monospace';
+  stressCtx.fillStyle = '#94a3b8';
+  stressCtx.textAlign = 'right';
+  stressCtx.fillText('도심축', secX - secW / 2 - 12, cyY + 3);
+
+  // INTERNAL EQUILIBRIUM SUMMARY BOX (RIGHT)
+  const eqX = w * 0.72;
+  const eqY = padTop + 10;
+  const eqW = w * 0.25;
+  const eqH = colHeightPx - 20;
+
+  stressCtx.fillStyle = '#f8fafc';
+  stressCtx.strokeStyle = '#e2e8f0';
+  stressCtx.lineWidth = 1;
+  stressCtx.fillRect(eqX - 10, eqY, eqW + 15, eqH);
+  stressCtx.strokeRect(eqX - 10, eqY, eqW + 15, eqH);
+
+  stressCtx.font = 'bold 10px Pretendard, sans-serif';
+  stressCtx.fillStyle = '#334155';
+  stressCtx.textAlign = 'left';
+  stressCtx.fillText('⚖️ 단면 내력 평형', eqX - 2, eqY + 16);
+
+  stressCtx.font = '9px monospace';
+  stressCtx.fillStyle = '#475569';
+  stressCtx.fillText('Σ N = Cc + Σ Fsi', eqX - 2, eqY + 34);
+  stressCtx.fillStyle = '#0f172a';
+  stressCtx.fillText(`  = ${pm.Pn.toFixed(0)} kN`, eqX + 12, eqY + 48);
+
+  stressCtx.fillStyle = '#475569';
+  stressCtx.fillText('Σ M (도심 기준)', eqX - 2, eqY + 68);
+  stressCtx.fillStyle = '#2563eb';
+  stressCtx.fillText(`  = ${pm.Mn.toFixed(0)} kNm`, eqX + 12, eqY + 82);
+
+  stressCtx.fillStyle = '#475569';
+  stressCtx.fillText('편심 e = Mn / Pn', eqX - 2, eqY + 102);
+  stressCtx.fillStyle = '#ea580c';
+  stressCtx.fillText(`  = ${pm.ecc.toFixed(0)} mm`, eqX + 12, eqY + 116);
+}
+
+// INIT
+window.addEventListener('load', () => {
+  initThree3D();
+  updateParams();
+});
+window.addEventListener('resize', () => {
+  if (renderer3d && camera3d) {
+    const container = document.getElementById('threeContainer');
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    camera3d.aspect = w / h;
+    camera3d.updateProjectionMatrix();
+    renderer3d.setSize(w, h);
+  }
+  const currentC = chRatio * colH;
+  const curPM = computePM(currentC, biaxialAngleDeg);
+  const p0_data = computeP0();
+  drawColumnDeformation2D(curPM, p0_data);
+  drawInteractionDiagram(curPM, p0_data);
+  drawStrainProfile(curPM);
+  drawStressBlock(curPM);
+  update3DOperatingPoint(curPM, p0_data);
+});
+</script>
+</body>
+</html>

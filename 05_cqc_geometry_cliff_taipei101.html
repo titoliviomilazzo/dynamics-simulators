@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 05: CQC 상관계수의 기하학과 근접모드 절벽 &middot; TAIPEI 101</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .light-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-lg space-y-5">
+    
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            CQC 상관계수 기하학(&rho; = cos&theta;)과 근접모드 절벽
+          </h1>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200">
+            Wilson &middot; Der Kiureghian(1981)
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-1 font-medium">
+          &rho;<sub>in</sub> = cos&theta;<sub>in</sub> (벡터 사잇각) &middot; &beta; &gt; 0.9 절벽 현상 &middot; TAIPEI 101 (&beta;=0.997, &theta;=2.6&deg;) &middot; 포항 편심 필로티
+        </p>
+      </div>
+
+      <!-- Presets -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button onclick="applyPreset('standard')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-semibold transition">
+          강의 예제 (3층 RC)
+        </button>
+        <button onclick="applyPreset('taipei')" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">
+          TAIPEI 101 (&beta;=0.997)
+        </button>
+        <button onclick="applyPreset('pohang')" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-xs">
+          포항 편심 필로티
+        </button>
+        <button onclick="applyPreset('isolated')" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-xs">
+          면진구조 (&zeta;=20%)
+        </button>
+      </div>
+    </div>
+
+    <!-- Sliders Strip -->
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-6 text-xs font-medium">
+      <!-- Beta Slider -->
+      <div class="flex-1 min-w-[260px] flex items-center gap-3">
+        <span class="text-slate-700 font-bold w-36 whitespace-nowrap">진동수비 &beta; = &omega;<sub>i</sub>/&omega;<sub>n</sub>:</span>
+        <input type="range" id="betaSlider" min="0.10" max="1.00" step="0.005" value="0.357" class="flex-1 accent-blue-600 cursor-pointer" oninput="updateValues()">
+        <span id="betaVal" class="font-mono font-bold text-blue-700 w-14 text-right text-sm">0.357</span>
+      </div>
+
+      <!-- Damping Select -->
+      <div class="flex-1 min-w-[260px] flex items-center gap-3">
+        <span class="text-slate-700 font-bold w-24 whitespace-nowrap">감쇠비 &zeta;:</span>
+        <select id="zetaSelect" onchange="updateValues()" class="bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-1.5 outline-none font-sans font-semibold cursor-pointer">
+          <option value="0.02">2% (강구조 / 풍하중)</option>
+          <option value="0.05" selected>5% (일반 RC 골조)</option>
+          <option value="0.10">10% (점성댐퍼 보강)</option>
+          <option value="0.20">20% (면진 장치)</option>
+        </select>
+        <span id="zetaVal" class="font-mono text-slate-500 font-bold">0.05</span>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      
+      <!-- 1. Vector Geometry Canvas (6 Cols) -->
+      <div class="lg:col-span-6 bg-slate-50/60 border border-slate-200 rounded-xl p-4 flex flex-col justify-between light-grid relative min-h-[420px]">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+          <span class="text-sm font-bold text-slate-900">1. 벡터 사잇각 &theta; = arccos(&rho;) &middot; 제2코사인법칙</span>
+          <span id="theta-text" class="text-emerald-700 font-bold font-mono text-xs">&theta; = 89.57&deg; (직교)</span>
+        </div>
+
+        <div class="relative flex-1 w-full my-2 min-h-[250px]">
+          <canvas id="vectorCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Metric Readouts -->
+        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-center font-mono text-xs">
+          <div class="p-2 rounded-lg bg-white border border-slate-200 shadow-2xs">
+            <span class="text-slate-500 block text-[11px] font-sans">상관계수 &rho;<sub>in</sub></span>
+            <span id="rho-text" class="text-blue-700 font-bold text-sm">0.0075</span>
+          </div>
+          <div class="p-2 rounded-lg bg-white border border-slate-200 shadow-2xs">
+            <span class="text-slate-500 block text-[11px] font-sans">SRSS (직각 가정)</span>
+            <span id="srss-text" class="text-slate-700 font-bold text-sm">141.4 kN</span>
+          </div>
+          <div class="p-2 rounded-lg bg-white border border-slate-200 shadow-2xs">
+            <span class="text-slate-500 block text-[11px] font-sans">CQC (실제 결합)</span>
+            <span id="cqc-text" class="text-emerald-700 font-bold text-sm">141.9 kN</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. The Rho-Beta Cliff Graph (6 Cols) -->
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between relative min-h-[420px] space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="text-sm font-bold text-slate-900">2. 상관계수 절벽 곡선 (&beta; &gt; 0.9 급상승 구간)</span>
+          <span id="under-text" class="text-slate-500 font-bold font-mono text-xs">SRSS 과소평가: +0.4%</span>
+        </div>
+
+        <div class="relative flex-1 w-full my-1 min-h-[230px]">
+          <canvas id="cliffCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Case Explanation Box -->
+        <div id="case-box" class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed font-sans">
+          <span class="text-blue-700 font-bold block mb-1 text-sm">📌 현재 모형: 3층 RC 표준 골조</span>
+          1모드(0.648s)와 2모드(0.231s)의 진동수비 &beta; = 0.357로 사잇각이 89.57&deg;입니다.
+          완벽한 직교에 가까워 SRSS와 CQC 차이가 0.12%에 불과합니다.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Insight Quote -->
+    <div class="p-4 rounded-xl bg-blue-50/70 border border-blue-200 flex items-start gap-3.5 text-xs text-slate-700 leading-relaxed">
+      <span class="px-2.5 py-1 rounded-md bg-blue-600 text-white font-bold text-xs whitespace-nowrap">
+        핵심 원리
+      </span>
+      <div>
+        <strong>"상관계수 &rho;는 두 모드 응답 벡터 사이의 각도의 코사인(&rho; = cos&theta;)이다."</strong><br>
+        진동수비 &beta; &le; 0.8까지는 사잇각이 80&deg; 이상으로 직교성을 유지하지만, &beta; &gt; 0.9를 넘는 순간 각도가 급격히 0&deg;로 좁혀지며 
+        SRSS는 최대 <strong>41.4%</strong>까지 하중을 과소평가합니다. CQC는 두 모드의 위상이 겹쳐 비틀림-병진 결합이 발생할 때 필수적인 정본 규준입니다.
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const betaSlider = document.getElementById('betaSlider');
+    const zetaSelect = document.getElementById('zetaSelect');
+    const vCanvas = document.getElementById('vectorCanvas');
+    const vCtx = vCanvas.getContext('2d');
+    const cCanvas = document.getElementById('cliffCanvas');
+    const cCtx = cCanvas.getContext('2d');
+
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+
+      const vw = vCanvas.parentElement.clientWidth;
+      const vh = vCanvas.parentElement.clientHeight;
+      vCanvas.width = vw * dpr;
+      vCanvas.height = vh * dpr;
+      vCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const cw = cCanvas.parentElement.clientWidth;
+      const ch = cCanvas.parentElement.clientHeight;
+      cCanvas.width = cw * dpr;
+      cCanvas.height = ch * dpr;
+      cCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      updateValues();
+    }
+    window.addEventListener('resize', resizeCanvases);
+
+    function calcRho(beta, zeta) {
+      if (beta <= 0) return 0;
+      const num = 8 * Math.pow(zeta, 2) * (1 + beta) * Math.pow(beta, 1.5);
+      const den = Math.pow(1 - Math.pow(beta, 2), 2) + 4 * Math.pow(zeta, 2) * beta * Math.pow(1 + beta, 2);
+      return Math.min(1.0, Math.max(0.0, num / den));
+    }
+
+    function updateValues() {
+      const beta = parseFloat(betaSlider.value);
+      const zeta = parseFloat(zetaSelect.value);
+
+      document.getElementById('betaVal').innerText = beta.toFixed(3);
+      document.getElementById('zetaVal').innerText = zeta.toFixed(2);
+
+      const rho = calcRho(beta, zeta);
+      const thetaRad = Math.acos(rho);
+      const thetaDeg = thetaRad * (180 / Math.PI);
+
+      document.getElementById('rho-text').innerText = rho.toFixed(4);
+      document.getElementById('theta-text').innerHTML = `&theta; = ${thetaDeg.toFixed(2)}&deg; ${thetaDeg > 75 ? '(독립 직교)' : (thetaDeg > 30 ? '(부분 결합)' : '🚨 (강한 결합 위험)')}`;
+      document.getElementById('theta-text').className = thetaDeg > 75 ? 'text-emerald-700 font-bold font-mono text-xs' : 'text-red-600 font-bold font-mono text-xs';
+
+      const V1 = 100, V2 = 100;
+      const V_srss = Math.sqrt(V1*V1 + V2*V2);
+      const V_cqc = Math.sqrt(V1*V1 + V2*V2 + 2*rho*V1*V2);
+      const underRatio = ((V_cqc / V_srss) - 1) * 100;
+
+      document.getElementById('srss-text').innerText = `${V_srss.toFixed(1)} kN`;
+      document.getElementById('cqc-text').innerText = `${V_cqc.toFixed(1)} kN`;
+      document.getElementById('under-text').innerText = `SRSS 과소평가: +${underRatio.toFixed(1)}%`;
+      document.getElementById('under-text').className = underRatio > 15 ? 'text-red-600 font-bold font-mono text-xs' : (underRatio > 5 ? 'text-amber-600 font-bold font-mono text-xs' : 'text-slate-500 font-bold font-mono text-xs');
+
+      renderVector(thetaRad, V1, V2, V_srss, V_cqc, rho);
+      renderCliff(beta, zeta, rho);
+    }
+
+    function renderVector(thetaRad, V1, V2, V_srss, V_cqc, rho) {
+      const w = vCanvas.parentElement.clientWidth;
+      const h = vCanvas.parentElement.clientHeight;
+      vCtx.clearRect(0, 0, w, h);
+
+      const originX = 55;
+      const originY = h - 45;
+      const len = Math.min(w * 0.40, 130);
+
+      // Axis lines
+      vCtx.strokeStyle = '#e2e8f0';
+      vCtx.lineWidth = 1;
+      vCtx.beginPath();
+      vCtx.moveTo(originX, originY);
+      vCtx.lineTo(originX + len * 1.6, originY);
+      vCtx.moveTo(originX, originY);
+      vCtx.lineTo(originX, originY - len * 1.6);
+      vCtx.stroke();
+
+      // Vector 1 (horizontal, green)
+      const v1_x = originX + len;
+      const v1_y = originY;
+      drawArrow(vCtx, originX, originY, v1_x, v1_y, '#059669', 'V₁ (100 kN)');
+
+      // Vector 2 (at angle theta, blue)
+      const v2_x = originX + len * Math.cos(thetaRad);
+      const v2_y = originY - len * Math.sin(thetaRad);
+      drawArrow(vCtx, originX, originY, v2_x, v2_y, '#2563eb', 'V₂ (100 kN)');
+
+      // Angle arc & text
+      vCtx.strokeStyle = '#d97706';
+      vCtx.lineWidth = 1.5;
+      vCtx.beginPath();
+      vCtx.arc(originX, originY, 36, -thetaRad, 0);
+      vCtx.stroke();
+      vCtx.fillStyle = '#b45309';
+      vCtx.font = 'bold 10px monospace';
+      vCtx.fillText(`θ=${(thetaRad*180/Math.PI).toFixed(1)}°`, originX + 42, originY - 12);
+
+      // Parallelogram dashed lines
+      const sum_x = v1_x + (v2_x - originX);
+      const sum_y = v1_y + (v2_y - originY);
+      vCtx.setLineDash([3, 3]);
+      vCtx.strokeStyle = '#94a3b8';
+      vCtx.lineWidth = 1.2;
+      vCtx.beginPath();
+      vCtx.moveTo(v1_x, v1_y);
+      vCtx.lineTo(sum_x, sum_y);
+      vCtx.moveTo(v2_x, v2_y);
+      vCtx.lineTo(sum_x, sum_y);
+      vCtx.stroke();
+      vCtx.setLineDash([]);
+
+      // Resultant CQC Vector (red)
+      drawArrow(vCtx, originX, originY, sum_x, sum_y, '#dc2626', `V_CQC (${V_cqc.toFixed(1)} kN)`);
+    }
+
+    function drawArrow(ctx, fromX, fromY, toX, toY, color, label) {
+      const headlen = 8;
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+      ctx.stroke();
+
+      if (label) {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 10px Pretendard, sans-serif';
+        ctx.fillText(label, toX + 5, toY - 3);
+      }
+    }
+
+    function renderCliff(currentBeta, zeta, currentRho) {
+      const w = cCanvas.parentElement.clientWidth;
+      const h = cCanvas.parentElement.clientHeight;
+      cCtx.clearRect(0, 0, w, h);
+
+      const padL = 40, padR = 25, padT = 20, padB = 30;
+      const graphW = w - padL - padR;
+      const graphH = h - padT - padB;
+
+      // Coordinate axes
+      cCtx.strokeStyle = '#cbd5e1';
+      cCtx.lineWidth = 1;
+      cCtx.beginPath();
+      cCtx.moveTo(padL, padT);
+      cCtx.lineTo(padL, h - padB);
+      cCtx.lineTo(w - padR, h - padB);
+      cCtx.stroke();
+
+      // Axis labels
+      cCtx.fillStyle = '#64748b';
+      cCtx.font = '9px monospace';
+      cCtx.fillText('ρ=1.0', 4, padT + 8);
+      cCtx.fillText('0.5', 14, padT + graphH * 0.5);
+      cCtx.fillText('0.0', 14, h - padB);
+      cCtx.fillText('β=0.0', padL - 4, h - padB + 15);
+      cCtx.fillText('0.5', padL + graphW * 0.5 - 8, h - padB + 15);
+      cCtx.fillText('1.0', w - padR - 12, h - padB + 15);
+
+      // Critical Danger Zone: beta > 0.9
+      const x09 = padL + graphW * 0.9;
+      cCtx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+      cCtx.fillRect(x09, padT, graphW * 0.1, graphH);
+      cCtx.fillStyle = '#dc2626';
+      cCtx.font = 'bold 9px Pretendard, sans-serif';
+      cCtx.fillText('근접모드 절벽 (β > 0.9)', x09 - 70, padT + 12);
+
+      // Plot Theoretical Der Kiureghian Rho Curve
+      cCtx.strokeStyle = '#0284c7';
+      cCtx.lineWidth = 2.4;
+      cCtx.beginPath();
+      for (let xPix = 0; xPix <= graphW; xPix++) {
+        const b = xPix / graphW;
+        const r = calcRho(b, zeta);
+        const yPix = (h - padB) - r * graphH;
+        if (xPix === 0) cCtx.moveTo(padL + xPix, yPix);
+        else cCtx.lineTo(padL + xPix, yPix);
+      }
+      cCtx.stroke();
+
+      // Current Operating Point Marker
+      const curX = padL + currentBeta * graphW;
+      const curY = (h - padB) - currentRho * graphH;
+      cCtx.fillStyle = '#f59e0b';
+      cCtx.beginPath();
+      cCtx.arc(curX, curY, 5.5, 0, Math.PI * 2);
+      cCtx.fill();
+      cCtx.strokeStyle = '#ffffff';
+      cCtx.lineWidth = 2;
+      cCtx.stroke();
+    }
+
+    function applyPreset(name) {
+      const box = document.getElementById('case-box');
+      if (name === 'standard') {
+        betaSlider.value = 0.357;
+        zetaSelect.value = "0.05";
+        box.innerHTML = `
+          <span class="text-blue-700 font-bold block mb-1 text-sm">📌 3층 RC 표준 골조 (본문 예제)</span>
+          T₁ = 0.648s, T₂ = 0.231s (&beta; = 0.357)로 사잇각 &theta; = 89.57&deg;입니다.
+          완벽한 직교에 가까워 SRSS(141.4 kN)와 CQC(141.9 kN)의 차이가 0.35%에 불과하여 SRSS 적용이 타당합니다.
+        `;
+      } else if (name === 'taipei') {
+        betaSlider.value = 0.997;
+        zetaSelect.value = "0.05";
+        box.innerHTML = `
+          <span class="text-blue-700 font-bold block mb-1 text-sm">📌 TAIPEI 101 초고층 타워</span>
+          T<sub>x</sub> = 6.21s, T<sub>y</sub> = 6.19s (&beta; = 0.9968)로 사잇각 &theta; = 2.6&deg;에 불과합니다.
+          사각 평면 대칭으로 두 모드가 완전히 포개져 있어, 미세한 비대칭 발생 시 SRSS가 최대 <strong>41.4%</strong> 하중을 과소평가합니다.
+        `;
+      } else if (name === 'pohang') {
+        betaSlider.value = 0.920;
+        zetaSelect.value = "0.05";
+        box.innerHTML = `
+          <span class="text-amber-800 font-bold block mb-1 text-sm">📌 2017 포항 편심코어 필로티</span>
+          1층 벽체 부재로 코어 편심 발생 &rarr; 비틀림 강성과 병진 강성이 근접(&omega;<sub>&theta;</sub> &approx; &omega;<sub>x</sub>)하여 &beta; = 0.920에 도달합니다.
+          두 모드가 강하게 결합되어 SRSS 적용 시 최대 <strong>26.4%</strong> 이상의 내진 하중 과소평가가 발생합니다.
+        `;
+      } else if (name === 'isolated') {
+        betaSlider.value = 0.980;
+        zetaSelect.value = "0.20";
+        box.innerHTML = `
+          <span class="text-purple-800 font-bold block mb-1 text-sm">📌 고감쇠 면진 건물 (&zeta; = 20%)</span>
+          면진받침은 등방성(&beta; &approx; 1.0)이고 감쇠비가 20%에 달해 상관계수 &rho;가 전 주파수 대역에서 폭증합니다.
+          CQC조차 부족하여 코드가 100%+100% 방향조합 또는 3차원 비선형 시간이력해석을 강제합니다.
+        `;
+      }
+      updateValues();
+    }
+
+    setTimeout(() => {
+      resizeCanvases();
+      applyPreset('standard');
+    }, 50);
+  </script>
+</body>
+</html>

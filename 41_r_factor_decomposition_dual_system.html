@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 41: 반응수정계수(R) 삼중분해 & 이중골조 25% 백업 랩</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-amber: #f59e0b;
+    --accent-emerald: #10b981;
+    --accent-rose: #f43f5e;
+    --accent-purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+  .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+  .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+  .main-container { flex: 1; display: grid; grid-template-columns: 330px 1fr 310px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
+  @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
+
+  .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+  .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+
+  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .control-group label { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+  select, input[type="range"] { background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 4px; font-size: 0.85rem; width: 100%; accent-color: var(--accent-blue); }
+
+  .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  button { background: #334155; color: #fff; border: 1px solid var(--border); padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
+  button:hover { background: #475569; }
+  button.active { background: var(--accent-blue); color: #0f172a; border-color: var(--accent-blue); font-weight: 700; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .stat-card { background: rgba(15, 23, 42, 0.6); padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+  .stat-card .label { font-size: 0.7rem; color: var(--text-muted); }
+  .stat-card .value { font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
+  .stat-card.blue .value { color: var(--accent-blue); }
+  .stat-card.amber .value { color: var(--accent-amber); }
+  .stat-card.emerald .value { color: var(--accent-emerald); }
+  .stat-card.rose .value { color: var(--accent-rose); }
+
+  .canvas-wrapper { flex: 1; background: #0b1120; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 380px; }
+  canvas { width: 100%; height: 100%; display: block; }
+
+  .takeaway { background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
+  .callout-amber { background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
+</style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+
+<header>
+  <div class="title-group">
+    <h1><span class="badge">Sim 41</span> 반응수정계수(R) 삼중분해 & 이중골조 25% 백업 랩</h1>
+    <p>ATC-34: R = Rμ × Rs × RR 삼중 분해 메커니즘과 이중골조(Dual System) 2단계 방어선</p>
+  </div>
+  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.85rem;">← 마스터 포털 복귀</a>
+</header>
+
+<div class="main-container">
+  <!-- Left Panel: Decomposition Controls -->
+  <div class="panel">
+    <div class="panel-title">1. 구조 시스템 및 R 삼중분해 파라미터</div>
+
+    <div class="control-group">
+      <label>KDS 41 표 6.2-1 지진력저항시스템</label>
+      <select id="selSystem" onchange="applyPresetSystem()">
+        <option value="rc_sw_special" selected>RC 특수전단벽 (R=5, Ω0=2.5, Cd=5)</option>
+        <option value="rc_sw_ordinary">RC 보통전단벽 (R=4, Ω0=2.5, Cd=4)</option>
+        <option value="steel_ebf">철골 편심가새골조 EBF (R=8, Ω0=2.0, Cd=4)</option>
+        <option value="steel_smf">철골 특수모멘트골조 SMF (R=8, Ω0=3.0, Cd=5.5)</option>
+        <option value="steel_omf">철골 보통모멘트골조 OMF (R=3.25, Ω0=3.0, Cd=3.25)</option>
+        <option value="steel_brbf">좌굴방지가새 BRBF (R=8, Ω0=2.5, Cd=5)</option>
+        <option value="dual_system">이중골조시스템 (특수전단벽+특수모멘트 R=7)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label><span>구조물 연성비 μ (Ductility)</span> <span id="lblMu" style="color:var(--accent-blue); font-weight:700;">4.0</span></label>
+      <input type="range" id="rngMu" min="1.0" max="8.0" step="0.2" value="4.0" oninput="updateMu(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>구조물 고유주기 Tn</span> <span id="lblTn">0.80 s</span></label>
+      <input type="range" id="rngTn" min="0.02" max="3.0" step="0.02" value="0.80" oninput="updateTn(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>초과강도계수 Rs (Ω0)</span> <span id="lblRs">2.50</span></label>
+      <input type="range" id="rngRs" min="1.0" max="4.0" step="0.1" value="2.50" oninput="updateRs(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>잉여도계수 RR (ρ)</span> <span id="lblRr">1.00</span></label>
+      <input type="range" id="rngRr" min="1.0" max="1.3" step="0.05" value="1.00" oninput="updateRr(this.value)">
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">2. 지진 시뮬레이션 모드</div>
+    <div class="btn-group">
+      <button id="btnMainShock" class="active" onclick="setQuakeStage('main')">본진 (Main Shock)</button>
+      <button id="btnAfterShock" onclick="setQuakeStage('after')">여진 (Aftershock)</button>
+    </div>
+
+    <div class="takeaway">
+      <strong>ATC-34 (1997) 삼중분해 공식</strong><br>
+      \(R = R_\mu \times R_S \times R_R\)<br>
+      • \(R_\mu\): Newmark 연성감소 (\(T>0.5s\)에서 \(R_\mu = \mu\))<br>
+      • \(R_S\): 실제 항복강도 여유 (초과강도 \(\Omega_0\))<br>
+      • \(R_R\): 하중 재분배 안전마진 (잉여도 \(\rho\))
+    </div>
+  </div>
+
+  <!-- Center Dual Canvas: Spectrum & Dual System Animation -->
+  <div class="panel" style="display:flex; flex-direction:column; gap:0.8rem;">
+    <div class="panel-title">
+      <span id="centerTitle">Newmark & Hall (1982) Rμ 연성감소 곡선</span>
+      <div style="display:flex; gap:0.4rem; align-items:center;">
+        <button id="btnViewCurve" class="active" onclick="setViewMode('curve')" style="padding:0.2rem 0.5rem; font-size:0.75rem;">Rμ 곡선</button>
+        <button id="btnViewFrame" onclick="setViewMode('frame')" style="padding:0.2rem 0.5rem; font-size:0.75rem;">이중골조 거동</button>
+        <span id="stageBadge" class="badge" style="color:var(--accent-rose); border-color:var(--accent-rose);">본진: 전단벽 75%</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <!-- Dual System 25% Frame Backup Explanation -->
+    <div class="callout-amber">
+      <strong>이중골조 (Dual System) 25% 규준의 생존 논리 (슬라이드 21)</strong><br>
+      지진의 <strong>본진</strong>은 강성이 높은 횡력저항시스템(전단벽)이 대부분(75% 이상) 흡수한 뒤 소성 항복합니다. 이후 발생하는 <strong>여진(Aftershock)</strong>에서는 손상되지 않은 연성 모멘트골조가 최소 <strong>설계수평하중의 25% 이상</strong>을 단독으로 지탱해 건물이 완전히 붕괴되는 것을 막아냅니다.
+    </div>
+  </div>
+
+  <!-- Right Metrics & Force Breakdown -->
+  <div class="panel">
+    <div class="panel-title">최종 반응수정계수 산출 결과</div>
+
+    <div class="stat-grid">
+      <div class="stat-card blue">
+        <div class="label">연성계수 Rμ</div>
+        <div class="value" id="valRmu">4.00</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="label">초과강도 Rs</div>
+        <div class="value" id="valRs">2.50</div>
+      </div>
+      <div class="stat-card emerald">
+        <div class="label">잉여도 RR</div>
+        <div class="value" id="valRr">1.00</div>
+      </div>
+      <div class="stat-card rose">
+        <div class="label">계산된 총 R</div>
+        <div class="value" id="valRtot">10.00</div>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">이중골조 횡력 분담률 (Shear Distribution)</div>
+    <div style="background:#0b1120; padding:0.8rem; border-radius:6px; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.5rem;">
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+        <span style="color:var(--accent-rose);">전단벽 (Shear Wall) 분담률</span>
+        <span id="lblWallShare" style="font-weight:700; color:var(--accent-rose);">75%</span>
+      </div>
+      <div style="background:#334155; height:12px; border-radius:6px; overflow:hidden; display:flex;">
+        <div id="barWall" style="background:var(--accent-rose); width:75%; height:100%; transition:width 0.3s;"></div>
+        <div id="barFrame" style="background:var(--accent-blue); width:25%; height:100%; transition:width 0.3s;"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+        <span style="color:var(--accent-blue);">모멘트골조 (Moment Frame) 분담률</span>
+        <span id="lblFrameShare" style="font-weight:700; color:var(--accent-blue);">25% (법정 최소 백업)</span>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">지진하중 삭감 효과 (Ve → Vd)</div>
+    <div class="stat-card">
+      <div class="label">탄성 지진력 대비 설계 지진력 비율 (1 / R)</div>
+      <div class="value" id="valReduction" style="color:var(--accent-emerald);">10.0 % (90% 삭감)</div>
+      <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.3rem;">
+        Vd = Ve / R. 구조물이 소성 변형(연성)으로 에너지를 소산하므로 지진력을 대폭 줄여 경제적 설계가 가능해집니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let mu = 4.0;
+  let Tn = 0.80;
+  let Rs = 2.50;
+  let Rr = 1.00;
+  let quakeStage = 'main'; // 'main' or 'after'
+  let animAngle = 0;
+
+  const canvas = document.getElementById('mainCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+  }
+  window.addEventListener('resize', () => { resize(); draw(); });
+
+  function updateMu(v) {
+    mu = parseFloat(v);
+    document.getElementById('lblMu').textContent = mu.toFixed(1);
+    recalculate();
+  }
+  function updateTn(v) {
+    Tn = parseFloat(v);
+    document.getElementById('lblTn').textContent = Tn.toFixed(2) + ' s';
+    recalculate();
+  }
+  function updateRs(v) {
+    Rs = parseFloat(v);
+    document.getElementById('lblRs').textContent = Rs.toFixed(2);
+    recalculate();
+  }
+  function updateRr(v) {
+    Rr = parseFloat(v);
+    document.getElementById('lblRr').textContent = Rr.toFixed(2);
+    recalculate();
+  }
+
+  function applyPresetSystem() {
+    const sys = document.getElementById('selSystem').value;
+    if (sys === 'rc_sw_special') { Rs = 2.5; mu = 2.0; Rr = 1.0; }
+    else if (sys === 'rc_sw_ordinary') { Rs = 2.5; mu = 1.6; Rr = 1.0; }
+    else if (sys === 'steel_ebf') { Rs = 2.0; mu = 4.0; Rr = 1.0; }
+    else if (sys === 'steel_smf') { Rs = 3.0; mu = 2.7; Rr = 1.0; }
+    else if (sys === 'steel_omf') { Rs = 3.0; mu = 1.1; Rr = 1.0; }
+    else if (sys === 'steel_brbf') { Rs = 2.5; mu = 3.2; Rr = 1.0; }
+    else if (sys === 'dual_system') { Rs = 2.5; mu = 2.8; Rr = 1.0; }
+
+    document.getElementById('rngRs').value = Rs; document.getElementById('lblRs').textContent = Rs.toFixed(2);
+    document.getElementById('rngMu').value = mu; document.getElementById('lblMu').textContent = mu.toFixed(1);
+    document.getElementById('rngRr').value = Rr; document.getElementById('lblRr').textContent = Rr.toFixed(2);
+    recalculate();
+  }
+
+  function setQuakeStage(stage) {
+    quakeStage = stage;
+    document.getElementById('btnMainShock').classList.toggle('active', stage === 'main');
+    document.getElementById('btnAfterShock').classList.toggle('active', stage === 'after');
+
+    const badge = document.getElementById('stageBadge');
+    const wallBar = document.getElementById('barWall');
+    const frameBar = document.getElementById('barFrame');
+    const lblWall = document.getElementById('lblWallShare');
+    const lblFrame = document.getElementById('lblFrameShare');
+
+    if (stage === 'main') {
+      badge.textContent = "본진 거동: 전단벽 75% 부담 (소성변형 흡수)";
+      badge.style.color = "var(--accent-rose)";
+      badge.style.borderColor = "var(--accent-rose)";
+      wallBar.style.width = "75%";
+      frameBar.style.width = "25%";
+      lblWall.textContent = "75%";
+      lblFrame.textContent = "25% (대기)";
+    } else {
+      badge.textContent = "여진 거동: 전단벽 파손 후 모멘트골조 100% 잔여 저항";
+      badge.style.color = "var(--accent-blue)";
+      badge.style.borderColor = "var(--accent-blue)";
+      wallBar.style.width = "0%";
+      frameBar.style.width = "100%";
+      lblWall.textContent = "0% (항복 균열 손상)";
+      lblFrame.textContent = "100% (2차 방어선 단독 저항)";
+    }
+  }
+
+  // Newmark-Hall (1982) Rmu model
+  function getRmu(T, m) {
+    const Ta = 0.035;
+    const Tb = 0.125;
+    const Tc = 0.5;
+
+    if (T <= Ta) {
+      return 1.0;
+    } else if (T <= Tb) {
+      const R_eq_energy = Math.sqrt(2 * m - 1);
+      return 1.0 + (R_eq_energy - 1.0) * ((T - Ta) / (Tb - Ta));
+    } else if (T <= Tc) {
+      const R_eq_energy = Math.sqrt(2 * m - 1);
+      const R_eq_disp = m;
+      return R_eq_energy + (R_eq_disp - R_eq_energy) * ((T - Tb) / (Tc - Tb));
+    } else {
+      // Long period: Equal Displacement Rule
+      return m;
+    }
+  }
+
+  function recalculate() {
+    const Rmu = getRmu(Tn, mu);
+    const R_tot = Rmu * Rs * Rr;
+
+    document.getElementById('valRmu').textContent = Rmu.toFixed(2);
+    document.getElementById('valRs').textContent = Rs.toFixed(2);
+    document.getElementById('valRr').textContent = Rr.toFixed(2);
+    document.getElementById('valRtot').textContent = R_tot.toFixed(2);
+
+    const redRatio = (1 / R_tot) * 100;
+    document.getElementById('valReduction').textContent = `${redRatio.toFixed(1)}% (${(100 - redRatio).toFixed(1)}% 삭감)`;
+
+    draw();
+  }
+
+  function draw() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const pad = { left: 60, right: 30, top: 30, bottom: 45 };
+    const pw = w - pad.left - pad.right;
+    const ph = h - pad.top - pad.bottom;
+
+    const maxT = 3.0;
+    const maxR = 8.0;
+
+    function xOf(t) { return pad.left + (t / maxT) * pw; }
+    function yOf(r) { return pad.top + ph - (r / maxR) * ph; }
+
+    // Grid
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.fillStyle = "var(--text-muted)";
+    ctx.font = "11px sans-serif";
+
+    for (let t = 0; t <= maxT; t += 0.5) {
+      const x = xOf(t);
+      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+      ctx.fillText(t.toFixed(1) + 's', x - 10, pad.top + ph + 18);
+    }
+    for (let r = 1; r <= maxR; r += 1) {
+      const y = yOf(r);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
+      ctx.fillText(r.toString(), pad.left - 24, y + 4);
+    }
+
+    // Benchmark curves for mu = 2, 4, 6
+    const testMus = [2, 4, 6];
+    testMus.forEach(m => {
+      ctx.strokeStyle = (m === Math.round(mu)) ? "rgba(56, 189, 248, 0.9)" : "rgba(148, 163, 184, 0.25)";
+      ctx.lineWidth = (m === Math.round(mu)) ? 3 : 1;
+      ctx.beginPath();
+      for (let t = 0.02; t <= maxT; t += 0.02) {
+        const rVal = getRmu(t, m);
+        const x = xOf(t), y = yOf(rVal);
+        if (t === 0.02) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = "var(--text-muted)";
+      ctx.font = "10px sans-serif";
+      ctx.fillText(`μ = ${m}`, xOf(maxT) - 35, yOf(m) - 5);
+    });
+
+    // Active Curve for current mu
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let t = 0.02; t <= maxT; t += 0.02) {
+      const rVal = getRmu(t, mu);
+      const x = xOf(t), y = yOf(rVal);
+      if (t === 0.02) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    // Operating point
+    const curRmu = getRmu(Tn, mu);
+    const curX = xOf(Tn), curY = yOf(curRmu);
+
+    ctx.strokeStyle = "#f59e0b";
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(curX, pad.top); ctx.lineTo(curX, pad.top + ph); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.left, curY); ctx.lineTo(pad.left + pw, curY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.beginPath();
+    ctx.arc(curX, curY, 7, 0, 2 * Math.PI);
+    ctx.fillStyle = "#f59e0b";
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    // Rule regions annotation
+    ctx.fillStyle = "rgba(244, 63, 94, 0.1)";
+    ctx.fillRect(xOf(0), pad.top, xOf(0.125) - xOf(0), ph);
+    ctx.fillStyle = "rgba(245, 158, 11, 0.1)";
+    ctx.fillRect(xOf(0.125), pad.top, xOf(0.5) - xOf(0.125), ph);
+    ctx.fillStyle = "rgba(16, 185, 129, 0.1)";
+    ctx.fillRect(xOf(0.5), pad.top, xOf(maxT) - xOf(0.5), ph);
+
+    ctx.fillStyle = "#f43f5e"; ctx.font = "10px sans-serif";
+    ctx.fillText("Rμ ≈ 1 (강체)", xOf(0.01) + 5, pad.top + 20);
+    ctx.fillStyle = "#f59e0b";
+    ctx.fillText("등에너지 Rμ=√(2μ-1)", xOf(0.13) + 5, pad.top + 20);
+    ctx.fillStyle = "#10b981";
+    ctx.fillText("등변위 Rμ = μ", xOf(1.2), pad.top + 20);
+
+    // Axis labels
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("구조물 고유주기 T (s)", pad.left + pw / 2 - 50, pad.top + ph + 38);
+    ctx.save();
+    ctx.translate(pad.left - 40, pad.top + ph / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("연성감소계수 Rμ", -45, 0);
+    ctx.restore();
+  }
+
+  let viewMode = 'curve'; // 'curve' or 'frame'
+  let animTime = 0;
+
+  function setViewMode(mode) {
+    viewMode = mode;
+    document.getElementById('btnViewCurve').classList.toggle('active', mode === 'curve');
+    document.getElementById('btnViewFrame').classList.toggle('active', mode === 'frame');
+    document.getElementById('centerTitle').textContent = mode === 'curve' 
+      ? "Newmark & Hall (1982) Rμ 연성감소 곡선" 
+      : "이중골조시스템 (Dual System) 2단계 방어선 실시간 거동";
+    draw();
+  }
+
+  function drawDualFrame() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const groundY = h - 50;
+    const midX = w / 2;
+
+    // Ground
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(40, groundY, w - 80, 8);
+
+    // Oscillation
+    const isMain = (quakeStage === 'main');
+    const dispAmp = isMain ? 18 : 32; // In aftershock, frame deflects more due to softening of wall
+    const disp = Math.sin(animTime * 2.5) * dispAmp;
+
+    // --- LEFT: SHEAR WALL (횡력저항 전단벽) ---
+    const wallX = midX - 140;
+    const wallW = 60;
+    const wallH = 220;
+    const wallTopX = wallX + (isMain ? disp * 0.8 : 0); // Aftershock: wall is broken/softened
+
+    ctx.fillStyle = isMain ? "rgba(244, 63, 94, 0.3)" : "rgba(100, 116, 139, 0.2)";
+    ctx.strokeStyle = isMain ? "#f43f5e" : "#64748b";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(wallX, groundY);
+    ctx.lineTo(wallTopX, groundY - wallH);
+    ctx.lineTo(wallTopX + wallW, groundY - wallH);
+    ctx.lineTo(wallX + wallW, groundY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Cracks in shear wall if yielded
+    ctx.strokeStyle = "#ff4d4d";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(wallX + 10, groundY - 30); ctx.lineTo(wallX + 35, groundY - 15);
+    ctx.moveTo(wallX + 25, groundY - 60); ctx.lineTo(wallX + 50, groundY - 45);
+    ctx.moveTo(wallX + 5, groundY - 90); ctx.lineTo(wallX + 30, groundY - 75);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    ctx.fillStyle = isMain ? "#f43f5e" : "#94a3b8";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText(isMain ? "전단벽 (75% 하중 흡수 중)" : "전단벽 (항복 손상/강성 상실)", wallX - 25, groundY - wallH - 15);
+
+    // --- RIGHT: MOMENT FRAME (연성 모멘트골조) ---
+    const frameX = midX + 50;
+    const bayW = 100;
+    const frameTopX = frameX + disp;
+
+    // 3 Stories
+    const storyH = wallH / 3;
+    for (let s = 1; s <= 3; s++) {
+      const curY = groundY - s * storyH;
+      const prevY = groundY - (s - 1) * storyH;
+      const frac = s / 3;
+      const prevFrac = (s - 1) / 3;
+
+      const c1X_top = frameX + disp * frac;
+      const c1X_bot = frameX + disp * prevFrac;
+      const c2X_top = frameX + bayW + disp * frac;
+      const c2X_bot = frameX + bayW + disp * prevFrac;
+
+      // Columns
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(c1X_bot, prevY); ctx.lineTo(c1X_top, curY);
+      ctx.moveTo(c2X_bot, prevY); ctx.lineTo(c2X_top, curY);
+      ctx.stroke();
+
+      // Beam
+      ctx.beginPath();
+      ctx.moveTo(c1X_top, curY); ctx.lineTo(c2X_top, curY);
+      ctx.stroke();
+
+      // Plastic hinges at beam ends in aftershock
+      if (!isMain) {
+        ctx.fillStyle = "#f59e0b";
+        ctx.beginPath(); ctx.arc(c1X_top + 10, curY, 5, 0, 2*Math.PI); ctx.fill();
+        ctx.beginPath(); ctx.arc(c2X_top - 10, curY, 5, 0, 2*Math.PI); ctx.fill();
+      }
+    }
+    ctx.lineWidth = 1;
+
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText(isMain ? "모멘트골조 (25% 백업 대기)" : "모멘트골조 (100% 잔여 지탱 - 붕괴 저지!)", frameX - 10, groundY - wallH - 15);
+
+    // Rigid connecting diaphragm at roof
+    ctx.strokeStyle = "#f59e0b";
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(wallTopX + wallW, groundY - wallH);
+    ctx.lineTo(frameTopX, groundY - wallH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#f59e0b";
+    ctx.font = "10px sans-serif";
+    ctx.fillText("강체 다이아프램 바닥판", (wallTopX + wallW + frameTopX) / 2 - 45, groundY - wallH - 8);
+
+    // Status footer inside canvas
+    ctx.fillStyle = isMain ? "#f43f5e" : "#10b981";
+    ctx.font = "bold 12px sans-serif";
+    const statusText = isMain 
+      ? "● [본진 단계] 전단벽이 횡하중 75%를 감당하며 먼저 소성 힌지를 형성하여 대지진 에너지를 소산합니다."
+      : "● [여진 단계] 전단벽이 깨진 후에도 25% 모멘트 골조가 살아서 최종 붕괴(Collapse)를 철통 방어합니다.";
+    ctx.fillText(statusText, 50, groundY + 30);
+  }
+
+  function animate() {
+    animTime += 0.02;
+    if (viewMode === 'frame') {
+      drawDualFrame();
+    }
+    requestAnimationFrame(animate);
+  }
+
+  resize();
+  recalculate();
+  animate();
+</script>
+
+</body>
+</html>

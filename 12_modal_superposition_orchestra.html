@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모드 중첩의 오케스트라 (Modal Superposition)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+    
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background-color: #0b1120;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    
+    .panel {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      backdrop-filter: blur(12px);
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    .grid-cyber {
+      background-image: 
+        linear-gradient(rgba(30, 41, 59, 0.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 41, 59, 0.5) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    
+    /* Custom Range Slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #38bdf8;
+      margin-top: -5px;
+      cursor: ew-resize;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+    
+    .glow-text {
+      text-shadow: 0 0 10px currentColor;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="min-h-screen p-4 flex flex-col items-center">
+
+  <div class="max-w-7xl w-full">
+    
+    <header class="mb-6 flex justify-between items-end border-b border-slate-800 pb-4">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-400 text-xs font-bold font-mono border border-blue-500/30">TRACK 1</span>
+          <span class="text-slate-400 text-sm font-medium">구조동역학 · 모드해석(Modal Analysis)</span>
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-white glow-text">
+          모드 중첩 오케스트라 (Modal Superposition)
+        </h1>
+        <p class="text-slate-400 text-sm mt-2 max-w-3xl leading-relaxed">
+          지진에 흔들리는 건물의 복잡한 거동은 사실 <strong>독립적인 순수 진동(모드)</strong>들의 화음입니다.<br/>
+          모드벡터(공간적 형상)와 고유주기(시간적 스케일링)가 중첩되어 실제 응답이 만들어지는 과정을 확인하세요.
+        </p>
+      </div>
+      <a href="index.html" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition">
+        &larr; 마스터 허브
+      </a>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      
+      <!-- Left Panel: 3 Pure Modes -->
+      <div class="lg:col-span-5 flex flex-col gap-4">
+        
+        <!-- Mode 1 -->
+        <div class="panel rounded-2xl p-4 flex flex-col min-h-[220px]">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
+            <h3 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              Mode 1 (1차 모드 - 기본 진동)
+            </h3>
+            <span class="text-xs font-mono text-slate-400">T₁ = 1.0s</span>
+          </div>
+          <div class="flex-1 grid grid-cols-2 gap-4">
+            <div class="relative w-full h-full min-h-[140px] grid-cyber rounded-lg border border-slate-700/50 overflow-hidden">
+              <canvas id="canvas-m1"></canvas>
+            </div>
+            <div class="flex flex-col justify-center gap-3 pr-2">
+              <div class="text-xs text-slate-300 font-medium">모드 기여도 (PF × Sd)</div>
+              <input type="range" id="slider-m1" min="-2.0" max="2.0" step="0.1" value="1.0" class="w-full">
+              <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                <span>-2.0</span>
+                <span id="val-m1" class="text-cyan-400 font-bold">1.0</span>
+                <span>+2.0</span>
+              </div>
+              <p class="text-[10px] text-slate-400 leading-tight">
+                건물 전체가 한 방향으로 부드럽게 휩니다. 전체 지진력의 80% 이상을 지배합니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 2 -->
+        <div class="panel rounded-2xl p-4 flex flex-col min-h-[220px]">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
+            <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              Mode 2 (2차 모드)
+            </h3>
+            <span class="text-xs font-mono text-slate-400">T₂ = 0.3s</span>
+          </div>
+          <div class="flex-1 grid grid-cols-2 gap-4">
+            <div class="relative w-full h-full min-h-[140px] grid-cyber rounded-lg border border-slate-700/50 overflow-hidden">
+              <canvas id="canvas-m2"></canvas>
+            </div>
+            <div class="flex flex-col justify-center gap-3 pr-2">
+              <div class="text-xs text-slate-300 font-medium">모드 기여도 (PF × Sd)</div>
+              <input type="range" id="slider-m2" min="-1.5" max="1.5" step="0.1" value="0.4" class="w-full">
+              <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                <span>-1.5</span>
+                <span id="val-m2" class="text-amber-400 font-bold">0.4</span>
+                <span>+1.5</span>
+              </div>
+              <p class="text-[10px] text-slate-400 leading-tight">
+                중간층에 변곡점(Inflection)이 생깁니다. 상층부 채찍효과(Whip)를 유발합니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 3 -->
+        <div class="panel rounded-2xl p-4 flex flex-col min-h-[220px]">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
+            <h3 class="text-sm font-bold text-purple-400 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+              Mode 3 (3차 모드)
+            </h3>
+            <span class="text-xs font-mono text-slate-400">T₃ = 0.1s</span>
+          </div>
+          <div class="flex-1 grid grid-cols-2 gap-4">
+            <div class="relative w-full h-full min-h-[140px] grid-cyber rounded-lg border border-slate-700/50 overflow-hidden">
+              <canvas id="canvas-m3"></canvas>
+            </div>
+            <div class="flex flex-col justify-center gap-3 pr-2">
+              <div class="text-xs text-slate-300 font-medium">모드 기여도 (PF × Sd)</div>
+              <input type="range" id="slider-m3" min="-1.0" max="1.0" step="0.1" value="0.15" class="w-full">
+              <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                <span>-1.0</span>
+                <span id="val-m3" class="text-purple-400 font-bold">0.15</span>
+                <span>+1.0</span>
+              </div>
+              <p class="text-[10px] text-slate-400 leading-tight">
+                변곡점이 2개 발생하며 매우 빠르게 진동합니다. 밑면전단력에는 기여가 적지만 가속도를 증폭시킵니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Panel: Superposition -->
+      <div class="lg:col-span-7 panel rounded-2xl p-6 flex flex-col min-h-[700px] relative overflow-hidden">
+        
+        <div class="flex justify-between items-end mb-4 border-b border-slate-700 pb-4">
+          <div>
+            <h2 class="text-lg font-black text-white glow-text flex items-center gap-2">
+              <span>🎶</span>
+              실제 거동 (응답 중첩, Superposition)
+            </h2>
+            <p class="text-xs text-slate-400 font-mono mt-1">u(t) = Φ₁·Y₁(t) + Φ₂·Y₂(t) + Φ₃·Y₃(t)</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700">
+              <span class="text-xs text-slate-300 font-medium">속도:</span>
+              <button onclick="setSpeed(0.1)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-300 hover:text-white transition" data-spd="0.1">0.1x</button>
+              <button onclick="setSpeed(0.25)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-600 text-white transition" data-spd="0.25">0.25x (권장)</button>
+              <button onclick="setSpeed(0.5)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-300 hover:text-white transition" data-spd="0.5">0.5x</button>
+              <button onclick="setSpeed(1.0)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-300 hover:text-white transition" data-spd="1.0">1.0x</button>
+            </div>
+            <button id="btn-anim" onclick="toggleAnim()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/30 transition">
+              ⏸ 일시정지
+            </button>
+          </div>
+        </div>
+
+        <div class="relative flex-1 w-full mt-2 grid-cyber rounded-xl border border-slate-700/50 flex flex-col justify-end min-h-[500px]">
+          <canvas id="canvas-super"></canvas>
+        </div>
+
+        <div class="mt-6 bg-slate-900/80 rounded-xl p-4 border border-slate-700 flex justify-around">
+          <div class="text-center">
+            <div class="text-[10px] text-slate-500 font-mono mb-1">상단 변위 (Roof)</div>
+            <div id="roof-disp" class="text-lg font-black text-white">0.0 mm</div>
+          </div>
+          <div class="text-center">
+            <div class="text-[10px] text-slate-500 font-mono mb-1">지배 모드</div>
+            <div class="text-lg font-black text-cyan-400">Mode 1</div>
+          </div>
+          <div class="text-center">
+            <div class="text-[10px] text-slate-500 font-mono mb-1">고주파 노이즈</div>
+            <div class="text-lg font-black text-amber-400">포함됨</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let isAnim = true;
+    let time = 0;
+    const dt = 0.016; // 60fps
+    let speedScale = 0.25; // 눈에 선명하게 보이는 슬로우 모션 (기본값 0.25x)
+
+    function setSpeed(val) {
+      speedScale = val;
+      document.querySelectorAll('.btn-spd').forEach(b => {
+        if (parseFloat(b.dataset.spd) === val) {
+          b.className = 'btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-600 text-white transition';
+        } else {
+          b.className = 'btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-300 hover:text-white transition';
+        }
+      });
+    }
+
+    // Modal Properties
+    // Phi arrays [floor1, floor2, floor3]
+    const modes = [
+      { id: 'm1', T: 1.0, color: '#38bdf8', phi: [0.3, 0.7, 1.0], scale: 40, w: 2*Math.PI/1.0 },
+      { id: 'm2', T: 0.3, color: '#fbbf24', phi: [-0.7, -0.2, 1.0], scale: 40, w: 2*Math.PI/0.3 },
+      { id: 'm3', T: 0.1, color: '#c084fc', phi: [1.0, -0.8, 0.3], scale: 40, w: 2*Math.PI/0.1 }
+    ];
+
+    // Read Slider states
+    function getAmp(id) {
+      return parseFloat(document.getElementById(`slider-${id}`).value);
+    }
+
+    document.querySelectorAll('input[type=range]').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const id = e.target.id.split('-')[1];
+        document.getElementById(`val-${id}`).textContent = parseFloat(e.target.value).toFixed(2);
+      });
+    });
+
+    function toggleAnim() {
+      isAnim = !isAnim;
+      document.getElementById('btn-anim').textContent = isAnim ? '⏸ 일시정지' : '▶ 재생';
+      document.getElementById('btn-anim').className = isAnim 
+        ? 'px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/30 transition'
+        : 'px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/30 transition';
+    }
+
+    // Setup Canvases
+    function setupCanvas(id) {
+      const cvs = document.getElementById(id);
+      if (!cvs) return null;
+      const rect = cvs.parentElement.getBoundingClientRect();
+      const pr = window.devicePixelRatio || 1;
+      cvs.width = Math.max(rect.width, 100) * pr;
+      cvs.height = Math.max(rect.height, 100) * pr;
+      const ctx = cvs.getContext('2d');
+      ctx.scale(pr, pr);
+      return { cvs, ctx, w: cvs.width/pr, h: cvs.height/pr };
+    }
+
+    function drawBuilding(ctx, w, h, uArr, color) {
+      ctx.clearRect(0, 0, w, h);
+      
+      const cx = w / 2;
+      const groundY = h - 20;
+      const floorH = (h - 60) / 3;
+      const bldgW = Math.min(w * 0.4, 60);
+
+      // Draw Ground
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(10, groundY);
+      ctx.lineTo(w - 10, groundY);
+      ctx.stroke();
+
+      // Original wireframe (dashed)
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeRect(cx - bldgW/2, groundY - 3 * floorH, bldgW, 3 * floorH);
+      ctx.setLineDash([]);
+
+      // Deformed coordinates
+      const coords = [{ x: cx, y: groundY }];
+      for (let i = 0; i < 3; i++) {
+        coords.push({
+          x: cx + uArr[i],
+          y: groundY - (i + 1) * floorH
+        });
+      }
+
+      // Draw Columns (Hermite approximation for smooth curve)
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+      
+      const drawColCurve = (offsetX) => {
+        ctx.beginPath();
+        ctx.moveTo(coords[0].x + offsetX, coords[0].y);
+        for(let i=0; i<3; i++) {
+          const c0 = coords[i];
+          const c1 = coords[i+1];
+          // simple bezier for column bending
+          const cpY = (c0.y + c1.y) / 2;
+          ctx.bezierCurveTo(c0.x + offsetX, cpY, c1.x + offsetX, cpY, c1.x + offsetX, c1.y);
+        }
+        ctx.stroke();
+      };
+      
+      drawColCurve(-bldgW/2);
+      drawColCurve(bldgW/2);
+      
+      ctx.shadowBlur = 0;
+
+      // Draw Floor Masses
+      for (let i = 1; i <= 3; i++) {
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.rect(coords[i].x - bldgW/2 - 5, coords[i].y - 4, bldgW + 10, 8);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    function render() {
+      if (isAnim) time += dt * speedScale;
+
+      let superU = [0, 0, 0];
+
+      // Draw each mode
+      for (const m of modes) {
+        const c = setupCanvas(`canvas-${m.id}`);
+        if (!c) continue;
+
+        const amp = getAmp(m.id);
+        const y_t = amp * Math.cos(m.w * time); // Mode oscillation
+        
+        const uArr = m.phi.map(p => p * y_t * m.scale);
+        
+        // Add to superposition (real amplitude scale)
+        for (let i = 0; i < 3; i++) {
+          superU[i] += m.phi[i] * y_t * 60; // 60 is display multiplier for main canvas
+        }
+
+        drawBuilding(c.ctx, c.w, c.h, uArr, m.color);
+      }
+
+      // Draw Superposition
+      const sc = setupCanvas('canvas-super');
+      if (sc) {
+        drawBuilding(sc.ctx, sc.w, sc.h, superU, '#f8fafc');
+        
+        // Ghostly outlines of individual modes behind superposition
+        sc.ctx.globalAlpha = 0.2;
+        for (const m of modes) {
+          const amp = getAmp(m.id);
+          const y_t = amp * Math.cos(m.w * time);
+          const ghostU = m.phi.map(p => p * y_t * 60);
+          drawBuilding(sc.ctx, sc.w, sc.h, ghostU, m.color);
+        }
+        sc.ctx.globalAlpha = 1.0;
+
+        document.getElementById('roof-disp').textContent = (superU[2] / 60 * 100).toFixed(1) + ' mm';
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // Start loop
+    render();
+    
+    // Handle Resizes
+    window.addEventListener('resize', () => {
+      // Re-setup handled in render loop dynamically
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 42: 변위증폭계수(Cd)의 실체 & 비탄성 층간변위·충돌(Pounding) 랩</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-amber: #f59e0b;
+    --accent-emerald: #10b981;
+    --accent-rose: #f43f5e;
+    --accent-purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+  .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+  .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+  .main-container { flex: 1; display: grid; grid-template-columns: 320px 1fr 320px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
+  @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
+
+  .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+  .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+
+  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .control-group label { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+  select, input[type="range"] { background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 4px; font-size: 0.85rem; width: 100%; accent-color: var(--accent-blue); }
+
+  .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  button { background: #334155; color: #fff; border: 1px solid var(--border); padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
+  button:hover { background: #475569; }
+  button.active { background: var(--accent-blue); color: #0f172a; border-color: var(--accent-blue); font-weight: 700; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .stat-card { background: rgba(15, 23, 42, 0.6); padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+  .stat-card .label { font-size: 0.7rem; color: var(--text-muted); }
+  .stat-card .value { font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
+  .stat-card.blue .value { color: var(--accent-blue); }
+  .stat-card.amber .value { color: var(--accent-amber); }
+  .stat-card.emerald .value { color: var(--accent-emerald); }
+  .stat-card.rose .value { color: var(--accent-rose); }
+
+  .canvas-wrapper { flex: 1; background: #0b1120; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 400px; }
+  canvas { width: 100%; height: 100%; display: block; }
+
+  .takeaway { background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
+  .callout-rose { background: rgba(244, 63, 94, 0.08); border-left: 3px solid var(--accent-rose); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
+</style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+
+<header>
+  <div class="title-group">
+    <h1><span class="badge">Sim 42</span> 변위증폭계수(Cd)의 실체 & 비탄성 층간변위·충돌(Pounding) 랩</h1>
+    <p>탄성해석 변위 ud vs 실제 소성변위 ui = Cd·ud / Ie 대조와 층간변위율 검토 및 인접 충돌 파쇄</p>
+  </div>
+  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.85rem;">← 마스터 포털 복귀</a>
+</header>
+
+<div class="main-container">
+  <!-- Left Inputs -->
+  <div class="panel">
+    <div class="panel-title">1. 구조 시스템 및 설계 계수</div>
+
+    <div class="control-group">
+      <label>구조 시스템 (KDS 표 6.2-1)</label>
+      <select id="selSys" onchange="applyPreset()">
+        <option value="rc_sw" selected>RC 특수전단벽 (R=5.0, Cd=5.0)</option>
+        <option value="steel_smf">철골 특수모멘트골조 SMF (R=8.0, Cd=5.5)</option>
+        <option value="steel_ebf">철골 편심가새골조 EBF (R=8.0, Cd=4.0)</option>
+        <option value="steel_omf">철골 보통모멘트골조 OMF (R=3.25, Cd=3.25)</option>
+        <option value="unreinforced_masonry">무보강 조적벽 (R=1.5, Cd=1.5)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label><span>변위증폭계수 Cd</span> <span id="lblCd" style="color:var(--accent-blue); font-weight:700;">5.0</span></label>
+      <input type="range" id="rngCd" min="1.0" max="6.5" step="0.25" value="5.0" oninput="updateCd(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>중요도계수 Ie</span> <span id="lblIe">1.0</span></label>
+      <select id="selIe" onchange="updateIe(this.value)">
+        <option value="1.0" selected>1.0 (내진 II등급, 허용변위 1.5%)</option>
+        <option value="1.2">1.2 (내진 I등급, 허용변위 1.5%)</option>
+        <option value="1.5">1.5 (내진 특등급, 허용변위 1.0%)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label><span>MIDAS 탄성 해석변위 ud</span> <span id="lblUd">15.0 mm</span></label>
+      <input type="range" id="rngUd" min="2.0" max="40.0" step="0.5" value="15.0" oninput="updateUd(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>층고 h (Story Height)</span> <span id="lblHeight">3,300 mm</span></label>
+      <input type="range" id="rngHeight" min="2600" max="4500" step="100" value="3300" oninput="updateHeight(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>인접 건물과의 이격거리 s</span> <span id="lblGap">60 mm</span></label>
+      <input type="range" id="rngGap" min="10" max="150" step="5" value="60" oninput="updateGap(this.value)">
+    </div>
+
+    <div class="callout-rose">
+      <strong>실무에서 가장 흔한 사망적 오류</strong><br>
+      MIDAS Gen에서 추출한 탄성변위 \(u_d\)만으로 층간변위를 검토하면 <strong>실제 지진 변위를 1/5 수준으로 과소평가</strong>하게 됩니다. KDS 41은 모든 변위 및 충돌 검토에 반드시 비탄성 변위 \(u_i = C_d u_d / I_e\)를 사용하도록 강제합니다.
+    </div>
+  </div>
+
+  <!-- Center Dual Animation: Drift Angle & Pounding -->
+  <div class="panel" style="display:flex; flex-direction:column; gap:0.8rem;">
+    <div class="panel-title">
+      <span id="centerTitle">층간변위 비교 (탄성 ud vs 실제 비탄성 ui) 및 인접 충돌</span>
+      <span id="driftVerdictBadge" class="badge" style="color:var(--accent-rose); border-color:var(--accent-rose);">기준 초과 (NG)</span>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="driftCanvas"></canvas>
+    </div>
+
+    <div class="takeaway">
+      <strong>그림 6.8.6 응답수정계수-변위증폭계수 관계 (슬라이드 23)</strong><br>
+      설계하중 \(V_d = V_e / R\)로 해석한 구조물은 탄성변위 \(u_d\)까지만 도달하지만, 실제 대지진 시 건물은 항복강도 \(V_y = \Omega_0 V_d\)를 지나 거대한 소성변형 \(u_i\)까지 밀려납니다. \(C_d\)는 바로 이 비탄성 변위 증폭을 복원하는 계수입니다.
+    </div>
+  </div>
+
+  <!-- Right Metrics & Drift Verdict -->
+  <div class="panel">
+    <div class="panel-title">층간변위율 검토 판정 (Story Drift Check)</div>
+
+    <div class="stat-grid">
+      <div class="stat-card blue">
+        <div class="label">탄성 해석변위 ud</div>
+        <div class="value" id="valUd">15.0 mm</div>
+      </div>
+      <div class="stat-card rose">
+        <div class="label">실제 비탄성 변위 ui</div>
+        <div class="value" id="valUi">75.0 mm</div>
+      </div>
+    </div>
+
+    <div style="background:#0b1120; padding:0.8rem; border-radius:6px; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.6rem; margin-top:0.3rem;">
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+        <span style="color:var(--accent-blue);">탄성 해석 층간변위율 (ud / h)</span>
+        <span id="lblDriftElastic" style="font-weight:700; color:var(--accent-emerald);">0.45% (착각 OK)</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+        <span style="color:var(--accent-rose);">실제 비탄성 층간변위율 (ui / h)</span>
+        <span id="lblDriftInelastic" style="font-weight:700; color:var(--accent-rose);">2.27% (기준 초과 NG)</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem; border-top:1px solid var(--border); padding-top:0.4rem;">
+        <span style="color:var(--text-muted);">KDS 법정 허용 층간변위율</span>
+        <span id="lblAllowDrift" style="font-weight:700; color:#fff;">1.50%</span>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">인접 건물 충돌 (Pounding) 진단</div>
+    <div style="background:#0b1120; padding:0.8rem; border-radius:6px; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.4rem;">
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+        <span style="color:var(--text-muted);">현재 이격거리 s</span>
+        <span id="valGap" style="font-weight:700; color:#fff;">60.0 mm</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+        <span style="color:var(--accent-amber);">요구 이격거리 (ui,1 + ui,2)</span>
+        <span id="valReqGap" style="font-weight:700; color:var(--accent-amber);">105.0 mm</span>
+      </div>
+      <div id="poundingStatus" style="font-size:0.8rem; font-weight:800; color:var(--accent-rose); margin-top:0.3rem;">
+        💥 충돌 발생! (Pounding 위험 경고)
+      </div>
+    </div>
+
+    <div class="takeaway" style="font-size:0.72rem;">
+      <strong>충돌(Pounding) 방지 규정</strong><br>
+      인접한 두 건물의 고유주기가 다르면 지진 시 서로 반대 방향으로 진동(Out-of-phase)하여 이격거리가 부족할 경우 외벽과 기둥이 강타당해 치명적 취성 전단파괴가 일어납니다.
+    </div>
+  </div>
+</div>
+
+<script>
+  let Cd = 5.0;
+  let Ie = 1.0;
+  let ud = 15.0; // mm
+  let storyHeight = 3300; // mm
+  let gap = 60.0; // mm
+  let animT = 0;
+
+  const canvas = document.getElementById('driftCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+  }
+  window.addEventListener('resize', () => { resize(); draw(); });
+
+  function updateCd(v) {
+    Cd = parseFloat(v);
+    document.getElementById('lblCd').textContent = Cd.toFixed(2);
+    recalculate();
+  }
+  function updateIe(v) {
+    Ie = parseFloat(v);
+    recalculate();
+  }
+  function updateUd(v) {
+    ud = parseFloat(v);
+    document.getElementById('lblUd').textContent = ud.toFixed(1) + ' mm';
+    recalculate();
+  }
+  function updateHeight(v) {
+    storyHeight = parseFloat(v);
+    document.getElementById('lblHeight').textContent = storyHeight.toFixed(0) + ' mm';
+    recalculate();
+  }
+  function updateGap(v) {
+    gap = parseFloat(v);
+    document.getElementById('lblGap').textContent = gap.toFixed(0) + ' mm';
+    recalculate();
+  }
+
+  function applyPreset() {
+    const sys = document.getElementById('selSys').value;
+    if (sys === 'rc_sw') Cd = 5.0;
+    else if (sys === 'steel_smf') Cd = 5.5;
+    else if (sys === 'steel_ebf') Cd = 4.0;
+    else if (sys === 'steel_omf') Cd = 3.25;
+    else if (sys === 'unreinforced_masonry') Cd = 1.5;
+
+    document.getElementById('rngCd').value = Cd;
+    document.getElementById('lblCd').textContent = Cd.toFixed(2);
+    recalculate();
+  }
+
+  function recalculate() {
+    const ui = (Cd * ud) / Ie;
+    const driftElastic = (ud / storyHeight) * 100;
+    const driftInelastic = (ui / storyHeight) * 100;
+    const allowDrift = (Ie === 1.5) ? 1.0 : 1.5; // KDS allowable drift
+
+    document.getElementById('valUd').textContent = ud.toFixed(1) + ' mm';
+    document.getElementById('valUi').textContent = ui.toFixed(1) + ' mm';
+    document.getElementById('lblDriftElastic').textContent = `${driftElastic.toFixed(2)}% (착각 OK)`;
+    document.getElementById('lblDriftInelastic').textContent = `${driftInelastic.toFixed(2)}% (${driftInelastic <= allowDrift ? 'OK' : '기준 초과 NG'})`;
+    document.getElementById('lblAllowDrift').textContent = `${allowDrift.toFixed(2)}%`;
+
+    const verdictBadge = document.getElementById('driftVerdictBadge');
+    if (driftInelastic <= allowDrift) {
+      verdictBadge.textContent = "층간변위 적합 (PASS)";
+      verdictBadge.style.color = "var(--accent-emerald)";
+      verdictBadge.style.borderColor = "var(--accent-emerald)";
+    } else {
+      verdictBadge.textContent = "층간변위 초과 (NG - 재설계 필요)";
+      verdictBadge.style.color = "var(--accent-rose)";
+      verdictBadge.style.borderColor = "var(--accent-rose)";
+    }
+
+    // Pounding check: Adjacent building has 40% of ui
+    const ui2 = ui * 0.4;
+    const reqGap = ui + ui2;
+    document.getElementById('valGap').textContent = gap.toFixed(1) + ' mm';
+    document.getElementById('valReqGap').textContent = reqGap.toFixed(1) + ' mm';
+
+    const pStatus = document.getElementById('poundingStatus');
+    if (gap < reqGap) {
+      pStatus.textContent = "💥 충돌 발생! (Pounding 위험 경고)";
+      pStatus.style.color = "var(--accent-rose)";
+    } else {
+      pStatus.textContent = "✅ 충돌 없음 (이격거리 안전 확보)";
+      pStatus.style.color = "var(--accent-emerald)";
+    }
+  }
+
+  function draw() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const groundY = h - 40;
+    const bldg1W = 120;
+    const bldg2W = 100;
+
+    const ui = (Cd * ud) / Ie;
+    const ui2 = ui * 0.4;
+
+    // Oscillations: Building 1 (omega = 1.0), Building 2 (omega = 1.7, out of phase)
+    const disp1 = ui * Math.sin(animT * 2.0); // mm
+    const disp2 = -ui2 * Math.sin(animT * 3.4); // mm
+
+    // Pixels per mm
+    const scale = 1.6;
+
+    const bldg1BaseX = w / 2 - bldg1W - (gap * scale) / 2;
+    const bldg2BaseX = w / 2 + (gap * scale) / 2;
+
+    const top1X = bldg1BaseX + (disp1 * scale);
+    const top2X = bldg2BaseX + (disp2 * scale);
+
+    // Ground line
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(20, groundY, w - 40, 6);
+
+    // Check collision between right edge of Bldg 1 and left edge of Bldg 2
+    const edge1 = top1X + bldg1W;
+    const edge2 = top2X;
+    const isColliding = edge1 >= edge2;
+
+    // Building 1 (Subject Building)
+    ctx.fillStyle = "rgba(56, 189, 248, 0.2)";
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bldg1BaseX, groundY);
+    ctx.lineTo(top1X, 60);
+    ctx.lineTo(top1X + bldg1W, 60);
+    ctx.lineTo(bldg1BaseX + bldg1W, groundY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Building 1 Floors
+    for (let f = 1; f <= 5; f++) {
+      const fy = groundY - f * ((groundY - 60) / 6);
+      const frac = f / 6;
+      const lx = bldg1BaseX + (disp1 * scale) * frac;
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+      ctx.beginPath();
+      ctx.moveTo(lx, fy);
+      ctx.lineTo(lx + bldg1W, fy);
+      ctx.stroke();
+    }
+
+    // Ghost of Elastic ud
+    const ghostTopX = bldg1BaseX + (ud * Math.sin(animT * 2.0) * scale);
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.4)";
+    ctx.setLineDash([3, 3]);
+    ctx.strokeRect(ghostTopX, 60, bldg1W, groundY - 60);
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(148, 163, 184, 0.8)";
+    ctx.font = "10px sans-serif";
+    ctx.fillText("탄성 ud (착각)", ghostTopX - 15, 52);
+
+    // Building 2 (Adjacent Building)
+    ctx.fillStyle = "rgba(168, 85, 247, 0.2)";
+    ctx.strokeStyle = "#a855f7";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bldg2BaseX, groundY);
+    ctx.lineTo(top2X, 90);
+    ctx.lineTo(top2X + bldg2W, 90);
+    ctx.lineTo(bldg2BaseX + bldg2W, groundY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Building 2 Floors
+    for (let f = 1; f <= 4; f++) {
+      const fy = groundY - f * ((groundY - 90) / 5);
+      const frac = f / 5;
+      const lx = bldg2BaseX + (disp2 * scale) * frac;
+      ctx.strokeStyle = "rgba(168, 85, 247, 0.4)";
+      ctx.beginPath();
+      ctx.moveTo(lx, fy);
+      ctx.lineTo(lx + bldg2W, fy);
+      ctx.stroke();
+    }
+
+    // Collision Spark!
+    if (isColliding) {
+      const impactX = (edge1 + edge2) / 2;
+      const impactY = 100;
+
+      ctx.fillStyle = "#f43f5e";
+      ctx.beginPath();
+      ctx.arc(impactX, impactY, 18 + Math.random() * 8, 0, 2 * Math.PI);
+      ctx.fill();
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillText("💥 CRASH!", impactX - 35, impactY - 25);
+    }
+
+    // Gap dimension line at base
+    ctx.strokeStyle = "#f59e0b";
+    ctx.beginPath();
+    ctx.moveTo(bldg1BaseX + bldg1W, groundY - 15);
+    ctx.lineTo(bldg2BaseX, groundY - 15);
+    ctx.stroke();
+    ctx.fillStyle = "#f59e0b";
+    ctx.font = "11px sans-serif";
+    ctx.fillText(`이격거리 s = ${gap}mm`, (bldg1BaseX + bldg1W + bldg2BaseX) / 2 - 40, groundY - 22);
+
+    // Labels
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText(`본 건물 (ui = ${ui.toFixed(1)}mm)`, bldg1BaseX + 10, groundY + 22);
+    ctx.fillStyle = "#a855f7";
+    ctx.fillText(`인접 건물 (위상차 진동)`, bldg2BaseX + 10, groundY + 22);
+  }
+
+  function animate() {
+    animT += 0.03;
+    draw();
+    requestAnimationFrame(animate);
+  }
+
+  resize();
+  recalculate();
+  animate();
+</script>
+
+</body>
+</html>

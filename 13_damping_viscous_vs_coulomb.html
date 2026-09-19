@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>점성감쇠 vs 마찰감쇠 (Viscous vs Coulomb Damping)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+    
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background-color: #0b1120;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    
+    .panel {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      backdrop-filter: blur(12px);
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    .grid-cyber {
+      background-image: 
+        linear-gradient(rgba(30, 41, 59, 0.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 41, 59, 0.5) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #38bdf8;
+      margin-top: -5px;
+      cursor: ew-resize;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="min-h-screen p-4 flex flex-col items-center">
+
+  <div class="max-w-7xl w-full">
+    
+    <header class="mb-6 flex justify-between items-end border-b border-slate-800 pb-4">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-400 text-xs font-bold font-mono border border-blue-500/30">TRACK 1</span>
+          <span class="text-slate-400 text-sm font-medium">구조동역학 · 자유진동(Free Vibration)</span>
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-white glow-text">
+          점성감쇠 vs 마찰감쇠 (Viscous vs Coulomb Damping)
+        </h1>
+        <p class="text-slate-400 text-sm mt-2 max-w-3xl leading-relaxed">
+          유체 저항에 의한 <strong>점성감쇠(지수함수적 감소)</strong>와 고체 마찰에 의한 <strong>쿨롱 마찰감쇠(선형적 감소 및 정지)</strong>의 차이를 시각적으로 비교합니다.
+        </p>
+      </div>
+      <a href="index.html" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition">
+        &larr; 마스터 허브
+      </a>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+      
+      <!-- Viscous Damping Panel -->
+      <div class="panel rounded-2xl p-5 flex flex-col">
+        <h2 class="text-xl font-bold text-cyan-400 mb-2 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-cyan-400"></span> 점성감쇠 (Viscous Damping)
+        </h2>
+        <p class="text-xs text-slate-400 font-mono mb-4">m·ü + c·u̇ + k·u = 0  (지수함수 포락선 e^(-ζωnt))</p>
+        
+        <div class="flex items-center gap-4 mb-4 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+          <div class="flex-1">
+            <div class="flex justify-between text-xs text-slate-300 mb-1">
+              <span>감쇠비 ζ</span>
+              <span id="val-zeta" class="font-bold text-cyan-400">0.05 (5%)</span>
+            </div>
+            <input type="range" id="slider-zeta" min="0" max="0.2" step="0.01" value="0.05" class="w-full">
+          </div>
+        </div>
+
+        <div class="relative w-full h-[120px] mb-4 border-b border-slate-700">
+          <canvas id="canvas-visc-sys"></canvas>
+        </div>
+        <div class="relative flex-1 w-full min-h-[250px] grid-cyber rounded-xl border border-slate-700/50 overflow-hidden">
+          <canvas id="canvas-visc-plot"></canvas>
+        </div>
+      </div>
+
+      <!-- Coulomb Damping Panel -->
+      <div class="panel rounded-2xl p-5 flex flex-col">
+        <h2 class="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-amber-400"></span> 마찰감쇠 (Coulomb Damping)
+        </h2>
+        <p class="text-xs text-slate-400 font-mono mb-4">m·ü + k·u = -μN·sgn(u̇)  (선형적 포락선 및 Stick)</p>
+        
+        <div class="flex items-center gap-4 mb-4 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+          <div class="flex-1">
+            <div class="flex justify-between text-xs text-slate-300 mb-1">
+              <span>동마찰력 μN</span>
+              <span id="val-mu" class="font-bold text-amber-400">10 N</span>
+            </div>
+            <input type="range" id="slider-mu" min="0" max="50" step="1" value="10" class="w-full">
+          </div>
+        </div>
+
+        <div class="relative w-full h-[120px] mb-4 border-b border-slate-700">
+          <canvas id="canvas-fric-sys"></canvas>
+        </div>
+        <div class="relative flex-1 w-full min-h-[250px] grid-cyber rounded-xl border border-slate-700/50 overflow-hidden">
+          <canvas id="canvas-fric-plot"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mt-6 flex justify-center gap-4">
+      <button onclick="resetSim()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 transition flex items-center gap-2">
+        <span class="text-lg">▶</span> 초기변위 100mm 부여 (재시작)
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    let isRunning = true;
+    let time = 0;
+    const dt = 0.016;
+    
+    // Properties
+    const m = 1.0;
+    const k = 39.478; // wn = 2*pi approx 6.28, k = 39.478
+    const wn = Math.sqrt(k/m);
+    
+    let zeta = 0.05;
+    let muN = 10;
+    
+    // States
+    let v_u = 100, v_v = 0; // Viscous
+    let f_u = 100, f_v = 0; // Friction
+    
+    const histV = [];
+    const histF = [];
+    const maxHist = 300; // 5 seconds at 60fps
+    
+    document.getElementById('slider-zeta').addEventListener('input', e => {
+      zeta = parseFloat(e.target.value);
+      document.getElementById('val-zeta').textContent = zeta.toFixed(2) + ` (${Math.round(zeta*100)}%)`;
+    });
+    document.getElementById('slider-mu').addEventListener('input', e => {
+      muN = parseFloat(e.target.value);
+      document.getElementById('val-mu').textContent = muN.toFixed(0) + ' N';
+    });
+
+    function resetSim() {
+      time = 0;
+      v_u = 100; v_v = 0;
+      f_u = 100; f_v = 0;
+      histV.length = 0;
+      histF.length = 0;
+      isRunning = true;
+    }
+
+    function setupCanvas(id) {
+      const cvs = document.getElementById(id);
+      if (!cvs) return null;
+      const rect = cvs.parentElement.getBoundingClientRect();
+      const pr = window.devicePixelRatio || 1;
+      cvs.width = Math.max(rect.width, 100) * pr;
+      cvs.height = Math.max(rect.height, 100) * pr;
+      const ctx = cvs.getContext('2d');
+      ctx.scale(pr, pr);
+      return { cvs, ctx, w: cvs.width/pr, h: cvs.height/pr };
+    }
+
+    function drawSystem(ctx, w, h, u, isViscous) {
+      ctx.clearRect(0, 0, w, h);
+      const cx = w/2;
+      const cy = h/2;
+      
+      // Draw surface
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, cy + 25);
+      ctx.lineTo(w, cy + 25);
+      ctx.stroke();
+
+      if (!isViscous) {
+        // Friction surface hatching
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 1;
+        for(let x=10; x<w; x+=15) {
+          ctx.beginPath(); ctx.moveTo(x, cy+25); ctx.lineTo(x-5, cy+32); ctx.stroke();
+        }
+      }
+
+      // Wall X
+      const wallX = Math.max(30, cx - 190);
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(wallX, cy - 35);
+      ctx.lineTo(wallX, cy + 25);
+      ctx.stroke();
+
+      // Damper geometry (Attached to wall)
+      const cylStartX = wallX + 20;
+      const cylEndX = wallX + 85;
+      const minClearance = 45; // 최소 45px 이상의 안전 간격 (절대 충돌 불가)
+      const blockHalfW = 25;
+
+      // Equilibrium position & visual displacement scaling
+      const eqX = cylEndX + minClearance + blockHalfW + 40;
+      const maxVisualShift = 50; // 최대 진폭 시각화
+      const visualShift = Math.max(-maxVisualShift, Math.min(maxVisualShift, (u / 100) * maxVisualShift));
+      const blockX = eqX + visualShift;
+      const blockLeft = blockX - blockHalfW;
+
+      // Draw Spring (상단)
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(wallX, cy - 5);
+      const springW = blockLeft - wallX;
+      const coils = 8;
+      for(let i=0; i<=coils; i++) {
+        ctx.lineTo(wallX + springW * (i/coils), cy - 5 + (i%2===0?10:-10));
+      }
+      ctx.lineTo(blockLeft, cy - 5);
+      ctx.stroke();
+
+      // Draw Dashpot (if viscous)
+      if (isViscous) {
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 2;
+        // Cylinder housing
+        ctx.beginPath();
+        ctx.moveTo(wallX, cy - 20);
+        ctx.lineTo(cylStartX, cy - 20);
+        
+        ctx.moveTo(cylStartX, cy - 27);
+        ctx.lineTo(cylEndX, cy - 27);
+        ctx.moveTo(cylStartX, cy - 13);
+        ctx.lineTo(cylEndX, cy - 13);
+        ctx.moveTo(cylStartX, cy - 27);
+        ctx.lineTo(cylStartX, cy - 13);
+        ctx.stroke();
+
+        // Piston head & rod extending to blockLeft
+        const strokeRatio = (visualShift + maxVisualShift) / (2 * maxVisualShift);
+        const pistonHeadX = cylStartX + 12 + strokeRatio * (cylEndX - cylStartX - 24);
+        ctx.beginPath();
+        ctx.moveTo(pistonHeadX, cy - 25);
+        ctx.lineTo(pistonHeadX, cy - 15);
+        ctx.moveTo(pistonHeadX, cy - 20);
+        ctx.lineTo(blockLeft, cy - 20);
+        ctx.stroke();
+      }
+
+      // Draw Block
+      ctx.fillStyle = isViscous ? '#0ea5e9' : '#f59e0b';
+      ctx.shadowColor = isViscous ? 'rgba(14, 165, 233, 0.5)' : 'rgba(245, 158, 11, 0.5)';
+      ctx.shadowBlur = 10;
+      ctx.fillRect(blockLeft, cy - 25, 50, 50);
+      ctx.shadowBlur = 0;
+      
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Mass', blockX, cy);
+    }
+
+    function drawPlot(ctx, w, h, hist, color, isViscous) {
+      ctx.clearRect(0, 0, w, h);
+      
+      const cy = h/2;
+      const amp = 1.0;
+
+      // Draw Grid
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+      ctx.moveTo(0, cy - 100); ctx.lineTo(w, cy - 100);
+      ctx.moveTo(0, cy + 100); ctx.lineTo(w, cy + 100);
+      ctx.stroke();
+
+      if (hist.length === 0) return;
+
+      // Draw Envelope
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      for (let i=0; i<hist.length; i++) {
+        const x = w - (hist.length - i) * (w / maxHist);
+        const t_i = i * dt;
+        let env = 0;
+        if (isViscous) {
+          env = 100 * Math.exp(-zeta * wn * t_i);
+        } else {
+          env = Math.max(0, 100 - (2 * muN / (Math.PI * wn)) * t_i * 6.28); // Approximation for envelope
+        }
+        ctx.lineTo(x, cy - env * amp);
+      }
+      ctx.stroke();
+      
+      ctx.beginPath();
+      for (let i=0; i<hist.length; i++) {
+        const x = w - (hist.length - i) * (w / maxHist);
+        const t_i = i * dt;
+        let env = 0;
+        if (isViscous) {
+          env = 100 * Math.exp(-zeta * wn * t_i);
+        } else {
+          env = Math.max(0, 100 - (2 * muN / (Math.PI * wn)) * t_i * 6.28); 
+        }
+        ctx.lineTo(x, cy + env * amp);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw Response
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let i=0; i<hist.length; i++) {
+        const x = w - (hist.length - i) * (w / maxHist);
+        const y = cy - hist[i].u * amp;
+        if (i===0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      
+      // Plot stick region if friction
+      if (!isViscous && hist.length > 0) {
+        const lastU = hist[hist.length-1].u;
+        const lastV = hist[hist.length-1].v;
+        if (Math.abs(lastV) < 0.1 && Math.abs(lastU * k) <= muN) {
+          ctx.fillStyle = '#ef4444';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.fillText('STICK (정지)', w - 40, cy - lastU * amp - 15);
+        }
+      }
+    }
+
+    function step() {
+      // Viscous step
+      const c = 2 * zeta * wn * m;
+      const v_a = (-c * v_v - k * v_u) / m;
+      v_v += v_a * dt;
+      v_u += v_v * dt;
+      
+      // Coulomb step
+      let f_a = 0;
+      const springForce = -k * f_u;
+      
+      if (Math.abs(f_v) > 0.5) {
+        // Sliding
+        const friction = -Math.sign(f_v) * muN;
+        f_a = (springForce + friction) / m;
+        f_v += f_a * dt;
+        f_u += f_v * dt;
+      } else {
+        // Sticking condition check
+        if (Math.abs(springForce) > muN) {
+          const friction = -Math.sign(springForce) * muN;
+          f_a = (springForce + friction) / m;
+          f_v += f_a * dt;
+          f_u += f_v * dt;
+        } else {
+          // Stuck
+          f_v = 0;
+          f_a = 0;
+        }
+      }
+
+      time += dt;
+
+      histV.push({u: v_u, v: v_v});
+      histF.push({u: f_u, v: f_v});
+
+      if (histV.length > maxHist) {
+        histV.shift();
+        histF.shift();
+      }
+    }
+
+    function render() {
+      if (isRunning) step();
+
+      const cv1 = setupCanvas('canvas-visc-sys');
+      if (cv1) drawSystem(cv1.ctx, cv1.w, cv1.h, v_u, true);
+      
+      const cp1 = setupCanvas('canvas-visc-plot');
+      if (cp1) drawPlot(cp1.ctx, cp1.w, cp1.h, histV, '#38bdf8', true);
+
+      const cv2 = setupCanvas('canvas-fric-sys');
+      if (cv2) drawSystem(cv2.ctx, cv2.w, cv2.h, f_u, false);
+
+      const cp2 = setupCanvas('canvas-fric-plot');
+      if (cp2) drawPlot(cp2.ctx, cp2.w, cp2.h, histF, '#fbbf24', false);
+
+      requestAnimationFrame(render);
+    }
+
+    render();
+
+  </script>
+</body>
+</html>

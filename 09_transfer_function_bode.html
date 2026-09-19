@@ -1,0 +1,1920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>09. 2차 동역학계 전달함수 H(s) & Bode 선도 & 극점 궤적</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .light-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    .math-var {
+      font-family: "Cambria Math", "Times New Roman", "STIX Two Math", serif;
+      font-style: italic;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .math-sym {
+      font-family: "Cambria Math", "Times New Roman", "STIX Two Math", serif;
+    }
+    .tab-btn.active {
+      background-color: #ffffff;
+      color: #1d4ed8;
+      border-bottom: 2px solid #2563eb;
+      font-weight: 700;
+    }
+    .tab-btn {
+      color: #64748b;
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease-in-out;
+    }
+    .tab-btn:hover {
+      color: #1e293b;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-7xl bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-lg space-y-5">
+    
+    <!-- Header Section -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            09. 2차 동역학계 전달함수 <span class="math-var">H(s)</span> &middot; Bode 선도 &middot; 극점 궤적
+          </h1>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-800 border border-indigo-200">
+            Chopra 3장 &middot; 라플라스 주파수응답함수 (FRF)
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-1 font-medium">
+          라플라스 변환 기반 주파수 전달특성 | 진폭비 |<span class="math-var">H</span>(&omega;)| [dB] &middot; 90&deg; 위상전이 &middot; 단위계단응답 &middot; <span class="math-var">s</span>-평면 복소 극점(Poles)
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2 font-sans">
+        <a href="index.html" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition shadow-xs">
+          &larr; 마스터 대시보드
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Engineering Presets Bar -->
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2 font-bold text-slate-700">
+        <span>⚡ 공학 실증 프리셋:</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button onclick="applyPreset('sharp')" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition shadow-xs">
+          ① 첨예 공진 (<span class="math-var">&zeta;</span>=0.02, <span class="math-var">&beta;</span>=1.0)
+        </button>
+        <button onclick="applyPreset('butterworth')" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-xs">
+          ② 최적 계측감쇠 (<span class="math-var">&zeta;</span>=0.707)
+        </button>
+        <button onclick="applyPreset('critical')" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition shadow-xs">
+          ③ 임계감쇠 (<span class="math-var">&zeta;</span>=1.0, 무진동)
+        </button>
+        <button onclick="applyPreset('isolation')" class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold transition shadow-xs">
+          ④ 고주파 방진절연 (<span class="math-var">&beta;</span>=2.5, <span class="math-var">&zeta;</span>=0.05)
+        </button>
+        <button onclick="applyPreset('halfpower')" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold transition shadow-xs">
+          ⑤ Half-Power 대역폭 (<span class="math-sym">&Delta;&omega;</span>)
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Grid: Left Control & Metrics (4 Cols) + Right Visualizations (8 Cols) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Left Controls & Metrics (4 Cols) -->
+      <div class="lg:col-span-4 space-y-4">
+        
+        <!-- Controls Card -->
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <span class="text-xs font-black uppercase text-slate-500 tracking-wider">시스템 동특성 파라미터</span>
+            <span id="damping-badge" class="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">부족감쇠 (&zeta; &lt; 1)</span>
+          </div>
+
+          <!-- Slider 1: Natural Angular Frequency wn -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-800">고유각진동수 <span class="math-var">&omega;<sub>n</sub></span></span>
+              <span id="wn-val" class="font-mono font-bold text-blue-700">6.28 rad/s (1.00 Hz)</span>
+            </div>
+            <input type="range" id="slider-wn" min="1.0" max="25.0" step="0.2" value="6.28" class="w-full accent-blue-600 cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+              <span>1.0 rad/s (0.16 Hz)</span>
+              <span>25.0 rad/s (3.98 Hz)</span>
+            </div>
+          </div>
+
+          <!-- Slider 2: Damping Ratio zeta -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-800">감쇠비 <span class="math-var">&zeta;</span> (Damping Ratio)</span>
+              <span id="zeta-val" class="font-mono font-bold text-indigo-700">0.050 (5.0%)</span>
+            </div>
+            <input type="range" id="slider-zeta" min="0.01" max="1.50" step="0.01" value="0.05" class="w-full accent-indigo-600 cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+              <span>0.01 (1%)</span>
+              <span>0.707 (Butterworth)</span>
+              <span>1.0 (임계)</span>
+              <span>1.50</span>
+            </div>
+          </div>
+
+          <!-- Slider 3: Excitation Frequency Ratio beta = w / wn -->
+          <div class="space-y-1.5 pt-1 border-t border-slate-100">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-800">가진 주파수비 <span class="math-var">&beta; = &omega; / &omega;<sub>n</sub></span></span>
+              <span id="beta-val" class="font-mono font-bold text-amber-600">1.000 (공진)</span>
+            </div>
+            <input type="range" id="slider-beta" min="0.10" max="4.00" step="0.01" value="1.00" class="w-full accent-amber-500 cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+              <span>0.10 (정적지배)</span>
+              <span>1.00 (공진 피크)</span>
+              <span>4.00 (질량관성)</span>
+            </div>
+          </div>
+
+          <!-- Slider 4: Static Force / Displacement amplitude p0 / k -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-800">정적 변위 기준 <span class="math-var">u<sub>st</sub> = p₀ / k</span></span>
+              <span id="ust-val" class="font-mono font-bold text-slate-700">1.00 m</span>
+            </div>
+            <input type="range" id="slider-ust" min="0.2" max="2.0" step="0.1" value="1.0" class="w-full accent-slate-600 cursor-pointer">
+          </div>
+
+          <!-- Play / Pause & Speed Controls -->
+          <div class="pt-2 border-t border-slate-100 flex items-center gap-2">
+            <button id="btn-play" onclick="togglePlay()" class="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">
+              <span id="play-text">일시정지</span>
+            </button>
+            <button onclick="resetSim()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold transition">
+              리셋
+            </button>
+            <select id="select-speed" onchange="changeSpeed(this.value)" class="py-2 px-2 rounded-xl bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold cursor-pointer">
+              <option value="0.5">0.5x</option>
+              <option value="1.0" selected>1.0x</option>
+              <option value="2.0">2.0x</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Dynamic Metrics Cards Grid -->
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <span class="text-xs font-black uppercase text-slate-500 tracking-wider">전달함수 & 동특성 정밀 지표</span>
+            <span class="text-[11px] font-mono text-slate-400">Exact Analytical</span>
+          </div>
+
+          <!-- Transfer Function Equation Box -->
+          <div class="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-1">
+            <div class="text-[11px] font-bold text-indigo-900 flex justify-between">
+              <span>라플라스 전달함수 <span class="math-var">H(s)</span></span>
+              <span class="font-mono text-indigo-700" id="metric-order">2차 안정계</span>
+            </div>
+            <div id="metric-tf-formula" class="font-mono text-xs font-bold text-indigo-950 break-all leading-tight">
+              39.48 / (s² + 0.63s + 39.48)
+            </div>
+          </div>
+
+          <!-- Metrics 2x2 Grid -->
+          <div class="grid grid-cols-2 gap-2.5 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-[11px] text-slate-500 font-semibold">공진 주파수 <span class="math-var">&omega;<sub>r</sub></span></div>
+              <div id="metric-wr" class="text-sm font-black font-mono text-slate-900 mt-0.5">6.26 rad/s</div>
+              <div id="metric-fr" class="text-[10px] font-mono text-slate-500">1.00 Hz</div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-[11px] text-slate-500 font-semibold">최대 동적증폭비 <span class="math-var">Q</span></div>
+              <div id="metric-q" class="text-sm font-black font-mono text-red-600 mt-0.5">10.01 배</div>
+              <div id="metric-qdb" class="text-[10px] font-mono text-red-500">+20.0 dB</div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-[11px] text-slate-500 font-semibold">현재 가진 진폭비 |<span class="math-var">H</span>|</div>
+              <div id="metric-currmag" class="text-sm font-black font-mono text-blue-700 mt-0.5">10.00 배</div>
+              <div id="metric-currmagdb" class="text-[10px] font-mono text-blue-600">+20.0 dB</div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-[11px] text-slate-500 font-semibold">현재 위상 지연각 <span class="math-var">&phi;</span></div>
+              <div id="metric-currphase" class="text-sm font-black font-mono text-purple-700 mt-0.5">-90.0&deg;</div>
+              <div id="metric-timedelay" class="text-[10px] font-mono text-purple-500">&Delta;t = 0.25 s</div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-[11px] text-slate-500 font-semibold">계단응답 오버슈트 <span class="math-var">M<sub>p</sub></span></div>
+              <div id="metric-mp" class="text-sm font-black font-mono text-amber-700 mt-0.5">85.4 %</div>
+              <div class="text-[10px] font-mono text-amber-600">Peak u = 1.85 m</div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-[11px] text-slate-500 font-semibold">2% 정착시간 <span class="math-var">t<sub>s</sub></span></div>
+              <div id="metric-ts" class="text-sm font-black font-mono text-emerald-700 mt-0.5">12.74 s</div>
+              <div class="text-[10px] font-mono text-emerald-600">4 / (&zeta;&omega;<sub>n</sub>)</div>
+            </div>
+          </div>
+
+          <!-- Half-Power Bandwidth Box -->
+          <div class="p-2.5 bg-amber-50/60 border border-amber-200 rounded-xl text-[11px] flex justify-between items-center font-medium">
+            <span class="text-amber-900 font-bold">Half-Power 대역폭 (<span class="math-sym">&Delta;&omega;</span>):</span>
+            <span id="metric-bandwidth" class="font-mono font-bold text-amber-800">0.63 rad/s (Q = 10.0)</span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Right Visualizations: Tabbed Interface (8 Cols) -->
+      <div class="lg:col-span-8 space-y-4">
+        
+        <!-- Tab Navigation Bar -->
+        <div class="flex items-center justify-between border-b border-slate-200 px-1">
+          <div class="flex items-center gap-4">
+            <button onclick="switchTab('tab-bode')" id="btn-tab-bode" class="tab-btn active pb-2.5 text-xs md:text-sm flex items-center gap-1.5">
+              <span>📈 탭 1: Bode 선도 & SDOF 기구학</span>
+            </button>
+            <button onclick="switchTab('tab-time')" id="btn-tab-time" class="tab-btn pb-2.5 text-xs md:text-sm flex items-center gap-1.5">
+              <span>⏱️ 탭 2: 계단응답 & 입출력 위상차</span>
+            </button>
+            <button onclick="switchTab('tab-complex')" id="btn-tab-complex" class="tab-btn pb-2.5 text-xs md:text-sm flex items-center gap-1.5">
+              <span>🎯 탭 3: s-평면 극점 & Nyquist</span>
+            </button>
+          </div>
+          <span class="text-[11px] font-mono text-slate-400 hidden sm:inline">60 FPS Interactive High-DPI</span>
+        </div>
+
+        <!-- ================= TAB 1: Bode Plot & SDOF Kinematics ================= -->
+        <div id="tab-bode" class="space-y-4 block">
+          
+          <!-- Dual Bode Plot Canvas Wrapper -->
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-900">Bode 주파수 응답 선도 (진폭비 & 위상각)</span>
+                <span class="text-[11px] text-slate-500 font-mono">[캔버스 클릭/드래그 시 가진비 &beta; 자동 조정]</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs font-medium">
+                <span class="flex items-center gap-1 text-blue-600"><span class="w-2.5 h-1 bg-blue-600 rounded"></span> 진폭비 (dB)</span>
+                <span class="flex items-center gap-1 text-purple-600"><span class="w-2.5 h-1 bg-purple-600 rounded"></span> 위상각 (&deg;)</span>
+                <span class="flex items-center gap-1 text-amber-500"><span class="w-2 h-2 rounded-full bg-amber-500"></span> 가진점</span>
+              </div>
+            </div>
+
+            <!-- Bode Canvas -->
+            <div class="relative w-full h-[320px]">
+              <canvas id="bodeCanvas" class="w-full h-full block rounded-lg cursor-crosshair"></canvas>
+            </div>
+            <div class="flex justify-between items-center text-[11px] text-slate-500 pt-1 border-t border-slate-100 font-mono">
+              <span>저주파 정적 점근선 (0 dB) &rarr; 고주파 질량관성 점근선 (-40 dB/decade)</span>
+              <span>공진 &beta;=1.0 교차점: 위상차 = -90.0&deg;</span>
+            </div>
+          </div>
+
+          <!-- SDOF Kinematic Motion Canvas Wrapper -->
+          <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-200 shadow-xs light-grid space-y-2">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-900">SDOF 질량-스프링-유압감쇠기 실시간 기구학 거동</span>
+                <span class="text-[11px] text-blue-700 font-bold font-mono" id="anim-phase-badge">위상차 &phi; = 90.0&deg;</span>
+              </div>
+              <div class="text-xs font-mono text-slate-500 font-bold" id="anim-time-display">
+                t = 0.00 s
+              </div>
+            </div>
+
+            <!-- SDOF Canvas -->
+            <div class="relative w-full h-[200px]">
+              <canvas id="sdofCanvas" class="w-full h-full block rounded-lg"></canvas>
+            </div>
+
+            <div class="flex flex-wrap justify-between items-center text-[11px] text-slate-600 pt-1 border-t border-slate-200 font-medium">
+              <div class="flex flex-wrap items-center gap-3">
+                <span>외력: <span id="hud-force" class="font-mono font-bold text-amber-600">p(t) = +0.00 kN</span></span>
+                <span>변위: <span id="hud-disp" class="font-mono font-bold text-blue-700">u(t) = +0.00 m</span></span>
+                <span>속도: <span id="hud-vel" class="font-mono font-bold text-emerald-700">u'(t) = +0.00 m/s</span></span>
+                <span>복원력: <span id="hud-spring" class="font-mono font-bold text-indigo-700">Fs = +0.00 kN</span></span>
+                <span>감쇠력: <span id="hud-damper" class="font-mono font-bold text-amber-800">Fd = +0.00 kN</span></span>
+              </div>
+              <span class="font-mono text-slate-400">유압 오리피스 &middot; LM 베어링 60fps</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ================= TAB 2: Step Response & Input-Output ================= -->
+        <div id="tab-time" class="space-y-4 hidden">
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Left: Step Response y(t) -->
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span class="text-xs font-bold text-slate-900">단위 계단응답 <span class="math-var">y(t)</span> (Step Response)</span>
+                <span class="text-[11px] font-mono text-emerald-600 font-bold">&plusmn;2% 정착밴드</span>
+              </div>
+
+              <div class="relative w-full h-[290px]">
+                <canvas id="stepCanvas" class="w-full h-full block rounded-lg"></canvas>
+              </div>
+
+              <div class="text-[11px] text-slate-500 pt-1 border-t border-slate-100 leading-relaxed font-mono flex justify-between">
+                <span>목표치 = 1.00 m</span>
+                <span id="step-peak-info">오버슈트 Peak = 1.85 m</span>
+              </div>
+            </div>
+
+            <!-- Right: Harmonic Input vs Output Waveforms -->
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span class="text-xs font-bold text-slate-900">가진 외력 <span class="math-var">p(t)/k</span> vs 응답 변위 <span class="math-var">u(t)</span> 파형</span>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="flex items-center gap-1 text-amber-500 font-bold"><span class="w-2 h-0.5 bg-amber-500"></span> 입력</span>
+                  <span class="flex items-center gap-1 text-blue-600 font-bold"><span class="w-2 h-0.5 bg-blue-600"></span> 출력</span>
+                </div>
+              </div>
+
+              <div class="relative w-full h-[290px]">
+                <canvas id="waveCanvas" class="w-full h-full block rounded-lg"></canvas>
+              </div>
+
+              <div class="text-[11px] text-slate-500 pt-1 border-t border-slate-100 leading-relaxed font-mono flex justify-between">
+                <span>정상상태(Steady-state) 조화응답</span>
+                <span id="wave-phase-info" class="text-purple-700 font-bold">시간지연 &Delta;t = 0.25 s</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Explanatory note for Tab 2 -->
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 leading-relaxed">
+            💡 <strong>과도응답과 정상응답의 본질:</strong> 단위 계단응답은 시스템의 고유한 극점 감쇠 특성(자유진동 포락선 <span class="math-var">e<sup>-&zeta;&omega;<sub>n</sub>t</sup></span>)을 가시화하며, 우측 파형은 지속적인 조화가진 하에서 입력력과 출력 변위 간의 <strong>진폭 증폭 배수(|H|) 및 위상 지연(&phi;)</strong>을 명확히 대조합니다.
+          </div>
+
+        </div>
+
+        <!-- ================= TAB 3: s-Plane Pole-Zero & Nyquist ================= -->
+        <div id="tab-complex" class="space-y-4 hidden">
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Left: s-Plane Pole-Zero Map -->
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span class="text-xs font-bold text-slate-900"><span class="math-var">s</span>-평면 복소 극점 맵 (Pole-Zero Map)</span>
+                <span class="text-[11px] font-mono text-indigo-700 font-bold">s = -&zeta;&omega;<sub>n</sub> &plusmn; j&omega;<sub>d</sub></span>
+              </div>
+
+              <div class="relative w-full h-[300px]">
+                <canvas id="poleCanvas" class="w-full h-full block rounded-lg"></canvas>
+              </div>
+
+              <div class="text-[11px] text-slate-500 pt-1 border-t border-slate-100 font-mono flex justify-between">
+                <span class="text-emerald-700 font-bold">좌반평면(LHP): 점근 안정</span>
+                <span id="pole-coord-info" class="text-red-600 font-bold">s = -0.31 &plusmn; 6.27j</span>
+              </div>
+            </div>
+
+            <!-- Right: Nyquist Plot -->
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span class="text-xs font-bold text-slate-900">나이퀴스트 선도 (Nyquist Plot: <span class="math-var">H(i&omega;)</span> 궤적)</span>
+                <span class="text-[11px] font-mono text-purple-700 font-bold">&omega; : 0 &rarr; &infin;</span>
+              </div>
+
+              <div class="relative w-full h-[300px]">
+                <canvas id="nyquistCanvas" class="w-full h-full block rounded-lg"></canvas>
+              </div>
+
+              <div class="text-[11px] text-slate-500 pt-1 border-t border-slate-100 font-mono flex justify-between">
+                <span>(1, 0) 출발 &rarr; 공진 (0, -jQ) 통과 &rarr; (0, 0) 수렴</span>
+                <span id="nyquist-point-info" class="text-amber-600 font-bold">H = 0.0 - 10.0j</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Explanatory note for Tab 3 -->
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 leading-relaxed">
+            🎯 <strong>복소수 궤적 해석:</strong> 감쇠비 <span class="math-var">&zeta;</span>가 0에서 1로 증가함에 따라, <span class="math-var">s</span>-평면의 복소 극점은 반지름 <span class="math-var">&omega;<sub>n</sub></span>인 원호를 그리며 실수축 방향으로 이동합니다. <span class="math-var">&zeta; &ge; 1</span>이 되면 허수부가 소멸하여 순수 실수 극점으로 분기합니다. 나이퀴스트 선도는 전체 주파수 대역에 걸친 복소 전달함수 벡터의 회전 거동을 한 평면에 압축 제시합니다.
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 4-Phase Deep Structural Engineering Theory Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-slate-100 text-xs">
+      
+      <!-- Card 1 -->
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+        <div class="flex items-center gap-1.5 text-blue-700 font-bold">
+          <span>1. 전달함수 H(s) 유도</span>
+        </div>
+        <p class="text-slate-600 leading-relaxed">
+          운동방정식 <span class="math-var">m&middot;u'' + c&middot;u' + k&middot;u = p(t)</span> 에 라플라스 변환을 적용하면, 초기 정지 상태에서 <span class="math-var">H(s) = U(s)/P(s) = 1/(ms² + cs + k)</span> 입니다. 정적 변위 <span class="math-var">u<sub>st</sub> = p₀/k</span> 기준 무차원화 시 <span class="math-var">H(s) = &omega;<sub>n</sub>² / (s² + 2&zeta;&omega;<sub>n</sub>s + &omega;<sub>n</sub>²)</span> 이 됩니다.
+        </p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+        <div class="flex items-center gap-1.5 text-indigo-700 font-bold">
+          <span>2. 공진 시 90&deg; 위상차의 본질</span>
+        </div>
+        <p class="text-slate-600 leading-relaxed">
+          공진(<span class="math-var">&beta;</span> = 1.0)에서는 질량 관성력(<span class="math-var">-m&omega;²u</span>)과 탄성 복원력(<span class="math-var">ku</span>)이 크기는 같고 방향이 정반대가 되어 완전 상쇄됩니다. 따라서 <strong>외력 <span class="math-var">p(t)</span>는 오직 점성 감쇠력 <span class="math-var">c&middot;u'(t)</span>하고만 평형</strong>을 이루며, 속도와 외력이 완벽히 동위상(변위와 90&deg; 직교)이 됩니다.
+        </p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+        <div class="flex items-center gap-1.5 text-purple-700 font-bold">
+          <span>3. 고주파 방진절연 (&beta; &gt; &radic;2)</span>
+        </div>
+        <p class="text-slate-600 leading-relaxed">
+          가진 주파수가 고유주기보다 충분히 높은 영역(<span class="math-var">&beta;</span> &gt; 1.414)에서는 질량의 관성이 지배하여 진폭 전달률 |<span class="math-var">H</span>| &lt; 1 (0 dB 이하)로 급감하며, 고주파 점근선 기울기는 <strong>-40 dB/dec (1/&omega;² 비례 감쇠)</strong>를 나타냅니다. 이것이 기계 기초 및 건물의 진동 절연(Isolation)의 기본 원리입니다.
+        </p>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+        <div class="flex items-center gap-1.5 text-emerald-700 font-bold">
+          <span>4. s-평면 극점과 댐퍼 설계</span>
+        </div>
+        <p class="text-slate-600 leading-relaxed">
+          구조물에 점성 댐퍼(Toggle/Linear Viscous Damper)를 추가하면 등가 감쇠비 <span class="math-var">&zeta;</span>가 상승하여 복소 극점의 실수부(<span class="math-var">-&zeta;&omega;<sub>n</sub></span>)가 음의 축 방향으로 깊숙이 이동합니다. 이는 자유진동 및 지진 충격 시 응답 포락선의 감쇠 감쇄율을 기하급수적으로 가속화하여 안전성을 극대화합니다.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // ================= GLOBAL STATE =================
+    let wn = 6.28; // rad/s (1.0 Hz)
+    let zeta = 0.05; // 5% damping
+    let beta = 1.00; // freq ratio w / wn
+    let ust = 1.00;  // static displacement amplitude (m)
+
+    let isPlaying = true;
+    let simSpeed = 1.0;
+    let animTime = 0.0;
+    let lastTimestamp = null;
+    let currentTab = 'tab-bode';
+
+    // DOM Elements
+    const sliderWn = document.getElementById('slider-wn');
+    const sliderZeta = document.getElementById('slider-zeta');
+    const sliderBeta = document.getElementById('slider-beta');
+    const sliderUst = document.getElementById('slider-ust');
+
+    const valWn = document.getElementById('wn-val');
+    const valZeta = document.getElementById('zeta-val');
+    const valBeta = document.getElementById('beta-val');
+    const valUst = document.getElementById('ust-val');
+    const dampingBadge = document.getElementById('damping-badge');
+
+    const btnPlay = document.getElementById('btn-play');
+    const playText = document.getElementById('play-text');
+
+    // Metrics DOM
+    const metricTfFormula = document.getElementById('metric-tf-formula');
+    const metricOrder = document.getElementById('metric-order');
+    const metricWr = document.getElementById('metric-wr');
+    const metricFr = document.getElementById('metric-fr');
+    const metricQ = document.getElementById('metric-q');
+    const metricQdb = document.getElementById('metric-qdb');
+    const metricCurrmag = document.getElementById('metric-currmag');
+    const metricCurrmagdb = document.getElementById('metric-currmagdb');
+    const metricCurrphase = document.getElementById('metric-currphase');
+    const metricTimedelay = document.getElementById('metric-timedelay');
+    const metricMp = document.getElementById('metric-mp');
+    const metricTs = document.getElementById('metric-ts');
+    const metricBandwidth = document.getElementById('metric-bandwidth');
+
+    // HUD DOM
+    const animPhaseBadge = document.getElementById('anim-phase-badge');
+    const animTimeDisplay = document.getElementById('anim-time-display');
+    const hudForce = document.getElementById('hud-force');
+    const hudDisp = document.getElementById('hud-disp');
+    const hudVel = document.getElementById('hud-vel');
+    const hudSpring = document.getElementById('hud-spring');
+    const hudDamper = document.getElementById('hud-damper');
+    let wheelRotationAngle = 0.0;
+    const stepPeakInfo = document.getElementById('step-peak-info');
+    const wavePhaseInfo = document.getElementById('wave-phase-info');
+    const poleCoordInfo = document.getElementById('pole-coord-info');
+    const nyquistPointInfo = document.getElementById('nyquist-point-info');
+
+    // Canvases
+    const bodeCanvas = document.getElementById('bodeCanvas');
+    const sdofCanvas = document.getElementById('sdofCanvas');
+    const stepCanvas = document.getElementById('stepCanvas');
+    const waveCanvas = document.getElementById('waveCanvas');
+    const poleCanvas = document.getElementById('poleCanvas');
+    const nyquistCanvas = document.getElementById('nyquistCanvas');
+
+    // Canvas contexts
+    let bodeCtx, sdofCtx, stepCtx, waveCtx, poleCtx, nyquistCtx;
+
+    // HiDPI Scaling Helper
+    function setupHiDPI(canvas) {
+      if (!canvas) return null;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(10, rect.width);
+      const h = Math.max(10, rect.height);
+      
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+      ctx.scale(dpr, dpr);
+      return { ctx, width: w, height: h };
+    }
+
+    function initCanvases() {
+      const b = setupHiDPI(bodeCanvas); if (b) bodeCtx = b.ctx;
+      const s = setupHiDPI(sdofCanvas); if (s) sdofCtx = s.ctx;
+      const st = setupHiDPI(stepCanvas); if (st) stepCtx = st.ctx;
+      const w = setupHiDPI(waveCanvas); if (w) waveCtx = w.ctx;
+      const p = setupHiDPI(poleCanvas); if (p) poleCtx = p.ctx;
+      const n = setupHiDPI(nyquistCanvas); if (n) nyquistCtx = n.ctx;
+    }
+
+    // ================= TAB SWITCHING =================
+    function switchTab(tabId) {
+      currentTab = tabId;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      document.getElementById('tab-bode').classList.toggle('hidden', tabId !== 'tab-bode');
+      document.getElementById('tab-bode').classList.toggle('block', tabId === 'tab-bode');
+      
+      document.getElementById('tab-time').classList.toggle('hidden', tabId !== 'tab-time');
+      document.getElementById('tab-time').classList.toggle('block', tabId === 'tab-time');
+      
+      document.getElementById('tab-complex').classList.toggle('hidden', tabId !== 'tab-complex');
+      document.getElementById('tab-complex').classList.toggle('block', tabId === 'tab-complex');
+
+      requestAnimationFrame(() => {
+        initCanvases();
+        renderAllStatic();
+      });
+    }
+
+    // ================= PRESETS =================
+    function applyPreset(name) {
+      if (name === 'sharp') {
+        wn = 6.28;
+        zeta = 0.02;
+        beta = 1.00;
+      } else if (name === 'butterworth') {
+        wn = 6.28;
+        zeta = 0.7071;
+        beta = 1.00;
+      } else if (name === 'critical') {
+        wn = 6.28;
+        zeta = 1.00;
+        beta = 1.00;
+      } else if (name === 'isolation') {
+        wn = 6.28;
+        zeta = 0.05;
+        beta = 2.50;
+      } else if (name === 'halfpower') {
+        wn = 6.28;
+        zeta = 0.10;
+        beta = 1.00;
+      }
+
+      sliderWn.value = wn;
+      sliderZeta.value = zeta;
+      sliderBeta.value = beta;
+
+      updateStateAndUI();
+    }
+
+    // ================= SIMULATION CALCULATIONS =================
+    function updateStateAndUI() {
+      wn = parseFloat(sliderWn.value);
+      zeta = parseFloat(sliderZeta.value);
+      beta = parseFloat(sliderBeta.value);
+      ust = parseFloat(sliderUst.value);
+
+      const fn = wn / (2.0 * Math.PI);
+      const Tn = 1.0 / fn;
+      valWn.textContent = `${wn.toFixed(2)} rad/s (${fn.toFixed(2)} Hz)`;
+      
+      let dampText = `${zeta.toFixed(3)} (${(zeta * 100).toFixed(1)}%)`;
+      if (zeta < 0.98) {
+        dampingBadge.textContent = '부족감쇠 (ζ < 1)';
+        dampingBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200';
+      } else if (zeta <= 1.02) {
+        dampingBadge.textContent = '임계감쇠 (ζ ≈ 1)';
+        dampingBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200';
+      } else {
+        dampingBadge.textContent = '과도감쇠 (ζ > 1)';
+        dampingBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200';
+      }
+      valZeta.textContent = dampText;
+
+      let betaText = `${beta.toFixed(3)}`;
+      if (Math.abs(beta - 1.0) < 0.02) betaText += ' (공진 영역)';
+      else if (beta < 0.7) betaText += ' (준정적 영역)';
+      else if (beta > 1.414) betaText += ' (방진절연 영역)';
+      valBeta.textContent = betaText;
+      valUst.textContent = `${ust.toFixed(2)} m`;
+
+      // H(s) formula update
+      const num = (wn * wn).toFixed(2);
+      const mid = (2.0 * zeta * wn).toFixed(2);
+      metricTfFormula.textContent = `${num} / (s² + ${mid}s + ${num})`;
+
+      // Resonance wr, fr, Q
+      if (zeta < 0.7071) {
+        const wr = wn * Math.sqrt(Math.max(0, 1.0 - 2.0 * zeta * zeta));
+        const fr = wr / (2.0 * Math.PI);
+        const Q = 1.0 / (2.0 * zeta * Math.sqrt(1.0 - zeta * zeta));
+        const QdB = 20.0 * Math.log10(Q);
+        metricWr.textContent = `${wr.toFixed(2)} rad/s`;
+        metricFr.textContent = `${fr.toFixed(2)} Hz (β_r = ${(wr/wn).toFixed(3)})`;
+        metricQ.textContent = `${Q.toFixed(2)} 배`;
+        metricQdb.textContent = `${QdB >= 0 ? '+' : ''}${QdB.toFixed(1)} dB`;
+      } else {
+        metricWr.textContent = '피크 없음';
+        metricFr.textContent = 'ζ ≥ 0.707 (단조감소)';
+        metricQ.textContent = '1.00 배';
+        metricQdb.textContent = '0.0 dB';
+      }
+
+      // Current operating point mag & phase
+      const denom = Math.sqrt(Math.pow(1.0 - beta * beta, 2) + Math.pow(2.0 * zeta * beta, 2));
+      const curMag = 1.0 / denom;
+      const curMagDb = 20.0 * Math.log10(curMag);
+      const phiRad = Math.atan2(2.0 * zeta * beta, 1.0 - beta * beta);
+      const phiDeg = phiRad * (180.0 / Math.PI);
+      const wExc = beta * wn;
+      const timeDelay = (wExc > 0) ? (phiRad / wExc) : 0;
+
+      metricCurrmag.textContent = `${curMag.toFixed(2)} 배`;
+      metricCurrmagdb.textContent = `${curMagDb >= 0 ? '+' : ''}${curMagDb.toFixed(1)} dB`;
+      metricCurrphase.textContent = `-${phiDeg.toFixed(1)}°`;
+      metricTimedelay.textContent = `Δt = ${timeDelay.toFixed(3)} s (T/4 = ${(Math.PI / (2 * wExc)).toFixed(3)}s)`;
+      animPhaseBadge.textContent = `위상차 ϕ = -${phiDeg.toFixed(1)}° (${(phiDeg / 180).toFixed(2)}π rad)`;
+
+      // Step response overshoot & settling time
+      if (zeta < 1.0) {
+        const Mp = Math.exp(-Math.PI * zeta / Math.sqrt(1.0 - zeta * zeta)) * 100.0;
+        metricMp.textContent = `${Mp.toFixed(1)} %`;
+        stepPeakInfo.textContent = `오버슈트 Peak = ${(1.0 + Mp / 100.0).toFixed(2)} m`;
+      } else {
+        metricMp.textContent = '0.0 % (무진동)';
+        stepPeakInfo.textContent = '오버슈트 없음';
+      }
+      const ts = (zeta * wn > 0) ? (4.0 / (zeta * wn)) : Infinity;
+      metricTs.textContent = isFinite(ts) ? `${ts.toFixed(2)} s` : 'N/A';
+
+      // Half-power bandwidth delta-w = 2 * zeta * wn
+      const deltaW = 2.0 * zeta * wn;
+      const Qest = wn / deltaW;
+      metricBandwidth.textContent = `${deltaW.toFixed(2)} rad/s (Q ≈ ${Qest.toFixed(1)})`;
+
+      wavePhaseInfo.textContent = `위상차 ϕ = -${phiDeg.toFixed(1)}° (지연 Δt = ${timeDelay.toFixed(3)}s)`;
+
+      // Pole coords
+      const sigma = -zeta * wn;
+      if (zeta < 1.0) {
+        const wd = wn * Math.sqrt(1.0 - zeta * zeta);
+        poleCoordInfo.textContent = `s = ${sigma.toFixed(2)} ± ${wd.toFixed(2)}j`;
+      } else if (Math.abs(zeta - 1.0) < 0.02) {
+        poleCoordInfo.textContent = `s = ${sigma.toFixed(2)} (중근)`;
+      } else {
+        const d = wn * Math.sqrt(zeta * zeta - 1.0);
+        poleCoordInfo.textContent = `s₁=${(sigma+d).toFixed(2)}, s₂=${(sigma-d).toFixed(2)}`;
+      }
+
+      // Nyquist point info
+      const reNyq = (1.0 - beta * beta) / (denom * denom);
+      const imNyq = -(2.0 * zeta * beta) / (denom * denom);
+      nyquistPointInfo.textContent = `H = ${reNyq.toFixed(2)} ${imNyq >= 0 ? '+' : '-'} ${Math.abs(imNyq).toFixed(2)}j`;
+
+      renderAllStatic();
+    }
+
+    function renderAllStatic() {
+      if (currentTab === 'tab-bode') {
+        drawBodePlot();
+      } else if (currentTab === 'tab-time') {
+        drawStepResponse();
+        drawWaveforms();
+      } else if (currentTab === 'tab-complex') {
+        drawPoleZero();
+        drawNyquist();
+      }
+    }
+
+    // ================= CANVAS DRAWING: BODE PLOT =================
+    function drawBodePlot() {
+      if (!bodeCtx) return;
+      const rect = bodeCanvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      bodeCtx.clearRect(0, 0, w, h);
+
+      const padLeft = 55;
+      const padRight = 55;
+      const padTop = 20;
+      const padBottom = 25;
+      const gap = 18;
+
+      const subH = (h - padTop - padBottom - gap) / 2;
+      const plotW = w - padLeft - padRight;
+
+      // X scale: log10(beta) from log10(0.1) = -1 to log10(10.0) = +1
+      const logMin = -1.0;
+      const logMax = 1.0;
+
+      function betaToX(bVal) {
+        const logB = Math.log10(bVal);
+        return padLeft + ((logB - logMin) / (logMax - logMin)) * plotW;
+      }
+      function xToBeta(xVal) {
+        const ratio = (xVal - padLeft) / plotW;
+        const logB = logMin + ratio * (logMax - logMin);
+        return Math.pow(10, logB);
+      }
+
+      // 1. Magnitude Subplot: Y from -40 dB to +30 dB
+      const dbMin = -40;
+      const dbMax = 30;
+      const magY0 = padTop;
+      const magY1 = padTop + subH;
+
+      function dbToY(dbVal) {
+        const clamped = Math.max(dbMin, Math.min(dbMax, dbVal));
+        return magY1 - ((clamped - dbMin) / (dbMax - dbMin)) * subH;
+      }
+
+      // 2. Phase Subplot: Y from -180 deg to 0 deg
+      const phMin = -180;
+      const phMax = 0;
+      const phY0 = magY1 + gap;
+      const phY1 = phY0 + subH;
+
+      function phToY(phVal) {
+        const clamped = Math.max(phMin, Math.min(phMax, phVal));
+        return phY1 - ((clamped - phMin) / (phMax - phMin)) * subH;
+      }
+
+      // Draw Grids & Axes
+      bodeCtx.lineWidth = 1;
+
+      // Vertical Decades (0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0)
+      const majorBetas = [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0];
+      for (let bVal of majorBetas) {
+        const x = betaToX(bVal);
+        const isCenter = (bVal === 1.0);
+        bodeCtx.strokeStyle = isCenter ? '#cbd5e1' : '#f1f5f9';
+        bodeCtx.lineWidth = isCenter ? 1.5 : 1;
+
+        // Vert line through both subplots
+        bodeCtx.beginPath();
+        bodeCtx.moveTo(x, magY0);
+        bodeCtx.lineTo(x, magY1);
+        bodeCtx.moveTo(x, phY0);
+        bodeCtx.lineTo(x, phY1);
+        bodeCtx.stroke();
+
+        // X labels at bottom
+        bodeCtx.fillStyle = isCenter ? '#1e293b' : '#64748b';
+        bodeCtx.font = isCenter ? 'bold 11px monospace' : '10px monospace';
+        bodeCtx.textAlign = 'center';
+        bodeCtx.fillText(bVal.toString(), x, phY1 + 16);
+      }
+
+      // Mag Horizontal Grids
+      bodeCtx.textAlign = 'right';
+      bodeCtx.font = '10px monospace';
+      bodeCtx.fillStyle = '#2563eb';
+      const dbTicks = [-40, -20, 0, 20];
+      for (let db of dbTicks) {
+        const y = dbToY(db);
+        bodeCtx.strokeStyle = (db === 0) ? '#bfdbfe' : '#f1f5f9';
+        bodeCtx.lineWidth = (db === 0) ? 1.5 : 1;
+        bodeCtx.beginPath();
+        bodeCtx.moveTo(padLeft, y);
+        bodeCtx.lineTo(w - padRight, y);
+        bodeCtx.stroke();
+        bodeCtx.fillText(db + ' dB', padLeft - 6, y + 3);
+      }
+
+      // Phase Horizontal Grids
+      bodeCtx.textAlign = 'right';
+      bodeCtx.fillStyle = '#7c3aed';
+      const phTicks = [-180, -135, -90, -45, 0];
+      for (let ph of phTicks) {
+        const y = phToY(ph);
+        bodeCtx.strokeStyle = (ph === -90) ? '#ddd6fe' : '#f1f5f9';
+        bodeCtx.lineWidth = (ph === -90) ? 1.5 : 1;
+        bodeCtx.beginPath();
+        bodeCtx.moveTo(padLeft, y);
+        bodeCtx.lineTo(w - padRight, y);
+        bodeCtx.stroke();
+        bodeCtx.fillText(ph + '°', padLeft - 6, y + 3);
+      }
+
+      // Asymptotes on Magnitude Plot
+      bodeCtx.strokeStyle = '#94a3b8';
+      bodeCtx.lineWidth = 1.5;
+      bodeCtx.setLineDash([4, 4]);
+      // 0 dB asymptote for beta <= 1
+      bodeCtx.beginPath();
+      bodeCtx.moveTo(padLeft, dbToY(0));
+      bodeCtx.lineTo(betaToX(1.0), dbToY(0));
+      // -40 dB/dec asymptote for beta >= 1
+      bodeCtx.lineTo(betaToX(10.0), dbToY(-40));
+      bodeCtx.stroke();
+      bodeCtx.setLineDash([]);
+
+      // Asymptote label
+      bodeCtx.font = '9px Pretendard';
+      bodeCtx.fillStyle = '#94a3b8';
+      bodeCtx.textAlign = 'left';
+      bodeCtx.fillText('점근선: 0 dB & -40 dB/dec', padLeft + 6, magY0 + 12);
+
+      // (1) Curve: Magnitude Plot (Solid Blue)
+      bodeCtx.strokeStyle = '#2563eb';
+      bodeCtx.lineWidth = 2.5;
+      bodeCtx.beginPath();
+      let first = true;
+      const numPts = 250;
+      for (let i = 0; i <= numPts; i++) {
+        const logB = logMin + (i / numPts) * (logMax - logMin);
+        const bVal = Math.pow(10, logB);
+        const denom = Math.sqrt(Math.pow(1.0 - bVal * bVal, 2) + Math.pow(2.0 * zeta * bVal, 2));
+        const magLin = 1.0 / denom;
+        const magDb = 20.0 * Math.log10(magLin);
+
+        const x = padLeft + (i / numPts) * plotW;
+        const y = dbToY(magDb);
+        if (first) { bodeCtx.moveTo(x, y); first = false; }
+        else { bodeCtx.lineTo(x, y); }
+      }
+      bodeCtx.stroke();
+
+      // (2) Curve: Phase Plot (Solid Purple)
+      bodeCtx.strokeStyle = '#7c3aed';
+      bodeCtx.lineWidth = 2.2;
+      bodeCtx.beginPath();
+      first = true;
+      for (let i = 0; i <= numPts; i++) {
+        const logB = logMin + (i / numPts) * (logMax - logMin);
+        const bVal = Math.pow(10, logB);
+        const phiRad = Math.atan2(2.0 * zeta * bVal, 1.0 - bVal * bVal);
+        const phiDeg = -phiRad * (180.0 / Math.PI);
+
+        const x = padLeft + (i / numPts) * plotW;
+        const y = phToY(phiDeg);
+        if (first) { bodeCtx.moveTo(x, y); first = false; }
+        else { bodeCtx.lineTo(x, y); }
+      }
+      bodeCtx.stroke();
+
+      // Vertical Scanline for Current Operating Beta
+      const curX = betaToX(beta);
+      bodeCtx.strokeStyle = '#f59e0b';
+      bodeCtx.lineWidth = 2;
+      bodeCtx.setLineDash([3, 2]);
+      bodeCtx.beginPath();
+      bodeCtx.moveTo(curX, magY0);
+      bodeCtx.lineTo(curX, phY1);
+      bodeCtx.stroke();
+      bodeCtx.setLineDash([]);
+
+      // Operating Point on Mag Plot
+      const curDenom = Math.sqrt(Math.pow(1.0 - beta * beta, 2) + Math.pow(2.0 * zeta * beta, 2));
+      const curMag = 1.0 / curDenom;
+      const curMagDb = 20.0 * Math.log10(curMag);
+      const curYMag = dbToY(curMagDb);
+
+      bodeCtx.fillStyle = '#2563eb';
+      bodeCtx.beginPath();
+      bodeCtx.arc(curX, curYMag, 5, 0, Math.PI * 2);
+      bodeCtx.fill();
+      bodeCtx.strokeStyle = '#ffffff';
+      bodeCtx.lineWidth = 2;
+      bodeCtx.stroke();
+
+      // Operating Point on Phase Plot
+      const curPhiRad = Math.atan2(2.0 * zeta * beta, 1.0 - beta * beta);
+      const curPhiDeg = -curPhiRad * (180.0 / Math.PI);
+      const curYPh = phToY(curPhiDeg);
+
+      bodeCtx.fillStyle = '#7c3aed';
+      bodeCtx.beginPath();
+      bodeCtx.arc(curX, curYPh, 5, 0, Math.PI * 2);
+      bodeCtx.fill();
+      bodeCtx.strokeStyle = '#ffffff';
+      bodeCtx.lineWidth = 2;
+      bodeCtx.stroke();
+
+      // Scanline top tag
+      bodeCtx.fillStyle = '#f59e0b';
+      bodeCtx.beginPath();
+      bodeCtx.roundRect(curX - 25, magY0 - 16, 50, 15, 3);
+      bodeCtx.fill();
+      bodeCtx.fillStyle = '#ffffff';
+      bodeCtx.font = 'bold 9px monospace';
+      bodeCtx.textAlign = 'center';
+      bodeCtx.fillText(`β=${beta.toFixed(2)}`, curX, magY0 - 5);
+    }
+
+    // Interactive Dragging on Bode Plot
+    let isBodeDragging = false;
+    bodeCanvas.addEventListener('mousedown', (e) => {
+      isBodeDragging = true;
+      handleBodeInteraction(e);
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (isBodeDragging) handleBodeInteraction(e);
+    });
+    window.addEventListener('mouseup', () => {
+      isBodeDragging = false;
+    });
+
+    function handleBodeInteraction(e) {
+      const rect = bodeCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const padLeft = 55;
+      const padRight = 55;
+      const plotW = rect.width - padLeft - padRight;
+      if (plotW <= 0) return;
+
+      const clampedX = Math.max(padLeft, Math.min(rect.width - padRight, x));
+      const ratio = (clampedX - padLeft) / plotW;
+      const logB = -1.0 + ratio * 2.0; // from 0.1 to 10
+      const newBeta = Math.max(0.1, Math.min(4.0, Math.pow(10, logB)));
+      sliderBeta.value = newBeta.toFixed(2);
+      updateStateAndUI();
+    }
+
+    // ================= CANVAS DRAWING: SDOF KINEMATICS (HIGH-PRECISION CAD) =================
+    function drawSDOF(currU, currP, currV) {
+      if (!sdofCtx) return;
+      const rect = sdofCanvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      sdofCtx.clearRect(0, 0, w, h);
+
+      // 1. Dynamic visual displacement scaling (smoothly normalized, ZERO collision with damper)
+      const maxVisualStroke = 60.0; // max excursion in pixels
+      const curDenom = Math.sqrt(Math.pow(1.0 - beta * beta, 2) + Math.pow(2.0 * zeta * beta, 2));
+      const curAmp = Math.max(1.0, (1.0 / curDenom) * ust);
+      const strokeRatio = Math.min(1.0, Math.max(-1.0, currU / curAmp));
+      const visualShift = strokeRatio * maxVisualStroke;
+
+      // Update wheel rotation angle smoothly
+      wheelRotationAngle += (currV * 0.08);
+
+      // Coordinates
+      const groundY = h - 36;
+      const wallX = 70;
+      const X_eq = Math.max(380, w * 0.46); // equilibrium center of mass (safe clearance from damper)
+      const massCenterX = X_eq + visualShift;
+      const massW = 114;
+      const massH = 72;
+      const massY = groundY - massH - 14; // room for bearing carriage & rail
+      const cartLeft = massCenterX - massW / 2;
+      const cartRight = massCenterX + massW / 2;
+
+      // Heights of spring & damper
+      const springY = massY + 22;
+      const damperY = massY + 50;
+
+      // 2. Concrete Foundation & Hatching
+      sdofCtx.fillStyle = '#f8fafc';
+      sdofCtx.fillRect(0, groundY, w, h - groundY);
+
+      // Top concrete line
+      sdofCtx.strokeStyle = '#94a3b8';
+      sdofCtx.lineWidth = 1.5;
+      sdofCtx.beginPath();
+      sdofCtx.moveTo(0, groundY);
+      sdofCtx.lineTo(w, groundY);
+      sdofCtx.stroke();
+
+      // Engineering Hatching
+      sdofCtx.strokeStyle = '#cbd5e1';
+      sdofCtx.lineWidth = 1;
+      for (let x = 10; x < w; x += 16) {
+        sdofCtx.beginPath();
+        sdofCtx.moveTo(x, groundY);
+        sdofCtx.lineTo(x - 8, groundY + 12);
+        sdofCtx.stroke();
+      }
+
+      // 3. Precision Stainless Linear Guideway (LM Rail)
+      const railTop = groundY - 8;
+      const railH = 8;
+      const railGrad = sdofCtx.createLinearGradient(0, railTop, 0, groundY);
+      railGrad.addColorStop(0, '#94a3b8');
+      railGrad.addColorStop(0.3, '#f1f5f9');
+      railGrad.addColorStop(0.7, '#cbd5e1');
+      railGrad.addColorStop(1, '#64748b');
+      sdofCtx.fillStyle = railGrad;
+      sdofCtx.fillRect(wallX + 15, railTop, w - wallX - 35, railH);
+      sdofCtx.strokeStyle = '#475569';
+      sdofCtx.lineWidth = 1;
+      sdofCtx.strokeRect(wallX + 15, railTop, w - wallX - 35, railH);
+
+      // Rail End Bumper Stops
+      sdofCtx.fillStyle = '#dc2626';
+      sdofCtx.fillRect(wallX + 15, railTop - 6, 8, 14);
+      sdofCtx.fillRect(w - 28, railTop - 6, 8, 14);
+
+      // 4. Equilibrium Neutral Guideline & Ruler Scale
+      sdofCtx.strokeStyle = '#94a3b8';
+      sdofCtx.lineWidth = 1.5;
+      sdofCtx.setLineDash([4, 4]);
+      sdofCtx.beginPath();
+      sdofCtx.moveTo(X_eq, 14);
+      sdofCtx.lineTo(X_eq, groundY + 18);
+      sdofCtx.stroke();
+      sdofCtx.setLineDash([]);
+
+      // Triangle pointer at equilibrium
+      sdofCtx.fillStyle = '#64748b';
+      sdofCtx.beginPath();
+      sdofCtx.moveTo(X_eq, 12);
+      sdofCtx.lineTo(X_eq - 4, 6);
+      sdofCtx.lineTo(X_eq + 4, 6);
+      sdofCtx.closePath();
+      sdofCtx.fill();
+      sdofCtx.font = 'bold 9px monospace';
+      sdofCtx.fillStyle = '#64748b';
+      sdofCtx.textAlign = 'center';
+      sdofCtx.fillText('0 (평형점)', X_eq, groundY + 28);
+
+      // 5. Left Reaction Pier / Fixed Anchor Wall
+      const wallW = 32;
+      const wallGrad = sdofCtx.createLinearGradient(wallX - wallW, 0, wallX, 0);
+      wallGrad.addColorStop(0, '#475569');
+      wallGrad.addColorStop(0.4, '#94a3b8');
+      wallGrad.addColorStop(0.8, '#cbd5e1');
+      wallGrad.addColorStop(1, '#64748b');
+      sdofCtx.fillStyle = wallGrad;
+      sdofCtx.fillRect(wallX - wallW, 16, wallW, groundY - 16);
+      sdofCtx.strokeStyle = '#334155';
+      sdofCtx.lineWidth = 2;
+      sdofCtx.strokeRect(wallX - wallW, 16, wallW, groundY - 16);
+
+      // Wall anchor steel plates with bolt rivets
+      function drawAnchorPlate(yCenter) {
+        sdofCtx.fillStyle = '#1e293b';
+        sdofCtx.fillRect(wallX - 6, yCenter - 14, 8, 28);
+        sdofCtx.fillStyle = '#f8fafc';
+        sdofCtx.beginPath();
+        sdofCtx.arc(wallX - 2, yCenter - 8, 2, 0, Math.PI * 2);
+        sdofCtx.arc(wallX - 2, yCenter + 8, 2, 0, Math.PI * 2);
+        sdofCtx.fill();
+        // Clevis mounting bracket
+        sdofCtx.fillStyle = '#334155';
+        sdofCtx.strokeStyle = '#1e293b';
+        sdofCtx.lineWidth = 1.5;
+        sdofCtx.beginPath();
+        sdofCtx.roundRect(wallX + 2, yCenter - 9, 12, 18, 3);
+        sdofCtx.fill();
+        sdofCtx.stroke();
+        // Pivot pin
+        sdofCtx.fillStyle = '#e2e8f0';
+        sdofCtx.beginPath();
+        sdofCtx.arc(wallX + 8, yCenter, 3.5, 0, Math.PI * 2);
+        sdofCtx.fill();
+      }
+      drawAnchorPlate(springY);
+      drawAnchorPlate(damperY);
+
+      // Cart mounting brackets
+      function drawCartBracket(yCenter) {
+        sdofCtx.fillStyle = '#334155';
+        sdofCtx.strokeStyle = '#1e293b';
+        sdofCtx.lineWidth = 1.5;
+        sdofCtx.beginPath();
+        sdofCtx.roundRect(cartLeft - 14, yCenter - 9, 14, 18, 3);
+        sdofCtx.fill();
+        sdofCtx.stroke();
+        // Pivot pin
+        sdofCtx.fillStyle = '#e2e8f0';
+        sdofCtx.beginPath();
+        sdofCtx.arc(cartLeft - 7, yCenter, 3.5, 0, Math.PI * 2);
+        sdofCtx.fill();
+      }
+      drawCartBracket(springY);
+      drawCartBracket(damperY);
+
+      // 6. HIGH-END 3D HELICAL COIL SPRING (상단 정밀 기계 스프링)
+      const springStartX = wallX + 14;
+      const springEndX = cartLeft - 14;
+      const springSpan = springEndX - springStartX;
+      const numTurns = 10;
+      const coilR = 13;
+      const pitch = (springSpan - 20) / numTurns;
+
+      // End straight leads
+      sdofCtx.strokeStyle = '#2563eb';
+      sdofCtx.lineWidth = 3.5;
+      sdofCtx.lineCap = 'round';
+      sdofCtx.beginPath();
+      sdofCtx.moveTo(springStartX, springY);
+      sdofCtx.lineTo(springStartX + 10, springY);
+      sdofCtx.stroke();
+
+      // Pass 1: Back coils (down-slant, dark shadow)
+      sdofCtx.strokeStyle = '#1d4ed8';
+      sdofCtx.lineWidth = 3.2;
+      sdofCtx.beginPath();
+      for (let i = 0; i < numTurns; i++) {
+        const x0 = springStartX + 10 + i * pitch;
+        const xMid = x0 + pitch * 0.5;
+        sdofCtx.moveTo(x0, springY - coilR);
+        sdofCtx.quadraticCurveTo(x0 + pitch * 0.25, springY, xMid, springY + coilR);
+      }
+      sdofCtx.stroke();
+
+      // Pass 2: Front coils (up-slant with reflective gradient highlight)
+      const springGrad = sdofCtx.createLinearGradient(0, springY - coilR, 0, springY + coilR);
+      springGrad.addColorStop(0, '#93c5fd');
+      springGrad.addColorStop(0.3, '#3b82f6');
+      springGrad.addColorStop(0.7, '#2563eb');
+      springGrad.addColorStop(1, '#1e40af');
+      sdofCtx.strokeStyle = springGrad;
+      sdofCtx.lineWidth = 3.8;
+      sdofCtx.lineCap = 'round';
+      sdofCtx.beginPath();
+      for (let i = 0; i < numTurns; i++) {
+        const xMid = springStartX + 10 + (i + 0.5) * pitch;
+        const x1 = springStartX + 10 + (i + 1) * pitch;
+        sdofCtx.moveTo(xMid, springY + coilR);
+        sdofCtx.quadraticCurveTo(xMid + pitch * 0.25, springY, x1, springY - coilR);
+      }
+      sdofCtx.stroke();
+
+      // Right lead-in
+      sdofCtx.strokeStyle = '#2563eb';
+      sdofCtx.lineWidth = 3.5;
+      sdofCtx.beginPath();
+      sdofCtx.moveTo(springStartX + 10 + numTurns * pitch, springY);
+      sdofCtx.lineTo(springEndX, springY);
+      sdofCtx.stroke();
+
+      // Spring CAD label
+      sdofCtx.fillStyle = '#1d4ed8';
+      sdofCtx.font = 'bold 10px Pretendard';
+      sdofCtx.textAlign = 'center';
+      sdofCtx.fillText('정밀 나선 스프링 (강성 k)', (springStartX + springEndX) / 2, springY - 17);
+
+      // 7. HIGH-END VISCOUS DAMPER (하단 점성감쇠기)
+      const cylStartX = wallX + 14;
+      const cylLen = 115;
+      const cylEndX = cylStartX + cylLen;
+      const cylH = 22;
+      const rodY = damperY;
+      const rodRadius = 4;
+
+      // Piston position inside cylinder: smoothly mapped within [cylStartX + 20, cylEndX - 20]
+      const pistonMinX = cylStartX + 20;
+      const pistonMaxX = cylEndX - 20;
+      const pistonHeadX = pistonMinX + ((visualShift + maxVisualStroke) / (2 * maxVisualStroke)) * (pistonMaxX - pistonMinX);
+
+      // Chrome Piston Rod: runs from piston head out through cylinder gland seal to cart bracket
+      const rodStartX = pistonHeadX;
+      const rodEndX = cartLeft - 14;
+      const rodGrad = sdofCtx.createLinearGradient(0, rodY - rodRadius, 0, rodY + rodRadius);
+      rodGrad.addColorStop(0, '#94a3b8');
+      rodGrad.addColorStop(0.3, '#ffffff');
+      rodGrad.addColorStop(0.7, '#cbd5e1');
+      rodGrad.addColorStop(1, '#475569');
+      sdofCtx.fillStyle = rodGrad;
+      sdofCtx.fillRect(rodStartX, rodY - rodRadius, rodEndX - rodStartX, rodRadius * 2);
+      sdofCtx.strokeStyle = '#334155';
+      sdofCtx.lineWidth = 1;
+      sdofCtx.strokeRect(rodStartX, rodY - rodRadius, rodEndX - rodStartX, rodRadius * 2);
+
+      // Cylinder Barrel Outer Housing
+      const cylGrad = sdofCtx.createLinearGradient(0, damperY - cylH/2, 0, damperY + cylH/2);
+      cylGrad.addColorStop(0, '#1e293b');
+      cylGrad.addColorStop(0.2, '#64748b');
+      cylGrad.addColorStop(0.5, '#334155');
+      cylGrad.addColorStop(0.8, '#1e293b');
+      cylGrad.addColorStop(1, '#0f172a');
+      sdofCtx.fillStyle = cylGrad;
+      sdofCtx.beginPath();
+      sdofCtx.roundRect(cylStartX, damperY - cylH/2, cylLen, cylH, 4);
+      sdofCtx.fill();
+      sdofCtx.strokeStyle = '#0f172a';
+      sdofCtx.lineWidth = 1.5;
+      sdofCtx.stroke();
+
+      // Cylinder transparent oil inspection window
+      const winX = cylStartX + 16;
+      const winW = cylLen - 32;
+      const winH = cylH - 6;
+      sdofCtx.fillStyle = 'rgba(217, 119, 6, 0.35)'; // amber fluid oil
+      sdofCtx.fillRect(winX, damperY - winH/2, winW, winH);
+      sdofCtx.strokeStyle = '#78350f';
+      sdofCtx.lineWidth = 1;
+      sdofCtx.strokeRect(winX, damperY - winH/2, winW, winH);
+
+      // Piston Head (inside cylinder window)
+      const pHeadW = 12;
+      const pHeadH = winH - 2;
+      sdofCtx.fillStyle = '#475569';
+      sdofCtx.strokeStyle = '#1e293b';
+      sdofCtx.lineWidth = 1;
+      sdofCtx.fillRect(pistonHeadX - pHeadW/2, damperY - pHeadH/2, pHeadW, pHeadH);
+      sdofCtx.strokeRect(pistonHeadX - pHeadW/2, damperY - pHeadH/2, pHeadW, pHeadH);
+      // Orifice ports on piston
+      sdofCtx.fillStyle = '#f59e0b';
+      sdofCtx.fillRect(pistonHeadX - 2, damperY - pHeadH/2 + 2, 4, 3);
+      sdofCtx.fillRect(pistonHeadX - 2, damperY + pHeadH/2 - 5, 4, 3);
+
+      // Front Gland Wiper Seal Ring (machined bronze)
+      sdofCtx.fillStyle = '#d97706';
+      sdofCtx.fillRect(cylEndX - 6, damperY - cylH/2, 6, cylH);
+      sdofCtx.strokeStyle = '#92400e';
+      sdofCtx.lineWidth = 1;
+      sdofCtx.strokeRect(cylEndX - 6, damperY - cylH/2, 6, cylH);
+
+      // Damper CAD label
+      sdofCtx.fillStyle = '#b45309';
+      sdofCtx.font = 'bold 10px Pretendard';
+      sdofCtx.textAlign = 'center';
+      sdofCtx.fillText('점성감쇠기 (Viscous Damper, 감쇠 c)', (cylStartX + cylEndX) / 2, damperY + 22);
+
+      // 8. HIGH-END MASS TEST RIG CART (질량체 본체)
+      const cartGrad = sdofCtx.createLinearGradient(cartLeft, massY, cartRight, massY + massH);
+      cartGrad.addColorStop(0, '#0f172a');
+      cartGrad.addColorStop(0.5, '#1e1b4b');
+      cartGrad.addColorStop(1, '#020617');
+      sdofCtx.fillStyle = cartGrad;
+      sdofCtx.beginPath();
+      sdofCtx.roundRect(cartLeft, massY, massW, massH, 8);
+      sdofCtx.fill();
+      sdofCtx.strokeStyle = '#38bdf8';
+      sdofCtx.lineWidth = 2;
+      sdofCtx.stroke();
+
+      // Top steel counterweight block
+      sdofCtx.fillStyle = '#334155';
+      sdofCtx.fillRect(cartLeft + 8, massY + 4, massW - 16, 12);
+      sdofCtx.strokeStyle = '#1e293b';
+      sdofCtx.strokeRect(cartLeft + 8, massY + 4, massW - 16, 12);
+      // Hex bolts on top
+      sdofCtx.fillStyle = '#94a3b8';
+      for (let bx of [cartLeft + 14, cartLeft + massW/2, cartRight - 14]) {
+        sdofCtx.beginPath();
+        sdofCtx.arc(bx, massY + 10, 2, 0, Math.PI * 2);
+        sdofCtx.fill();
+      }
+
+      // Center Nameplate
+      sdofCtx.fillStyle = '#f59e0b';
+      sdofCtx.font = 'bold 9px monospace';
+      sdofCtx.textAlign = 'center';
+      sdofCtx.fillText('SDOF RIG CART', massCenterX, massY + 29);
+
+      sdofCtx.fillStyle = '#ffffff';
+      sdofCtx.font = 'bold 12px Pretendard';
+      sdofCtx.fillText('m = 1.0 ton', massCenterX, massY + 44);
+
+      // Digital LED Displacement Display (High-tech HUD inside cart)
+      sdofCtx.fillStyle = '#020617';
+      sdofCtx.beginPath();
+      sdofCtx.roundRect(massCenterX - 45, massY + 49, 90, 16, 3);
+      sdofCtx.fill();
+      sdofCtx.strokeStyle = '#1e293b';
+      sdofCtx.lineWidth = 1;
+      sdofCtx.stroke();
+
+      sdofCtx.fillStyle = '#38bdf8';
+      sdofCtx.font = 'bold 10px monospace';
+      sdofCtx.textAlign = 'center';
+      sdofCtx.fillText(`u = ${currU >= 0 ? '+' : ''}${currU.toFixed(2)} m`, massCenterX, massY + 61);
+
+      // 9. Precision Roller Bearings (LM Carriage Wheels)
+      const wheelR = 8.5;
+      const wheelY = railTop - wheelR + 1;
+      const wheelX1 = massCenterX - 35;
+      const wheelX2 = massCenterX + 35;
+
+      function drawBearingWheel(wx) {
+        // Wheel rim
+        sdofCtx.fillStyle = '#1e293b';
+        sdofCtx.beginPath();
+        sdofCtx.arc(wx, wheelY, wheelR, 0, Math.PI * 2);
+        sdofCtx.fill();
+        sdofCtx.strokeStyle = '#64748b';
+        sdofCtx.lineWidth = 1.5;
+        sdofCtx.stroke();
+
+        // Chrome axle hub
+        sdofCtx.fillStyle = '#cbd5e1';
+        sdofCtx.beginPath();
+        sdofCtx.arc(wx, wheelY, 4, 0, Math.PI * 2);
+        sdofCtx.fill();
+
+        // Rotating Spoke Cross (shows silky smooth roll!)
+        sdofCtx.save();
+        sdofCtx.translate(wx, wheelY);
+        sdofCtx.rotate(wheelRotationAngle);
+        sdofCtx.strokeStyle = '#94a3b8';
+        sdofCtx.lineWidth = 1.2;
+        sdofCtx.beginPath();
+        sdofCtx.moveTo(-6, 0); sdofCtx.lineTo(6, 0);
+        sdofCtx.moveTo(0, -6); sdofCtx.lineTo(0, 6);
+        sdofCtx.stroke();
+        sdofCtx.restore();
+      }
+      drawBearingWheel(wheelX1);
+      drawBearingWheel(wheelX2);
+
+      // 10. Dynamic Actuator Force Vector p(t) Arrow (우측 조화가진 액추에이터)
+      const maxForcePx = 55;
+      const maxP = Math.max(1.0, wn * wn * ust);
+      const forceRatio = Math.max(-1.0, Math.min(1.0, currP / (maxP * 1.2)));
+      const forceArrowLen = forceRatio * maxForcePx;
+
+      if (Math.abs(forceArrowLen) > 3) {
+        const arrowY = massY + massH / 2;
+        const arrowStartX = (forceArrowLen > 0) ? (cartRight + 12) : (cartRight + 12 - forceArrowLen);
+        const arrowEndX = arrowStartX + forceArrowLen;
+        const headDir = (forceArrowLen > 0) ? 1 : -1;
+
+        // Force vector styling
+        const arrowColor = (forceArrowLen > 0) ? '#f59e0b' : '#ea580c';
+        sdofCtx.strokeStyle = arrowColor;
+        sdofCtx.fillStyle = arrowColor;
+        sdofCtx.lineWidth = 3.5;
+        sdofCtx.lineCap = 'round';
+        sdofCtx.beginPath();
+        sdofCtx.moveTo(arrowStartX, arrowY);
+        sdofCtx.lineTo(arrowEndX, arrowY);
+        sdofCtx.stroke();
+
+        // Dynamic Arrowhead
+        sdofCtx.beginPath();
+        sdofCtx.moveTo(arrowEndX, arrowY);
+        sdofCtx.lineTo(arrowEndX - headDir * 9, arrowY - 5);
+        sdofCtx.lineTo(arrowEndX - headDir * 9, arrowY + 5);
+        sdofCtx.closePath();
+        sdofCtx.fill();
+
+        // Force Pill Badge above arrow
+        sdofCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        const badgeX = (arrowStartX + arrowEndX) / 2;
+        sdofCtx.beginPath();
+        sdofCtx.roundRect(badgeX - 42, arrowY - 24, 84, 16, 4);
+        sdofCtx.fill();
+        sdofCtx.strokeStyle = arrowColor;
+        sdofCtx.lineWidth = 1;
+        sdofCtx.stroke();
+
+        sdofCtx.font = 'bold 9px monospace';
+        sdofCtx.fillStyle = arrowColor;
+        sdofCtx.textAlign = 'center';
+        sdofCtx.fillText(`p(t)=${currP >= 0 ? '+' : ''}${currP.toFixed(1)} kN`, badgeX, arrowY - 12);
+      }
+    }
+
+    // ================= CANVAS DRAWING: STEP RESPONSE =================
+    function drawStepResponse() {
+      if (!stepCtx) return;
+      const rect = stepCanvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      stepCtx.clearRect(0, 0, w, h);
+
+      const padLeft = 45;
+      const padRight = 20;
+      const padTop = 25;
+      const padBottom = 30;
+      const plotW = w - padLeft - padRight;
+      const plotH = h - padTop - padBottom;
+
+      const tTotal = Math.max(5.0, Math.min(25.0, (wn > 0 ? 8.0 * Math.PI / wn : 10.0)));
+      const yMax = 2.2;
+
+      function tToX(t) { return padLeft + (t / tTotal) * plotW; }
+      function yToY(yVal) { return padTop + plotH - (yVal / yMax) * plotH; }
+
+      // Grids
+      stepCtx.strokeStyle = '#f1f5f9';
+      stepCtx.lineWidth = 1;
+      stepCtx.font = '10px monospace';
+      stepCtx.fillStyle = '#64748b';
+      stepCtx.textAlign = 'right';
+
+      const yTicks = [0.0, 0.5, 1.0, 1.5, 2.0];
+      for (let yv of yTicks) {
+        const y = yToY(yv);
+        stepCtx.beginPath();
+        stepCtx.moveTo(padLeft, y);
+        stepCtx.lineTo(w - padRight, y);
+        stepCtx.stroke();
+        stepCtx.fillText(yv.toFixed(1), padLeft - 6, y + 3);
+      }
+
+      // Settling 2% band (0.98 to 1.02)
+      stepCtx.fillStyle = 'rgba(16, 185, 129, 0.12)';
+      const yBandTop = yToY(1.02);
+      const yBandBottom = yToY(0.98);
+      stepCtx.fillRect(padLeft, yBandTop, plotW, yBandBottom - yBandTop);
+
+      // Target line 1.00 m
+      stepCtx.strokeStyle = '#94a3b8';
+      stepCtx.lineWidth = 1.5;
+      stepCtx.setLineDash([4, 4]);
+      stepCtx.beginPath();
+      stepCtx.moveTo(padLeft, yToY(1.0));
+      stepCtx.lineTo(w - padRight, yToY(1.0));
+      stepCtx.stroke();
+      stepCtx.setLineDash([]);
+
+      // Step Curve
+      stepCtx.strokeStyle = '#059669';
+      stepCtx.lineWidth = 2.5;
+      stepCtx.beginPath();
+
+      const numPts = 200;
+      let first = true;
+      let peakT = 0, peakY = 0;
+
+      for (let i = 0; i <= numPts; i++) {
+        const t = (i / numPts) * tTotal;
+        let yt = 1.0;
+
+        if (zeta < 1.0) {
+          const wd = wn * Math.sqrt(Math.max(0.0001, 1.0 - zeta * zeta));
+          const env = Math.exp(-zeta * wn * t);
+          yt = 1.0 - env * (Math.cos(wd * t) + (zeta * wn / wd) * Math.sin(wd * t));
+        } else if (Math.abs(zeta - 1.0) < 0.02) {
+          yt = 1.0 - Math.exp(-wn * t) * (1.0 + wn * t);
+        } else {
+          const d = wn * Math.sqrt(zeta * zeta - 1.0);
+          const s1 = -zeta * wn + d;
+          const s2 = -zeta * wn - d;
+          yt = 1.0 - (s2 * Math.exp(s1 * t) - s1 * Math.exp(s2 * t)) / (s2 - s1);
+        }
+
+        if (yt > peakY) { peakY = yt; peakT = t; }
+
+        const x = tToX(t);
+        const y = yToY(yt);
+        if (first) { stepCtx.moveTo(x, y); first = false; }
+        else { stepCtx.lineTo(x, y); }
+      }
+      stepCtx.stroke();
+
+      // Peak Marker
+      if (zeta < 1.0 && peakY > 1.01) {
+        stepCtx.fillStyle = '#dc2626';
+        stepCtx.beginPath();
+        stepCtx.arc(tToX(peakT), yToY(peakY), 4, 0, Math.PI * 2);
+        stepCtx.fill();
+        stepCtx.font = 'bold 9px monospace';
+        stepCtx.textAlign = 'center';
+        stepCtx.fillText(`Mp: ${((peakY - 1.0) * 100).toFixed(1)}%`, tToX(peakT), yToY(peakY) - 8);
+      }
+
+      // X-axis
+      stepCtx.textAlign = 'center';
+      stepCtx.fillStyle = '#64748b';
+      stepCtx.fillText('0s', padLeft, padTop + plotH + 16);
+      stepCtx.fillText(`${(tTotal / 2).toFixed(1)}s`, padLeft + plotW / 2, padTop + plotH + 16);
+      stepCtx.fillText(`${tTotal.toFixed(1)}s`, padLeft + plotW, padTop + plotH + 16);
+    }
+
+    // ================= CANVAS DRAWING: HARMONIC WAVEFORMS =================
+    function drawWaveforms() {
+      if (!waveCtx) return;
+      const rect = waveCanvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      waveCtx.clearRect(0, 0, w, h);
+
+      const padLeft = 45;
+      const padRight = 20;
+      const padTop = 25;
+      const padBottom = 30;
+      const plotW = w - padLeft - padRight;
+      const plotH = h - padTop - padBottom;
+
+      const wExc = beta * wn;
+      const tCycle = (wExc > 0) ? (2.0 * Math.PI / wExc) : 1.0;
+      const tTotal = Math.max(3.0 * tCycle, 4.0);
+
+      const denom = Math.sqrt(Math.pow(1.0 - beta * beta, 2) + Math.pow(2.0 * zeta * beta, 2));
+      const curMag = 1.0 / denom;
+      const phiRad = Math.atan2(2.0 * zeta * beta, 1.0 - beta * beta);
+
+      const yMax = Math.max(2.0, curMag * ust * 1.25);
+
+      function tToX(t) { return padLeft + (t / tTotal) * plotW; }
+      function yToY(val) { return padTop + plotH / 2 - (val / yMax) * (plotH / 2); }
+
+      // Zero Axis
+      waveCtx.strokeStyle = '#cbd5e1';
+      waveCtx.lineWidth = 1.5;
+      waveCtx.beginPath();
+      waveCtx.moveTo(padLeft, yToY(0));
+      waveCtx.lineTo(w - padRight, yToY(0));
+      waveCtx.stroke();
+
+      // Input Force Curve p(t)/k = ust * sin(w*t) (Amber Dashed)
+      waveCtx.strokeStyle = '#f59e0b';
+      waveCtx.lineWidth = 2;
+      waveCtx.setLineDash([4, 3]);
+      waveCtx.beginPath();
+      let first = true;
+      const numPts = 200;
+      for (let i = 0; i <= numPts; i++) {
+        const t = (i / numPts) * tTotal;
+        const pVal = ust * Math.sin(wExc * t);
+        const x = tToX(t);
+        const y = yToY(pVal);
+        if (first) { waveCtx.moveTo(x, y); first = false; }
+        else { waveCtx.lineTo(x, y); }
+      }
+      waveCtx.stroke();
+      waveCtx.setLineDash([]);
+
+      // Output Response u(t) = curMag * ust * sin(w*t - phi) (Blue Solid)
+      waveCtx.strokeStyle = '#2563eb';
+      waveCtx.lineWidth = 2.5;
+      waveCtx.beginPath();
+      first = true;
+      for (let i = 0; i <= numPts; i++) {
+        const t = (i / numPts) * tTotal;
+        const uVal = curMag * ust * Math.sin(wExc * t - phiRad);
+        const x = tToX(t);
+        const y = yToY(uVal);
+        if (first) { waveCtx.moveTo(x, y); first = false; }
+        else { waveCtx.lineTo(x, y); }
+      }
+      waveCtx.stroke();
+
+      // Phase Lag Marker on First Cycle Peak
+      if (wExc > 0 && tCycle < tTotal) {
+        const tInputPeak = (Math.PI / 2) / wExc;
+        const tOutputPeak = tInputPeak + phiRad / wExc;
+
+        if (tOutputPeak < tTotal) {
+          const yPeakInput = yToY(ust);
+          const yPeakOutput = yToY(curMag * ust);
+
+          // Horizontal Phase Lag Arrow
+          waveCtx.strokeStyle = '#7c3aed';
+          waveCtx.lineWidth = 1.5;
+          waveCtx.beginPath();
+          waveCtx.moveTo(tToX(tInputPeak), yPeakInput - 10);
+          waveCtx.lineTo(tToX(tOutputPeak), yPeakInput - 10);
+          waveCtx.stroke();
+
+          waveCtx.fillStyle = '#7c3aed';
+          waveCtx.font = 'bold 9px monospace';
+          waveCtx.textAlign = 'center';
+          waveCtx.fillText(`Δt = ${(phiRad / wExc).toFixed(2)}s (ϕ=${(phiRad*180/Math.PI).toFixed(0)}°)`, (tToX(tInputPeak) + tToX(tOutputPeak)) / 2, yPeakInput - 15);
+        }
+      }
+
+      // X-axis ticks
+      waveCtx.textAlign = 'center';
+      waveCtx.fillStyle = '#64748b';
+      waveCtx.font = '10px monospace';
+      waveCtx.fillText('0s', padLeft, padTop + plotH + 16);
+      waveCtx.fillText(`${(tTotal).toFixed(1)}s`, padLeft + plotW, padTop + plotH + 16);
+    }
+
+    // ================= CANVAS DRAWING: s-PLANE POLE-ZERO =================
+    function drawPoleZero() {
+      if (!poleCtx) return;
+      const rect = poleCanvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      poleCtx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.65; // imaginary axis offset to right
+      const cy = h / 2;
+
+      // Stable LHP (Left Half Plane) subtle green tint
+      poleCtx.fillStyle = 'rgba(16, 185, 129, 0.05)';
+      poleCtx.fillRect(15, 15, cx - 15, h - 30);
+
+      // Unstable RHP subtle red tint
+      poleCtx.fillStyle = 'rgba(239, 68, 68, 0.03)';
+      poleCtx.fillRect(cx, 15, w - cx - 15, h - 30);
+
+      // Axes
+      poleCtx.strokeStyle = '#cbd5e1';
+      poleCtx.lineWidth = 1.5;
+
+      // Real Axis (Sigma)
+      poleCtx.beginPath();
+      poleCtx.moveTo(20, cy);
+      poleCtx.lineTo(w - 20, cy);
+      poleCtx.stroke();
+
+      // Imag Axis (j-omega)
+      poleCtx.beginPath();
+      poleCtx.moveTo(cx, 15);
+      poleCtx.lineTo(cx, h - 15);
+      poleCtx.stroke();
+
+      // Axis labels
+      poleCtx.font = '10px monospace';
+      poleCtx.fillStyle = '#64748b';
+      poleCtx.textAlign = 'right';
+      poleCtx.fillText('σ (Re)', w - 25, cy - 8);
+      poleCtx.textAlign = 'left';
+      poleCtx.fillText('+jω', cx + 8, 25);
+      poleCtx.fillText('-jω', cx + 8, h - 25);
+
+      // Radial Circle Arc of wn radius
+      const scale = Math.min(cx - 30, cy - 30) / 25.0; // scale pixels per rad/s
+      const rPix = wn * scale;
+
+      poleCtx.strokeStyle = '#e2e8f0';
+      poleCtx.lineWidth = 1.5;
+      poleCtx.setLineDash([3, 3]);
+      poleCtx.beginPath();
+      poleCtx.arc(cx, cy, rPix, Math.PI / 2, 3 * Math.PI / 2);
+      poleCtx.stroke();
+      poleCtx.setLineDash([]);
+
+      poleCtx.font = '9px monospace';
+      poleCtx.fillStyle = '#94a3b8';
+      poleCtx.textAlign = 'center';
+      poleCtx.fillText(`|s| = ωn (${wn.toFixed(1)})`, cx - rPix - 15, cy - 6);
+
+      // Poles coordinates
+      const sigma = -zeta * wn;
+      const px = cx + sigma * scale;
+
+      function drawX(x, y) {
+        const sz = 7;
+        poleCtx.strokeStyle = '#dc2626';
+        poleCtx.lineWidth = 2.5;
+        poleCtx.beginPath();
+        poleCtx.moveTo(x - sz, y - sz);
+        poleCtx.lineTo(x + sz, y + sz);
+        poleCtx.moveTo(x - sz, y + sz);
+        poleCtx.lineTo(x + sz, y - sz);
+        poleCtx.stroke();
+      }
+
+      if (zeta < 1.0) {
+        const wd = wn * Math.sqrt(Math.max(0, 1.0 - zeta * zeta));
+        const py1 = cy - wd * scale;
+        const py2 = cy + wd * scale;
+        drawX(px, py1);
+        drawX(px, py2);
+
+        // Guide vector line from origin to pole
+        poleCtx.strokeStyle = '#fca5a5';
+        poleCtx.lineWidth = 1;
+        poleCtx.beginPath();
+        poleCtx.moveTo(cx, cy);
+        poleCtx.lineTo(px, py1);
+        poleCtx.moveTo(cx, cy);
+        poleCtx.lineTo(px, py2);
+        poleCtx.stroke();
+
+        poleCtx.fillStyle = '#dc2626';
+        poleCtx.font = 'bold 9px monospace';
+        poleCtx.textAlign = 'right';
+        poleCtx.fillText(`-${(zeta * wn).toFixed(1)} + ${wd.toFixed(1)}j`, px - 8, py1 - 4);
+        poleCtx.fillText(`-${(zeta * wn).toFixed(1)} - ${wd.toFixed(1)}j`, px - 8, py2 + 12);
+      } else {
+        const d = wn * Math.sqrt(zeta * zeta - 1.0);
+        const s1 = -zeta * wn + d;
+        const s2 = -zeta * wn - d;
+        drawX(cx + s1 * scale, cy);
+        drawX(cx + s2 * scale, cy);
+
+        poleCtx.fillStyle = '#dc2626';
+        poleCtx.font = 'bold 9px monospace';
+        poleCtx.textAlign = 'center';
+        poleCtx.fillText(`s₁=${s1.toFixed(1)}`, cx + s1 * scale, cy - 12);
+        poleCtx.fillText(`s₂=${s2.toFixed(1)}`, cx + s2 * scale, cy - 12);
+      }
+    }
+
+    // ================= CANVAS DRAWING: NYQUIST PLOT =================
+    function drawNyquist() {
+      if (!nyquistCtx) return;
+      const rect = nyquistCanvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      nyquistCtx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.35; // origin
+      const cy = h * 0.30;
+
+      // Axes
+      nyquistCtx.strokeStyle = '#cbd5e1';
+      nyquistCtx.lineWidth = 1.5;
+
+      // Real Axis
+      nyquistCtx.beginPath();
+      nyquistCtx.moveTo(15, cy);
+      nyquistCtx.lineTo(w - 15, cy);
+      nyquistCtx.stroke();
+
+      // Imag Axis
+      nyquistCtx.beginPath();
+      nyquistCtx.moveTo(cx, 15);
+      nyquistCtx.lineTo(cx, h - 15);
+      nyquistCtx.stroke();
+
+      nyquistCtx.font = '10px monospace';
+      nyquistCtx.fillStyle = '#64748b';
+      nyquistCtx.textAlign = 'right';
+      nyquistCtx.fillText('Re[H]', w - 20, cy - 8);
+      nyquistCtx.textAlign = 'left';
+      nyquistCtx.fillText('-j Im[H]', cx + 8, h - 20);
+
+      // Determine scale based on max amplification Q
+      const Q = (zeta < 0.7071) ? (1.0 / (2.0 * zeta * Math.sqrt(1.0 - zeta * zeta))) : 1.5;
+      const scale = Math.min((w - cx - 40) / 1.5, (h - cy - 40) / Math.max(2.0, Q));
+
+      function nyqToXY(re, im) {
+        return {
+          x: cx + re * scale,
+          y: cy - im * scale // Im is negative, so -im pushes downward
+        };
+      }
+
+      // Unit Circle (Static compliance 1.0)
+      nyquistCtx.strokeStyle = '#e2e8f0';
+      nyquistCtx.lineWidth = 1;
+      nyquistCtx.setLineDash([3, 3]);
+      nyquistCtx.beginPath();
+      nyquistCtx.arc(cx, cy, 1.0 * scale, 0, Math.PI * 2);
+      nyquistCtx.stroke();
+      nyquistCtx.setLineDash([]);
+
+      // Nyquist Curve for beta from 0.01 to 20
+      nyquistCtx.strokeStyle = '#4f46e5';
+      nyquistCtx.lineWidth = 2.5;
+      nyquistCtx.beginPath();
+
+      let first = true;
+      const numSteps = 300;
+      for (let i = 0; i <= numSteps; i++) {
+        const b = (i / numSteps) * 15.0;
+        const den = Math.pow(1.0 - b * b, 2) + Math.pow(2.0 * zeta * b, 2);
+        if (den === 0) continue;
+        const re = (1.0 - b * b) / den;
+        const im = -(2.0 * zeta * b) / den;
+
+        const pt = nyqToXY(re, im);
+        if (first) { nyquistCtx.moveTo(pt.x, pt.y); first = false; }
+        else { nyquistCtx.lineTo(pt.x, pt.y); }
+      }
+      nyquistCtx.stroke();
+
+      // Start point marker at (1, 0)
+      const startPt = nyqToXY(1.0, 0.0);
+      nyquistCtx.fillStyle = '#10b981';
+      nyquistCtx.beginPath();
+      nyquistCtx.arc(startPt.x, startPt.y, 4.5, 0, Math.PI * 2);
+      nyquistCtx.fill();
+      nyquistCtx.font = '9px monospace';
+      nyquistCtx.fillText('ω=0', startPt.x + 6, startPt.y - 6);
+
+      // Current Operating Point on Nyquist curve
+      const denCur = Math.pow(1.0 - beta * beta, 2) + Math.pow(2.0 * zeta * beta, 2);
+      const reCur = (1.0 - beta * beta) / denCur;
+      const imCur = -(2.0 * zeta * beta) / denCur;
+      const curPt = nyqToXY(reCur, imCur);
+
+      // Vector phasor from origin
+      nyquistCtx.strokeStyle = '#f59e0b';
+      nyquistCtx.lineWidth = 1.5;
+      nyquistCtx.beginPath();
+      nyquistCtx.moveTo(cx, cy);
+      nyquistCtx.lineTo(curPt.x, curPt.y);
+      nyquistCtx.stroke();
+
+      nyquistCtx.fillStyle = '#d97706';
+      nyquistCtx.beginPath();
+      nyquistCtx.arc(curPt.x, curPt.y, 5.5, 0, Math.PI * 2);
+      nyquistCtx.fill();
+      nyquistCtx.strokeStyle = '#ffffff';
+      nyquistCtx.lineWidth = 2;
+      nyquistCtx.stroke();
+    }
+
+    // ================= 60 FPS ANIMATION LOOP =================
+    function animate(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const elapsed = (timestamp - lastTimestamp) / 1000.0;
+      lastTimestamp = timestamp;
+
+      if (isPlaying) {
+        animTime += elapsed * simSpeed;
+      }
+
+      // Physics states under harmonic excitation: p(t) = ust * sin(w * t)
+      const wExc = beta * wn;
+      const denom = Math.sqrt(Math.pow(1.0 - beta * beta, 2) + Math.pow(2.0 * zeta * beta, 2));
+      const curMag = 1.0 / denom;
+      const phiRad = Math.atan2(2.0 * zeta * beta, 1.0 - beta * beta);
+
+      const pVal = ust * Math.sin(wExc * animTime);
+      const uVal = curMag * ust * Math.sin(wExc * animTime - phiRad);
+      const vVal = curMag * ust * wExc * Math.cos(wExc * animTime - phiRad);
+
+      const k = wn * wn; // kN/m (m = 1.0 ton)
+      const c = 2.0 * zeta * wn; // kN·s/m
+      const pForce = k * pVal; // kN
+      const fsForce = -k * uVal; // kN
+      const fdForce = -c * vVal; // kN
+
+      // HUD updates
+      animTimeDisplay.textContent = `t = ${animTime.toFixed(2)} s`;
+      hudForce.textContent = `p(t) = ${pForce >= 0 ? '+' : ''}${pForce.toFixed(1)} kN`;
+      hudDisp.textContent = `u(t) = ${uVal >= 0 ? '+' : ''}${uVal.toFixed(2)} m`;
+      hudVel.textContent = `u'(t) = ${vVal >= 0 ? '+' : ''}${vVal.toFixed(2)} m/s`;
+      if (hudSpring) hudSpring.textContent = `Fs = ${fsForce >= 0 ? '+' : ''}${fsForce.toFixed(1)} kN`;
+      if (hudDamper) hudDamper.textContent = `Fd = ${fdForce >= 0 ? '+' : ''}${fdForce.toFixed(1)} kN`;
+
+      // Render Kinematic Motion if Tab 1 active
+      if (currentTab === 'tab-bode') {
+        drawSDOF(uVal, pForce, vVal);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      playText.textContent = isPlaying ? '일시정지' : '재생';
+      btnPlay.className = isPlaying 
+        ? "flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs"
+        : "flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs";
+    }
+
+    function resetSim() {
+      animTime = 0.0;
+      updateStateAndUI();
+    }
+
+    function changeSpeed(val) {
+      simSpeed = parseFloat(val);
+    }
+
+    // Event Listeners
+    sliderWn.addEventListener('input', updateStateAndUI);
+    sliderZeta.addEventListener('input', updateStateAndUI);
+    sliderBeta.addEventListener('input', updateStateAndUI);
+    sliderUst.addEventListener('input', updateStateAndUI);
+
+    window.addEventListener('resize', () => {
+      initCanvases();
+      renderAllStatic();
+    });
+
+    // Startup
+    window.addEventListener('DOMContentLoaded', () => {
+      initCanvases();
+      updateStateAndUI();
+      requestAnimationFrame(animate);
+    });
+  </script>
+
+</body>
+</html>

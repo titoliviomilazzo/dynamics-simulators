@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>29. 기둥 밑둥 소성힌지 단면 200배 줌인 손상역학 시뮬레이터</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent-blue: #2563eb;
+    --accent-indigo: #4f46e5;
+    --accent-emerald: #059669;
+    --accent-amber: #d97706;
+    --accent-orange: #ea580c;
+    --accent-red: #dc2626;
+    --font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-family);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.5;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: center;
+  }
+  .app-container {
+    width: 100%;
+    max-width: 1460px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  header {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 12px 18px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-left p {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .nav-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-indigo);
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    transition: all 0.15s;
+  }
+  .nav-badge:hover { background: #e2e8f0; }
+  .grid-layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 1100px) {
+    .grid-layout { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .section-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .preset-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .preset-btn {
+    padding: 6px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover { background: #e2e8f0; color: var(--text-primary); }
+  .preset-btn.active {
+    background: var(--accent-indigo);
+    color: #ffffff;
+    border-color: var(--accent-indigo);
+  }
+  .form-group { margin-bottom: 10px; }
+  .form-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .form-val {
+    font-family: monospace;
+    color: var(--accent-blue);
+    font-weight: 700;
+  }
+  input[type=range] {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--accent-indigo);
+    cursor: pointer;
+  }
+  .btn-group { display: flex; gap: 8px; margin-top: 8px; }
+  .action-btn {
+    flex: 1;
+    padding: 7px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .action-btn:hover { background: #f1f5f9; }
+  .action-btn.primary {
+    background: var(--accent-indigo);
+    color: #ffffff;
+    border-color: var(--accent-indigo);
+  }
+  .action-btn.primary:hover { background: #4338ca; }
+  .metrics-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+  .metric-name { color: var(--text-secondary); }
+  .metric-val { font-family: monospace; font-weight: 700; color: var(--text-primary); }
+  .status-badge {
+    padding: 3px 9px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-block;
+    text-align: center;
+  }
+  .right-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .canvas-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+  }
+  .canvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .canvas-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .canvas-legend {
+    display: flex;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-color { width: 9px; height: 9px; border-radius: 2px; }
+  canvas {
+    width: 100%;
+    display: block;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid #f1f5f9;
+  }
+  .dual-bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 900px) {
+    .dual-bottom-grid { grid-template-columns: 1fr; }
+  }
+  .hud-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+  }
+  .hud-tag-banner {
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .hud-row {
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+  .hud-label {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1px;
+  }
+  .hud-desc { color: var(--text-secondary); }
+  .progress-track {
+    width: 100%;
+    height: 7px;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    transition: width 0.1s, background-color 0.2s;
+  }
+  .bottom-insight {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent-indigo);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+</style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+<div class="app-container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-left">
+      <h1>
+        <span>29. 기둥 밑둥 소성힌지 단면 200배 줌인 손상역학 시뮬레이터</span>
+      </h1>
+      <p>지진 횡변위 시 기둥 하부 소성힌지 구간에서 일어나는 4단계 파괴(미세균열 → 피복콘크리트 탈락 → 띠철근 파단 → 주철근 S자 좌굴)를 물리적으로 해부합니다.</p>
+    </div>
+    <a href="index.html" class="nav-badge">
+      <span>← 마스터 대시보드</span>
+    </a>
+  </header>
+
+  <!-- MAIN GRID -->
+  <div class="grid-layout">
+
+    <!-- LEFT CONTROLS -->
+    <div class="panel">
+      <div class="section-title">
+        <span>📍 8대 손상 단계 원클릭 점프</span>
+      </div>
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="setPreset(0.0)">1. 탄성<br><span style="font-size:9px">무피해 0.0</span></button>
+        <button class="preset-btn" onclick="setPreset(1.0)">2. 항복<br><span style="font-size:9px">미세균열 1.0</span></button>
+        <button class="preset-btn" onclick="setPreset(getIO())" style="color:#059669;font-weight:bold">3. IO<br><span style="font-size:9px">즉시거주 1.45</span></button>
+        <button class="preset-btn" onclick="setPreset(2.0)">4. 박리<br><span style="font-size:9px">피복 균열 2.0</span></button>
+        <button class="preset-btn" onclick="setPreset(getLS())" style="color:#d97706;font-weight:bold">5. LS<br><span style="font-size:9px">인명안전 2.5</span></button>
+        <button class="preset-btn" onclick="setPreset(getPeakC())">6. 피크 C<br><span style="font-size:9px">최대강도 4.0</span></button>
+        <button class="preset-btn" onclick="setPreset(getCP())" style="color:#ea580c;font-weight:bold">7. CP<br><span style="font-size:9px">붕괴방지 3.55</span></button>
+        <button class="preset-btn" onclick="setPreset(getPointE())" style="color:#dc2626;font-weight:bold">8. 좌굴 E<br><span style="font-size:9px">철근좌굴 6.0</span></button>
+      </div>
+
+      <div class="section-title" style="margin-top:12px">
+        <span>⚙️ 소성 회전각 제어 (Plastic Rotation)</span>
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>무차원 변형비 (θ / θy)</span>
+          <span class="form-val" id="valTheta">1.00</span>
+        </div>
+        <input type="range" id="sliderTheta" min="0" max="7.0" step="0.02" value="1.00" oninput="onThetaSlider(this.value)">
+      </div>
+
+      <div class="btn-group">
+        <button class="action-btn primary" id="btnPlay" onclick="togglePlay()">▶ 반복 가력 (Cyclic)</button>
+        <button class="action-btn" onclick="resetAll()">🔄 초기화</button>
+      </div>
+
+      <div class="section-title" style="margin-top:16px">
+        <span>📐 기둥 단면 및 배근 제원 (KDS 41)</span>
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>기둥 축력비 P / (f'c · Ag)</span>
+          <span class="form-val" id="valAxial">0.20</span>
+        </div>
+        <input type="range" id="sliderAxial" min="0.05" max="0.60" step="0.05" value="0.20" oninput="updateParams()">
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>띠철근(Tie) 간격 s / db (좌굴 지지력)</span>
+          <span class="form-val" id="valTieSpacing">6.0 db</span>
+        </div>
+        <input type="range" id="sliderTieSpacing" min="4.0" max="14.0" step="1.0" value="6.0" oninput="updateParams()">
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>콘크리트 압축강도 f'c</span>
+          <span class="form-val" id="valFc">27 MPa</span>
+        </div>
+        <input type="range" id="sliderFc" min="21" max="45" step="3" value="27" oninput="updateParams()">
+      </div>
+
+      <!-- METRICS -->
+      <div class="metrics-card">
+        <div class="metric-row">
+          <span class="metric-name">현재 손상 등급</span>
+          <span id="badgeStatus" class="status-badge" style="background:#dcfce7;color:#15803d">IO 만족</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">최대 압축연단 변형률 (εc)</span>
+          <span class="metric-val" id="valStrainC">0.0018</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">주철근 인장 변형률 (εs)</span>
+          <span class="metric-val" id="valStrainS">0.0022</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">최대 균열 폭 (Crack Width)</span>
+          <span class="metric-val" id="valCrackWidth">0.12 mm</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">누적 소성 에너지 (Wp)</span>
+          <span class="metric-val" id="valEnergy">0.500</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT VISUALIZATION PANELS -->
+    <div class="right-container">
+
+      <!-- TOP: 200X ZOOMED-IN PLASTIC HINGE CROSS SECTION CANVAS -->
+      <div class="canvas-card">
+        <div class="canvas-header">
+          <div class="canvas-title">
+            <span>🔬 기둥 밑둥 입면 및 단면 200배 줌인: 파괴 메커니즘 현미경</span>
+          </div>
+          <div class="canvas-legend">
+            <div class="legend-item"><div class="legend-color" style="background:#64748b"></div><span>비파쇄 코어</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#cbd5e1"></div><span>탈락 피복</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>주철근(D25)</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>좌굴 철근</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#ea580c"></div><span>띠철근 파단</span></div>
+          </div>
+        </div>
+        <canvas id="sectionCanvas" height="260"></canvas>
+      </div>
+
+      <!-- BOTTOM: DUAL VIEW (ELEVATION REBAR BUCKLING + DAMAGE HUD) -->
+      <div class="dual-bottom-grid">
+
+        <!-- ELEVATION BUCKLING CANVAS -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>🏗️ 기둥 밑둥 입면: 3차 휨곡률(Cubic) & S자 철근 좌굴</span>
+            </div>
+            <span style="font-size:11px;color:var(--text-muted)">비탄성 횡변위 렌더링</span>
+          </div>
+          <canvas id="elevationCanvas" height="210"></canvas>
+        </div>
+
+        <!-- DAMAGE HUD -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>🩺 물리적 손상 및 인간 중심 운명 HUD</span>
+            </div>
+          </div>
+          <div class="hud-box">
+            <div id="hudTagBanner" class="hud-tag-banner" style="background:#dcfce7;color:#166534">
+              <span id="hudTagTitle">🟢 GREEN TAG: 미세 휨 균열 (IO)</span>
+              <span id="hudDamagePct" style="font-family:monospace;font-size:13.5px">15% 손상</span>
+            </div>
+
+            <div>
+              <div class="progress-track">
+                <div id="damageProgress" class="progress-fill" style="width:15%;background:#10b981"></div>
+              </div>
+            </div>
+
+            <div class="hud-row">
+              <div class="hud-label">🧱 콘크리트 및 철근의 미시적 손상 상태</div>
+              <div id="hudDamageDesc" class="hud-desc">피복 콘크리트 완전 건전. 인장측 미세 균열(폭 < 0.2mm). 띠철근 및 주철근 탄성.</div>
+            </div>
+
+            <div class="hud-row">
+              <div class="hud-label">👥 거주자 상황 및 건물 사후 운명</div>
+              <div id="hudHumanDesc" class="hud-desc">가벼운 진동 감지. 비구조재 탈락 0건. 지진 직후 즉시 정상 가동(Green Tag).</div>
+            </div>
+
+            <div class="hud-row">
+              <div class="hud-label">⚠️ 내진 상세 경고 (Tie Confinement)</div>
+              <div id="hudTieDesc" class="hud-desc">띠철근 간격 6db 준수로 코어 콘크리트 삼축 구속 압축력 100% 발휘 중.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- BOTTOM INSIGHT -->
+  <div class="bottom-insight">
+    <span style="font-size:20px">💡</span>
+    <div>
+      <strong>20년차 구조기술사의 소성힌지 손상역학 노트:</strong>
+      "왜 KDS 41 내진 기준은 기둥 단부 소성힌지 구간에서 <strong>띠철근(Tie) 간격을 주철근 지름의 6배($6d_b$) 이하</strong>로 촘촘히 감도록 강제할까요?
+      피복 콘크리트가 터져나가는 순간, 띠철근이 주철근을 잡아주지 못하면 압축을 받는 주철근이 지지점을 잃고 엿가락처럼 튕겨져 나가는 <strong>'S자 비탄성 좌굴(Inelastic Buckling)'</strong>이 발생하기 때문입니다.
+      주철근이 좌굴되면 기둥의 중력 지탱 능력이 순식간에 절벽으로 추락하여 건물이 팬케이크처럼 주저앉게 됩니다."
+    </div>
+  </div>
+
+</div>
+
+<script>
+// STATE
+let thetaNorm = 1.0;
+let axialRatio = 0.20;
+let tieSpacingRatio = 6.0;
+let fc = 27;
+let paramA = 3.0;
+let paramB = 5.0;
+let paramQu = 1.15;
+let isPlaying = false;
+let playDirection = 1;
+let animReq = null;
+
+// CANVASES
+const secCanvas = document.getElementById('sectionCanvas');
+const secCtx = secCanvas.getContext('2d');
+const eleCanvas = document.getElementById('elevationCanvas');
+const eleCtx = eleCanvas.getContext('2d');
+
+function resizeCanvas(c) {
+  const rect = c.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  c.width = rect.width * dpr;
+  c.height = rect.height * dpr;
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+}
+
+// ASCE 41 / FEMA LIMITS
+function getIO() { return 1.0 + 0.15 * paramA; }
+function getLS() { return 1.0 + 0.50 * paramA; }
+function getCP() { return 1.0 + 0.85 * paramA; }
+function getPeakC() { return 1.0 + paramA; }
+function getPointD() { return 1.0 + paramA + 0.10 * paramA; }
+function getPointE() { return 1.0 + paramB; }
+
+function computeBackbone(th) {
+  const thB = 1.0;
+  const thC = getPeakC();
+  const thD = getPointD();
+  const thE = getPointE();
+  const cRes = 0.20;
+  
+  if (th <= 0) return { q: 0, kt: 1.0 };
+  if (th <= thB) return { q: th, kt: 1.0 };
+  if (th <= thC) {
+    const ratio = (th - thB) / (thC - thB);
+    return { q: 1.0 + (paramQu - 1.0) * ratio, kt: (paramQu - 1.0) / (thC - thB) };
+  }
+  if (th <= thD) {
+    const ratio = (th - thC) / (thD - thC);
+    return { q: paramQu - (paramQu - cRes) * ratio, kt: -(paramQu - cRes) / (thD - thC) };
+  }
+  if (th <= thE) return { q: cRes, kt: 0.0 };
+  return { q: 0.0, kt: 0.0 };
+}
+
+function computeDissipatedEnergy(thMax) {
+  const steps = 100;
+  let energy = 0;
+  const dt = thMax / steps;
+  let prevQ = 0;
+  for (let i = 1; i <= steps; i++) {
+    const t = i * dt;
+    const curQ = computeBackbone(t).q;
+    energy += 0.5 * (prevQ + curQ) * dt;
+    prevQ = curQ;
+  }
+  return energy;
+}
+
+// UI EVENTS
+function setPreset(val) {
+  thetaNorm = Math.max(0, Math.min(7.0, val));
+  document.getElementById('sliderTheta').value = thetaNorm.toFixed(2);
+  updateAll();
+}
+
+function onThetaSlider(val) {
+  thetaNorm = parseFloat(val);
+  if (isPlaying) togglePlay();
+  updateAll();
+}
+
+function updateParams() {
+  axialRatio = parseFloat(document.getElementById('sliderAxial').value);
+  tieSpacingRatio = parseFloat(document.getElementById('sliderTieSpacing').value);
+  fc = parseInt(document.getElementById('sliderFc').value);
+
+  document.getElementById('valAxial').innerText = axialRatio.toFixed(2);
+  document.getElementById('valTieSpacing').innerText = `${tieSpacingRatio.toFixed(1)} db`;
+  document.getElementById('valFc').innerText = `${fc} MPa`;
+  updateAll();
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('btnPlay');
+  if (isPlaying) {
+    btn.innerText = '⏸ 가력 정지';
+    btn.classList.add('primary');
+    animateLoop();
+  } else {
+    btn.innerText = '▶ 반복 가력 (Cyclic)';
+    if (animReq) cancelAnimationFrame(animReq);
+  }
+}
+
+function resetAll() {
+  if (isPlaying) togglePlay();
+  thetaNorm = 1.0;
+  document.getElementById('sliderTheta').value = 1.0;
+  updateAll();
+}
+
+function animateLoop() {
+  if (!isPlaying) return;
+  thetaNorm += playDirection * 0.025;
+  if (thetaNorm >= 6.5) {
+    thetaNorm = 6.5;
+    playDirection = -1;
+  } else if (thetaNorm <= 0.2) {
+    thetaNorm = 0.2;
+    playDirection = 1;
+  }
+  document.getElementById('sliderTheta').value = thetaNorm.toFixed(2);
+  updateAll();
+  animReq = requestAnimationFrame(animateLoop);
+}
+
+// UPDATE LOGIC
+function updateAll() {
+  document.getElementById('valTheta').innerText = thetaNorm.toFixed(2);
+
+  // Strains computation based on flexure + axial load
+  // At yield thetaNorm=1.0: eps_s = 0.002, eps_c = 0.0018
+  const eps_yield = 0.002;
+  const eps_s = (0.002 * thetaNorm).toFixed(4);
+  const eps_c = (0.0015 * thetaNorm * (1.0 + axialRatio * 0.8)).toFixed(4);
+  const crackW = (thetaNorm <= 1.0 ? 0 : (thetaNorm - 1.0) * 0.35).toFixed(2);
+  const energy = computeDissipatedEnergy(thetaNorm).toFixed(3);
+
+  document.getElementById('valStrainC').innerText = eps_c;
+  document.getElementById('valStrainS').innerText = eps_s;
+  document.getElementById('valCrackWidth').innerText = `${crackW} mm`;
+  document.getElementById('valEnergy').innerText = energy;
+
+  updateHUD(thetaNorm, parseFloat(eps_c), parseFloat(eps_s));
+
+  drawCrossSection();
+  drawElevation();
+}
+
+function updateHUD(th, ec, es) {
+  const io = getIO();
+  const ls = getLS();
+  const cp = getCP();
+  const ptE = getPointE();
+
+  const badge = document.getElementById('badgeStatus');
+  const banner = document.getElementById('hudTagBanner');
+  const tagTitle = document.getElementById('hudTagTitle');
+  const dmgPct = document.getElementById('hudDamagePct');
+  const fill = document.getElementById('damageProgress');
+  const dmgDesc = document.getElementById('hudDamageDesc');
+  const humanDesc = document.getElementById('hudHumanDesc');
+  const tieDesc = document.getElementById('hudTieDesc');
+
+  let pct = 0;
+
+  if (th <= 1.0) {
+    pct = Math.round((th / 1.0) * 15);
+    badge.style.background = '#dcfce7'; badge.style.color = '#15803d'; badge.innerText = '탄성 (정상)';
+    banner.style.background = '#dcfce7'; banner.style.color = '#166534';
+    tagTitle.innerText = '🟢 GREEN TAG: 무피해 탄성 상태';
+    fill.style.background = '#10b981';
+    dmgDesc.innerText = '피복 콘크리트 완전 건전. 미세 균열 전무. 철근 100% 탄성 복원.';
+    humanDesc.innerText = '미세 진동 감지. 사상자 0명. 전산/병원 무중단 정상 운영.';
+    tieDesc.innerText = `띠철근 간격 ${tieSpacingRatio}db 양호. 횡구속력 100% 발휘 중.`;
+  } else if (th <= io) {
+    pct = Math.round(15 + ((th - 1.0) / (io - 1.0)) * 15);
+    badge.style.background = '#d1fae5'; badge.style.color = '#047857'; badge.innerText = 'IO (즉시거주)';
+    banner.style.background = '#d1fae5'; banner.style.color = '#065f46';
+    tagTitle.innerText = '🟢 GREEN TAG: 즉시 거주 (Immediate Occupancy)';
+    fill.style.background = '#059669';
+    dmgDesc.innerText = `인장측 미세 휨 균열(폭 ${document.getElementById('valCrackWidth').innerText}) 발생. 피복 박리 없음. 철근 초기 항복.`;
+    humanDesc.innerText = '가벼운 물건 흔들림. 거주자 침착 대피 후 즉시 안전 복귀 가능.';
+    tieDesc.innerText = '띠철근 구속력 안정적. 균열 표면 에폭시 주입 외 보수 불필요.';
+  } else if (th <= ls) {
+    pct = Math.round(30 + ((th - io) / (ls - io)) * 35);
+    badge.style.background = '#fef3c7'; badge.style.color = '#b45309'; badge.innerText = 'LS (인명안전)';
+    banner.style.background = '#fef3c7'; banner.style.color = '#92400e';
+    tagTitle.innerText = '🟡 YELLOW TAG: 인명 안전 확보 (Life Safety)';
+    fill.style.background = '#d97706';
+    dmgDesc.innerText = '피복 콘크리트 균열망 확장 및 모서리 콘크리트 미세 탈락(Spalling) 시작. 띠철근 노출.';
+    humanDesc.innerText = '천장 마감재 일부 탈락. 전원 안전 대피 완료. 사망자 0명.';
+    tieDesc.innerText = (tieSpacingRatio > 8.0) 
+      ? `⚠️ 띠철근 간격(${tieSpacingRatio}db) 과다로 피복 조기 탈락 가속 중!`
+      : '띠철근이 심부 코어 콘크리트를 단단히 구속하여 취성 파괴 방어 중.';
+  } else if (th <= cp) {
+    pct = Math.round(65 + ((th - ls) / (cp - ls)) * 25);
+    badge.style.background = '#ffedd5'; badge.style.color = '#c2410c'; badge.innerText = 'CP (붕괴방지)';
+    banner.style.background = '#ffedd5'; banner.style.color = '#9a3412';
+    tagTitle.innerText = '🟠 RED TAG: 붕괴 방지 (Collapse Prevention)';
+    fill.style.background = '#ea580c';
+    dmgDesc.innerText = '피복 콘크리트 전면 탈락! 심부 코어 콘크리트 파쇄 진행 중. 주철근 좌굴 임계점 도달.';
+    humanDesc.innerText = '골조 대변형 및 비구조재 파괴. 인명 압사는 면했으나 건물 기우뚱(철거 판정).';
+    tieDesc.innerText = '띠철근 인장 응력 극한치 도달. 주철근 지지 한계 임박.';
+  } else if (th <= ptE) {
+    pct = Math.round(90 + ((th - cp) / (ptE - cp)) * 9);
+    badge.style.background = '#fee2e2'; badge.style.color = '#b91c1c'; badge.innerText = 'Near Collapse (잔존강도)';
+    banner.style.background = '#fee2e2'; banner.style.color = '#991b1b';
+    tagTitle.innerText = '🔴 RED TAG: 붕괴 직전 (주철근 S자 좌굴)';
+    fill.style.background = '#dc2626';
+    dmgDesc.innerText = '띠철근 파단 및 주철근 심각한 S자 비탄성 좌굴! 압축력 80% 상실, 20% 잔존강도 겨우 유지.';
+    humanDesc.innerText = '비상계단 통해 긴급 탈출 완료. 추가 여진 시 즉각 전복 위험(접근 금지선 설치).';
+    tieDesc.innerText = '띠철근 파단으로 주철근 비지지 길이 급증 → 비탄성 비틀림 좌굴 발생!';
+  } else {
+    pct = 100;
+    badge.style.background = '#7f1d1d'; badge.style.color = '#ffffff'; badge.innerText = '완전 붕괴 (Pancake)';
+    banner.style.background = '#7f1d1d'; banner.style.color = '#ffffff';
+    tagTitle.innerText = '💀 BLACK TAG: 완전 붕괴 (Total Collapse)';
+    fill.style.background = '#7f1d1d';
+    dmgDesc.innerText = '주철근 완전 절단 및 코어 콘크리트 분쇄. 중력하중 지지 불능(전복).';
+    humanDesc.innerText = '골조 주저앉음(Pancake 붕괴). 인명 사상 발생.';
+    tieDesc.innerText = '구조적 전파(Total Destruction).';
+  }
+
+  dmgPct.innerText = `${pct}% 손상도`;
+  fill.style.width = `${pct}%`;
+}
+
+// DRAW 200X ZOOMED-IN CROSS SECTION
+function drawCrossSection() {
+  const w = secCanvas.parentElement.clientWidth - 28;
+  const h = 260;
+  secCanvas.style.width = w + 'px';
+  secCanvas.style.height = h + 'px';
+  resizeCanvas(secCanvas);
+
+  secCtx.clearRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+  const colSize = Math.min(w * 0.55, 170); // 600mm x 600mm scaled
+  const coverThick = colSize * 0.12; // 40mm cover
+  const coreSize = colSize - 2 * coverThick;
+
+  const left = cx - colSize / 2;
+  const top = cy - colSize / 2;
+
+  // Concrete Cover Box (Damaged/Spalled based on thetaNorm)
+  const isSpalled = thetaNorm > getLS();
+  const isSevereSpalled = thetaNorm > getCP();
+
+  // Cover Concrete Drawing
+  secCtx.save();
+  if (isSevereSpalled) {
+    // Spalled flaking pieces
+    secCtx.fillStyle = 'rgba(203, 213, 225, 0.3)';
+    secCtx.strokeStyle = '#94a3b8';
+    secCtx.setLineDash([4, 4]);
+  } else if (isSpalled) {
+    secCtx.fillStyle = '#e2e8f0';
+    secCtx.strokeStyle = '#d97706';
+  } else {
+    secCtx.fillStyle = '#f1f5f9';
+    secCtx.strokeStyle = '#64748b';
+  }
+  secCtx.lineWidth = 2;
+  secCtx.strokeRect(left, top, colSize, colSize);
+  secCtx.fillRect(left, top, colSize, colSize);
+  secCtx.restore();
+
+  // Confined Core Concrete Box
+  secCtx.save();
+  secCtx.fillStyle = (thetaNorm > getCP()) ? '#cbd5e1' : '#94a3b8';
+  secCtx.strokeStyle = (thetaNorm > getPeakC()) ? '#dc2626' : '#475569';
+  secCtx.lineWidth = 2;
+  secCtx.fillRect(cx - coreSize / 2, cy - coreSize / 2, coreSize, coreSize);
+  secCtx.strokeRect(cx - coreSize / 2, cy - coreSize / 2, coreSize, coreSize);
+  secCtx.restore();
+
+  // Tie Hoop Line
+  secCtx.save();
+  const tieBroken = thetaNorm > getCP();
+  secCtx.strokeStyle = tieBroken ? '#dc2626' : '#2563eb';
+  secCtx.lineWidth = 2.5;
+  if (tieBroken) secCtx.setLineDash([6, 4]);
+  secCtx.strokeRect(cx - coreSize / 2 + 4, cy - coreSize / 2 + 4, coreSize - 8, coreSize - 8);
+  secCtx.restore();
+
+  // Rebars (8 Longitudinal Bars D25)
+  const rOffset = coreSize / 2 - 6;
+  const rebarCoords = [
+    { x: cx - rOffset, y: cy - rOffset }, // Top-Left (Compression)
+    { x: cx,           y: cy - rOffset }, // Top-Mid
+    { x: cx + rOffset, y: cy - rOffset }, // Top-Right
+    { x: cx - rOffset, y: cy },           // Mid-Left
+    { x: cx + rOffset, y: cy },           // Mid-Right
+    { x: cx - rOffset, y: cy + rOffset }, // Bot-Left (Tension)
+    { x: cx,           y: cy + rOffset }, // Bot-Mid
+    { x: cx + rOffset, y: cy + rOffset }  // Bot-Right
+  ];
+
+  const rebarR = 6;
+  const isBuckled = thetaNorm > getCP();
+
+  rebarCoords.forEach((rb, idx) => {
+    secCtx.save();
+    const isCompSide = (rb.y < cy); // Upper side under compression in positive moment
+    let rbCol = '#1e3a8a';
+    if (isCompSide && isBuckled) {
+      rbCol = '#dc2626'; // Buckled rebar
+    } else if (isCompSide && thetaNorm > getLS()) {
+      rbCol = '#ea580c';
+    }
+
+    secCtx.fillStyle = rbCol;
+    secCtx.beginPath();
+    secCtx.arc(rb.x, rb.y, rebarR, 0, Math.PI * 2);
+    secCtx.fill();
+    secCtx.strokeStyle = '#ffffff';
+    secCtx.lineWidth = 1.5;
+    secCtx.stroke();
+
+    // S-Buckling indicator for compressed rebars
+    if (isCompSide && isBuckled) {
+      secCtx.strokeStyle = '#dc2626';
+      secCtx.lineWidth = 2;
+      secCtx.beginPath();
+      secCtx.arc(rb.x, rb.y, rebarR + 4, 0, Math.PI * 2);
+      secCtx.stroke();
+    }
+    secCtx.restore();
+  });
+
+  // Cracks Visualization on Section
+  if (thetaNorm > 1.0) {
+    secCtx.save();
+    secCtx.strokeStyle = '#dc2626';
+    secCtx.lineWidth = Math.min(3, 0.8 + (thetaNorm - 1.0) * 0.4);
+    // Draw horizontal tension flexure cracks from bottom
+    const numCracks = Math.min(8, Math.floor(thetaNorm * 1.5));
+    for (let k = 0; k < numCracks; k++) {
+      const crackY = cy + coreSize / 2 + 10 - k * 8;
+      secCtx.beginPath();
+      secCtx.moveTo(left + 15, crackY);
+      secCtx.lineTo(cx - 10 + (k % 2) * 20, crackY - 3);
+      secCtx.lineTo(left + colSize - 15, crackY);
+      secCtx.stroke();
+    }
+    secCtx.restore();
+  }
+
+  // Dimension & Callouts
+  secCtx.fillStyle = '#0f172a';
+  secCtx.font = 'bold 11px monospace';
+  secCtx.textAlign = 'left';
+  secCtx.fillText('600mm x 600mm 기둥 단면', left, top - 8);
+
+  secCtx.font = '10px Pretendard, sans-serif';
+  secCtx.fillStyle = '#64748b';
+  secCtx.fillText('압축측 (Compression): 주철근 좌굴 위험 영역', left, top + colSize + 16);
+  secCtx.fillText('인장측 (Tension): 휨 균열 개구 영역', left, top + colSize + 30);
+}
+
+// DRAW ELEVATION REBAR BUCKLING (3차 휨곡률 Bezier & S자 좌굴)
+function drawElevation() {
+  const w = eleCanvas.parentElement.clientWidth - 28;
+  const h = 210;
+  eleCanvas.style.width = w + 'px';
+  eleCanvas.style.height = h + 'px';
+  resizeCanvas(eleCanvas);
+
+  eleCtx.clearRect(0, 0, w, h);
+
+  const groundY = h - 35;
+  const colH = 120;
+  const cx = w / 2;
+  const colW = 55;
+  const topY = groundY - colH;
+
+  // Ground Line
+  eleCtx.strokeStyle = '#cbd5e1';
+  eleCtx.lineWidth = 2;
+  eleCtx.beginPath();
+  eleCtx.moveTo(20, groundY);
+  eleCtx.lineTo(w - 20, groundY);
+  eleCtx.stroke();
+
+  // Drift
+  const maxDrift = 38;
+  const drift = (Math.min(thetaNorm, 6.0) / 6.0) * maxDrift;
+  const topCX = cx + drift;
+
+  // Concrete Column Body via 3차 휨곡률 Bezier
+  eleCtx.save();
+  eleCtx.fillStyle = '#f1f5f9';
+  eleCtx.strokeStyle = '#64748b';
+  eleCtx.lineWidth = 2;
+
+  eleCtx.beginPath();
+  // Left Edge
+  eleCtx.moveTo(cx - colW / 2, groundY);
+  eleCtx.bezierCurveTo(cx - colW / 2, groundY - colH * 0.4, topCX - colW / 2, topY + colH * 0.4, topCX - colW / 2, topY);
+  // Top Edge
+  eleCtx.lineTo(topCX + colW / 2, topY);
+  // Right Edge
+  eleCtx.bezierCurveTo(topCX + colW / 2, topY + colH * 0.4, cx + colW / 2, groundY - colH * 0.4, cx + colW / 2, groundY);
+  eleCtx.closePath();
+  eleCtx.fill();
+  eleCtx.stroke();
+  eleCtx.restore();
+
+  // Ties (Hoops) in Elevation
+  const numTies = 7;
+  const tieStep = (colH - 20) / numTies;
+  const isTieBroken = thetaNorm > getCP();
+
+  for (let i = 0; i < numTies; i++) {
+    const yLocal = groundY - 12 - i * tieStep;
+    const t = (groundY - yLocal) / colH;
+    const shift = (3 * t * t - 2 * t * t * t) * drift; // Hermite cubic shape function
+    const xMid = cx + shift;
+
+    eleCtx.save();
+    if (i <= 2 && isTieBroken) {
+      // Broken tie near base
+      eleCtx.strokeStyle = '#dc2626';
+      eleCtx.lineWidth = 2;
+      eleCtx.setLineDash([3, 3]);
+    } else {
+      eleCtx.strokeStyle = '#2563eb';
+      eleCtx.lineWidth = 1.8;
+    }
+    eleCtx.beginPath();
+    eleCtx.moveTo(xMid - colW / 2 + 4, yLocal);
+    eleCtx.lineTo(xMid + colW / 2 - 4, yLocal);
+    eleCtx.stroke();
+    eleCtx.restore();
+  }
+
+  // Longitudinal Rebars with S-Buckling on Compression Side
+  const isBuckled = thetaNorm > getCP();
+  const leftRebarX_base = cx - colW / 2 + 8;
+  const rightRebarX_base = cx + colW / 2 - 8;
+
+  // Right Rebar (Compression side during right drift)
+  eleCtx.save();
+  eleCtx.strokeStyle = isBuckled ? '#dc2626' : '#1e3a8a';
+  eleCtx.lineWidth = isBuckled ? 3.5 : 2.5;
+  eleCtx.beginPath();
+  eleCtx.moveTo(rightRebarX_base, groundY);
+
+  if (isBuckled) {
+    // S-shaped inelastic buckling curve between ground and 2nd tie
+    const buckleAmp = Math.min(22, (thetaNorm - getCP()) * 12);
+    const bY1 = groundY - 15;
+    const bY2 = groundY - 35;
+    eleCtx.bezierCurveTo(rightRebarX_base + buckleAmp, bY1, rightRebarX_base - buckleAmp * 0.6, bY2, rightRebarX_base + drift * 0.35, groundY - 50);
+    // Continue up
+    eleCtx.bezierCurveTo(rightRebarX_base + drift * 0.6, groundY - 80, topCX + colW / 2 - 8, topY + 20, topCX + colW / 2 - 8, topY);
+  } else {
+    // Smooth bending
+    eleCtx.bezierCurveTo(rightRebarX_base, groundY - colH * 0.4, topCX + colW / 2 - 8, topY + colH * 0.4, topCX + colW / 2 - 8, topY);
+  }
+  eleCtx.stroke();
+  eleCtx.restore();
+
+  // Left Rebar (Tension side)
+  eleCtx.save();
+  eleCtx.strokeStyle = '#1e3a8a';
+  eleCtx.lineWidth = 2.5;
+  eleCtx.beginPath();
+  eleCtx.moveTo(leftRebarX_base, groundY);
+  eleCtx.bezierCurveTo(leftRebarX_base, groundY - colH * 0.4, topCX - colW / 2 + 8, topY + colH * 0.4, topCX - colW / 2 + 8, topY);
+  eleCtx.stroke();
+  eleCtx.restore();
+
+  // Plastic Hinge Zone Bracket [0 ~ 1.5h]
+  const lpHeight = 55;
+  eleCtx.strokeStyle = '#ea580c';
+  eleCtx.lineWidth = 1.5;
+  eleCtx.setLineDash([2, 2]);
+  eleCtx.beginPath();
+  eleCtx.moveTo(cx + colW / 2 + 16, groundY);
+  eleCtx.lineTo(cx + colW / 2 + 24, groundY);
+  eleCtx.lineTo(cx + colW / 2 + 24, groundY - lpHeight);
+  eleCtx.lineTo(cx + colW / 2 + 16, groundY - lpHeight);
+  eleCtx.stroke();
+  eleCtx.setLineDash([]);
+
+  eleCtx.fillStyle = '#ea580c';
+  eleCtx.font = 'bold 10px Pretendard, sans-serif';
+  eleCtx.textAlign = 'left';
+  eleCtx.fillText(`소성힌지구간 Lp ≈ ${lpHeight}mm`, cx + colW / 2 + 28, groundY - lpHeight / 2 + 4);
+
+  // Callout for Rebar Buckling
+  if (isBuckled) {
+    eleCtx.fillStyle = '#dc2626';
+    eleCtx.font = 'bold 11px Pretendard, sans-serif';
+    eleCtx.textAlign = 'right';
+    eleCtx.fillText('💥 주철근 S자 비탄성 좌굴!', cx + colW / 2 - 2, groundY - 25);
+  }
+}
+
+// INIT
+window.addEventListener('load', () => {
+  updateParams();
+});
+window.addEventListener('resize', () => {
+  drawCrossSection();
+  drawElevation();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 44: 비선형 능력스펙트럼법(CSM) & 성능점(Performance Point) 반복 수렴기</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-amber: #f59e0b;
+    --accent-emerald: #10b981;
+    --accent-rose: #f43f5e;
+    --accent-purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+  .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+  .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+  .main-container { flex: 1; display: grid; grid-template-columns: 320px 1fr 320px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
+  @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
+
+  .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+  .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+
+  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .control-group label { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+  select, input[type="range"] { background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 4px; font-size: 0.85rem; width: 100%; accent-color: var(--accent-blue); }
+
+  .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  button { background: #334155; color: #fff; border: 1px solid var(--border); padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
+  button:hover { background: #475569; }
+  button.active { background: var(--accent-blue); color: #0f172a; border-color: var(--accent-blue); font-weight: 700; }
+  button.primary { background: var(--accent-emerald); color: #0f172a; border-color: var(--accent-emerald); font-weight: 700; }
+  button.primary:hover { background: #059669; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .stat-card { background: rgba(15, 23, 42, 0.6); padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+  .stat-card .label { font-size: 0.7rem; color: var(--text-muted); }
+  .stat-card .value { font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
+  .stat-card.blue .value { color: var(--accent-blue); }
+  .stat-card.amber .value { color: var(--accent-amber); }
+  .stat-card.emerald .value { color: var(--accent-emerald); }
+  .stat-card.rose .value { color: var(--accent-rose); }
+
+  .canvas-wrapper { flex: 1; background: #0b1120; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 400px; }
+  canvas { width: 100%; height: 100%; display: block; }
+
+  .iter-table { width: 100%; border-collapse: collapse; font-family: 'Consolas', monospace; font-size: 0.72rem; }
+  .iter-table th, .iter-table td { border: 1px solid var(--border); padding: 0.3rem 0.4rem; text-align: center; }
+  .iter-table th { background: #0b1120; color: var(--accent-blue); }
+  .iter-table tr.current { background: rgba(56, 189, 248, 0.2); font-weight: 700; color: #fff; }
+
+  .takeaway { background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
+  .callout-emerald { background: rgba(16, 185, 129, 0.08); border-left: 3px solid var(--accent-emerald); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
+</style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+
+<header>
+  <div class="title-group">
+    <h1><span class="badge">Sim 44</span> 비선형 능력스펙트럼법(CSM) & 성능점(Performance Point) 반복 수렴기</h1>
+    <p>ATC-40 / FEMA 440: 푸시오버 능력곡선과 주기 신장(Teq)·등가감쇠(βeq)에 의한 요구스펙트럼 수렴</p>
+  </div>
+  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.85rem;">← 마스터 포털 복귀</a>
+</header>
+
+<div class="main-container">
+  <!-- Left Panel: Structural Capacity & Demand Settings -->
+  <div class="panel">
+    <div class="panel-title">1. 구조물 능력(Pushover) 제원</div>
+
+    <div class="control-group">
+      <label><span>초기 탄성주기 T0</span> <span id="lblT0" style="color:var(--accent-blue); font-weight:700;">0.80 s</span></label>
+      <input type="range" id="rngT0" min="0.3" max="2.0" step="0.05" value="0.80" oninput="updateT0(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>항복 가속도 Say (항복강도)</span> <span id="lblSay">0.25 g</span></label>
+      <input type="range" id="rngSay" min="0.10" max="0.60" step="0.02" value="0.25" oninput="updateSay(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>항복 후 2차 강성비 (α)</span> <span id="lblAlpha">5.0 %</span></label>
+      <input type="range" id="rngAlpha" min="0" max="20" step="1" value="5" oninput="updateAlpha(this.value)">
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">2. 지진 요구스펙트럼 (Demand)</div>
+
+    <div class="control-group">
+      <label><span>설계 스펙트럼 강도 SDS</span> <span id="lblSDS">0.70 g</span></label>
+      <input type="range" id="rngSDS" min="0.30" max="1.20" step="0.05" value="0.70" oninput="updateSDS(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>이력 에너지 소산 감쇠계수 κ</span> <span id="lblKappa">0.67 (보통 감쇠형)</span></label>
+      <select id="selKappa" onchange="updateKappa(this.value)">
+        <option value="1.0">Type A: 완전 방추형 안정 이력 (κ = 1.0)</option>
+        <option value="0.67" selected>Type B: 보통 콘크리트 핀칭 이력 (κ = 0.67)</option>
+        <option value="0.33">Type C: 심한 핀칭 및 강도 저하 (κ = 0.33)</option>
+      </select>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">3. 성능점 반복 수렴 제어</div>
+    <div class="btn-group">
+      <button id="btnStep" class="primary" onclick="stepIteration()">다음 단계 (Step)</button>
+      <button id="btnAuto" onclick="toggleAuto()">자동 수렴 (Auto)</button>
+    </div>
+    <button onclick="resetIteration()" style="margin-top:0.2rem;">수렴 루프 리셋 (Reset)</button>
+
+    <div class="takeaway">
+      <strong>성능점(Performance Point)의 철학</strong><br>
+      구조물이 항복하면 주기가 길어지고(\(T_0 \to T_{eq}\)), 소성 힌지 내부 마찰로 이력감쇠가 폭증(\(\beta = 5\% \to 18\%\))합니다. 감쇠가 커진 만큼 지진 요구 곡선은 아래로 축소되어 능력곡선과 단 하나의 <strong>물리적 균형점(성능점)</strong>에서 만납니다.
+    </div>
+  </div>
+
+  <!-- Center Canvas ADRS Space -->
+  <div class="panel" style="display:flex; flex-direction:column; gap:0.8rem;">
+    <div class="panel-title">
+      <span id="centerTitle">ADRS 평면 상의 능력곡선 vs 감쇠 요구스펙트럼 수렴 궤적</span>
+      <span id="convergeBadge" class="badge" style="color:var(--accent-amber); border-color:var(--accent-amber);">반복 1단계 진행 중</span>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="adrsCanvas"></canvas>
+    </div>
+
+    <div class="callout-emerald">
+      <strong>FEMA 356 내진성능 판정 (슬라이드 29)</strong><br>
+      성능점에서의 변위 \(S_{dp}\)를 건물의 허용 소성 변위와 비교합니다:
+      <strong>IO(즉시입주, \(\mu \le 1.5\))</strong> → <strong>LS(인명안전, \(\mu \le 3.5\))</strong> → <strong>CP(붕괴방지, \(\mu \le 5.0\))</strong>.
+    </div>
+  </div>
+
+  <!-- Right Metrics & Iteration Table -->
+  <div class="panel">
+    <div class="panel-title">수렴 성능점 (Performance Point) 좌표</div>
+
+    <div class="stat-grid">
+      <div class="stat-card emerald">
+        <div class="label">성능점 변위 Sdp</div>
+        <div class="value" id="valSdp">5.82 cm</div>
+      </div>
+      <div class="stat-card rose">
+        <div class="label">성능점 가속도 Sap</div>
+        <div class="value" id="valSap">0.264 g</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="label">유효주기 Teq</div>
+        <div class="value" id="valTeq">0.94 s</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="label">등가감쇠비 βeq</div>
+        <div class="value" id="valBeta">14.8 %</div>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">ATC-40 수렴 반복 이력 (Iteration Steps)</div>
+    <div style="background:#0b1120; border:1px solid var(--border); border-radius:6px; overflow:hidden;">
+      <table class="iter-table">
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th>Sdi (cm)</th>
+            <th>Sai (g)</th>
+            <th>βeq (%)</th>
+            <th>오차 (cm)</th>
+          </tr>
+        </thead>
+        <tbody id="iterTableBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">FEMA 356 안전 한계상태</div>
+    <div style="background:#0b1120; padding:0.8rem; border-radius:6px; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.4rem;">
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+        <span style="color:var(--text-muted);">요구 연성비 μp</span>
+        <span id="valMuP" style="font-weight:700; color:#fff;">1.85</span>
+      </div>
+      <div id="femaVerdict" style="font-size:0.85rem; font-weight:800; color:var(--accent-emerald); text-align:center; padding:0.4rem; background:rgba(16,185,129,0.1); border-radius:4px; border:1px solid var(--accent-emerald);">
+        ✅ 인명안전 (LS: Life Safety) 확보
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let T0 = 0.80; // s
+  let Say = 0.25; // g
+  let alpha = 0.05; // 5% post-yield stiffness
+  let SDS = 0.70; // g
+  let SD1 = 0.35; // g
+  let kappa = 0.67;
+
+  let iterHistory = [];
+  let currentStep = 0;
+  let isAuto = false;
+  let autoTimer = null;
+
+  const canvas = document.getElementById('adrsCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+  }
+  window.addEventListener('resize', () => { resize(); draw(); });
+
+  function updateT0(v) { T0 = parseFloat(v); document.getElementById('lblT0').textContent = T0.toFixed(2) + ' s'; resetIteration(); }
+  function updateSay(v) { Say = parseFloat(v); document.getElementById('lblSay').textContent = Say.toFixed(2) + ' g'; resetIteration(); }
+  function updateAlpha(v) { alpha = parseFloat(v) / 100; document.getElementById('lblAlpha').textContent = v + ' %'; resetIteration(); }
+  function updateSDS(v) { SDS = parseFloat(v); SD1 = SDS * 0.5; document.getElementById('lblSDS').textContent = SDS.toFixed(2) + ' g'; resetIteration(); }
+  function updateKappa(v) { kappa = parseFloat(v); resetIteration(); }
+
+  const g = 980.665; // cm/s^2
+
+  // Elastic yield displacement Sdy
+  function getSdy() {
+    const omega0 = (2 * Math.PI) / T0;
+    return (Say * g) / (omega0 * omega0); // cm
+  }
+
+  // Capacity curve: Sa(Sd)
+  function capacitySa(sd) {
+    const sdy = getSdy();
+    if (sd <= sdy) {
+      const omega0 = (2 * Math.PI) / T0;
+      return (omega0 * omega0 * sd) / g;
+    } else {
+      const omega0 = (2 * Math.PI) / T0;
+      const k0 = (omega0 * omega0) / g;
+      const kPost = k0 * alpha;
+      return Say + kPost * (sd - sdy);
+    }
+  }
+
+  // Demand spectrum Sa(Sd, beta) in ADRS
+  function demandSa(sd, beta) {
+    // Damping factor B = 4 / (5.6 - ln(beta_pct))
+    const bPct = Math.max(5.0, beta * 100);
+    const B = 4.0 / (5.6 - Math.log(bPct));
+
+    // In ADRS, radial line from origin has slope omega^2 / g = 4*pi^2 / (g*T^2)
+    // T = 2*pi * sqrt(sd / (sa*g))
+    // We solve for Sa:
+    // In constant acceleration part (T <= Ts = SD1/SDS): Sa = SDS / B
+    // In constant velocity part (T > Ts): Sa = SD1 / (T * B) => Sa = SD1 / (2*pi * sqrt(sd / (sa*g)) * B)
+    // => sqrt(Sa) = SD1 * sqrt(g) / (2*pi * sqrt(sd) * B) => Sa = (SD1^2 * g) / (4*pi^2 * sd * B^2)
+
+    const Ts = SD1 / SDS;
+    const Sa_plateau = SDS / B;
+
+    // Transition Sd where Sa_plateau meets velocity branch:
+    const sd_trans = (Sa_plateau * g * Ts * Ts) / (4 * Math.PI * Math.PI);
+
+    if (sd <= sd_trans) {
+      return Sa_plateau;
+    } else {
+      return (SD1 * SD1 * g) / (4 * Math.PI * Math.PI * sd * B * B);
+    }
+  }
+
+  // Find intersection between capacity and demand curve
+  function findIntersection(beta) {
+    let low = 0.1, high = 30.0;
+    for (let i = 0; i < 40; i++) {
+      const mid = (low + high) / 2;
+      const cap = capacitySa(mid);
+      const dem = demandSa(mid, beta);
+      if (cap < dem) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    const sd = (low + high) / 2;
+    const sa = capacitySa(sd);
+    return { sd, sa };
+  }
+
+  // ATC-40 Equivalent Damping from ductility mu
+  function getBetaEq(sd) {
+    const sdy = getSdy();
+    const mu = Math.max(1.0, sd / sdy);
+    if (mu <= 1.0) return 0.05;
+
+    // Area of hysteretic loop / (2*pi * Ed)
+    const beta_0 = 0.05;
+    const beta_hyst = (2 / Math.PI) * ((mu - 1) * (1 - alpha)) / (mu * (1 + alpha * (mu - 1)));
+    const beta_tot = beta_0 + kappa * beta_hyst;
+    return Math.min(0.25, beta_tot);
+  }
+
+  function resetIteration() {
+    iterHistory = [];
+    currentStep = 0;
+    if (isAuto) toggleAuto();
+
+    // Step 0: Initial intersection with 5% elastic demand
+    const p0 = findIntersection(0.05);
+    const beta0 = getBetaEq(p0.sd);
+    iterHistory.push({
+      step: 0,
+      sd: p0.sd,
+      sa: p0.sa,
+      beta: 0.05,
+      nextBeta: beta0,
+      err: 999
+    });
+
+    updateUI();
+    draw();
+  }
+
+  function stepIteration() {
+    if (iterHistory.length === 0) resetIteration();
+
+    const last = iterHistory[iterHistory.length - 1];
+    if (iterHistory.length >= 8 || last.err < 0.05) {
+      if (isAuto) toggleAuto();
+      return;
+    }
+
+    // Next step: use nextBeta from last step to compute new demand intersection
+    const nextBeta = last.nextBeta;
+    const pNew = findIntersection(nextBeta);
+    const err = Math.abs(pNew.sd - last.sd);
+    const betaAfter = getBetaEq(pNew.sd);
+
+    iterHistory.push({
+      step: iterHistory.length,
+      sd: pNew.sd,
+      sa: pNew.sa,
+      beta: nextBeta,
+      nextBeta: betaAfter,
+      err: err
+    });
+
+    updateUI();
+    draw();
+  }
+
+  function toggleAuto() {
+    isAuto = !isAuto;
+    document.getElementById('btnAuto').classList.toggle('active', isAuto);
+    if (isAuto) {
+      autoTimer = setInterval(() => {
+        const last = iterHistory[iterHistory.length - 1];
+        if (iterHistory.length >= 7 || (last && last.err < 0.05)) {
+          toggleAuto();
+        } else {
+          stepIteration();
+        }
+      }, 500);
+    } else {
+      if (autoTimer) clearInterval(autoTimer);
+    }
+  }
+
+  function updateUI() {
+    const last = iterHistory[iterHistory.length - 1];
+    const sdy = getSdy();
+    const mu = last.sd / sdy;
+    const omegaEq = Math.sqrt((last.sa * g) / last.sd);
+    const Teq = (2 * Math.PI) / omegaEq;
+
+    document.getElementById('valSdp').textContent = last.sd.toFixed(2) + ' cm';
+    document.getElementById('valSap').textContent = last.sa.toFixed(3) + ' g';
+    document.getElementById('valTeq').textContent = Teq.toFixed(2) + ' s';
+    document.getElementById('valBeta').textContent = (last.beta * 100).toFixed(1) + ' %';
+    document.getElementById('valMuP').textContent = mu.toFixed(2);
+
+    const isConverged = last.err < 0.05 && iterHistory.length > 1;
+    const badge = document.getElementById('convergeBadge');
+    if (isConverged) {
+      badge.textContent = `성능점 수렴 완료 (오차 ${last.err.toFixed(3)}cm < 0.05cm)`;
+      badge.style.color = "var(--accent-emerald)";
+      badge.style.borderColor = "var(--accent-emerald)";
+    } else {
+      badge.textContent = `반복 ${iterHistory.length}단계 진행 중`;
+      badge.style.color = "var(--accent-amber)";
+      badge.style.borderColor = "var(--accent-amber)";
+    }
+
+    // FEMA Verdict
+    const fVer = document.getElementById('femaVerdict');
+    if (mu <= 1.5) {
+      fVer.textContent = "🟢 즉시거주 (IO: Immediate Occupancy) - 미세 손상";
+      fVer.style.color = "var(--accent-emerald)";
+      fVer.style.borderColor = "var(--accent-emerald)";
+    } else if (mu <= 3.5) {
+      fVer.textContent = "🟡 인명안전 (LS: Life Safety) - 중등도 소성 손상";
+      fVer.style.color = "var(--accent-amber)";
+      fVer.style.borderColor = "var(--accent-amber)";
+    } else {
+      fVer.textContent = "🔴 붕괴방지 한계 (CP: Collapse Prevention) - 심각한 소성 손상";
+      fVer.style.color = "var(--accent-rose)";
+      fVer.style.borderColor = "var(--accent-rose)";
+    }
+
+    // Iteration table
+    const tbody = document.getElementById('iterTableBody');
+    tbody.innerHTML = iterHistory.map((item, idx) => `
+      <tr class="${(idx === iterHistory.length - 1 ? 'current' : '')}">
+        <td>${item.step}</td>
+        <td>${item.sd.toFixed(2)}</td>
+        <td>${item.sa.toFixed(3)}</td>
+        <td>${(item.beta * 100).toFixed(1)}%</td>
+        <td>${item.err === 999 ? '-' : item.err.toFixed(3)}</td>
+      </tr>
+    `).join('');
+  }
+
+  function draw() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const pad = { left: 60, right: 30, top: 30, bottom: 45 };
+    const pw = w - pad.left - pad.right;
+    const ph = h - pad.top - pad.bottom;
+
+    const maxSd = 20.0; // cm
+    const maxSa = 0.8;  // g
+
+    function xOf(sd) { return pad.left + (sd / maxSd) * pw; }
+    function yOf(sa) { return pad.top + ph - (sa / maxSa) * ph; }
+
+    // Grid
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.fillStyle = "var(--text-muted)";
+    ctx.font = "10px sans-serif";
+
+    for (let sd = 0; sd <= maxSd; sd += 2.5) {
+      const x = xOf(sd);
+      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+      ctx.fillText(sd.toFixed(1), x - 8, pad.top + ph + 16);
+    }
+    for (let sa = 0; sa <= maxSa; sa += 0.1) {
+      const y = yOf(sa);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
+      ctx.fillText(sa.toFixed(1), pad.left - 26, y + 4);
+    }
+
+    // Radial Period Lines: T0 (initial) and Teq (elongated)
+    const sdy = getSdy();
+    const last = iterHistory[iterHistory.length - 1];
+    const omegaEq = Math.sqrt((last.sa * g) / last.sd);
+    const Teq = (2 * Math.PI) / omegaEq;
+
+    // T0 Line
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(xOf(0), yOf(0));
+    ctx.lineTo(xOf(sdy), yOf(Say));
+    ctx.stroke();
+    ctx.fillStyle = "#38bdf8";
+    ctx.fillText(`T0 = ${T0.toFixed(2)}s`, xOf(sdy) + 5, yOf(Say) - 5);
+
+    // Teq Line
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.5)";
+    ctx.beginPath();
+    ctx.moveTo(xOf(0), yOf(0));
+    ctx.lineTo(xOf(last.sd), yOf(last.sa));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#f59e0b";
+    ctx.fillText(`Teq = ${Teq.toFixed(2)}s (주기 신장)`, xOf(last.sd) + 5, yOf(last.sa) - 12);
+
+    // 1. Capacity Curve (Green)
+    ctx.strokeStyle = "#10b981";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let sd = 0; sd <= maxSd; sd += 0.2) {
+      const sa = capacitySa(sd);
+      const x = xOf(sd), y = yOf(sa);
+      if (sd === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    ctx.fillStyle = "#10b981";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText("능력곡선 (Capacity Spectrum)", xOf(maxSd) - 150, yOf(capacitySa(maxSd)) - 10);
+
+    // 2. Initial Elastic Demand Spectrum (5%, Rose faint)
+    ctx.strokeStyle = "rgba(244, 63, 94, 0.35)";
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    for (let sd = 0.2; sd <= maxSd; sd += 0.2) {
+      const sa = demandSa(sd, 0.05);
+      const x = xOf(sd), y = yOf(sa);
+      if (sd === 0.2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(244, 63, 94, 0.7)";
+    ctx.fillText("초기 탄성요구 (β=5%)", xOf(maxSd) - 130, yOf(demandSa(maxSd, 0.05)) + 15);
+
+    // 3. Current Damped Demand Spectrum (for current step's beta)
+    ctx.strokeStyle = "#f43f5e";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let sd = 0.2; sd <= maxSd; sd += 0.2) {
+      const sa = demandSa(sd, last.beta);
+      const x = xOf(sd), y = yOf(sa);
+      if (sd === 0.2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    // 4. Convergence Trails
+    if (iterHistory.length > 1) {
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      iterHistory.forEach((p, idx) => {
+        const x = xOf(p.sd), y = yOf(p.sa);
+        if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1;
+    }
+
+    // Plot Points
+    iterHistory.forEach((p, idx) => {
+      const isLast = idx === iterHistory.length - 1;
+      const x = xOf(p.sd), y = yOf(p.sa);
+
+      ctx.beginPath();
+      ctx.arc(x, y, isLast ? 7 : 4, 0, 2 * Math.PI);
+      ctx.fillStyle = isLast ? "#f59e0b" : "#38bdf8";
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "10px sans-serif";
+      ctx.fillText(`P${idx}`, x - 12, y - 8);
+    });
+
+    // Axis labels
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("스펙트럴 변위 Sd (cm)", pad.left + pw / 2 - 50, pad.top + ph + 38);
+    ctx.save();
+    ctx.translate(pad.left - 40, pad.top + ph / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("스펙트럴 가속도 Sa (g)", -60, 0);
+    ctx.restore();
+  }
+
+  resize();
+  resetIteration();
+</script>
+
+</body>
+</html>

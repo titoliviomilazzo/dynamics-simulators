@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 37: Newmark 등변위 규칙 &middot; R계수의 물리적 실체</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .light-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-lg space-y-5">
+    
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            Newmark-Veletsos(1960) 등변위 규칙과 반응수정계수(R)의 실체
+          </h1>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+            강의노트 §8.2 &middot; 블록 F 핵심 반전
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-1 font-medium">
+          "중장주기 구조에서는 항복하더라도 최대변위 u<sub>max</sub>가 탄성과 거의 같습니다. 요구 강도만 1/R로 깎아냅니다."
+        </p>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center gap-2">
+        <button onclick="toggleLoop()" id="btn-toggle-loop" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">
+          일시정지
+        </button>
+        <button onclick="resetLoop()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition">
+          초기화
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Comparison: Elastic vs Ductile (R=5) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      
+      <!-- 1. Left (6 Cols): Structural Displacement Comparison -->
+      <div class="lg:col-span-6 bg-slate-50/70 border border-slate-200 rounded-xl p-5 flex flex-col justify-between light-grid min-h-[360px]">
+        <div class="border-b border-slate-200 pb-2 flex justify-between items-center">
+          <span class="text-sm font-bold text-slate-900">1. 탄성 골조(R=1) vs 연성 골조(R=5) 지진 변위 일치</span>
+          <span class="text-xs font-mono font-bold text-blue-700">u<sub>max,inelastic</sub> &approx; u<sub>max,elastic</sub></span>
+        </div>
+
+        <div class="relative w-full flex-1 my-2 min-h-[220px]">
+          <canvas id="canvasFrames" class="w-full h-full block"></canvas>
+        </div>
+
+        <div class="p-3 bg-white border border-slate-200 rounded-xl text-xs space-y-1 font-mono">
+          <div class="flex justify-between">
+            <span class="text-slate-500 font-sans">탄성 요구 밑면력 V<sub>e</sub> (R=1):</span>
+            <span class="font-bold text-slate-800">3,686 kN (감당 불가)</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500 font-sans">설계 항복 강도 V<sub>y</sub> (R=5):</span>
+            <span class="font-bold text-emerald-700">737 kN (1/5로 경감)</span>
+          </div>
+          <div class="flex justify-between border-t border-slate-100 pt-1 text-slate-700">
+            <span class="font-sans font-bold">최대 횡변위 u<sub>max</sub>:</span>
+            <span class="font-bold text-blue-700">탄성 4.8 cm &approx; 연성 4.8 cm (등변위!)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Right (6 Cols): F-u Hysteresis Loop & Energy Dissipation -->
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-3">
+        <div class="border-b border-slate-100 pb-2 flex justify-between items-center">
+          <span class="text-sm font-bold text-slate-900">2. 힘-변위(F-u) 이력 루프와 소산 에너지 면적</span>
+          <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">&oint; F du 소산</span>
+        </div>
+
+        <div class="relative w-full flex-1 min-h-[220px]">
+          <canvas id="canvasHysteresis" class="w-full h-full block"></canvas>
+        </div>
+
+        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 leading-relaxed font-sans">
+          <strong>💡 공학사에서 가장 경제적인 트릭:</strong><br>
+          탄성으로 지진을 버티려면 기둥과 기초를 5배 키워야 하지만(경제성 파탄), 
+          부재에 연성(Ductility)을 부여하면 <strong>항복 루프 안의 면적만큼 지진 에너지를 열로 날려버려</strong> 1/5 크기의 기둥으로도 붕괴 없이 살아남습니다.
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    let isRunning = true;
+    let t = 0;
+    const canvasF = document.getElementById('canvasFrames');
+    const ctxF = canvasF.getContext('2d');
+    const canvasH = document.getElementById('canvasHysteresis');
+    const ctxH = canvasH.getContext('2d');
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      [canvasF, canvasH].forEach(c => {
+        const r = c.parentElement.getBoundingClientRect();
+        c.width = r.width * dpr;
+        c.height = r.height * dpr;
+      });
+      ctxF.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctxH.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawHysteresis();
+    }
+    window.addEventListener('resize', resize);
+    setTimeout(resize, 40);
+
+    function toggleLoop() {
+      isRunning = !isRunning;
+      document.getElementById('btn-toggle-loop').innerText = isRunning ? '일시정지' : '재생';
+    }
+
+    function resetLoop() {
+      t = 0;
+    }
+
+    function drawColumn(c, x0, y0, x1, y1, col) {
+      c.strokeStyle = col;
+      c.lineWidth = 3.5;
+      c.lineCap = 'round';
+      c.beginPath();
+      for (let i = 0; i <= 20; i++) {
+        const s = i / 20;
+        const h = 3 * s * s - 2 * s * s * s;
+        const curX = x0 + (x1 - x0) * h;
+        const curY = y0 + (y1 - y0) * s;
+        if (i === 0) c.moveTo(curX, curY);
+        else c.lineTo(curX, curY);
+      }
+      c.stroke();
+    }
+
+    // Kinematic hysteresis state for R=5
+    const uMax = 90;       // Canvas pixels for 4.8 cm
+    const fElastic = 95;   // Canvas pixels for 3,686 kN
+    const uy = 18;         // Yield disp (uMax / 5) = 0.96 cm
+    const fy = 20;         // Yield force (fElastic / 5) = 737 kN
+
+    function getHysteresisForce(uVal, uVel) {
+      // Bilinear Kinematic Hysteresis loop calculation
+      if (uVel >= 0) {
+        // Moving right (loading or reloading)
+        const fLoading = -fy + (fy / uy) * (uVal - (-uMax + 2 * uy));
+        return Math.min(fy, Math.max(-fy, fLoading));
+      } else {
+        // Moving left (unloading)
+        const fUnloading = fy - (fy / uy) * ((uMax - 2 * uy) - uVal);
+        return Math.max(-fy, Math.min(fy, fUnloading));
+      }
+    }
+
+    function drawHysteresis(currU, currVel) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvasH.width / dpr;
+      const h = canvasH.height / dpr;
+      ctxH.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+
+      // Axes
+      ctxH.strokeStyle = '#cbd5e1';
+      ctxH.lineWidth = 1;
+      ctxH.beginPath();
+      ctxH.moveTo(20, cy); ctxH.lineTo(w - 20, cy);
+      ctxH.moveTo(cx, 15); ctxH.lineTo(cx, h - 15);
+      ctxH.stroke();
+
+      // Axis labels
+      ctxH.fillStyle = '#64748b';
+      ctxH.font = 'bold 9px monospace';
+      ctxH.fillText('+u (변위)', w - 45, cy - 6);
+      ctxH.fillText('+F (밑면력)', cx + 6, 25);
+
+      // Elastic Slope (Steep triangle, Ve = 3686 kN)
+      ctxH.strokeStyle = '#94a3b8';
+      ctxH.lineWidth = 1.5;
+      ctxH.setLineDash([3, 3]);
+      ctxH.beginPath();
+      ctxH.moveTo(cx - uMax, cy + fElastic);
+      ctxH.lineTo(cx + uMax, cy - fElastic);
+      ctxH.stroke();
+      ctxH.setLineDash([]);
+
+      ctxH.fillStyle = '#64748b';
+      ctxH.font = 'bold 9px monospace';
+      ctxH.fillText('탄성선 (R=1, Ve = 3,686 kN)', cx + 25, cy - fElastic + 10);
+
+      // Elasto-plastic Hysteresis Loop Background (R=5, Vy = 737 kN)
+      ctxH.fillStyle = 'rgba(5, 150, 105, 0.12)';
+      ctxH.strokeStyle = '#059669';
+      ctxH.lineWidth = 2.5;
+
+      ctxH.beginPath();
+      ctxH.moveTo(cx - uMax, cy + fy);
+      ctxH.lineTo(cx - uMax + 2 * uy, cy - fy);
+      ctxH.lineTo(cx + uMax, cy - fy);
+      ctxH.lineTo(cx + uMax - 2 * uy, cy + fy);
+      ctxH.closePath();
+      ctxH.fill();
+      ctxH.stroke();
+
+      // Equal displacement vertical guide line at uMax
+      ctxH.strokeStyle = '#2563eb';
+      ctxH.lineWidth = 1.2;
+      ctxH.setLineDash([2, 2]);
+      ctxH.beginPath();
+      ctxH.moveTo(cx + uMax, 25);
+      ctxH.lineTo(cx + uMax, h - 25);
+      ctxH.moveTo(cx - uMax, 25);
+      ctxH.lineTo(cx - uMax, h - 25);
+      ctxH.stroke();
+      ctxH.setLineDash([]);
+
+      ctxH.fillStyle = '#2563eb';
+      ctxH.font = 'bold 10px Pretendard, sans-serif';
+      ctxH.textAlign = 'center';
+      ctxH.fillText('등변위 ±umax = 4.8 cm', cx + uMax, h - 8);
+
+      // --- DYNAMIC TRACER DOTS ---
+      // 1. Elastic Dot (Grey)
+      const fElNow = (currU / uMax) * fElastic;
+      const elPx = cx + currU;
+      const elPy = cy - fElNow;
+
+      ctxH.fillStyle = '#475569';
+      ctxH.beginPath();
+      ctxH.arc(elPx, elPy, 5, 0, Math.PI * 2);
+      ctxH.fill();
+      ctxH.strokeStyle = '#ffffff';
+      ctxH.lineWidth = 1.5;
+      ctxH.stroke();
+
+      // 2. Elasto-plastic Dot (Emerald Glowing)
+      const fEpNow = getHysteresisForce(currU, currVel);
+      const epPx = cx + currU;
+      const epPy = cy - fEpNow;
+
+      // Glow effect
+      ctxH.shadowColor = '#059669';
+      ctxH.shadowBlur = 8;
+      ctxH.fillStyle = '#059669';
+      ctxH.beginPath();
+      ctxH.arc(epPx, epPy, 6, 0, Math.PI * 2);
+      ctxH.fill();
+      ctxH.shadowBlur = 0; // reset
+      ctxH.strokeStyle = '#ffffff';
+      ctxH.lineWidth = 1.5;
+      ctxH.stroke();
+
+      // Real-time Force Callout Tags
+      const realElForce = Math.round((fElNow / fElastic) * 3686);
+      const realEpForce = Math.round((fEpNow / fy) * 737);
+
+      ctxH.font = 'bold 9px monospace';
+      ctxH.fillStyle = '#334155';
+      ctxH.fillText(`Fel: ${realElForce} kN`, elPx + 8, elPy - 6);
+
+      const isYielded = Math.abs(fEpNow) >= fy * 0.96;
+      ctxH.fillStyle = isYielded ? '#dc2626' : '#059669';
+      ctxH.fillText(`Fy: ${realEpForce} kN ${isYielded ? '⚡항복!' : ''}`, epPx + 8, epPy + 14);
+    }
+
+    let prevU = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (isRunning) t += 0.025;
+
+      const dpr = window.devicePixelRatio || 1;
+      const wF = canvasF.width / dpr;
+      const hF = canvasF.height / dpr;
+      ctxF.clearRect(0, 0, wF, hF);
+
+      // Frame displacement (in pixels)
+      const uSim = 32 * Math.sin(t * 3.2);
+      const uVel = 32 * 3.2 * Math.cos(t * 3.2);
+
+      // Hysteresis scale displacement
+      const uHyster = (uSim / 32) * uMax;
+
+      // Left Frame: Elastic (Grey)
+      const c1X = wF * 0.28;
+      const gy = hF - 30;
+      const bay = 45;
+      const fH = (gy - 30) / 3;
+
+      // Ground bar
+      ctxF.fillStyle = '#475569';
+      ctxF.fillRect(c1X - bay - 10, gy, (bay + 10) * 2, 5);
+
+      drawColumn(ctxF, c1X - bay, gy, c1X - bay + uSim * 0.4, gy - fH, '#64748b');
+      drawColumn(ctxF, c1X + bay, gy, c1X + bay + uSim * 0.4, gy - fH, '#64748b');
+      drawColumn(ctxF, c1X - bay + uSim * 0.4, gy - fH, c1X - bay + uSim * 0.75, gy - 2 * fH, '#64748b');
+      drawColumn(ctxF, c1X + bay + uSim * 0.4, gy - fH, c1X + bay + uSim * 0.75, gy - 2 * fH, '#64748b');
+      drawColumn(ctxF, c1X - bay + uSim * 0.75, gy - 2 * fH, c1X - bay + uSim, gy - 3 * fH, '#64748b');
+      drawColumn(ctxF, c1X + bay + uSim * 0.75, gy - 2 * fH, c1X + bay + uSim, gy - 3 * fH, '#64748b');
+
+      ctxF.fillStyle = '#1e293b';
+      ctxF.font = 'bold 10px Pretendard, sans-serif';
+      ctxF.textAlign = 'center';
+      ctxF.fillText('탄성 골조 (R=1, Ve = 3,686 kN)', c1X, gy + 18);
+
+      // Right Frame: Ductile R=5 (Emerald with plastic hinges)
+      const c2X = wF * 0.72;
+      ctxF.fillStyle = '#059669';
+      ctxF.fillRect(c2X - bay - 10, gy, (bay + 10) * 2, 5);
+
+      drawColumn(ctxF, c2X - bay, gy, c2X - bay + uSim * 0.4, gy - fH, '#059669');
+      drawColumn(ctxF, c2X + bay, gy, c2X + bay + uSim * 0.4, gy - fH, '#059669');
+      drawColumn(ctxF, c2X - bay + uSim * 0.4, gy - fH, c2X - bay + uSim * 0.75, gy - 2 * fH, '#059669');
+      drawColumn(ctxF, c2X + bay + uSim * 0.4, gy - fH, c2X + bay + uSim * 0.75, gy - 2 * fH, '#059669');
+      drawColumn(ctxF, c2X - bay + uSim * 0.75, gy - 2 * fH, c2X - bay + uSim, gy - 3 * fH, '#059669');
+      drawColumn(ctxF, c2X + bay + uSim * 0.75, gy - 2 * fH, c2X + bay + uSim, gy - 3 * fH, '#059669');
+
+      // Red plastic hinge dots at bottom of columns when yield condition is reached
+      const isYielding = Math.abs(uSim / 32) > 0.20;
+      ctxF.fillStyle = isYielding ? '#ef4444' : '#059669';
+      ctxF.beginPath(); ctxF.arc(c2X - bay, gy - 4, isYielding ? 5 : 3.5, 0, Math.PI * 2); ctxF.fill();
+      ctxF.beginPath(); ctxF.arc(c2X + bay, gy - 4, isYielding ? 5 : 3.5, 0, Math.PI * 2); ctxF.fill();
+
+      ctxF.fillStyle = '#065f46';
+      ctxF.fillText(`연성 골조 (R=5, Vy = 737 kN ${isYielding ? '💥' : ''})`, c2X, gy + 18);
+
+      // Render Dynamic Hysteresis
+      drawHysteresis(uHyster, uVel);
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

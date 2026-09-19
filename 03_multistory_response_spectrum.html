@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 03: 다층 지진응답스펙트럼 생성 및 모드중첩법 (SRSS vs CQC)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .light-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-7xl bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-lg space-y-5">
+    
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            다층 지진응답스펙트럼(RSA) 생성 및 모드중첩법(SRSS &middot; CQC)
+          </h1>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+            KDS 41 &middot; Chopra 13장 &middot; 실무 정본
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-1 font-medium">
+          지반가속도 &uuml;<sub>g</sub>(t) &rarr; 5대 감쇠비별 SDOF 응답스펙트럼 S<sub>a</sub>(T) &rarr; 3층 골조 모드별 밑면전단력 V<sub>bn</sub> &rarr; 상관계수 [&rho;] 및 CQC 교차항 정밀 분해
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btn-earthquake" onclick="triggerEarthquake()" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition shadow-sm flex items-center gap-2">
+          <span>지진파 인가 (El Centro)</span>
+        </button>
+        <button onclick="triggerPluck()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold transition shadow-sm">
+          초기변위 진동
+        </button>
+        <button onclick="resetAll()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-sm font-semibold transition">
+          초기화
+        </button>
+      </div>
+    </div>
+
+    <!-- Ground Acceleration Waveform -->
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+      <div class="flex justify-between items-center text-xs font-semibold text-slate-600 mb-1">
+        <span class="text-red-600 font-bold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-red-500"></span>
+          지반가속도 이력 &uuml;<sub>g</sub>(t) [PGA = 0.32g &middot; 3.14 m/s&sup2;]
+        </span>
+        <span id="eq-status" class="text-slate-500 font-medium">대기 상태 (지진파 인가를 누르세요)</span>
+      </div>
+      <div class="h-14 w-full relative">
+        <canvas id="gmCanvas" class="w-full h-full block"></canvas>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      
+      <!-- 1. 3-Story Frame (4 Cols) -->
+      <div class="lg:col-span-4 bg-slate-50/70 border border-slate-200 rounded-xl p-4 flex flex-col justify-between light-grid relative min-h-[460px]">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+          <div>
+            <span class="text-sm font-bold text-slate-900 block">3층 전단골조 진동 거동</span>
+            <span id="frame-period-text" class="text-[11px] font-mono text-slate-500">T₁=0.65s, T₂=0.23s, T₃=0.16s</span>
+          </div>
+          <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-white text-blue-700 border border-slate-200">m=400t/층</span>
+        </div>
+
+        <div class="relative flex-1 w-full my-2 min-h-[300px]">
+          <canvas id="frameCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Frame Displacements & Modal Shears -->
+        <div class="space-y-2 pt-2 border-t border-slate-200 text-xs">
+          <div class="flex justify-between items-center px-1 font-medium">
+            <span class="text-slate-500">실시간 층변위:</span>
+            <span id="disp-text" class="text-blue-700 font-mono font-bold text-sm">u₃=0.0cm, u₂=0.0cm, u₁=0.0cm</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5 text-center pt-1 font-mono">
+            <div class="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+              <span class="text-slate-500 block text-[10px] font-sans">1차 V<sub>b1</sub> (91.4%)</span>
+              <span id="vb1-text" class="text-emerald-600 font-bold text-sm block">0.0 kN</span>
+              <span class="text-[9px] text-slate-400 block font-sans">정본: 3,653.0 kN</span>
+            </div>
+            <div class="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+              <span class="text-slate-500 block text-[10px] font-sans">2차 V<sub>b2</sub> (7.5%)</span>
+              <span id="vb2-text" class="text-blue-600 font-bold text-sm block">0.0 kN</span>
+              <span class="text-[9px] text-slate-400 block font-sans">정본: 484.6 kN</span>
+            </div>
+            <div class="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+              <span class="text-slate-500 block text-[10px] font-sans">3차 V<sub>b3</sub> (1.1%)</span>
+              <span id="vb3-text" class="text-purple-600 font-bold text-sm block">0.0 kN</span>
+              <span class="text-[9px] text-slate-400 block font-sans">정본: 71.5 kN</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Response Spectrum & Modal Combination (8 Cols) -->
+      <div class="lg:col-span-8 bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between min-h-[460px] space-y-3">
+        
+        <!-- Spectrum Header with Dynamic Scale Badge and Damping Selector -->
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-slate-900">가속도 응답스펙트럼 S<sub>a</sub>(T)</span>
+            <span id="yscale-badge" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+              y축 자동 스케일: 최대 1.0g
+            </span>
+          </div>
+
+          <!-- Damping Ratio Selector Pills -->
+          <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+            <button id="btn-damp-all" onclick="selectDamping('all')" class="px-2.5 py-1 rounded-lg transition bg-white text-blue-700 shadow-xs font-bold">
+              전체 비교 (Family)
+            </button>
+            <button id="btn-damp-1" onclick="selectDamping(0.01)" class="px-2 py-1 rounded-lg transition text-slate-600 hover:text-slate-900">
+              1%
+            </button>
+            <button id="btn-damp-2" onclick="selectDamping(0.02)" class="px-2 py-1 rounded-lg transition text-slate-600 hover:text-slate-900">
+              2%
+            </button>
+            <button id="btn-damp-5" onclick="selectDamping(0.05)" class="px-2 py-1 rounded-lg transition text-slate-600 hover:text-slate-900">
+              5% (RC)
+            </button>
+            <button id="btn-damp-10" onclick="selectDamping(0.10)" class="px-2 py-1 rounded-lg transition text-slate-600 hover:text-slate-900">
+              10%
+            </button>
+            <button id="btn-damp-20" onclick="selectDamping(0.20)" class="px-2 py-1 rounded-lg transition text-slate-600 hover:text-slate-900">
+              20% (댐퍼)
+            </button>
+          </div>
+        </div>
+
+        <!-- Spectrum Canvas -->
+        <div class="relative flex-1 w-full min-h-[220px]">
+          <canvas id="specCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Damping Family Peak Legends -->
+        <div class="grid grid-cols-5 gap-1.5 text-center text-[11px] font-mono bg-slate-50 p-2 rounded-xl border border-slate-200">
+          <div class="p-1 rounded bg-white border border-red-200">
+            <span class="text-red-600 font-bold block text-[10px] font-sans">&zeta;=1% (강재 무용접)</span>
+            <span id="peak-damp-1" class="text-red-700 font-bold">0.00g</span>
+          </div>
+          <div class="p-1 rounded bg-white border border-orange-200">
+            <span class="text-orange-600 font-bold block text-[10px] font-sans">&zeta;=2% (볼트/PC)</span>
+            <span id="peak-damp-2" class="text-orange-700 font-bold">0.00g</span>
+          </div>
+          <div class="p-1 rounded bg-white border border-blue-200 shadow-xs ring-1 ring-blue-300">
+            <span class="text-blue-600 font-bold block text-[10px] font-sans">&zeta;=5% (RC 표준)</span>
+            <span id="peak-damp-5" class="text-blue-700 font-black">0.00g</span>
+          </div>
+          <div class="p-1 rounded bg-white border border-teal-200">
+            <span class="text-teal-600 font-bold block text-[10px] font-sans">&zeta;=10% (고감쇠)</span>
+            <span id="peak-damp-10" class="text-teal-700 font-bold">0.00g</span>
+          </div>
+          <div class="p-1 rounded bg-white border border-slate-300">
+            <span class="text-slate-600 font-bold block text-[10px] font-sans">&zeta;=20% (댐퍼 제진)</span>
+            <span id="peak-damp-20" class="text-slate-700 font-bold">0.00g</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 3. SRSS vs CQC Detailed Decomposition & Closely-spaced Modes Interactive Lab -->
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5 space-y-4">
+      
+      <!-- Section Header with Mode Spacing Toggle -->
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-base font-bold text-slate-900">모드 중첩(Modal Combination) 정밀 비교: SRSS vs CQC</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold font-mono">Der Kiureghian 수식</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">
+            모드 간 진동수비 r = &omega;<sub>j</sub>/&omega;<sub>i</sub> 및 감쇠비에 따른 상관계수 [&rho;] 행렬과 교차항(2&rho;<sub>ij</sub>V<sub>i</sub>V<sub>j</sub>) 기여도 검증
+          </p>
+        </div>
+
+        <!-- Interactive Mode Spacing Switch -->
+        <div class="flex items-center gap-2">
+          <button id="btn-mode-normal" onclick="setCloseMode(false)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-blue-700 border border-blue-300 shadow-xs">
+            정형 주기 분리 (T₁=0.65s, T₂=0.23s)
+          </button>
+          <button id="btn-mode-close" onclick="setCloseMode(true)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-200 text-slate-700 border border-slate-300 hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300">
+            🚨 근접모드 가상 시뮬레이션 (T₂ &rarr; 0.95 T₁)
+          </button>
+        </div>
+      </div>
+
+      <!-- Result Comparison Cards (3 Columns) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        
+        <!-- ABSSUM Card -->
+        <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between space-y-2">
+          <div class="flex justify-between items-start">
+            <span class="font-bold text-slate-700 text-sm">단순 절댓값 합 (ABSSUM)</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">&sum; |V<sub>bn</sub>|</span>
+          </div>
+          <div>
+            <span id="val-abssum" class="text-xl font-black font-mono text-slate-800 block">0.0 kN</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">모든 모드가 동시에 최대치에 도달한다고 가정한 비물리적 상한선 (등가정적해석 유사).</span>
+          </div>
+          <div class="pt-1 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
+            동시발생 불가능 &rarr; 과대평가
+          </div>
+        </div>
+
+        <!-- SRSS Card -->
+        <div class="p-3.5 rounded-xl bg-white border border-blue-200 shadow-xs flex flex-col justify-between space-y-2">
+          <div class="flex justify-between items-start">
+            <span class="font-bold text-blue-800 text-sm">SRSS 제곱합제곱근</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-mono">&radic;(&sum; V<sub>bn</sub>&sup2;)</span>
+          </div>
+          <div>
+            <span id="val-srss" class="text-xl font-black font-mono text-blue-700 block">0.0 kN</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">모드 간 위상이 완전 독립(&rho;<sub>ij</sub> = 0)이라고 가정한 전통적 규준 중첩법.</span>
+          </div>
+          <div id="srss-status-tag" class="pt-1 border-t border-slate-100 text-[11px] text-blue-600 font-bold">
+            주기 분리 시 오차 &le; 0.2% 로 적합
+          </div>
+        </div>
+
+        <!-- CQC Card -->
+        <div id="cqc-card" class="p-3.5 rounded-xl bg-white border border-emerald-300 shadow-xs flex flex-col justify-between space-y-2 ring-1 ring-emerald-400">
+          <div class="flex justify-between items-start">
+            <span class="font-bold text-emerald-800 text-sm">CQC 완전이차중첩 (KDS 41 표준)</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-mono">&radic;(&sum;&sum; &rho;<sub>ij</sub> V<sub>bi</sub> V<sub>bj</sub>)</span>
+          </div>
+          <div>
+            <span id="val-cqc" class="text-xl font-black font-mono text-emerald-700 block">0.0 kN</span>
+            <span id="cqc-diff-tag" class="text-[11px] font-bold text-emerald-600 mt-1 block">
+              SRSS 대비: +0.0% (+0.0 kN)
+            </span>
+          </div>
+          <div id="cqc-warning-box" class="pt-1 border-t border-emerald-100 text-[11px] text-emerald-700 font-medium">
+            KDS 41 &middot; ASCE 7 필수 규정 준수
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Detailed Breakdown Grid (Correlation Matrix & Mathematical Cross Terms) -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs pt-1">
+        
+        <!-- 1. Correlation Matrix Table (5 Cols) -->
+        <div class="md:col-span-5 bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+            <span class="font-bold text-slate-800">모드 상관계수 행렬 [&rho;<sub>ij</sub>]</span>
+            <span class="text-[11px] font-mono text-slate-500">&zeta; = 5% 적용</span>
+          </div>
+          <table class="w-full text-center font-mono text-xs">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-100 text-[11px]">
+                <th class="py-1">모드</th>
+                <th>1차 (T₁)</th>
+                <th>2차 (T₂)</th>
+                <th>3차 (T₃)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="py-1.5 font-sans font-bold text-slate-600">1차</td>
+                <td class="bg-slate-50 font-bold text-slate-900">1.0000</td>
+                <td id="rho-12-cell" class="font-bold text-slate-600">0.0075</td>
+                <td id="rho-13-cell" class="text-slate-500">0.0035</td>
+              </tr>
+              <tr>
+                <td class="py-1.5 font-sans font-bold text-slate-600">2차</td>
+                <td id="rho-21-cell" class="font-bold text-slate-600">0.0075</td>
+                <td class="bg-slate-50 font-bold text-slate-900">1.0000</td>
+                <td id="rho-23-cell" class="font-bold text-slate-600">0.0669</td>
+              </tr>
+              <tr>
+                <td class="py-1.5 font-sans font-bold text-slate-600">3차</td>
+                <td id="rho-31-cell" class="text-slate-500">0.0035</td>
+                <td id="rho-32-cell" class="font-bold text-slate-600">0.0669</td>
+                <td class="bg-slate-50 font-bold text-slate-900">1.0000</td>
+              </tr>
+            </tbody>
+          </table>
+          <p id="rho-explanation" class="text-[11px] text-slate-500 pt-1 leading-relaxed">
+            비대각항(&rho;<sub>12</sub>=0.0075)이 0에 가까우므로, 2D 정형 골조에서는 SRSS와 CQC 차이가 0.12%(4.5kN)에 불과합니다.
+          </p>
+        </div>
+
+        <!-- 2. Formula Decomposition (7 Cols) -->
+        <div class="md:col-span-7 bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+            <span class="font-bold text-slate-800">CQC 수식 분해 (대각 자승합 + 교차 상관항)</span>
+            <span class="text-[11px] font-mono text-slate-500">단위: kN&sup2;</span>
+          </div>
+
+          <div class="space-y-1.5 font-mono text-xs">
+            <div class="flex justify-between p-1.5 rounded bg-slate-50">
+              <span class="text-slate-600 font-sans">대각 자승합 (&sum; V<sub>bn</sub>&sup2; = SRSS&sup2;):</span>
+              <span id="sum-sq-text" class="font-bold text-blue-700">0.0 &times; 10⁶ kN&sup2;</span>
+            </div>
+            <div class="flex justify-between p-1.5 rounded bg-slate-50">
+              <span class="text-slate-600 font-sans">1-2차 교차항 (2&rho;₁₂ V<sub>b1</sub> V<sub>b2</sub>):</span>
+              <span id="cross-12-text" class="font-bold text-slate-700">0.0 kN&sup2;</span>
+            </div>
+            <div class="flex justify-between p-1.5 rounded bg-slate-50">
+              <span class="text-slate-600 font-sans">1-3차 교차항 (2&rho;₁₃ V<sub>b1</sub> V<sub>b3</sub>):</span>
+              <span id="cross-13-text" class="font-bold text-slate-700">0.0 kN&sup2;</span>
+            </div>
+            <div class="flex justify-between p-1.5 rounded bg-slate-50">
+              <span class="text-slate-600 font-sans">2-3차 교차항 (2&rho;₂₃ V<sub>b2</sub> V<sub>b3</sub>):</span>
+              <span id="cross-23-text" class="font-bold text-slate-700">0.0 kN&sup2;</span>
+            </div>
+            <div class="flex justify-between p-1.5 rounded bg-emerald-50 border border-emerald-200 font-bold">
+              <span class="text-emerald-800 font-sans">교차항 총합 (Cross-terms sum):</span>
+              <span id="cross-total-text" class="text-emerald-700">+0.0 kN&sup2;</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Engineering Footer -->
+    <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-blue-700">&bull; 구조기술사 실무 해설:</span>
+        <span id="footer-expl">
+          모드별 최대치는 서로 다른 찰나에 도달하므로 단순합은 물리적으로 불가능한 과대평가를 부릅니다. 2D 직교성 분리 골조에서는 SRSS가 유효하나, 비틀림 또는 근접모드 발생 시에는 CQC만이 진동 모드 연성을 정확히 포착합니다.
+        </span>
+      </div>
+      <span class="font-mono text-slate-400">정본: modal_RSA_3story.csv</span>
+    </div>
+
+  </div>
+
+  <script>
+    let isQuaking = false;
+    let eqTime = 0;
+    const dt = 0.01; // 100Hz
+    const pga = 0.32 * 9.806; // 3.138 m/s^2
+
+    const maxGmPoints = 300;
+    const gmBuffer = new Array(maxGmPoints).fill(0);
+    let groundDisp = 0;
+    let groundVel = 0;
+
+    // 5 Damping Ratio Family
+    const dampingConfigs = [
+      { zeta: 0.01, label: '1% (강구조)', color: '#ef4444', lineW: 2, peakG: 0 },
+      { zeta: 0.02, label: '2% (PC/볼트)', color: '#f97316', lineW: 2, peakG: 0 },
+      { zeta: 0.05, label: '5% (RC 표준)', color: '#2563eb', lineW: 3, peakG: 0 },
+      { zeta: 0.10, label: '10% (고감쇠)', color: '#0d9488', lineW: 2, peakG: 0 },
+      { zeta: 0.20, label: '20% (댐퍼)', color: '#64748b', lineW: 2, peakG: 0 }
+    ];
+    let activeDamping = 'all';
+
+    // 17 Periods for smooth response spectrum
+    const periods = [0.05, 0.08, 0.12, 0.16, 0.20, 0.23, 0.30, 0.40, 0.50, 0.65, 0.80, 1.00, 1.30, 1.60, 2.00, 2.50, 3.00];
+
+    dampingConfigs.forEach(dc => {
+      dc.oscillators = periods.map(T => {
+        const wn = (2 * Math.PI) / T;
+        return { T, wn, u: 0, v: 0, peakU: 0, peakSa: 0 };
+      });
+    });
+
+    // 3-Story Frame Modal Properties
+    const phi = [
+      [0.4450, -1.2470,  1.8019], // 1F
+      [0.8019, -0.5550, -2.2470], // 2F
+      [1.0000,  1.0000,  1.0000]  // 3F (Roof)
+    ];
+
+    let isCloseMode = false;
+    const modes = [
+      { id: 1, T: 0.6478, wn: 9.6995,  Gamma: 1.2204, meff: 1096.895, q: 0, q_dot: 0, peakQ: 0, peakSa: 0, Vb: 0 },
+      { id: 2, T: 0.2312, wn: 27.1773, Gamma: -0.2801, meff: 89.852,  q: 0, q_dot: 0, peakQ: 0, peakSa: 0, Vb: 0 },
+      { id: 3, T: 0.1600, wn: 39.2723, Gamma: 0.0597, meff: 13.252,   q: 0, q_dot: 0, peakQ: 0, peakSa: 0, Vb: 0 }
+    ];
+
+    // Correlation coefficients rho_ij
+    let rhoMatrix = [
+      [1.0000, 0.00753, 0.00346],
+      [0.00753, 1.0000, 0.06686],
+      [0.00346, 0.06686, 1.0000]
+    ];
+
+    function calcDerKiureghianRho(Ti, Tj, zeta) {
+      if (Math.abs(Ti - Tj) < 1e-5) return 1.0;
+      const wi = (2 * Math.PI) / Ti;
+      const wj = (2 * Math.PI) / Tj;
+      const r = wj / wi;
+      const r15 = Math.pow(r, 1.5);
+      const num = 8 * (zeta * zeta) * (1 + r) * r15;
+      const den = Math.pow(1 - r * r, 2) + 4 * (zeta * zeta) * r * Math.pow(1 + r, 2);
+      return Math.max(0, Math.min(1.0, num / den));
+    }
+
+    function recomputeRhoMatrix() {
+      const zeta = 0.05;
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          rhoMatrix[i][j] = calcDerKiureghianRho(modes[i].T, modes[j].T, zeta);
+        }
+      }
+      document.getElementById('rho-12-cell').textContent = rhoMatrix[0][1].toFixed(4);
+      document.getElementById('rho-21-cell').textContent = rhoMatrix[1][0].toFixed(4);
+      document.getElementById('rho-13-cell').textContent = rhoMatrix[0][2].toFixed(4);
+      document.getElementById('rho-31-cell').textContent = rhoMatrix[2][0].toFixed(4);
+      document.getElementById('rho-23-cell').textContent = rhoMatrix[1][2].toFixed(4);
+      document.getElementById('rho-32-cell').textContent = rhoMatrix[2][1].toFixed(4);
+
+      if (isCloseMode) {
+        document.getElementById('rho-12-cell').className = 'font-bold bg-amber-100 text-amber-900 ring-2 ring-amber-400';
+        document.getElementById('rho-21-cell').className = 'font-bold bg-amber-100 text-amber-900 ring-2 ring-amber-400';
+        document.getElementById('rho-explanation').innerHTML = 
+          `<b class="text-amber-700">🚨 근접모드 경고:</b> 1차-2차 모드 주기차이가 5% 이내로 좁혀지면서 &rho;₁₂가 <b>${rhoMatrix[0][1].toFixed(4)}</b>(으)로 폭등했습니다! 이제 교차항이 밑면전단력을 크게 밀어올립니다.`;
+      } else {
+        document.getElementById('rho-12-cell').className = 'font-bold text-slate-600';
+        document.getElementById('rho-21-cell').className = 'font-bold text-slate-600';
+        document.getElementById('rho-explanation').innerHTML = 
+          `비대각항(&rho;₁₂=0.0075)이 0에 가까우므로, 2D 정형 골조에서는 SRSS와 CQC 차이가 0.12%(4.5kN)에 불과합니다.`;
+      }
+    }
+
+    function setCloseMode(enabled) {
+      isCloseMode = enabled;
+      if (isCloseMode) {
+        modes[1].T = modes[0].T * 0.95; // 0.6154s
+        modes[1].wn = (2 * Math.PI) / modes[1].T;
+        document.getElementById('frame-period-text').textContent = `T₁=0.65s, T₂=0.62s(🚨근접), T₃=0.16s`;
+        document.getElementById('btn-mode-normal').className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-200 text-slate-700 border border-slate-300 hover:bg-slate-300';
+        document.getElementById('btn-mode-close').className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500 text-white border border-amber-600 shadow-sm ring-2 ring-amber-300';
+        document.getElementById('srss-status-tag').textContent = '⚠️ 주기 근접 시 심각한 과소평가 위험!';
+        document.getElementById('srss-status-tag').className = 'pt-1 border-t border-slate-100 text-[11px] text-red-600 font-black';
+        document.getElementById('cqc-card').className = 'p-3.5 rounded-xl bg-amber-50/60 border border-amber-300 shadow-xs flex flex-col justify-between space-y-2 ring-2 ring-amber-400';
+      } else {
+        modes[1].T = 0.2312;
+        modes[1].wn = 27.1773;
+        document.getElementById('frame-period-text').textContent = `T₁=0.65s, T₂=0.23s, T₃=0.16s`;
+        document.getElementById('btn-mode-normal').className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-blue-700 border border-blue-300 shadow-xs';
+        document.getElementById('btn-mode-close').className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-200 text-slate-700 border border-slate-300 hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300';
+        document.getElementById('srss-status-tag').textContent = '주기 분리 시 오차 ≤ 0.2% 로 적합';
+        document.getElementById('srss-status-tag').className = 'pt-1 border-t border-slate-100 text-[11px] text-blue-600 font-bold';
+        document.getElementById('cqc-card').className = 'p-3.5 rounded-xl bg-white border border-emerald-300 shadow-xs flex flex-col justify-between space-y-2 ring-1 ring-emerald-400';
+      }
+      recomputeRhoMatrix();
+      updateTable();
+    }
+
+    function selectDamping(zetaVal) {
+      activeDamping = zetaVal;
+      const btns = [
+        { id: 'btn-damp-all', val: 'all' },
+        { id: 'btn-damp-1', val: 0.01 },
+        { id: 'btn-damp-2', val: 0.02 },
+        { id: 'btn-damp-5', val: 0.05 },
+        { id: 'btn-damp-10', val: 0.10 },
+        { id: 'btn-damp-20', val: 0.20 }
+      ];
+      btns.forEach(b => {
+        const el = document.getElementById(b.id);
+        if (b.val === zetaVal) {
+          el.className = 'px-2.5 py-1 rounded-lg transition bg-white text-blue-700 shadow-xs font-bold ring-1 ring-blue-200';
+        } else {
+          el.className = 'px-2 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium';
+        }
+      });
+    }
+
+    // Canvases
+    const gmCanvas = document.getElementById('gmCanvas');
+    const gmCtx = gmCanvas.getContext('2d');
+    const frameCanvas = document.getElementById('frameCanvas');
+    const fctx = frameCanvas.getContext('2d');
+    const specCanvas = document.getElementById('specCanvas');
+    const sctx = specCanvas.getContext('2d');
+
+    // Dynamic y-scale tracking
+    let targetMaxG = 1.0;
+    let currentDisplayMaxG = 1.0;
+
+    function resizeAll() {
+      [gmCanvas, frameCanvas, specCanvas].forEach(c => {
+        const r = c.parentElement.getBoundingClientRect();
+        c.width = r.width * window.devicePixelRatio;
+        c.height = r.height * window.devicePixelRatio;
+      });
+      gmCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      fctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      sctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    window.addEventListener('resize', resizeAll);
+
+    function getGroundAcc(t) {
+      if (!isQuaking) return 0;
+      const envelope = Math.exp(-0.20 * t) * (1 - Math.exp(-1.3 * t));
+      // Broad-band pseudo El Centro record (0.8Hz ~ 7.5Hz 분산 파형으로 단일 공진 방지)
+      const freqs = [0.85, 1.35, 2.15, 2.90, 3.80, 4.50, 5.60, 6.80];
+      const amps  = [0.22, 0.32, 0.38, 0.34, 0.28, 0.24, 0.18, 0.14];
+      const phases = [0.4, 1.7, 2.8, 0.6, 3.1, 1.3, 2.7, 0.8];
+      let sum = 0;
+      for (let i = 0; i < freqs.length; i++) {
+        sum += amps[i] * Math.sin(2 * Math.PI * freqs[i] * t + phases[i]);
+      }
+      return sum * envelope * 0.78 * pga;
+    }
+
+    function triggerEarthquake() {
+      isQuaking = true;
+      eqTime = 0;
+      groundDisp = 0;
+      groundVel = 0;
+      document.getElementById('eq-status').textContent = '지진동 인가 중 (El Centro 기록, PGA=0.32g)';
+      document.getElementById('eq-status').className = 'text-red-600 font-bold';
+    }
+
+    function triggerPluck() {
+      modes[0].q = 0.06; // 6cm modal 1
+      modes[1].q = -0.015;
+      modes[2].q = 0.005;
+      modes.forEach(m => m.q_dot = 0);
+      document.getElementById('eq-status').textContent = '초기변위 자유진동 감쇠 중';
+      document.getElementById('eq-status').className = 'text-amber-600 font-bold';
+    }
+
+    function resetAll() {
+      isQuaking = false;
+      eqTime = 0;
+      groundDisp = 0;
+      groundVel = 0;
+      targetMaxG = 1.0;
+      currentDisplayMaxG = 1.0;
+      gmBuffer.fill(0);
+
+      dampingConfigs.forEach(dc => {
+        dc.peakG = 0;
+        dc.oscillators.forEach(o => { o.u = 0; o.v = 0; o.peakU = 0; o.peakSa = 0; });
+      });
+
+      modes.forEach(m => { m.q = 0; m.q_dot = 0; m.peakQ = 0; m.peakSa = 0; m.Vb = 0; });
+      
+      document.getElementById('eq-status').textContent = '대기 상태 (지진파 인가를 누르세요)';
+      document.getElementById('eq-status').className = 'text-slate-500 font-medium';
+      
+      [1, 2, 5, 10, 20].forEach(z => {
+        document.getElementById(`peak-damp-${z}`).textContent = '0.00g';
+      });
+
+      updateTable();
+    }
+
+    function stepPhysics() {
+      const ug = getGroundAcc(eqTime);
+      gmBuffer.push(ug);
+      if (gmBuffer.length > maxGmPoints) gmBuffer.shift();
+
+      if (isQuaking) {
+        eqTime += dt;
+        groundVel += ug * dt;
+        groundDisp += groundVel * dt;
+        groundDisp *= 0.98;
+        groundVel *= 0.98;
+
+        if (eqTime > 20.0) {
+          isQuaking = false;
+          document.getElementById('eq-status').textContent = '지진 종료 (최대 응답 스펙트럼 수렴 완료)';
+          document.getElementById('eq-status').className = 'text-emerald-600 font-bold';
+        }
+      }
+
+      // 1. Modal integration (using active damping or 5% default for frame)
+      const frameZeta = (typeof activeDamping === 'number') ? activeDamping : 0.05;
+      modes.forEach(m => {
+        const q_ddot = -m.Gamma * ug - (2 * frameZeta * m.wn * m.q_dot) - (m.wn * m.wn * m.q);
+        m.q_dot += q_ddot * dt;
+        m.q += m.q_dot * dt;
+
+        const absQ = Math.abs(m.q);
+        if (absQ > m.peakQ) {
+          m.peakQ = absQ;
+          m.peakSa = m.wn * m.wn * m.peakQ; // m/s^2
+          m.Vb = m.meff * m.peakSa; // tonnes * m/s^2 = kN
+        }
+      });
+
+      // 2. 5 Damping Ratio Oscillator Farms
+      let highestSaAll = 0.55 * 9.806; // at least SDS
+
+      dampingConfigs.forEach(dc => {
+        let dcPeak = 0;
+        dc.oscillators.forEach(o => {
+          const a = -ug - (2 * dc.zeta * o.wn * o.v) - (o.wn * o.wn * o.u);
+          o.v += a * dt;
+          o.u += o.v * dt;
+
+          const absU = Math.abs(o.u);
+          if (absU > o.peakU) {
+            o.peakU = absU;
+            o.peakSa = o.wn * o.wn * o.peakU;
+          }
+          if (o.peakSa > dcPeak) dcPeak = o.peakSa;
+          if (o.peakSa > highestSaAll) highestSaAll = o.peakSa;
+        });
+        dc.peakG = dcPeak / 9.806;
+      });
+
+      // Update Damping Peak Labels
+      document.getElementById('peak-damp-1').textContent = `${dampingConfigs[0].peakG.toFixed(2)}g`;
+      document.getElementById('peak-damp-2').textContent = `${dampingConfigs[1].peakG.toFixed(2)}g`;
+      document.getElementById('peak-damp-5').textContent = `${dampingConfigs[2].peakG.toFixed(2)}g`;
+      document.getElementById('peak-damp-10').textContent = `${dampingConfigs[3].peakG.toFixed(2)}g`;
+      document.getElementById('peak-damp-20').textContent = `${dampingConfigs[4].peakG.toFixed(2)}g`;
+
+      // 3. Dynamic Auto-scaling Computation
+      const highestG = highestSaAll / 9.806;
+      if (highestG > 2.5) targetMaxG = Math.ceil(highestG * 2) / 2 + 0.5;
+      else if (highestG > 2.0) targetMaxG = 2.5;
+      else if (highestG > 1.5) targetMaxG = 2.0;
+      else if (highestG > 1.0) targetMaxG = 1.5;
+      else targetMaxG = 1.0;
+
+      currentDisplayMaxG += (targetMaxG - currentDisplayMaxG) * 0.08;
+      document.getElementById('yscale-badge').textContent = `y축 자동 스케일: 최대 ${targetMaxG.toFixed(1)}g`;
+
+      updateTable();
+    }
+
+    function updateTable() {
+      const v1 = modes[0].Vb;
+      const v2 = modes[1].Vb;
+      const v3 = modes[2].Vb;
+
+      document.getElementById('vb1-text').textContent = `${v1.toFixed(1)} kN`;
+      document.getElementById('vb2-text').textContent = `${v2.toFixed(1)} kN`;
+      document.getElementById('vb3-text').textContent = `${v3.toFixed(1)} kN`;
+
+      const absSum = v1 + v2 + v3;
+      const sumSq = v1*v1 + v2*v2 + v3*v3;
+      const srss = Math.sqrt(sumSq);
+
+      const r12 = rhoMatrix[0][1];
+      const r13 = rhoMatrix[0][2];
+      const r23 = rhoMatrix[1][2];
+
+      const cross12 = 2 * r12 * v1 * v2;
+      const cross13 = 2 * r13 * v1 * v3;
+      const cross23 = 2 * r23 * v2 * v3;
+      const crossTotal = cross12 + cross13 + cross23;
+
+      const cqcSq = Math.max(0, sumSq + crossTotal);
+      const cqc = Math.sqrt(cqcSq);
+
+      document.getElementById('val-abssum').textContent = `${absSum.toFixed(1)} kN`;
+      document.getElementById('val-srss').textContent = `${srss.toFixed(1)} kN`;
+      document.getElementById('val-cqc').textContent = `${cqc.toFixed(1)} kN`;
+
+      const diffPct = srss > 0 ? ((cqc - srss) / srss * 100) : 0;
+      const diffVal = cqc - srss;
+      const diffSign = diffVal >= 0 ? '+' : '';
+
+      const cqcDiffTag = document.getElementById('cqc-diff-tag');
+      cqcDiffTag.textContent = `SRSS 대비: ${diffSign}${diffPct.toFixed(2)}% (${diffSign}${diffVal.toFixed(1)} kN)`;
+
+      if (isCloseMode) {
+        cqcDiffTag.className = 'text-[11px] font-black text-red-600 mt-1 block';
+        document.getElementById('cqc-warning-box').innerHTML = 
+          `<span class="text-red-700 font-bold">🚨 2D 분리식 SRSS는 모드 상관을 무시하여 실제 밑면전단력을 과소평가합니다!</span>`;
+      } else {
+        cqcDiffTag.className = 'text-[11px] font-bold text-emerald-600 mt-1 block';
+        document.getElementById('cqc-warning-box').textContent = 'KDS 41 · ASCE 7 필수 규정 준수 (차이 미미)';
+      }
+
+      // Mathematical decomposition
+      document.getElementById('sum-sq-text').textContent = `${(sumSq / 1e6).toFixed(3)} × 10⁶ kN²`;
+      document.getElementById('cross-12-text').textContent = `${(cross12 >= 1e5 ? (cross12/1e6).toFixed(3) + ' × 10⁶' : cross12.toFixed(1))} kN²`;
+      document.getElementById('cross-13-text').textContent = `${cross13.toFixed(1)} kN²`;
+      document.getElementById('cross-23-text').textContent = `${cross23.toFixed(1)} kN²`;
+      document.getElementById('cross-total-text').textContent = `${crossTotal >= 1e5 ? (crossTotal/1e6).toFixed(3) + ' × 10⁶' : crossTotal.toFixed(1)} kN²`;
+    }
+
+    function drawGroundMotion() {
+      const w = gmCanvas.width / window.devicePixelRatio;
+      const h = gmCanvas.height / window.devicePixelRatio;
+      const midY = h / 2;
+
+      gmCtx.clearRect(0, 0, w, h);
+
+      gmCtx.strokeStyle = '#e2e8f0';
+      gmCtx.lineWidth = 1;
+      gmCtx.beginPath();
+      gmCtx.moveTo(0, midY); gmCtx.lineTo(w, midY);
+      gmCtx.stroke();
+
+      gmCtx.strokeStyle = isQuaking ? '#dc2626' : '#94a3b8';
+      gmCtx.lineWidth = 1.8;
+      gmCtx.beginPath();
+      for (let i = 0; i < gmBuffer.length; i++) {
+        const x = (i / maxGmPoints) * w;
+        const y = midY - (gmBuffer[i] / (pga * 1.5)) * (h * 0.42);
+        if (i === 0) gmCtx.moveTo(x, y);
+        else gmCtx.lineTo(x, y);
+      }
+      gmCtx.stroke();
+    }
+
+    function drawCurvedCol(ctx, x0, y0, x1, y1) {
+      ctx.beginPath();
+      const steps = 16;
+      for (let i = 0; i <= steps; i++) {
+        const s = i / steps;
+        const h = 3 * s * s - 2 * s * s * s;
+        const curX = x0 + (x1 - x0) * h;
+        const curY = y0 + (y1 - y0) * s;
+        if (i === 0) ctx.moveTo(curX, curY);
+        else ctx.lineTo(curX, curY);
+      }
+      ctx.stroke();
+    }
+
+    function drawFrame() {
+      const w = frameCanvas.width / window.devicePixelRatio;
+      const h = frameCanvas.height / window.devicePixelRatio;
+      fctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const gy = h - 45;
+      const storyH = (gy - 45) / 3;
+      const bay = Math.min(160, w * 0.5);
+      const halfBay = bay / 2;
+
+      const baseShift = (groundDisp * 80);
+
+      const q1 = modes[0].q;
+      const q2 = modes[1].q;
+      const q3 = modes[2].q;
+
+      const u1_m = phi[0][0]*q1 + phi[0][1]*q2 + phi[0][2]*q3;
+      const u2_m = phi[1][0]*q1 + phi[1][1]*q2 + phi[1][2]*q3;
+      const u3_m = phi[2][0]*q1 + phi[2][1]*q2 + phi[2][2]*q3;
+
+      document.getElementById('disp-text').textContent = 
+        `u₃=${(u3_m * 100).toFixed(1)}cm, u₂=${(u2_m * 100).toFixed(1)}cm, u₁=${(u1_m * 100).toFixed(1)}cm`;
+
+      const dispScale = 400;
+      const bx0 = cx + baseShift;
+      const bx1 = cx + baseShift + u1_m * dispScale;
+      const bx2 = cx + baseShift + u2_m * dispScale;
+      const bx3 = cx + baseShift + u3_m * dispScale;
+
+      const y0 = gy;
+      const y1 = gy - storyH;
+      const y2 = gy - storyH * 2;
+      const y3 = gy - storyH * 3;
+
+      // Reference line
+      fctx.strokeStyle = '#e2e8f0';
+      fctx.lineWidth = 1;
+      fctx.setLineDash([3, 3]);
+      fctx.beginPath();
+      fctx.moveTo(cx - halfBay, y0); fctx.lineTo(cx - halfBay, y3);
+      fctx.moveTo(cx + halfBay, y0); fctx.lineTo(cx + halfBay, y3);
+      fctx.stroke();
+      fctx.setLineDash([]);
+
+      // Columns
+      fctx.strokeStyle = (isQuaking || Math.abs(u3_m) > 0.005) ? '#0284c7' : '#64748b';
+      fctx.lineWidth = 4;
+      fctx.lineCap = 'round';
+
+      drawCurvedCol(fctx, bx0 - halfBay, y0, bx1 - halfBay, y1);
+      drawCurvedCol(fctx, bx1 - halfBay, y1, bx2 - halfBay, y2);
+      drawCurvedCol(fctx, bx2 - halfBay, y2, bx3 - halfBay, y3);
+
+      drawCurvedCol(fctx, bx0 + halfBay, y0, bx1 + halfBay, y1);
+      drawCurvedCol(fctx, bx1 + halfBay, y1, bx2 + halfBay, y2);
+      drawCurvedCol(fctx, bx2 + halfBay, y2, bx3 + halfBay, y3);
+
+      // Slabs
+      function drawFloor(x, y, label, massText) {
+        const sw = bay + 30;
+        const sh = 13;
+        fctx.fillStyle = '#1e293b';
+        fctx.strokeStyle = '#0f172a';
+        fctx.lineWidth = 1.5;
+        fctx.beginPath();
+        fctx.roundRect(x - sw/2, y - sh/2, sw, sh, 3);
+        fctx.fill(); fctx.stroke();
+
+        fctx.fillStyle = '#38bdf8';
+        fctx.beginPath();
+        fctx.arc(x - halfBay, y, 3.5, 0, Math.PI*2);
+        fctx.arc(x + halfBay, y, 3.5, 0, Math.PI*2);
+        fctx.fill();
+
+        fctx.fillStyle = '#ffffff';
+        fctx.font = 'bold 10px Pretendard, sans-serif';
+        fctx.textAlign = 'center';
+        fctx.textBaseline = 'middle';
+        fctx.fillText(label, x, y);
+
+        fctx.fillStyle = '#64748b';
+        fctx.font = 'bold 9px monospace';
+        fctx.textAlign = 'right';
+        fctx.fillText(massText, x - sw/2 - 6, y);
+      }
+
+      drawFloor(bx1, y1, '1F', '400t');
+      drawFloor(bx2, y2, '2F', '400t');
+      drawFloor(bx3, y3, '3F (Roof)', '400t');
+
+      // Foundation Base
+      const baseW = bay + 60;
+      fctx.fillStyle = '#f1f5f9';
+      fctx.strokeStyle = '#475569';
+      fctx.lineWidth = 2;
+      fctx.beginPath();
+      fctx.rect(bx0 - baseW/2, y0, baseW, 8);
+      fctx.fill(); fctx.stroke();
+
+      // Hatching
+      fctx.strokeStyle = '#94a3b8';
+      fctx.lineWidth = 1.5;
+      for (let x = bx0 - baseW/2 + 5; x <= bx0 + baseW/2 - 5; x += 10) {
+        fctx.beginPath();
+        fctx.moveTo(x, y0 + 8);
+        fctx.lineTo(x - 6, y0 + 16);
+        fctx.stroke();
+      }
+    }
+
+    function drawSpectrum() {
+      const w = specCanvas.width / window.devicePixelRatio;
+      const h = specCanvas.height / window.devicePixelRatio;
+      sctx.clearRect(0, 0, w, h);
+
+      const marginL = 55;
+      const marginB = 32;
+      const plotW = w - marginL - 20;
+      const plotH = h - marginB - 25;
+
+      const maxG = currentDisplayMaxG;
+      const maxSaPlot = maxG * 9.806;
+
+      // Coordinate axes
+      sctx.strokeStyle = '#cbd5e1';
+      sctx.lineWidth = 1.5;
+      sctx.beginPath();
+      sctx.moveTo(marginL, 10);
+      sctx.lineTo(marginL, h - marginB);
+      sctx.lineTo(w - 15, h - marginB);
+      sctx.stroke();
+
+      // Dynamic Grid & Ticks on Y-axis
+      sctx.font = '10px monospace';
+      sctx.textAlign = 'right';
+
+      const tickStep = maxG > 1.8 ? 0.5 : 0.5;
+      for (let gVal = 0; gVal <= maxG + 0.05; gVal += tickStep) {
+        const y = (h - marginB) - (gVal / maxG) * plotH;
+        if (y < 8) continue;
+
+        sctx.fillStyle = '#64748b';
+        sctx.fillText(`${gVal.toFixed(1)}g`, marginL - 8, y + 3.5);
+
+        if (gVal > 0) {
+          sctx.strokeStyle = '#f1f5f9';
+          sctx.lineWidth = 1;
+          sctx.setLineDash([2, 2]);
+          sctx.beginPath();
+          sctx.moveTo(marginL, y);
+          sctx.lineTo(w - 15, y);
+          sctx.stroke();
+          sctx.setLineDash([]);
+        }
+      }
+
+      // X-axis Ticks & Labels
+      sctx.textAlign = 'center';
+      sctx.fillStyle = '#64748b';
+      [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0].forEach(tVal => {
+        const x = marginL + (tVal / 3.0) * plotW;
+        sctx.fillText(`${tVal.toFixed(1)}s`, x, h - marginB + 16);
+      });
+
+      // KDS 41 Design Spectrum (SDS=0.55g, SD1=0.22g, TS=0.40s)
+      sctx.strokeStyle = '#d97706';
+      sctx.lineWidth = 1.5;
+      sctx.setLineDash([4, 4]);
+      sctx.beginPath();
+      for (let px = 0; px <= plotW; px += 4) {
+        const T = (px / plotW) * 3.0;
+        let Sa_des = 0;
+        if (T < 0.08) Sa_des = 0.55 * (0.4 + 0.6 * (T / 0.08));
+        else if (T <= 0.40) Sa_des = 0.55;
+        else Sa_des = 0.22 / T;
+
+        const y = (h - marginB) - ((Sa_des * 9.806) / maxSaPlot) * plotH;
+        if (px === 0) sctx.moveTo(marginL + px, y);
+        else sctx.lineTo(marginL + px, y);
+      }
+      sctx.stroke();
+      sctx.setLineDash([]);
+
+      // Label for KDS 41 curve
+      sctx.fillStyle = '#d97706';
+      sctx.font = 'bold 9px Pretendard, sans-serif';
+      sctx.textAlign = 'left';
+      const kdsLabelX = marginL + (0.45 / 3.0) * plotW;
+      const kdsLabelY = (h - marginB) - ((0.48 * 9.806) / maxSaPlot) * plotH;
+      sctx.fillText('KDS 41 설계스펙트럼 (5%)', kdsLabelX, Math.max(16, kdsLabelY - 6));
+
+      // Draw Damping Curves
+      dampingConfigs.forEach(dc => {
+        const isHighlight = (activeDamping === 'all' || activeDamping === dc.zeta);
+        
+        sctx.strokeStyle = isHighlight ? dc.color : 'rgba(203, 213, 225, 0.5)';
+        sctx.lineWidth = isHighlight ? dc.lineW : 1;
+        if (!isHighlight) sctx.setLineDash([2, 3]);
+
+        sctx.beginPath();
+        dc.oscillators.forEach((o, idx) => {
+          const x = marginL + (o.T / 3.0) * plotW;
+          const y = (h - marginB) - (o.peakSa / maxSaPlot) * plotH;
+          if (idx === 0) sctx.moveTo(x, y);
+          else sctx.lineTo(x, y);
+        });
+        sctx.stroke();
+        sctx.setLineDash([]);
+
+        // Points
+        if (isHighlight) {
+          dc.oscillators.forEach(o => {
+            const x = marginL + (o.T / 3.0) * plotW;
+            const y = (h - marginB) - (o.peakSa / maxSaPlot) * plotH;
+            sctx.fillStyle = dc.color;
+            sctx.beginPath();
+            sctx.arc(x, y, activeDamping === dc.zeta ? 3.5 : 2.5, 0, Math.PI*2);
+            sctx.fill();
+          });
+        }
+      });
+
+      // Mode Period Badges on the Spectrum
+      const modeColors = ['#059669', '#2563eb', '#7c3aed'];
+      modes.forEach((m, idx) => {
+        const x = marginL + (m.T / 3.0) * plotW;
+        const y = (h - marginB) - (m.peakSa / maxSaPlot) * plotH;
+
+        sctx.strokeStyle = modeColors[idx];
+        sctx.lineWidth = 1.5;
+        sctx.setLineDash([2, 2]);
+        sctx.beginPath();
+        sctx.moveTo(x, h - marginB);
+        sctx.lineTo(x, y);
+        sctx.stroke();
+        sctx.setLineDash([]);
+
+        sctx.fillStyle = modeColors[idx];
+        sctx.beginPath();
+        sctx.arc(x, y, 4.5, 0, Math.PI*2);
+        sctx.fill();
+
+        sctx.fillStyle = '#0f172a';
+        sctx.font = 'bold 9px Pretendard, sans-serif';
+        sctx.textAlign = 'center';
+        const labelOffset = (idx === 1 && isCloseMode) ? -16 : -8;
+        const modeLabel = (idx === 1 && isCloseMode) ? `M2 (0.62s🚨)` : `M${idx+1} (${m.T.toFixed(2)}s)`;
+        sctx.fillText(modeLabel, x, Math.max(14, y + labelOffset));
+      });
+    }
+
+    function mainLoop() {
+      stepPhysics();
+      drawGroundMotion();
+      drawFrame();
+      drawSpectrum();
+      requestAnimationFrame(mainLoop);
+    }
+
+    recomputeRhoMatrix();
+    setTimeout(() => {
+      resizeAll();
+      mainLoop();
+    }, 50);
+  </script>
+</body>
+</html>

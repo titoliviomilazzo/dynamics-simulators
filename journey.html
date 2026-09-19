@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 · 내진 · 내풍 전주기 마스터 저니 (Apple Style)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --color-pure-canvas: #f5f5f7;
+      --color-paper-white: #ffffff;
+      --color-obsidian: #1d1d1f;
+      --color-iron-gray: #707070;
+      --color-slate: #474747;
+      --color-charcoal: #333336;
+      --color-mist: #e2e2e5;
+      --color-fog: #d6d6d6;
+      --color-signal-blue: #0071e3;
+      --color-deep-link-blue: #0066cc;
+      --color-pulse-green: #03aa49;
+      --color-deep-green: #03873a;
+      --color-ultraviolet: #8668ff;
+      --color-ember-orange: #ed6300;
+      --color-lagoon-teal: #00a1b3;
+    }
+
+    body {
+      background-color: var(--color-pure-canvas);
+      color: var(--color-obsidian);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Pretendard Variable", Pretendard, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, .display-font {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Pretendard Variable", Pretendard, "Segoe UI", Roboto, sans-serif;
+      font-weight: 600;
+      letter-spacing: -0.018em;
+    }
+
+    /* Apple Zero-Shadow Rule: Elevation comes strictly from surface contrast & 1px hairlines */
+    .apple-card {
+      background-color: var(--color-paper-white);
+      border-radius: 28px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+    }
+    .apple-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0, 0, 0, 0.12);
+    }
+
+    /* Apple Button System */
+    .btn-apple-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--color-signal-blue);
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.016em;
+      border-radius: 980px;
+      padding: 10px 22px;
+      text-decoration: none;
+      transition: background-color 0.15s ease, transform 0.12s ease;
+    }
+    .btn-apple-primary:hover {
+      background-color: #0077ed;
+      transform: scale(1.02);
+    }
+    .btn-apple-primary:active {
+      transform: scale(0.97);
+    }
+
+    .btn-apple-neutral {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--color-mist);
+      color: var(--color-charcoal);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.016em;
+      border-radius: 980px;
+      padding: 10px 22px;
+      text-decoration: none;
+      transition: background-color 0.15s ease, transform 0.12s ease;
+    }
+    .btn-apple-neutral:hover {
+      background-color: #d8d8dc;
+      transform: scale(1.02);
+    }
+    .btn-apple-neutral:active {
+      transform: scale(0.97);
+    }
+
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      border-radius: 980px;
+      padding: 4px 12px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Global Navigation (Apple White Museum Style) -->
+  <nav class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-[#d6d6d6]">
+    <div class="max-w-[1280px] mx-auto px-6 h-[52px] flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="journey.html" class="text-sm font-semibold text-[#1d1d1f] hover:opacity-70 transition flex items-center gap-2">
+          <i class="fa-solid fa-atom text-[#0071e3]"></i>
+          <span>전주기 통합 마스터 저니</span>
+        </a>
+      </div>
+
+      <!-- Center Quick Jump Links -->
+      <div class="hidden lg:flex items-center gap-6 text-[13px] font-medium text-[#707070]">
+        <a href="#act-1" class="hover:text-[#1d1d1f] transition">1. 진동론</a>
+        <a href="#act-2" class="hover:text-[#1d1d1f] transition">2. 내풍·내진</a>
+        <a href="#act-3" class="hover:text-[#1d1d1f] transition">3. 모드해석</a>
+        <a href="#act-4" class="hover:text-[#1d1d1f] transition">4. KDS 규준</a>
+        <a href="#act-5" class="hover:text-[#1d1d1f] transition">5. 초고층연성</a>
+        <a href="#act-6" class="hover:text-[#1d1d1f] transition">6. 비선형 PBD</a>
+      </div>
+
+      <!-- Right Action Stack -->
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="btn-apple-neutral text-xs py-1.5 px-4 h-8">
+          <span>모듈 인덱스 (Grid)</span>
+        </a>
+        <a href="#act-1" class="btn-apple-primary text-xs py-1.5 px-4 h-8">
+          <span>학습 시작 &darr;</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===================================================================
+       HERO SECTION — Pure White Canvas with Signature Tinted Display Headline
+       =================================================================== -->
+  <section class="w-full bg-[#ffffff] pt-24 pb-20 border-b border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6">
+      
+      <!-- Brand Kicker -->
+      <div class="text-[12px] font-semibold text-[#707070] tracking-[0.08em] uppercase mb-4">
+        Structural Dynamics &middot; Seismic &middot; Wind Engineering Curriculum
+      </div>
+
+      <!-- Apple-style Display Headline (64px~84px with Tinted Accent Verbs) -->
+      <h1 class="text-4xl sm:text-6xl lg:text-[76px] leading-[1.06] text-[#1d1d1f] mb-8 max-w-4xl">
+        <span class="text-[#03aa49]">공학의 본질을</span> 직관으로 증명하는 30단계 전주기 여정.
+      </h1>
+
+      <!-- Body Copy (17px / line-height 1.47 / #707070) -->
+      <p class="text-[17px] sm:text-[19px] leading-[1.47] text-[#474747] max-w-3xl mb-10">
+        본 마스터 프로그램은 단편적 이론 암기를 넘어, 1자유도 공진에서 시작하여 3차원 초고층 풍-지진 복합 연성, KDS 41 규준 모달 내진설계, 그리고 FEMA 356 소성 힌지 손상역학까지 구조공학의 전 과정을 관통하는 체계적 스크롤형 스토리라인 커리큘럼입니다.
+      </p>
+
+      <!-- Action Stack: Primary Signal Blue Pill + Neutral Pill -->
+      <div class="flex flex-wrap items-center gap-4">
+        <a href="#act-1" class="btn-apple-primary text-[15px] py-3 px-6">
+          <span>1단계 SDOF 공진부터 시작하기 &darr;</span>
+        </a>
+        <a href="#tracks" class="btn-apple-neutral text-[15px] py-3 px-6">
+          <span>4대 전공 트랙 아키텍처 조망</span>
+        </a>
+      </div>
+
+      <!-- Hero Metrics Bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-16 mt-16 border-t border-[#d6d6d6]">
+        <div>
+          <div class="text-[39px] display-font text-[#1d1d1f] leading-none mb-1">4대</div>
+          <div class="text-[13px] text-[#707070]">전공 통합 트랙</div>
+        </div>
+        <div>
+          <div class="text-[39px] display-font text-[#0071e3] leading-none mb-1">30개</div>
+          <div class="text-[13px] text-[#707070]">독립 정본 시뮬레이터</div>
+        </div>
+        <div>
+          <div class="text-[39px] display-font text-[#03aa49] leading-none mb-1">5개</div>
+          <div class="text-[13px] text-[#707070]">커리큘럼 트랜지션 브릿지</div>
+        </div>
+        <div>
+          <div class="text-[39px] display-font text-[#8668ff] leading-none mb-1">100%</div>
+          <div class="text-[13px] text-[#707070]">Chopra &middot; KDS 41 &middot; FEMA 356</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       4 ACADEMIC TRACKS OVERVIEW — Pure Canvas Band (#f5f5f7)
+       =================================================================== -->
+  <section id="tracks" class="w-full bg-[#f5f5f7] py-24 border-b border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6">
+      
+      <div class="mb-14">
+        <div class="text-[12px] font-semibold text-[#707070] tracking-[0.08em] uppercase mb-2">
+          Curriculum Architecture
+        </div>
+        <h2 class="text-3xl sm:text-5xl text-[#1d1d1f]">
+          4대 전공 트랙. <span class="text-[#0066cc]">완전한 스펙트럼.</span>
+        </h2>
+        <p class="text-[17px] text-[#707070] mt-3 max-w-2xl">
+          기초 진동론부터 초고층 풍공학, 규준설계, 그리고 비선형 성능설계까지 학문적 위계에 따라 배치되었습니다.
+        </p>
+      </div>
+
+      <!-- 4 Apple-Style 28px Cards (Surface Contrast on #f5f5f7, No Shadows) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Track 1 Card -->
+        <div class="apple-card p-8 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="pill-tag bg-[#eef2ff] text-[#0066cc]">TRACK 01</span>
+              <span class="text-[44px] display-font text-[#1d1d1f] opacity-20">01</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f] mb-3">구조동역학 &middot; 진동론</h3>
+            <p class="text-[15px] leading-relaxed text-[#707070] mb-6">
+              SDOF 공진, 마찰 vs 점성감쇠, 주파수 응답/Bode, FFT/PSD 신호처리, Newmark-β 수치적분, 모드 중첩 오케스트라, Rayleigh 직교성 분해.
+            </p>
+          </div>
+          <div class="pt-4 border-t border-[#f5f5f7] flex items-center justify-between">
+            <span class="text-xs font-semibold text-[#707070]">총 9개 시뮬레이터</span>
+            <a href="#act-1" class="text-sm font-semibold text-[#0066cc] hover:underline">트랙 시작 &rarr;</a>
+          </div>
+        </div>
+
+        <!-- Track 2 Card -->
+        <div class="apple-card p-8 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="pill-tag bg-[#f0fdfa] text-[#00a1b3]">TRACK 02</span>
+              <span class="text-[44px] display-font text-[#1d1d1f] opacity-20">02</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f] mb-3">내풍공학 &middot; 멀티해저드</h3>
+            <p class="text-[15px] leading-relaxed text-[#707070] mb-6">
+              외표면 압력(풍하중) vs 내부 관성력(지진하중) 메커니즘 대조, 지반 채찍 효과(Whip Effect) 증폭, 초고층 비틀림-횡진동 연성(타이베이 101).
+            </p>
+          </div>
+          <div class="pt-4 border-t border-[#f5f5f7] flex items-center justify-between">
+            <span class="text-xs font-semibold text-[#707070]">총 3개 시뮬레이터</span>
+            <a href="#act-2" class="text-sm font-semibold text-[#00a1b3] hover:underline">트랙 시작 &rarr;</a>
+          </div>
+        </div>
+
+        <!-- Track 3 Card -->
+        <div class="apple-card p-8 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="pill-tag bg-[#fff1f2] text-[#ed6300]">TRACK 03</span>
+              <span class="text-[44px] display-font text-[#1d1d1f] opacity-20">03</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f] mb-3">규준 내진설계 &middot; 모달해석</h3>
+            <p class="text-[15px] leading-relaxed text-[#707070] mb-6">
+              KDS 41 파이프라인 네비게이터, Chopra 삼분도표/ADRS, R 삼중분해·이중골조, Cd 변위증폭, 주기상한 CuTa, 90% 유효질량, 85% 스케일링.
+            </p>
+          </div>
+          <div class="pt-4 border-t border-[#f5f5f7] flex items-center justify-between">
+            <span class="text-xs font-semibold text-[#707070]">총 13개 시뮬레이터</span>
+            <a href="#act-4" class="text-sm font-semibold text-[#ed6300] hover:underline">트랙 시작 &rarr;</a>
+          </div>
+        </div>
+
+        <!-- Track 4 Card -->
+        <div class="apple-card p-8 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="pill-tag bg-[#faf5ff] text-[#8668ff]">TRACK 04</span>
+              <span class="text-[44px] display-font text-[#1d1d1f] opacity-20">04</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f] mb-3">비선형 성능기반설계 (PBD)</h3>
+            <p class="text-[15px] leading-relaxed text-[#707070] mb-6">
+              Newmark 등변위(R=5 삭감), 능력스펙트럼법(CSM) 성능점 수렴, RC 기둥 3D P-M 상관도, FEMA 356 백본, 4단계 미시손상역학.
+            </p>
+          </div>
+          <div class="pt-4 border-t border-[#f5f5f7] flex items-center justify-between">
+            <span class="text-xs font-semibold text-[#707070]">총 5개 시뮬레이터</span>
+            <a href="#act-6" class="text-sm font-semibold text-[#8668ff] hover:underline">트랙 시작 &rarr;</a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       ACT 1: SDOF DYNAMICS & FREQUENCY DOMAIN (#ffffff)
+       =================================================================== -->
+  <section id="act-1" class="w-full bg-[#ffffff] py-24 border-b border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6">
+      
+      <div class="mb-14">
+        <span class="pill-tag bg-[#f5f5f7] text-[#707070] mb-3">ACT 01</span>
+        <h2 class="text-3xl sm:text-5xl text-[#1d1d1f]">
+          단자유도 진동학. <span class="text-[#ed6300]">공진과 감쇠의 물리학.</span>
+        </h2>
+        <p class="text-[17px] text-[#707070] mt-3 max-w-2xl">
+          모든 구조물은 외력 주파수를 선별하여 증폭시키는 거대한 물리 필터입니다. 1자유도 기초 진동론에서 공진, 감쇠, 그리고 주파수 전달함수의 본질을 탐구합니다.
+        </p>
+      </div>
+
+      <!-- Modules List -->
+      <div class="space-y-6">
+        
+        <!-- Module 01 (Flagship) -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 01</span>
+              <span class="text-xs text-[#707070] font-mono">Chopra &sect;3 기초 진동론</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">SDOF 공진 &middot; 동적증폭계수 (DAF) &middot; 위상차 해석기</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;외력 주파수와 고유진동수가 일치할 때 구조물은 어떻게 에너지를 가두는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              외력 진동수와 고유진동수가 일치할 때(&beta;=1.0) 발생하는 무한 공진, 90도 위상 지연 및 감쇠비(&zeta;)에 의한 동적증폭계수(DAF) 제어 메커니즘을 수치해석으로 증명합니다.
+            </p>
+          </div>
+          <div class="flex flex-col sm:flex-row md:flex-col gap-3 w-full md:w-auto shrink-0">
+            <a href="01_sdof_resonance.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 13 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 13</span>
+              <span class="text-xs text-[#707070] font-mono">Chopra &sect;2, &sect;3 감쇠론</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">점성감쇠 vs 마찰감쇠 (Viscous vs Coulomb Damping)</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;유체 저항에 의한 감쇠와 고체 마찰에 의한 감쇠는 응답 포락선에서 어떤 차이를 보이는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              지수함수적으로 무한히 줄어드는 점성감쇠와 선형적으로 감소하다가 정지(Stick)하는 쿨롱 마찰감쇠의 거동을 비교합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="13_damping_viscous_vs_coulomb.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 09 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 09</span>
+              <span class="text-xs text-[#707070] font-mono">주파수영역 해석학</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">주파수 응답 전달함수 (Transfer Function) &middot; Bode 선도</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;구조물이 입력 하중에서 특정 주파수만 골라 증폭시키는 필터인 이유는?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              입력 외력 대비 구조물 응답의 크기비(Gain)와 위상차(Phase)를 주파수 축에 투영하여 필터 작동 원리를 규명합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="09_transfer_function_bode.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 10 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 10</span>
+              <span class="text-xs text-[#707070] font-mono">신호처리 및 계측</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">고속 푸리에 변환 (FFT) &middot; 파워스펙트럼밀도 (PSD)</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;불규칙한 지진파 시간 이력에서 숨겨진 고유주파수를 어떻게 찾아내는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              시간 영역 신호를 직교 삼각함수 급수로 분해하여 주파수 성분별 에너지 밀도를 도출하는 신호처리 알고리즘을 체험합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="10_fourier_fft_psd.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       TRANSITION BRIDGE 1 — Canvas Band (#f5f5f7)
+       =================================================================== -->
+  <section class="w-full bg-[#f5f5f7] py-20 border-b border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6">
+      <div class="text-[12px] font-semibold text-[#707070] tracking-[0.08em] uppercase mb-2">
+        Curriculum Transition 01
+      </div>
+      <h2 class="text-2xl sm:text-4xl text-[#1d1d1f] mb-8">
+        1자유도에서 외력 메커니즘으로의 도약. <span class="text-[#00a1b3]">바람과 지진.</span>
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="apple-card p-6 bg-white">
+          <div class="text-xs font-semibold text-[#ed6300] uppercase mb-2">한계 과제</div>
+          <h4 class="text-lg font-semibold text-[#1d1d1f] mb-2">1자유도 단일 진동학의 한계</h4>
+          <p class="text-sm text-[#707070] leading-relaxed">
+            1자유도로 공진과 전달함수를 이해했습니다. 하지만 실제 구조물에 작용하는 외력은 하나가 아닙니다. 지표면을 흔드는 지진과 건물 표면을 때리는 바람은 전혀 다른 물리적 메커니즘을 가집니다.
+          </p>
+        </div>
+
+        <div class="apple-card p-6 bg-white">
+          <div class="text-xs font-semibold text-[#03aa49] uppercase mb-2">공학적 해법</div>
+          <h4 class="text-lg font-semibold text-[#1d1d1f] mb-2">외력의 양대 축과 채찍 효과</h4>
+          <p class="text-sm text-[#707070] leading-relaxed">
+            표면 압력(풍하중)과 지반 관성력(지진하중)의 메커니즘 차이를 규명하고, 상층부로 갈수록 응답이 폭발적으로 증폭되는 채찍 효과(Whip Effect)를 증명합니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       ACT 2: WIND VS SEISMIC & MULTI-HAZARD (#ffffff)
+       =================================================================== -->
+  <section id="act-2" class="w-full bg-[#ffffff] py-24 border-b border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6">
+      
+      <div class="mb-14">
+        <span class="pill-tag bg-[#f5f5f7] text-[#707070] mb-3">ACT 02</span>
+        <h2 class="text-3xl sm:text-5xl text-[#1d1d1f]">
+          외력의 양대 축. <span class="text-[#00a1b3]">내풍설계 vs 내진설계.</span>
+        </h2>
+        <p class="text-[17px] text-[#707070] mt-3 max-w-2xl">
+          외부 표면 압력으로 작용하는 풍하중과 내부 질량의 관성력으로 작용하는 지진하중의 본질적 메커니즘을 대조합니다.
+        </p>
+      </div>
+
+      <div class="space-y-6">
+        
+        <!-- Module 11 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 11</span>
+              <span class="text-xs text-[#707070] font-mono">내풍 vs 내진 비교역학</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">풍하중 vs 지진하중 하중 메커니즘 대조 시뮬레이터</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;바람은 겉을 밀고 지진은 속을 흔든다: 밑면전단력과 전단벽 응답의 차이는?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              건물 외표면을 미는 베르누이 풍압력과 지반 가속도에 의한 층 질량 관성력의 하중 전달 경로를 비교 검증합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="11_wind_vs_seismic_load.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 34 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 34</span>
+              <span class="text-xs text-[#707070] font-mono">지반-구조물 상호작용</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">강체 vs 연성체 지반진동 증폭 &middot; 채찍 효과 (Whip Effect)</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;지반 가속도가 0.2g일 때 옥상 비구조요소는 왜 0.8g로 튀어 나가는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              강체 건물과 연성 골조 건물의 층별 가속도 증폭 양상을 비교하고 고차모드 채찍 효과를 시각화합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="34_rigid_vs_flexible_whip.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 08 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 08</span>
+              <span class="text-xs text-[#707070] font-mono">Newmark-&beta; 수치적분학</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">Newmark-&beta; 시간영역 직접적분 안정성 해석기</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;수치적분 시간간격(&Delta;t)이 구조물 고유주기보다 크면 왜 해가 발산하는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              평균가속도법(무조건 안정)과 선형가속도법(조건부 안정)의 수치적분 수렴 한계를 비교합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="08_newmark_beta_stability.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       TRANSITION BRIDGE 2 — Canvas Band (#f5f5f7)
+       =================================================================== -->
+  <section class="w-full bg-[#f5f5f7] py-20 border-b border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6">
+      <div class="text-[12px] font-semibold text-[#707070] tracking-[0.08em] uppercase mb-2">
+        Curriculum Transition 02
+      </div>
+      <h2 class="text-2xl sm:text-4xl text-[#1d1d1f] mb-8">
+        외력 분석에서 다자유도 해체로. <span class="text-[#0066cc]">모드해석의 탄생.</span>
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="apple-card p-6 bg-white">
+          <div class="text-xs font-semibold text-[#ed6300] uppercase mb-2">한계 과제</div>
+          <h4 class="text-lg font-semibold text-[#1d1d1f] mb-2">다층 건물의 연립 미분방정식 장벽</h4>
+          <p class="text-sm text-[#707070] leading-relaxed">
+            실제 건물은 수십 개 층이 서로 기둥과 보로 얽혀 있습니다. 층마다 질량이 다른 MDOF 연립방정식을 직접 풀려고 하면 계산량이 폭발합니다.
+          </p>
+        </div>
+
+        <div class="apple-card p-6 bg-white">
+          <div class="text-xs font-semibold text-[#03aa49] uppercase mb-2">공학적 해법</div>
+          <h4 class="text-lg font-semibold text-[#1d1d1f] mb-2">Rayleigh 모드 직교성과 비연성화</h4>
+          <p class="text-sm text-[#707070] leading-relaxed">
+            고유벡터의 직교성을 이용하여 연립방정식을 독립된 단자유도 모드들의 합으로 분해(Decoupling)하는 모드해석의 수학적 우아함을 실현합니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       ACT 3: MDOF & EIGENVALUE ORTHOGONALITY (#ffffff)
+       =================================================================== -->
+  <section id="act-3" class="w-full bg-[#ffffff] py-24 border-b border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6">
+      
+      <div class="mb-14">
+        <span class="pill-tag bg-[#f5f5f7] text-[#707070] mb-3">ACT 03</span>
+        <h2 class="text-3xl sm:text-5xl text-[#1d1d1f]">
+          복합 거동의 해체. <span class="text-[#0066cc]">모드해석과 고유치 분해.</span>
+        </h2>
+        <p class="text-[17px] text-[#707070] mt-3 max-w-2xl">
+          얽혀 있는 다층 건물을 단일음(Pure Tone)으로 분해합니다. 직교성에 의해 각 모드는 서로에게 간섭하지 않는 독립적 진동을 수행합니다.
+        </p>
+      </div>
+
+      <div class="space-y-6">
+        
+        <!-- Module 04 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 04</span>
+              <span class="text-xs text-[#707070] font-mono">Chopra &sect;9, &sect;10 모드해석</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">고유치 해석 &middot; 모드 직교성 &middot; 좌표계 비연성화</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;서로 얽힌 다층 건물 미분방정식이 어떻게 독립된 1자유도 식들로 쪼개지는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              특성방정식 det(K - &omega;²M)=0의 고유치 해와 모드 직교성에 의해 질량 및 강성 행렬이 대각선화되는 과정을 증명합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="04_eigen_orthogonality_decoupling.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 12 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 12</span>
+              <span class="text-xs text-[#707070] font-mono">Chopra &sect;12 모드중첩법</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">모드 중첩 오케스트라: 1차+2차+3차 모드 합성</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;개별 모드들의 진동을 다시 합치면 실제 건물의 불규칙한 지진 응답이 완벽히 복원되는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              모드별 참여율(&Gamma;n)에 따른 가중 합성을 통해 복합 진동이 단일 모드들의 선형 결합으로 완성됨을 확인합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="12_modal_superposition_orchestra.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 02 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 02</span>
+              <span class="text-xs text-[#707070] font-mono">Chopra &sect;12, &sect;13 / KDS 41</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">모드참여계수(&Gamma;n) &middot; 유효모드질량(Mn*) 질량 완전성</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;모드형상을 임의로 스케일링해도 왜 유효질량과 밑면전단력은 변하지 않는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              모든 모드의 유효질량 합이 건물 총 질량과 100% 일치하는 질량 완전성 정리와 정규화 불변 법칙을 검증합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="02_modal_participation_effective_mass.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 35 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 35</span>
+              <span class="text-xs text-[#707070] font-mono">Chopra 증명</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">모든 모드 절대값 합(&sum;|Ln|) &middot; 정적 하중벡터 완벽 일치</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;동적 모드 분포력들의 합이 왜 등가정적 하중 분포(s = m &middot; &iota;)와 일치하는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              모든 모드를 무한히 더했을 때 동적 해석이 정적 해석으로 수렴하는 수학적 완전성을 증명합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="35_abssum_equals_static_proof.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       ACT 4: CODE SEISMIC DESIGN & KDS 41 MODAL PIPELINE (#ffffff)
+       =================================================================== -->
+  <section id="act-4" class="w-full bg-[#f5f5f7] py-24 border-b border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6">
+      
+      <div class="mb-14">
+        <span class="pill-tag bg-white text-[#707070] mb-3">ACT 04</span>
+        <h2 class="text-3xl sm:text-5xl text-[#1d1d1f]">
+          규준 내진설계. <span class="text-[#0071e3]">KDS 41 모달해석 실무 파이프라인.</span>
+        </h2>
+        <p class="text-[17px] text-[#707070] mt-3 max-w-2xl">
+          컴퓨터 수치 모델과 건축구조기준(KDS 41)의 안전 철학을 연결합니다. 90% 유효질량, 85% 스케일링, 그리고 모달 조합의 허상을 규명합니다.
+        </p>
+      </div>
+
+      <div class="space-y-6">
+        
+        <!-- Module 03 -->
+        <div class="apple-card p-8 bg-white border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 03</span>
+              <span class="text-xs text-[#707070] font-mono">KDS 41 응답스펙트럼</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">다층 골조 응답스펙트럼 해석 &middot; 모달 조합법 (SRSS vs CQC)</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;인접한 모드 주기가 10% 이내로 근접할 때 SRSS는 왜 오차를 유발하는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              모달 상관계수(&rho;ij)를 반영하여 근접 모드 간 상호작용을 보정하는 CQC 조합법의 필수성을 증명합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="03_multistory_response_spectrum.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 06 -->
+        <div class="apple-card p-8 bg-white border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 06</span>
+              <span class="text-xs text-[#707070] font-mono">KDS 41 85% 보정규준</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">등가정적 vs 동적해석 85% 밑면전단력 스케일링</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;정밀한 동적 모델이 있음에도 왜 규준은 정적 전단력의 85%를 강제하는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              수치해석 모델의 주기 과대평가 위험과 비탄성 비틀림 안전율을 확보하기 위한 KDS 41 스케일링 철학을 규명합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="06_static_vs_dynamic_85pct_scaling.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 07 -->
+        <div class="apple-card p-8 bg-white border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 07</span>
+              <span class="text-xs text-[#707070] font-mono">KDS 41 포락선 철학</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">설계 포락선(Envelope)의 두 얼굴 &middot; P-M 허상 방지</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;모달 조합으로 구한 최대 축력과 최대 모멘트로 기둥을 설계하면 왜 위험한가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              동시성(Concurrence)이 상실된 개별 포락치 조합이 유발하는 과소/과대 설계의 함정을 규명합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="07_envelope_two_tiers.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 38 -->
+        <div class="apple-card p-8 bg-white border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 38</span>
+              <span class="text-xs text-[#707070] font-mono">실무 소프트웨어 진단</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">MIDAS CQC 조합결과 진단도구: &rho;ij 매트릭스 결함 검증</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;실무 구조해석 프로그램의 CQC 출력값은 수학적으로 건전한가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              모달 상관계수 행렬의 양의 정부호성(Positive Definiteness)과 근접 모드 연성을 진단합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="38_midas_cqc_diagnostic_tool.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 39 -->
+        <div class="apple-card p-8 bg-white border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 39</span>
+              <span class="text-xs text-[#707070] font-mono">Newmark 삼분도표</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">Newmark 삼분도표(Tripartite) &middot; ADRS 용량스펙트럼 변환기</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;하나의 그래프에서 가속도, 속도, 변위를 45도 사선축으로 동시에 읽는 원리는?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              로그 스케일 삼분도표와 비선형 성능평가(CSM)의 핵심인 ADRS(Acceleration-Displacement) 도표를 연동합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="39_newmark_tripartite_adrs.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 40 -->
+        <div class="apple-card p-8 bg-white border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 40</span>
+              <span class="text-xs text-[#707070] font-mono">KDS 41 분기 알고리즘</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">KDS 41 내진해석법 판정 네비게이터: 등가정적 vs 모달스펙트럼</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;내가 설계하는 건물은 등가정적해석만으로 허가를 받을 수 있을까?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              건물 높이, 내진등급, 평면/입면 비정형성 판정 트리를 통과하여 법적 필수 해석법을 도출합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="40_kds_analysis_method_selector.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 42 -->
+        <div class="apple-card p-8 bg-white border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 42</span>
+              <span class="text-xs text-[#707070] font-mono">KDS 41 층간변위</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">변위증폭계수(Cd) &middot; 비탄성 층간변위비(1.5% 한계) 검증기</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;탄성 해석으로 얻은 층간변위에 왜 Cd를 곱해 뻥튀기해야 하는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              실제 지진 시 구조물이 겪는 비탄성 변위를 산정하고 KDS 41의 1.5% 허용 층간변위 한계를 판정합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="42_cd_deflection_amplification_inelastic_drift.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 43 -->
+        <div class="apple-card p-8 bg-white border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 43</span>
+              <span class="text-xs text-[#707070] font-mono">KDS 41 주기상한</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">주기상한(CuTa) 제한규준 &middot; 1차모드 비틀림 결함 경보기</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;건물을 유연하게 모델링하여 지진력을 고의로 줄이려는 시도를 규준은 어떻게 차단하는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              약산주기 기반 상한계수(CuTa) 제한과, 1차 모드가 비틀림일 때 발생하는 붕괴 위험을 경고합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="43_period_upper_bound_torsion_warning.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 45 -->
+        <div class="apple-card p-8 bg-white border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 45</span>
+              <span class="text-xs text-[#707070] font-mono">KDS 41 전주기 파이프라인</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">KDS 41 내진설계 전주기 파이프라인 네비게이터</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;초기 입력부터 최종 부재설계까지 KDS 41의 8단계는 어떻게 유기적으로 연결되는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              지반계수 &rarr; 스펙트럼 &rarr; 해석법 선택 &rarr; 모달조합 &rarr; 유효질량 &rarr; 85% 보정 &rarr; 층간변위 &rarr; 부재검토의 전 과정을 조망합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="45_kds41_seismic_code_navigator_pipeline.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       ACT 5 & 6: ADVANCED MULTI-HAZARD & NONLINEAR PBD (#ffffff)
+       =================================================================== -->
+  <section id="act-6" class="w-full bg-[#ffffff] py-24 border-b border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6">
+      
+      <div class="mb-14">
+        <span class="pill-tag bg-[#f5f5f7] text-[#707070] mb-3">ACT 05 &middot; 06</span>
+        <h2 class="text-3xl sm:text-5xl text-[#1d1d1f]">
+          극한의 비선형성. <span class="text-[#8668ff]">FEMA 356과 부재 손상역학.</span>
+        </h2>
+        <p class="text-[17px] text-[#707070] mt-3 max-w-2xl">
+          3,686 kN에 달하는 탄성 지진력을 순수 강도로 버티는 것은 불가능합니다. 연성 소성 힌지와 에너지 소산으로 거주자 생존을 보장하는 성능기반설계의 세계입니다.
+        </p>
+      </div>
+
+      <div class="space-y-6">
+        
+        <!-- Module 05 (Taipei 101) -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 05</span>
+              <span class="text-xs text-[#707070] font-mono">초고층 멀티해저드</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">CQC 3차원 기하학적 절벽: 타이베이 101 비틀림-횡진동 연성</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;타이베이 101은 왜 660톤 펜듈럼 댐퍼(TMD) 없이는 존립할 수 없었는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              비틀림 진동수와 횡진동수가 근접할 때 CQC 상관계수가 1.0으로 수직 상승하는 절벽 현상과 TMD 제어 메커니즘을 증명합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="05_cqc_geometry_cliff_taipei101.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 37 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 37</span>
+              <span class="text-xs text-[#707070] font-mono">Newmark 비선형 연성</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">Newmark 등변위 규칙 &middot; 반응수정계수 (R=5 지진력 1/5 삭감)</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;지진력을 5분의 1로 깎아주는 반응수정계수(R=5)의 진짜 물리적 실체는?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              최대 횡변위는 동일하게 보존되면서도 소성 힌지가 항복하며 737 kN으로 힘을 억제하는 실시간 이력 궤적을 확인합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="37_newmark_equal_displacement_r_factor.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 44 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 44</span>
+              <span class="text-xs text-[#707070] font-mono">ATC-40 / FEMA 440</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">비선형 능력스펙트럼법 (CSM) &middot; 성능점 (Performance Point) 수렴</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;푸시오버 곡선과 지진 요구곡선은 소성 변형 시 어떻게 만나 성능점을 이루는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              소성 힌지 항복에 따른 주기 신장과 이력감쇠 증가에 의한 요구스펙트럼 수축 및 성능점 반복 수렴 과정을 체험합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="44_capacity_spectrum_method_performance_point.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 24 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 24</span>
+              <span class="text-xs text-[#707070] font-mono">KDS 14 20 20 / ACI 318</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">RC 기둥 P-M 상관도 &middot; 강도감소계수(&phi;) 연성-취성 전이곡면</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;지진 축력과 모멘트를 동시에 받는 철근콘크리트 기둥의 진짜 파괴 한계는?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              중립축 깊이에 따른 변형률 평면 가설, 균형파괴점(Pb) 및 강도감소계수 연성-취성 전이곡면을 실시간 계산합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="24_rc_column_pm_interaction_diagram.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 28 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 28</span>
+              <span class="text-xs text-[#707070] font-mono">FEMA 356 / ASCE 41</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">FEMA 힌지 백본 (IO-LS-CP) &middot; 단면 200배 거시-미시 손상 통합</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;기둥이 항복하는 순간 거주자의 생존 여부는 공학적으로 어떻게 판정하는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              거시적 A~E 백본 곡선과 미시적 기둥 밑둥 파괴, 띠철근 간격(s/db) 물리 연동 및 거주자 생존 판정을 동기화합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="28_fema_backbone_io_ls_cp.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Module 29 -->
+        <div class="apple-card p-8 bg-[#f5f5f7] border border-[#e5e5e7] flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div class="space-y-3 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <span class="pill-tag bg-[#1d1d1f] text-white">정본 29</span>
+              <span class="text-xs text-[#707070] font-mono">FEMA 356 Micro Damage</span>
+            </div>
+            <h3 class="text-2xl text-[#1d1d1f]">기둥 밑둥 소성힌지 단면 200배 줌인 4단계 미시 손상역학</h3>
+            <p class="text-sm text-[#0066cc] font-medium">
+              &ldquo;강진이 기둥 밑둥을 부술 때 발생하는 물리적 파괴 순서는 어떻게 전개되는가?&rdquo;
+            </p>
+            <p class="text-sm text-[#707070] leading-relaxed">
+              미세 균열 &rarr; 피복 탈락 &rarr; 띠철근 파단 &rarr; 주철근 S자 좌굴(Buckling)로 이어지는 4단계 고해상도 파괴 역학을 시뮬레이션합니다.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <a href="29_plastic_hinge_cross_section_damage.html" target="_blank" class="btn-apple-primary">
+              <span>시뮬레이터 실행 &rarr;</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       FOOTER (Apple Quiet Silence & Respect)
+       =================================================================== -->
+  <footer class="w-full bg-[#f5f5f7] py-20 border-t border-[#d6d6d6]">
+    <div class="max-w-[1040px] mx-auto px-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div>
+        <div class="text-sm font-semibold text-[#1d1d1f] mb-1">
+          구조동역학 &middot; 내진설계 &middot; 내풍공학 전주기 통합 마스터 프로그램
+        </div>
+        <p class="text-xs text-[#707070]">
+          Chopra Dynamics &middot; KDS 41 &middot; FEMA 356 / ASCE 41 Reference Platform
+        </p>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <a href="index.html" class="btn-apple-neutral text-xs py-2 px-5">
+          <span>모듈 인덱스 (Grid)로 복귀 &rarr;</span>
+        </a>
+        <a href="#" class="btn-apple-primary text-xs py-2 px-5">
+          <span>맨 위로 &uarr;</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

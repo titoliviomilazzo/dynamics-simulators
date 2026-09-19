@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 01: SDOF 조화가진 및 공진</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="assets/dynamics-fx.js" defer></script>
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .grid-cyber {
+      background-image: linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .radar-glow {
+      box-shadow: 0 0 30px -5px rgba(6, 182, 212, 0.15);
+    }
+    .neon-pulse-red {
+      animation: neonPulse 1.2s infinite alternate;
+    }
+    @keyframes neonPulse {
+      from { box-shadow: 0 0 8px rgba(239, 68, 68, 0.2); }
+      to { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+    }
+  </style>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+  <div id="sim-app-container" class="w-full max-w-6xl bg-[#0f172a]/95 border border-slate-800 rounded-3xl p-5 md:p-8 shadow-2xl backdrop-blur-xl radar-glow space-y-6">
+    
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/30">
+            CHOPRA §3 FOUNDATION
+          </span>
+          <h1 class="text-xl md:text-2xl font-black text-white tracking-tight">
+            SDOF 감쇠 조화가진 &middot; 공진(Resonance) &middot; DAF
+          </h1>
+        </div>
+        <p class="text-xs md:text-sm text-slate-400 font-mono">
+          m&middot;u''(t) + c&middot;u'(t) + k&middot;u(t) = p₀&middot;sin(&omega;&middot;t) &middot; Euler-Cromer 수치적분 &middot; 동적증폭계수(DAF)
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button id="btn-play" onclick="togglePlay()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/30 flex items-center gap-1.5">
+          <span id="play-icon">⏸</span>
+          <span id="play-text">일시정지</span>
+        </button>
+        <button onclick="resetSim()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold transition">
+          초기화
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Canvas Area (Laboratory Oscilloscope) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      
+      <!-- 1. Physical Frame Canvas (5 Cols) -->
+      <div class="lg:col-span-5 bg-[#090d16] border border-slate-800/90 rounded-2xl p-4 flex flex-col justify-between grid-cyber relative min-h-[390px] shadow-inner">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span class="text-xs font-bold text-slate-200">1자유도 전단 골조 변위</span>
+          </div>
+          <span class="text-[11px] font-mono text-slate-400">f<sub>n</sub> = 1.00 Hz (T<sub>n</sub> = 1.00 s)</span>
+        </div>
+
+        <div class="relative flex-1 w-full my-2 min-h-[250px]">
+          <canvas id="frameCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <div class="flex justify-between items-center text-xs text-slate-400 pt-2 border-t border-slate-800 font-mono">
+          <span class="text-cyan-400 font-bold">
+            변위 u(t): <span id="disp-val" class="font-mono text-white text-sm">0.0 mm</span>
+          </span>
+          <span class="text-[11px] text-slate-500">Hermite 3차 곡률 응력 컨투어</span>
+        </div>
+      </div>
+
+      <!-- 2. Realtime Waveform Plot Canvas (7 Cols) -->
+      <div class="lg:col-span-7 bg-[#090d16] border border-slate-800/90 rounded-2xl p-4 flex flex-col justify-between min-h-[390px] shadow-inner relative overflow-hidden">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <span class="text-xs font-bold text-slate-200">실시간 변위 이력 u(t) 및 가진 외력 p(t) 오실로스코프</span>
+          <div class="flex items-center gap-3 text-[11px] font-mono font-medium">
+            <span class="flex items-center gap-1.5 text-cyan-400">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 inline-block shadow-sm shadow-cyan-400"></span> u(t) 응답
+            </span>
+            <span class="flex items-center gap-1.5 text-amber-400">
+              <span class="w-2 h-2 rounded-full bg-amber-400 inline-block shadow-sm shadow-amber-400"></span> p(t) 외력
+            </span>
+          </div>
+        </div>
+
+        <div class="relative flex-1 w-full my-2 h-[260px]">
+          <canvas id="plotCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <div class="flex justify-between items-center text-xs text-slate-400 pt-2 border-t border-slate-800 font-mono">
+          <span>가진 주파수 &omega; = <span id="omega-text" class="text-white font-bold">6.28 rad/s</span></span>
+          <span id="phase-diff" class="text-amber-400 font-bold">위상차 &theta; &asymp; 90&deg; (공진 위상 지연)</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Parameter Controls & Telemetry Panel -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-800/80 text-xs">
+      
+      <!-- Damping Ratio -->
+      <div class="bg-[#090d16]/80 p-4 rounded-2xl border border-slate-800">
+        <div class="flex justify-between text-slate-300 mb-2 font-medium">
+          <span class="font-bold text-white">감쇠비 &zeta; (Damping Ratio)</span>
+          <span id="zeta-text" class="font-mono font-bold text-cyan-400">0.05 (5%)</span>
+        </div>
+        <input id="slider-zeta" type="range" min="0" max="0.30" step="0.01" value="0.05" oninput="updateParams()"
+               class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+        <div class="flex justify-between text-[11px] font-mono text-slate-500 mt-2">
+          <span>비감쇠 (0%)</span>
+          <span class="text-cyan-400 font-semibold">RC 일반 (5%)</span>
+          <span>고감쇠 (30%)</span>
+        </div>
+      </div>
+
+      <!-- Frequency Ratio -->
+      <div class="bg-[#090d16]/80 p-4 rounded-2xl border border-slate-800">
+        <div class="flex justify-between text-slate-300 mb-2 font-medium">
+          <span class="font-bold text-white">진동수비 &beta; = &omega;/&omega;<sub>n</sub></span>
+          <span id="ratio-text" class="font-mono font-bold text-amber-400">1.00 (공진)</span>
+        </div>
+        <input id="slider-ratio" type="range" min="0.2" max="2.0" step="0.02" value="1.00" oninput="updateParams()"
+               class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+        <div class="flex justify-between text-[11px] font-mono text-slate-500 mt-2">
+          <span>준정적 (0.2)</span>
+          <span class="text-amber-400 font-bold">공진 (1.0)</span>
+          <span>면진 (2.0)</span>
+        </div>
+      </div>
+
+      <!-- DAF Output -->
+      <div id="daf-panel" class="bg-[#090d16]/80 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between transition-all duration-300">
+        <div class="flex justify-between text-slate-300 font-medium">
+          <span class="font-bold text-white">동적증폭계수 (DAF / R<sub>d</sub>)</span>
+          <span id="daf-text" class="font-mono font-black text-amber-400 text-base">10.00x</span>
+        </div>
+        <p id="regime-text" class="text-xs text-slate-400 mt-1.5 font-medium font-mono">
+          영역: <span class="text-red-400 font-bold">공진 피크 대역 (&omega; &asymp; &omega;n)</span>
+        </p>
+        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
+          <div id="daf-bar" class="h-full bg-gradient-to-r from-cyan-500 to-amber-500 transition-all duration-200" style="width: 100%;"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    let isRunning = true;
+    let u = 0, v = 0, t = 0;
+    const dt = 0.016;
+    const wn = 2 * Math.PI * 1.0;
+    let zeta = 0.05;
+    let beta = 1.0;
+    let p0 = 35;
+
+    const historyU = [];
+    const historyP = [];
+    const maxHistory = 320;
+
+    const frameCanvas = document.getElementById('frameCanvas');
+    const fctx = frameCanvas.getContext('2d');
+    const plotCanvas = document.getElementById('plotCanvas');
+    const pctx = plotCanvas.getContext('2d');
+
+    function resizeCanvases() {
+      [frameCanvas, plotCanvas].forEach(c => {
+        const rect = c.parentElement.getBoundingClientRect();
+        c.width = rect.width * window.devicePixelRatio;
+        c.height = rect.height * window.devicePixelRatio;
+      });
+      fctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      pctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    window.addEventListener('resize', resizeCanvases);
+
+    function updateParams() {
+      zeta = parseFloat(document.getElementById('slider-zeta').value);
+      beta = parseFloat(document.getElementById('slider-ratio').value);
+      
+      document.getElementById('zeta-text').textContent = `${zeta.toFixed(2)} (${Math.round(zeta*100)}%)`;
+      document.getElementById('ratio-text').textContent = `${beta.toFixed(2)}${Math.abs(beta - 1.0) < 0.04 ? ' (공진)' : ''}`;
+      document.getElementById('omega-text').textContent = `${(beta * wn).toFixed(2)} rad/s`;
+
+      const denom = Math.sqrt(Math.pow(1 - beta*beta, 2) + Math.pow(2*zeta*beta, 2));
+      const daf = 1 / Math.max(0.01, denom);
+      document.getElementById('daf-text').textContent = `${daf.toFixed(2)}x`;
+      
+      const barPct = Math.min(100, (daf / 10) * 100);
+      document.getElementById('daf-bar').style.width = `${barPct}%`;
+
+      const reg = document.getElementById('regime-text');
+      const phase = document.getElementById('phase-diff');
+      const dafPanel = document.getElementById('daf-panel');
+
+      if (Math.abs(beta - 1.0) < 0.08) {
+        reg.innerHTML = '영역: <span class="text-red-400 font-bold">공진 피크 대역 (&omega; &asymp; &omega;n)</span>';
+        phase.textContent = '위상차 \u03b8 \u2248 90\u00b0 (외력과 90도 지연)';
+        dafPanel.classList.add('neon-pulse-red', 'border-red-500/50');
+      } else if (beta < 0.7) {
+        reg.innerHTML = '영역: <span class="text-cyan-400 font-bold">강성 지배 대역 (Stiffness controlled)</span>';
+        phase.textContent = '위상차 \u03b8 \u2248 0\u00b0 (외력과 동위상 거동)';
+        dafPanel.classList.remove('neon-pulse-red', 'border-red-500/50');
+      } else {
+        reg.innerHTML = '영역: <span class="text-emerald-400 font-bold">질량 지배 / 면진 대역 (Mass isolated)</span>';
+        phase.textContent = '위상차 \u03b8 \u2248 180\u00b0 (외력과 역위상 거동)';
+        dafPanel.classList.remove('neon-pulse-red', 'border-red-500/50');
+      }
+    }
+
+    function togglePlay() {
+      isRunning = !isRunning;
+      document.getElementById('play-text').textContent = isRunning ? '일시정지' : '재개';
+      document.getElementById('play-icon').textContent = isRunning ? '⏸' : '▶';
+      document.getElementById('btn-play').className = isRunning ? 
+        'px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/30 flex items-center gap-1.5' : 
+        'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/30 flex items-center gap-1.5';
+    }
+
+    function resetSim() {
+      u = 0; v = 0; t = 0;
+      historyU.length = 0;
+      historyP.length = 0;
+      document.getElementById('disp-val').textContent = '0.0 mm';
+    }
+
+    function stepPhysics() {
+      if (!isRunning) return;
+      const w = beta * wn;
+      const pt = p0 * Math.sin(w * t);
+
+      const m = 1.0;
+      const k = wn * wn * m;
+      const c = 2 * zeta * wn * m;
+
+      const a = (pt - c * v - k * u) / m;
+      v += a * dt;
+      u += v * dt;
+      t += dt;
+
+      historyU.push(u);
+      historyP.push(pt);
+      if (historyU.length > maxHistory) {
+        historyU.shift();
+        historyP.shift();
+      }
+
+      document.getElementById('disp-val').textContent = `${(u * 1.5).toFixed(1)} mm`;
+    }
+
+    function drawFrame() {
+      const w = frameCanvas.width / window.devicePixelRatio;
+      const h = frameCanvas.height / window.devicePixelRatio;
+      fctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const baseY = h - 45;
+      const topY = 65;
+      const bay = Math.min(180, w * 0.52);
+      const halfBay = bay / 2;
+
+      const dispPx = u * 2.2;
+      const roofX = cx + dispPx;
+
+      // Base Support Foundation
+      fctx.strokeStyle = '#475569';
+      fctx.lineWidth = 2.5;
+      fctx.beginPath();
+      fctx.moveTo(cx - halfBay - 25, baseY);
+      fctx.lineTo(cx + halfBay + 25, baseY);
+      fctx.stroke();
+
+      // Hatch lines
+      fctx.strokeStyle = '#334155';
+      fctx.lineWidth = 1.5;
+      for (let x = cx - halfBay - 20; x <= cx + halfBay + 20; x += 12) {
+        fctx.beginPath();
+        fctx.moveTo(x, baseY);
+        fctx.lineTo(x - 6, baseY + 8);
+        fctx.stroke();
+      }
+
+      // Dynamic Stress Color based on displacement
+      const stressRatio = Math.min(1, Math.abs(u) / 25);
+      const colGlow = stressRatio > 0.6 ? '#f59e0b' : '#38bdf8';
+
+      // Left & Right Columns with Hermite double curvature
+      fctx.save();
+      fctx.shadowColor = colGlow;
+      fctx.shadowBlur = 6 + stressRatio * 10;
+      fctx.strokeStyle = colGlow;
+      fctx.lineWidth = 4;
+      fctx.lineCap = 'round';
+      drawHermiteCol(fctx, cx - halfBay, baseY, roofX - halfBay, topY);
+      drawHermiteCol(fctx, cx + halfBay, baseY, roofX + halfBay, topY);
+      fctx.restore();
+
+      // Top Slab (Floor Mass)
+      const sw = bay + 34;
+      const sh = 16;
+      fctx.save();
+      fctx.fillStyle = '#1e293b';
+      fctx.strokeStyle = '#64748b';
+      fctx.lineWidth = 1.5;
+      fctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      fctx.shadowBlur = 8;
+      fctx.beginPath();
+      fctx.rect(roofX - sw/2, topY - sh/2, sw, sh);
+      fctx.fill();
+      fctx.stroke();
+      fctx.restore();
+
+      fctx.fillStyle = '#f8fafc';
+      fctx.font = 'bold 10px Pretendard, monospace';
+      fctx.textAlign = 'center';
+      fctx.textBaseline = 'middle';
+      fctx.fillText('Floor Slab (Mass m)', roofX, topY);
+    }
+
+    function drawHermiteCol(ctx, x0, y0, x1, y1) {
+      ctx.beginPath();
+      const steps = 20;
+      for (let i = 0; i <= steps; i++) {
+        const s = i / steps;
+        const h = 3 * s * s - 2 * s * s * s;
+        const curX = x0 + (x1 - x0) * h;
+        const curY = y0 + (y1 - y0) * s;
+        if (i === 0) ctx.moveTo(curX, curY);
+        else ctx.lineTo(curX, curY);
+      }
+      ctx.stroke();
+    }
+
+    function drawPlot() {
+      const w = plotCanvas.width / window.devicePixelRatio;
+      const h = plotCanvas.height / window.devicePixelRatio;
+      pctx.clearRect(0, 0, w, h);
+
+      const midY = h / 2;
+
+      // Fine Grid
+      pctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      pctx.lineWidth = 1;
+      for (let y = 30; y < h; y += 30) {
+        pctx.beginPath(); pctx.moveTo(0, y); pctx.lineTo(w, y); pctx.stroke();
+      }
+      pctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      pctx.beginPath(); pctx.moveTo(0, midY); pctx.lineTo(w, midY); pctx.stroke();
+
+      // 1. Force p(t) (Amber trace)
+      pctx.save();
+      pctx.shadowColor = '#f59e0b';
+      pctx.shadowBlur = 4;
+      pctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
+      pctx.lineWidth = 1.5;
+      pctx.beginPath();
+      for (let i = 0; i < historyP.length; i++) {
+        const x = (i / maxHistory) * (w - 70);
+        const y = midY - (historyP[i] / p0) * (h * 0.35);
+        if (i === 0) pctx.moveTo(x, y);
+        else pctx.lineTo(x, y);
+      }
+      pctx.stroke();
+      pctx.restore();
+
+      // 2. Displacement u(t) (Glowing Cyan Laser)
+      pctx.save();
+      pctx.shadowColor = '#06b6d4';
+      pctx.shadowBlur = 8;
+      pctx.strokeStyle = '#22d3ee';
+      pctx.lineWidth = 2.5;
+      pctx.beginPath();
+      for (let i = 0; i < historyU.length; i++) {
+        const x = (i / maxHistory) * (w - 70);
+        const y = midY - (historyU[i] / (p0 * 0.5)) * (h * 0.4);
+        if (i === 0) pctx.moveTo(x, y);
+        else pctx.lineTo(x, y);
+      }
+      pctx.stroke();
+      pctx.restore();
+
+      // 3. Polar Phase Vector Clock in corner
+      drawPhaseDial(pctx, w - 38, midY, 26);
+    }
+
+    function drawPhaseDial(ctx, cx, cy, radius) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Phase calculation
+      const phaseAngle = Math.atan2(2 * zeta * beta, 1 - beta * beta);
+
+      // Force Vector (0 deg baseline)
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(0) * (radius - 5), cy - Math.sin(0) * (radius - 5));
+      ctx.stroke();
+
+      // Response Vector (lagging by phaseAngle)
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(-phaseAngle) * (radius - 5), cy - Math.sin(-phaseAngle) * (radius - 5));
+      ctx.stroke();
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${(phaseAngle * 180 / Math.PI).toFixed(0)}°`, cx, cy + radius + 10);
+      ctx.restore();
+    }
+
+    function loop() {
+      stepPhysics();
+      drawFrame();
+      drawPlot();
+      requestAnimationFrame(loop);
+    }
+
+    setTimeout(() => {
+      resizeCanvases();
+      updateParams();
+      loop();
+
+
+    }, 50);
+  </script>
+</body>
+</html>

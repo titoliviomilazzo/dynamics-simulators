@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 04: 고유치해석(Eigen-Analysis)과 Rayleigh 좌표 비연성화</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .light-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-7xl bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-lg space-y-5">
+    
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            고유치해석(Eigen-Analysis)과 Rayleigh 좌표 비연성화(Decoupling)
+          </h1>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Rayleigh(1877) &middot; 3층 전단골조 &middot; 실무 정본
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-1 font-medium">
+          연립방정식 <strong>M&uuml; + Ku = 0</strong> &rarr; 모드 직교성 <strong>&Phi;ᵀM&Phi; = diag(M<sub>n</sub>)</strong> &rarr; 좌표변환 <strong>u(t) = &Phi;&middot;q(t)</strong>를 통한 독립 1자유도(SDOF) 비연성화
+        </p>
+      </div>
+
+      <!-- Action & Mode Presets -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btn-mode1" onclick="setExcitation('mode1')" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs">
+          1모드만 가진 (T₁ = 0.65s)
+        </button>
+        <button id="btn-mode2" onclick="setExcitation('mode2')" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">
+          2모드만 가진 (T₂ = 0.23s)
+        </button>
+        <button id="btn-mode3" onclick="setExcitation('mode3')" class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-xs">
+          3모드만 가진 (T₃ = 0.16s)
+        </button>
+        <button id="btn-mixed" onclick="setExcitation('mixed')" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition shadow-xs">
+          복합 모드 합성 (u = &sum; &phi;<sub>n</sub> q<sub>n</sub>)
+        </button>
+        <button onclick="stopAndReset()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold transition">
+          정지 &middot; 초기화
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Essence Callout Banner -->
+    <div class="p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 text-xs shadow-xs space-y-2">
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 rounded bg-blue-600 text-white font-bold text-[10px]">교수자 핵심 해설</span>
+        <h2 class="font-bold text-slate-900 text-sm">💡 모드해석의 3대 본질: 순수 진동 · 공간 틀 · 고유값 스케일링</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-slate-700 leading-relaxed">
+        <div class="bg-white/80 p-2.5 rounded-xl border border-blue-100">
+          <strong class="text-blue-700 block mb-0.5">1. 모드 응답 = 순수 단일음(Pure Tone)</strong>
+          실제 거동은 주파수가 뒤엉킨 '소음'이지만, 모드좌표 q<sub>n</sub>(t)는 고유진동수 &omega;<sub>n</sub> 하나로만 진동하는 완벽한 정현파입니다.
+        </div>
+        <div class="bg-white/80 p-2.5 rounded-xl border border-indigo-100">
+          <strong class="text-indigo-700 block mb-0.5">2. 모드벡터 = 불변의 공간 틀(Spatial Shape)</strong>
+          모드 진동 중에는 층간 변위비(&phi;₃/&phi;₁)가 <strong>100% 영구 불변</strong>입니다. 틀은 얼어붙어 있고 크기만 사인파로 숨 쉽니다.
+        </div>
+        <div class="bg-white/80 p-2.5 rounded-xl border border-purple-100">
+          <strong class="text-purple-700 block mb-0.5">3. 고유값(&omega;<sub>n</sub>&sup2;) = 시간축 진동 속도</strong>
+          고유값은 공간적 모드 형상을 바꾸지 않고, 오직 이 틀이 얼마나 빠르게 튀어오르는지 시간 축에서만 스케일링합니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- Master Animation Controls: Speed, Modal Scale, Eigenvalue Scale, and Damping Mode -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs items-center">
+      <!-- 1. Speed Slider (3 cols) -->
+      <div class="md:col-span-3 flex items-center gap-2">
+        <span class="font-bold text-slate-800 whitespace-nowrap">⏱️ 재생 속도:</span>
+        <input id="slider-speed" type="range" min="0.1" max="1.0" step="0.05" value="0.35" oninput="updateTimeScale(this.value)" class="w-20 accent-blue-600 cursor-pointer">
+        <span id="speed-label" class="font-mono font-bold text-blue-700 px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px]">0.35x</span>
+      </div>
+
+      <!-- 2. Modal Vibration Visual Amplitude Slider (3 cols) -->
+      <div class="md:col-span-3 flex items-center gap-2">
+        <span class="font-bold text-slate-800 whitespace-nowrap">🔍 진폭 확대:</span>
+        <input id="slider-amp" type="range" min="1.0" max="6.0" step="0.5" value="3.8" oninput="updateAmpMultiplier(this.value)" class="w-20 accent-emerald-600 cursor-pointer">
+        <span id="amp-label" class="font-mono font-bold text-emerald-700 px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px]">3.8x</span>
+      </div>
+
+      <!-- 3. Eigenvalue Frequency Scaler (3 cols) -->
+      <div class="md:col-span-3 flex items-center gap-2">
+        <span class="font-bold text-slate-800 whitespace-nowrap">⚡ 고유값 스케일(&omega;):</span>
+        <input id="slider-omega" type="range" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateOmegaScale(this.value)" class="w-20 accent-purple-600 cursor-pointer">
+        <span id="omega-label" class="font-mono font-bold text-purple-700 px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px]">1.0x (표준)</span>
+      </div>
+
+      <!-- 4. Damping Toggle (3 cols) -->
+      <div class="md:col-span-3 flex items-center justify-start md:justify-end gap-1.5">
+        <button id="btn-damp-zero" onclick="setDampingMode('undamped')" class="px-2 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px] shadow-xs transition">
+          ♾️ 무감쇠
+        </button>
+        <button id="btn-damp-struct" onclick="setDampingMode('damped')" class="px-2 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-[10px] border border-slate-300 transition">
+          💧 감쇠(3%)
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Visual Comparison Section: Physical System vs 3 Modal Frames -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      
+      <!-- 1. Left 5 Cols: Physical Coordinate System (u = Phi * q) -->
+      <div class="lg:col-span-5 bg-slate-50/70 border border-slate-200 rounded-xl p-4 flex flex-col justify-between light-grid relative min-h-[480px]">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+          <div>
+            <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+              물리 좌표계 실제 진동 u(t) = &Phi; &middot; q(t)
+            </span>
+            <span class="text-[11px] font-mono text-slate-500">결합 방정식: M&uuml; + C&uacute; + Ku = 0</span>
+          </div>
+          <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-white text-blue-700 border border-slate-200 shadow-2xs">
+            m = 400 t / 층
+          </span>
+        </div>
+
+        <!-- Canvas for Physical Frame -->
+        <div class="relative flex-1 w-full my-2 min-h-[300px]">
+          <canvas id="canvasPhysical" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Real-time Physical Displacements & Ratio Gauge -->
+        <div class="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-500 font-medium">물리 층변위 벡터 u(t):</span>
+            <span id="txt-phys-disp" class="text-blue-700 font-mono font-bold text-sm">
+              u₃=0.00cm, u₂=0.00cm, u₁=0.00cm
+            </span>
+          </div>
+          
+          <!-- Key Teaching Point: Shape Invariance Gauge -->
+          <div class="p-2 rounded-lg bg-amber-50/80 border border-amber-200 text-[11px] flex items-center justify-between">
+            <span class="font-bold text-amber-900">지붕/1층 변위비 (u₃/u₁):</span>
+            <span id="txt-phys-ratio" class="font-mono font-black text-amber-700">요동침 (비율 고정성 0%)</span>
+          </div>
+
+          <div class="text-[11px] text-slate-500 flex justify-between pt-1 border-t border-slate-100">
+            <span>복합 진동: 층간 변위비가 매 순간 무작위로 뒤틀림</span>
+            <span id="txt-status-desc" class="text-emerald-600 font-semibold">정상 시뮬레이션 중</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Right 7 Cols: The 3 Decoupled Modal Frames (phi_n * q_n) -->
+      <div class="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between min-h-[480px] space-y-3">
+        
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+          <div>
+            <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              Rayleigh 비연성화 좌표계: 3대 독립 모드 진동 &phi;<sub>n</sub> &middot; q<sub>n</sub>(t)
+            </span>
+            <span class="text-[11px] text-slate-500">
+              각 모드는 고유의 단일 주파수(&omega;<sub>n</sub>)로만 진동하며 서로 전혀 간섭하지 않습니다.
+            </span>
+          </div>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono">
+            q̈<sub>n</sub> + 2&zeta;<sub>n</sub>&omega;<sub>n</sub>q̇<sub>n</sub> + &omega;<sub>n</sub>&sup2;q<sub>n</sub> = 0
+          </span>
+        </div>
+
+        <!-- 3 Modal Frames in a Row -->
+        <div class="grid grid-cols-3 gap-3 flex-1 items-stretch">
+          
+          <!-- Mode 1 Frame -->
+          <div class="p-2.5 rounded-xl bg-slate-50/80 border border-emerald-200 flex flex-col justify-between light-grid">
+            <div class="text-center border-b border-emerald-100 pb-1.5">
+              <div class="flex items-center justify-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                <span class="text-xs font-bold text-emerald-800">1모드 기여분</span>
+              </div>
+              <span class="text-[11px] font-mono text-emerald-700 font-semibold">T₁ = 0.65s (1.54 Hz)</span>
+            </div>
+            <div class="relative w-full flex-1 my-1 min-h-[190px]">
+              <canvas id="canvasMode1" class="w-full h-full block"></canvas>
+            </div>
+            <div class="bg-white border border-emerald-100 rounded-lg p-1.5 text-center font-mono space-y-0.5">
+              <span class="text-[10px] text-slate-500 block font-sans">모드좌표 q₁(t)</span>
+              <span id="txt-q1-val" class="text-emerald-700 font-bold text-xs">q₁ = 0.00 cm</span>
+              <span class="text-[9px] px-1 py-0.2 rounded bg-emerald-50 text-emerald-800 font-bold block">변위비 &phi;₃/&phi;₁ &equiv; 2.25 (100% 불변)</span>
+            </div>
+          </div>
+
+          <!-- Mode 2 Frame -->
+          <div class="p-2.5 rounded-xl bg-slate-50/80 border border-blue-200 flex flex-col justify-between light-grid">
+            <div class="text-center border-b border-blue-100 pb-1.5">
+              <div class="flex items-center justify-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                <span class="text-xs font-bold text-blue-800">2모드 기여분</span>
+              </div>
+              <span class="text-[11px] font-mono text-blue-700 font-semibold">T₂ = 0.23s (4.33 Hz)</span>
+            </div>
+            <div class="relative w-full flex-1 my-1 min-h-[190px]">
+              <canvas id="canvasMode2" class="w-full h-full block"></canvas>
+            </div>
+            <div class="bg-white border border-blue-100 rounded-lg p-1.5 text-center font-mono space-y-0.5">
+              <span class="text-[10px] text-slate-500 block font-sans">모드좌표 q₂(t)</span>
+              <span id="txt-q2-val" class="text-blue-700 font-bold text-xs">q₂ = 0.00 cm</span>
+              <span class="text-[9px] px-1 py-0.2 rounded bg-blue-50 text-blue-800 font-bold block">변위비 &phi;₃/&phi;₁ &equiv; -0.80 (100% 불변)</span>
+            </div>
+          </div>
+
+          <!-- Mode 3 Frame -->
+          <div class="p-2.5 rounded-xl bg-slate-50/80 border border-purple-200 flex flex-col justify-between light-grid">
+            <div class="text-center border-b border-purple-100 pb-1.5">
+              <div class="flex items-center justify-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-purple-600"></span>
+                <span class="text-xs font-bold text-purple-800">3모드 기여분</span>
+              </div>
+              <span class="text-[11px] font-mono text-purple-700 font-semibold">T₃ = 0.16s (6.25 Hz)</span>
+            </div>
+            <div class="relative w-full flex-1 my-1 min-h-[190px]">
+              <canvas id="canvasMode3" class="w-full h-full block"></canvas>
+            </div>
+            <div class="bg-white border border-purple-100 rounded-lg p-1.5 text-center font-mono space-y-0.5">
+              <span class="text-[10px] text-slate-500 block font-sans">모드좌표 q₃(t)</span>
+              <span id="txt-q3-val" class="text-purple-700 font-bold text-xs">q₃ = 0.00 cm</span>
+              <span class="text-[9px] px-1 py-0.2 rounded bg-purple-50 text-purple-800 font-bold block">변위비 &phi;₃/&phi;₁ &equiv; 0.55 (100% 불변)</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Real-time Modal Synthesis Strip -->
+        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs font-mono">
+          <span class="font-sans font-bold text-slate-700 flex items-center gap-1">
+            <span>∑ 모드 합성 원리:</span>
+          </span>
+          <span class="text-slate-800 font-semibold">
+            [ u₁, u₂, u₃ ]ᵀ = &phi;₁ &middot; q₁(t) + &phi;₂ &middot; q₂(t) + &phi;₃ &middot; q₃(t)
+          </span>
+          <span class="text-emerald-700 font-bold font-sans">좌표 비연성화 증명 완결</span>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Analytical Proof & Matrix Decoupling Details -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      
+      <!-- 1. Mode Shape Table & Interactive Mode Shape Profile Plot (6 Cols) -->
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-4 text-xs flex flex-col justify-between space-y-3">
+        <div>
+          <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+            <div>
+              <span class="font-bold text-slate-900 text-sm block">1. 고유모드 행렬 &Phi; 및 층별 모드형상 프로파일</span>
+              <span class="text-slate-400 font-mono text-[11px]">그래프: <strong>최대값 정규화 (max|&phi;| = 1.000)</strong></span>
+            </div>
+            <div class="flex items-center gap-1 font-sans">
+              <button id="btn-norm-peak" onclick="setTableNorm('peak')" class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-600 text-white shadow-2xs transition">
+                최대값=1.00 정규화
+              </button>
+              <button id="btn-norm-roof" onclick="setTableNorm('roof')" class="px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition">
+                지붕=1.000 (Chopra)
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+            
+            <!-- Left: Numerical Table (7 Cols) -->
+            <div class="md:col-span-7">
+              <div id="table-mode-container" class="grid grid-cols-4 gap-1.5 text-center font-mono text-xs">
+                <!-- Dynamically populated via renderModeTable() -->
+              </div>
+            </div>
+
+            <!-- Right: Graphical Mode Shape Curves (5 Cols) -->
+            <div class="md:col-span-5 bg-slate-50 rounded-xl p-2.5 border border-slate-200 flex flex-col items-center">
+              <div class="w-full flex justify-between items-center mb-1">
+                <span class="text-[11px] font-bold text-slate-800">층별 모드형상 프로파일</span>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono">max|&phi;̃|=1.0</span>
+              </div>
+              <div class="h-36 w-full relative">
+                <canvas id="canvasModeProfiles" class="w-full h-full block"></canvas>
+              </div>
+              <div class="flex justify-center gap-2.5 text-[10px] font-bold mt-1">
+                <span class="text-emerald-700 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-600"></span>1모드</span>
+                <span class="text-blue-700 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-600"></span>2모드</span>
+                <span class="text-purple-700 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-600"></span>3모드</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600 leading-relaxed font-sans">
+          <span class="font-bold text-slate-800">모드 형상 정규화 원리:</span> 
+          각 모드형상의 최대 절대값을 1.000(100%)으로 일치시켜 비교하면, 
+          <strong>1모드(초록)</strong>는 지붕에서 최대 1.0(영교차 0개 동위상), 
+          <strong>2모드(파랑)</strong>는 1층에서 최대 1.0(영교차 1개 역위상), 
+          <strong>3모드(보라)</strong>는 2층에서 최대 1.0(영교차 2개 지그재그)의 곡률 특성이 동일 축([-1, +1])에서 완벽히 대비됩니다.
+        </div>
+      </div>
+
+      <!-- 2. Orthogonality & Diagonalization Proof (6 Cols) -->
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-4 text-xs flex flex-col justify-between space-y-3">
+        <div>
+          <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-3">
+            <span class="font-bold text-slate-900 text-sm">2. 직교성 검증 및 대각행렬 변환 (&Phi;ᵀ M &Phi;, &Phi;ᵀ K &Phi;)</span>
+            <span class="text-emerald-600 font-bold font-mono text-xs">비대각 직교 교차항 &equiv; 0.000</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 font-mono">
+            <!-- Modal Mass Matrix -->
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-xs text-slate-700 mb-2 font-bold font-sans flex justify-between">
+                <span>모드 질량 &Phi;ᵀ M &Phi; [ton]</span>
+                <span class="text-emerald-700 font-semibold">대각화 완결</span>
+              </div>
+              <table class="w-full text-center text-xs border-collapse">
+                <tr class="border-b border-slate-200">
+                  <td class="py-1.5 text-emerald-700 font-bold bg-emerald-50/60 rounded">736.5</td>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                </tr>
+                <tr class="border-b border-slate-200">
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                  <td class="py-1.5 text-blue-700 font-bold bg-blue-50/60 rounded">1145.2</td>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                </tr>
+                <tr>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                  <td class="py-1.5 text-purple-700 font-bold bg-purple-50/60 rounded">3718.4</td>
+                </tr>
+              </table>
+              <div class="text-[10px] text-slate-500 font-sans mt-2 text-center">
+                M<sub>n</sub> = &sum; m<sub>j</sub> &phi;<sub>jn</sub>&sup2; (i &ne; j &rArr; &phi;<sub>i</sub>ᵀ M &phi;<sub>j</sub> = 0)
+              </div>
+            </div>
+
+            <!-- Modal Stiffness Matrix -->
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-xs text-slate-700 mb-2 font-bold font-sans flex justify-between">
+                <span>모드 강성 &Phi;ᵀ K &Phi; [kN/m]</span>
+                <span class="text-blue-700 font-semibold">&omega;<sub>n</sub>&sup2; = K<sub>n</sub> / M<sub>n</sub></span>
+              </div>
+              <table class="w-full text-center text-xs border-collapse">
+                <tr class="border-b border-slate-200">
+                  <td class="py-1.5 text-emerald-700 font-bold bg-emerald-50/60 rounded">6.93&times;10⁴</td>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                </tr>
+                <tr class="border-b border-slate-200">
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                  <td class="py-1.5 text-blue-700 font-bold bg-blue-50/60 rounded">8.46&times;10⁵</td>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                </tr>
+                <tr>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                  <td class="py-1.5 text-slate-400">0.000</td>
+                  <td class="py-1.5 text-purple-700 font-bold bg-purple-50/60 rounded">5.74&times;10⁶</td>
+                </tr>
+              </table>
+              <div class="text-[10px] text-slate-500 font-sans mt-2 text-center">
+                K<sub>n</sub> = &omega;<sub>n</sub>&sup2; M<sub>n</sub> (i &ne; j &rArr; &phi;<sub>i</sub>ᵀ K &phi;<sub>j</sub> = 0)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rayleigh Insight Callout -->
+        <div class="p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-xs leading-relaxed text-amber-950 font-sans">
+          <span class="text-amber-800 font-bold block mb-1 text-sm">💡 구조기술사의 핵심 직관 (Rayleigh 1877의 유산):</span>
+          물리계에서는 층간 전단스프링(k) 때문에 한 층을 밀면 다른 모든 층이 함께 흔들립니다(Coupled). 
+          그러나 구조물의 고유형상 &Phi;를 기저(Basis)로 잡고 좌표계를 회전시키면, <strong>서로 전혀 소통하지 않는 N개의 독립된 1자유도(SDOF) 진자들의 집합</strong>으로 완벽하게 분해됩니다.
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // --- 3-Story Frame Modal Parameters (Chopra 13장 & Damyang Benchmark) ---
+    // Floor mass: 400 ton per floor
+    const baseOmega = [9.6995, 27.1773, 39.2723]; // rad/s
+    let omegaScale = 1.0;
+    let omega = [...baseOmega];
+
+    function updateOmegaScale(val) {
+      omegaScale = parseFloat(val);
+      const lbl = document.getElementById('omega-label');
+      if (lbl) {
+        lbl.innerText = `${omegaScale.toFixed(1)}x (${omegaScale > 1.0 ? '고주파' : omegaScale < 1.0 ? '저주파' : '표준'})`;
+      }
+      for (let i = 0; i < 3; i++) {
+        omega[i] = baseOmega[i] * omegaScale;
+      }
+    }
+
+    // Mode shapes normalized to roof = 1.000 (Chopra Table 12.8)
+    // [floor1, floor2, floor3(roof)]
+    const phi = [
+      [0.4450, -1.2470,  1.8019], // Floor 1
+      [0.8019, -0.5550, -2.2470], // Floor 2
+      [1.0000,  1.0000,  1.0000]  // Floor 3 (Roof)
+    ];
+
+    // State Variables for Modal SDOFs q1, q2, q3
+    let q = [0.0, 0.0, 0.0];      // Modal displacements (m)
+    let q_dot = [0.0, 0.0, 0.0];  // Modal velocities (m/s)
+
+    let isRunning = true;
+    let lastTime = performance.now();
+    let timeScale = 0.35;         // Default slow-motion viewing speed
+    let modalAmpMultiplier = 3.8; // Bold, vivid modal magnification
+    let physAmpMultiplier = 1.6;  // Physical frame magnification
+    let dampingMode = 'undamped'; // 'undamped' (0%) or 'damped' (3%)
+    let currentZeta = 0.0;        // Undamped permanent oscillation by default
+
+    function updateTimeScale(val) {
+      timeScale = parseFloat(val);
+      const label = document.getElementById('speed-label');
+      if (timeScale <= 0.4) {
+        label.innerText = `${timeScale.toFixed(2)}x (완속)`;
+      } else if (timeScale >= 0.9) {
+        label.innerText = `${timeScale.toFixed(2)}x (등속)`;
+      } else {
+        label.innerText = `${timeScale.toFixed(2)}x (중간)`;
+      }
+    }
+
+    function updateAmpMultiplier(val) {
+      modalAmpMultiplier = parseFloat(val);
+      const label = document.getElementById('amp-label');
+      if (modalAmpMultiplier <= 1.5) {
+        label.innerText = `${modalAmpMultiplier.toFixed(1)}x (실스케일)`;
+      } else if (modalAmpMultiplier >= 4.5) {
+        label.innerText = `${modalAmpMultiplier.toFixed(1)}x (초대형)`;
+      } else {
+        label.innerText = `${modalAmpMultiplier.toFixed(1)}x (대폭 확대)`;
+      }
+    }
+
+    function setDampingMode(mode) {
+      dampingMode = mode;
+      const btnZero = document.getElementById('btn-damp-zero');
+      const btnStruct = document.getElementById('btn-damp-struct');
+
+      if (mode === 'undamped') {
+        currentZeta = 0.0;
+        btnZero.className = "px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] shadow-xs transition";
+        btnStruct.className = "px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-[11px] border border-slate-300 transition";
+      } else {
+        currentZeta = 0.03; // 3% structural damping
+        btnZero.className = "px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-[11px] border border-slate-300 transition";
+        btnStruct.className = "px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold text-[11px] shadow-xs transition";
+      }
+    }
+
+    // Canvas Elements & Contexts
+    const canvasPhysical = document.getElementById('canvasPhysical');
+    const ctxPhys = canvasPhysical.getContext('2d');
+
+    const modalCanvases = [
+      document.getElementById('canvasMode1'),
+      document.getElementById('canvasMode2'),
+      document.getElementById('canvasMode3')
+    ];
+    const ctxModes = modalCanvases.map(c => c.getContext('2d'));
+
+    const canvasProfiles = document.getElementById('canvasModeProfiles');
+    const ctxProfiles = canvasProfiles.getContext('2d');
+
+    // --- Table Normalization Toggle ---
+    let currentTableNorm = 'peak'; // 'peak' or 'roof'
+
+    function setTableNorm(type) {
+      currentTableNorm = type;
+      const btnPeak = document.getElementById('btn-norm-peak');
+      const btnRoof = document.getElementById('btn-norm-roof');
+      if (type === 'peak') {
+        btnPeak.className = "px-2 py-1 rounded text-[10px] font-bold bg-emerald-600 text-white shadow-2xs transition";
+        btnRoof.className = "px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition";
+      } else {
+        btnRoof.className = "px-2 py-1 rounded text-[10px] font-bold bg-blue-600 text-white shadow-2xs transition";
+        btnPeak.className = "px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition";
+      }
+      renderModeTable();
+    }
+
+    function renderModeTable() {
+      const container = document.getElementById('table-mode-container');
+      if (!container) return;
+
+      // Peak-normalized table: Mode 1/1.0, Mode 2/1.2470, Mode 3/2.2470
+      const peakPhi = [
+        [phi[0][0]/1.0000, phi[0][1]/1.2470, phi[0][2]/2.2470],
+        [phi[1][0]/1.0000, phi[1][1]/1.2470, phi[1][2]/2.2470],
+        [phi[2][0]/1.0000, phi[2][1]/1.2470, phi[2][2]/2.2470]
+      ];
+
+      const data = currentTableNorm === 'peak' ? peakPhi : phi;
+
+      let html = `
+        <div class="p-1.5 rounded-lg bg-slate-100 font-sans text-slate-600 font-semibold">층 (DOF)</div>
+        <div class="p-1.5 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">1모드 &phi;₁</div>
+        <div class="p-1.5 rounded-lg bg-blue-50 text-blue-800 font-bold border border-blue-200">2모드 &phi;₂</div>
+        <div class="p-1.5 rounded-lg bg-purple-50 text-purple-800 font-bold border border-purple-200">3모드 &phi;₃</div>
+      `;
+
+      const floorNames = ['1층', '2층', '3층 (Roof)'];
+      // Render from Roof (index 2) down to 1F (index 0)
+      for (let fl = 2; fl >= 0; fl--) {
+        html += `<div class="p-1.5 rounded-lg bg-slate-50 text-slate-700 font-medium">${floorNames[fl]}</div>`;
+        for (let m = 0; m < 3; m++) {
+          const val = data[fl][m];
+          const isMax = Math.abs(Math.abs(val) - 1.0000) < 0.001;
+          const signStr = val >= 0 ? '+' : '';
+          const str = `${signStr}${val.toFixed(4)}`;
+          
+          let colorClass = "text-slate-700";
+          let bgClass = "bg-white";
+          if (m === 0) { colorClass = "text-emerald-700"; if (isMax) bgClass = "bg-emerald-50/70 border-emerald-300"; }
+          if (m === 1) { colorClass = "text-blue-700"; if (isMax) bgClass = "bg-blue-50/70 border-blue-300"; }
+          if (m === 2) { colorClass = "text-purple-700"; if (isMax) bgClass = "bg-purple-50/70 border-purple-300"; }
+
+          html += `
+            <div class="p-1.5 rounded-lg ${bgClass} border border-slate-200 ${colorClass} font-bold">
+              ${str} ${isMax && currentTableNorm === 'peak' ? '<span class="text-[9px] block text-amber-700 font-sans">MAX 1.0</span>' : ''}
+            </div>
+          `;
+        }
+      }
+      container.innerHTML = html;
+    }
+
+    // --- DPR Safe Canvas Resizing with setTransform ---
+    function resizeAllCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+
+      // Physical Frame Canvas
+      const pw = canvasPhysical.parentElement.clientWidth;
+      const ph = canvasPhysical.parentElement.clientHeight;
+      canvasPhysical.width = pw * dpr;
+      canvasPhysical.height = ph * dpr;
+      ctxPhys.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // 3 Modal Canvases
+      modalCanvases.forEach((c, idx) => {
+        const mw = c.parentElement.clientWidth;
+        const mh = c.parentElement.clientHeight;
+        c.width = mw * dpr;
+        c.height = mh * dpr;
+        ctxModes[idx].setTransform(dpr, 0, 0, dpr, 0, 0);
+      });
+
+      // Mode Profile Plot Canvas
+      const rw = canvasProfiles.parentElement.clientWidth;
+      const rh = canvasProfiles.parentElement.clientHeight;
+      canvasProfiles.width = rw * dpr;
+      canvasProfiles.height = rh * dpr;
+      ctxProfiles.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      drawStaticProfiles();
+    }
+
+    window.addEventListener('resize', resizeAllCanvases);
+    setTimeout(resizeAllCanvases, 50);
+
+    let currentExcitation = 'mixed';
+
+    // Initial excitation preset
+    setExcitation('mixed');
+    renderModeTable();
+
+    function setExcitation(type) {
+      currentExcitation = type;
+      q = [0.0, 0.0, 0.0];
+      q_dot = [0.0, 0.0, 0.0];
+      isRunning = true;
+
+      if (type === 'mode1') {
+        q[0] = 0.024; // 2.4 cm modal amplitude
+        document.getElementById('txt-status-desc').innerText = "1모드 단독 자유진동 (동위상, 주기 0.65s)";
+      } else if (type === 'mode2') {
+        q[1] = 0.019; // 1.9 cm modal amplitude
+        document.getElementById('txt-status-desc').innerText = "2모드 단독 자유진동 (역위상 영교차 1개, 주기 0.23s)";
+      } else if (type === 'mode3') {
+        q[2] = 0.011; // 1.1 cm modal amplitude
+        document.getElementById('txt-status-desc').innerText = "3모드 단독 자유진동 (고주파 영교차 2개, 주기 0.16s)";
+      } else if (type === 'mixed') {
+        q[0] = 0.020;
+        q[1] = -0.014;
+        q[2] = 0.008;
+        document.getElementById('txt-status-desc').innerText = "복합 모드 합성 거동 (1모드+2모드+3모드 동시 중첩)";
+      }
+    }
+
+    function stopAndReset() {
+      q = [0.0, 0.0, 0.0];
+      q_dot = [0.0, 0.0, 0.0];
+      isRunning = false;
+      document.getElementById('txt-status-desc').innerText = "해석 정지됨 (가진 모드를 선택하세요)";
+    }
+
+    // --- Hermite Double Curvature Shear Column Drawing ---
+    function drawHermiteColumn(ctx, x0, y0, x1, y1, width = 4, color = '#0284c7') {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      const steps = 20;
+      for (let i = 0; i <= steps; i++) {
+        const s = i / steps;
+        // Standard shear building cubic shape function (zero rotation at ends)
+        const h = 3 * s * s - 2 * s * s * s;
+        const curX = x0 + (x1 - x0) * h;
+        const curY = y0 + (y1 - y0) * s;
+        if (i === 0) ctx.moveTo(curX, curY);
+        else ctx.lineTo(curX, curY);
+      }
+      ctx.stroke();
+    }
+
+    // --- Draw Complete 3-Story Frame Template ---
+    function drawBuildingFrame(ctx, w, h, uValues, themeColor, labelPrefix = '', showMassText = true, scaleMultiplier = 1.0) {
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const gy = h - 35;
+      const floorH = (gy - 35) / 3;
+      const bay = Math.min(w * 0.48, 120);
+      const halfBay = bay / 2;
+
+      // Visual magnification scale (u in meters -> pixels)
+      const baseScale = Math.min(w * 1.8, 480);
+      const scale = baseScale * scaleMultiplier;
+
+      const x0 = cx;
+      const x1 = cx + uValues[0] * scale;
+      const x2 = cx + uValues[1] * scale;
+      const x3 = cx + uValues[2] * scale;
+
+      const y0 = gy;
+      const y1 = gy - floorH;
+      const y2 = gy - floorH * 2;
+      const y3 = gy - floorH * 3;
+
+      // 0. Neutral Center Reference Plumb Line (Undeformed Axis)
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(cx, y0); ctx.lineTo(cx, y3 - 10);
+      ctx.stroke();
+
+      // 1. Column Reference Plumb Lines
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - halfBay, y0); ctx.lineTo(cx - halfBay, y3);
+      ctx.moveTo(cx + halfBay, y0); ctx.lineTo(cx + halfBay, y3);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 2. Double Curvature Columns (Left & Right)
+      drawHermiteColumn(ctx, x0 - halfBay, y0, x1 - halfBay, y1, 4.0, themeColor);
+      drawHermiteColumn(ctx, x1 - halfBay, y1, x2 - halfBay, y2, 4.0, themeColor);
+      drawHermiteColumn(ctx, x2 - halfBay, y2, x3 - halfBay, y3, 4.0, themeColor);
+
+      drawHermiteColumn(ctx, x0 + halfBay, y0, x1 + halfBay, y1, 4.0, themeColor);
+      drawHermiteColumn(ctx, x1 + halfBay, y1, x2 + halfBay, y2, 4.0, themeColor);
+      drawHermiteColumn(ctx, x2 + halfBay, y2, x3 + halfBay, y3, 4.0, themeColor);
+
+      // 3. Slabs & Nodes
+      function drawSlab(flX, flY, flName, massTag) {
+        const sw = bay + 22;
+        const sh = 12;
+
+        // Slab Body
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(flX - sw / 2, flY - sh / 2, sw, sh, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // Pin Joints
+        ctx.fillStyle = themeColor;
+        ctx.beginPath();
+        ctx.arc(flX - halfBay, flY, 3.2, 0, Math.PI * 2);
+        ctx.arc(flX + halfBay, flY, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Floor Name
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 9px Pretendard, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(flName, flX, flY);
+
+        // Mass / Info Tag
+        if (showMassText && massTag) {
+          ctx.fillStyle = '#64748b';
+          ctx.font = 'bold 9px monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText(massTag, flX - sw / 2 - 4, flY);
+        }
+      }
+
+      drawSlab(x1, y1, labelPrefix ? `${labelPrefix}1` : '1F', '400t');
+      drawSlab(x2, y2, labelPrefix ? `${labelPrefix}2` : '2F', '400t');
+      drawSlab(x3, y3, labelPrefix ? `${labelPrefix}3` : '3F', '400t');
+
+      // 4. Foundation Ground Plate
+      const baseW = bay + 40;
+      ctx.fillStyle = '#f1f5f9';
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.rect(x0 - baseW / 2, y0, baseW, 7);
+      ctx.fill();
+      ctx.stroke();
+
+      // Hatching
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.2;
+      for (let x = x0 - baseW / 2 + 5; x <= x0 + baseW / 2 - 5; x += 9) {
+        ctx.beginPath();
+        ctx.moveTo(x, y0 + 7);
+        ctx.lineTo(x - 5, y0 + 13);
+        ctx.stroke();
+      }
+    }
+
+    // --- Mode Shape Height Profiles Plotter (Strictly Peak-Normalized to max|phi| = 1.0) ---
+    function drawStaticProfiles() {
+      const w = canvasProfiles.parentElement.clientWidth;
+      const h = canvasProfiles.parentElement.clientHeight;
+      ctxProfiles.clearRect(0, 0, w, h);
+
+      const padL = 34;
+      const padR = 18;
+      const padT = 16;
+      const padB = 22;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+
+      // Central zero line (x = 0)
+      const zeroX = padL + plotW * 0.5;
+
+      // Vertical Grid Lines: x = -1.0, x = 0, x = +1.0
+      const scaleX = plotW * 0.44; // Peak displacement at 1.0 reaches 44% of half width
+
+      // Boundary dashed lines at -1.0 and +1.0
+      ctxProfiles.strokeStyle = '#e2e8f0';
+      ctxProfiles.lineWidth = 1;
+      ctxProfiles.setLineDash([2, 2]);
+      
+      [-1, 1].forEach(sign => {
+        const lx = zeroX + sign * scaleX;
+        ctxProfiles.beginPath();
+        ctxProfiles.moveTo(lx, padT);
+        ctxProfiles.lineTo(lx, padT + plotH);
+        ctxProfiles.stroke();
+      });
+
+      // Central zero line
+      ctxProfiles.strokeStyle = '#94a3b8';
+      ctxProfiles.lineWidth = 1.2;
+      ctxProfiles.setLineDash([]);
+      ctxProfiles.beginPath();
+      ctxProfiles.moveTo(zeroX, padT);
+      ctxProfiles.lineTo(zeroX, padT + plotH);
+      ctxProfiles.stroke();
+
+      // Axis labels at bottom: -1.0, 0, +1.0
+      ctxProfiles.fillStyle = '#94a3b8';
+      ctxProfiles.font = '9px monospace';
+      ctxProfiles.textAlign = 'center';
+      ctxProfiles.textBaseline = 'top';
+      ctxProfiles.fillText('-1.0', zeroX - scaleX, padT + plotH + 4);
+      ctxProfiles.fillText('0', zeroX, padT + plotH + 4);
+      ctxProfiles.fillText('+1.0', zeroX + scaleX, padT + plotH + 4);
+
+      // Story heights (Ground, 1F, 2F, 3F)
+      const yG = padT + plotH;
+      const y1 = padT + plotH * 0.66;
+      const y2 = padT + plotH * 0.33;
+      const y3 = padT;
+      const yLevels = [yG, y1, y2, y3];
+
+      // Floor horizontal lines & labels
+      ctxProfiles.strokeStyle = '#f1f5f9';
+      ctxProfiles.lineWidth = 1;
+      [yG, y1, y2, y3].forEach((y, i) => {
+        ctxProfiles.beginPath();
+        ctxProfiles.moveTo(padL, y);
+        ctxProfiles.lineTo(padL + plotW, y);
+        ctxProfiles.stroke();
+
+        ctxProfiles.fillStyle = '#64748b';
+        ctxProfiles.font = 'bold 9px monospace';
+        ctxProfiles.textAlign = 'right';
+        ctxProfiles.textBaseline = 'middle';
+        const label = i === 0 ? 'GL' : `${i}F`;
+        ctxProfiles.fillText(label, padL - 5, y);
+      });
+
+      // Peak-Normalized Mode Shape Data: Each mode divided by its own max absolute value
+      // Mode 1: max = 1.0000 at 3F
+      // Mode 2: max = 1.2470 at 1F
+      // Mode 3: max = 2.2470 at 2F
+      const modesData = [
+        { 
+          name: '1모드', 
+          color: '#059669', 
+          vals: [0, phi[0][0]/1.0000, phi[1][0]/1.0000, phi[2][0]/1.0000],
+          peakIdx: 3 // 3F (Roof)
+        },
+        { 
+          name: '2모드', 
+          color: '#2563eb', 
+          vals: [0, phi[0][1]/1.2470, phi[1][1]/1.2470, phi[2][1]/1.2470],
+          peakIdx: 1 // 1F
+        },
+        { 
+          name: '3모드', 
+          color: '#7c3aed', 
+          vals: [0, phi[0][2]/2.2470, phi[1][2]/2.2470, phi[2][2]/2.2470],
+          peakIdx: 2 // 2F
+        }
+      ];
+
+      // Draw mode profile lines
+      modesData.forEach(m => {
+        ctxProfiles.strokeStyle = m.color;
+        ctxProfiles.lineWidth = 2.4;
+        ctxProfiles.lineCap = 'round';
+        ctxProfiles.lineJoin = 'round';
+        ctxProfiles.beginPath();
+        for (let i = 0; i < 4; i++) {
+          const px = zeroX + m.vals[i] * scaleX;
+          const py = yLevels[i];
+          if (i === 0) ctxProfiles.moveTo(px, py);
+          else ctxProfiles.lineTo(px, py);
+        }
+        ctxProfiles.stroke();
+
+        // Node markers
+        m.vals.forEach((v, i) => {
+          const px = zeroX + v * scaleX;
+          const py = yLevels[i];
+
+          if (i === m.peakIdx) {
+            // Highlight peak marker with concentric ring
+            ctxProfiles.strokeStyle = m.color;
+            ctxProfiles.lineWidth = 1.8;
+            ctxProfiles.beginPath();
+            ctxProfiles.arc(px, py, 5.5, 0, Math.PI * 2);
+            ctxProfiles.stroke();
+          }
+
+          ctxProfiles.fillStyle = m.color;
+          ctxProfiles.beginPath();
+          ctxProfiles.arc(px, py, 3, 0, Math.PI * 2);
+          ctxProfiles.fill();
+        });
+      });
+    }
+
+    // --- Main Simulation Loop ---
+    function animate(currentTime) {
+      requestAnimationFrame(animate);
+
+      // Apply User-Controlled Time Scale (Slow Motion)
+      const rawDt = Math.min((currentTime - lastTime) / 1000, 0.04);
+      const dt = rawDt * timeScale;
+      lastTime = currentTime;
+
+      // Integration of 3 SDOFs via Symplectic Euler
+      if (isRunning) {
+        for (let n = 0; n < 3; n++) {
+          const acc = -2 * currentZeta * omega[n] * q_dot[n] - Math.pow(omega[n], 2) * q[n];
+          q_dot[n] += acc * dt;
+          q[n] += q_dot[n] * dt;
+        }
+      }
+
+      // Update Modal Texts
+      document.getElementById('txt-q1-val').innerText = `q₁ = ${(q[0] * 100).toFixed(2)} cm`;
+      document.getElementById('txt-q2-val').innerText = `q₂ = ${(q[1] * 100).toFixed(2)} cm`;
+      document.getElementById('txt-q3-val').innerText = `q₃ = ${(q[2] * 100).toFixed(2)} cm`;
+
+      // 1. Calculate Physical Displacements: u = Phi * q
+      const u1 = phi[0][0]*q[0] + phi[0][1]*q[1] + phi[0][2]*q[2];
+      const u2 = phi[1][0]*q[0] + phi[1][1]*q[1] + phi[1][2]*q[2];
+      const u3 = phi[2][0]*q[0] + phi[2][1]*q[1] + phi[2][2]*q[2];
+
+      document.getElementById('txt-phys-disp').innerText = 
+        `u₃=${(u3 * 100).toFixed(2)}cm, u₂=${(u2 * 100).toFixed(2)}cm, u₁=${(u1 * 100).toFixed(2)}cm`;
+
+      const ratioEl = document.getElementById('txt-phys-ratio');
+      if (ratioEl) {
+        if (Math.abs(u1) < 0.0003) {
+          ratioEl.innerText = '원점 통과 중...';
+          ratioEl.className = 'font-mono font-bold text-slate-500';
+        } else {
+          const rVal = (u3 / u1).toFixed(2);
+          if (currentExcitation === 'mode1') {
+            ratioEl.innerText = `u₃/u₁ = ${rVal} ≡ 2.25 (100% 영구 불변: 1모드 틀 유지)`;
+            ratioEl.className = 'font-mono font-black text-emerald-700';
+          } else if (currentExcitation === 'mode2') {
+            ratioEl.innerText = `u₃/u₁ = ${rVal} ≡ -0.80 (100% 영구 불변: 2모드 틀 유지)`;
+            ratioEl.className = 'font-mono font-black text-blue-700';
+          } else if (currentExcitation === 'mode3') {
+            ratioEl.innerText = `u₃/u₁ = ${rVal} ≡ 0.55 (100% 영구 불변: 3모드 틀 유지)`;
+            ratioEl.className = 'font-mono font-black text-purple-700';
+          } else {
+            ratioEl.innerText = `u₃/u₁ = ${rVal} (비율 요동침: 복합 진동)`;
+            ratioEl.className = 'font-mono font-black text-amber-700';
+          }
+        }
+      }
+
+      // 2. Render Physical Frame with physAmpMultiplier
+      const pw = canvasPhysical.parentElement.clientWidth;
+      const ph = canvasPhysical.parentElement.clientHeight;
+      drawBuildingFrame(ctxPhys, pw, ph, [u1, u2, u3], '#0284c7', '', true, physAmpMultiplier);
+
+      // 3. Render 3 Modal Frames (phi_n * q_n) with modalAmpMultiplier (Bold, Clear Oscillations)
+      // Mode 1:
+      const mw1 = modalCanvases[0].parentElement.clientWidth;
+      const mh1 = modalCanvases[0].parentElement.clientHeight;
+      const u_m1 = [phi[0][0] * q[0], phi[1][0] * q[0], phi[2][0] * q[0]];
+      drawBuildingFrame(ctxModes[0], mw1, mh1, u_m1, '#059669', 'M1-', false, modalAmpMultiplier);
+
+      // Mode 2:
+      const mw2 = modalCanvases[1].parentElement.clientWidth;
+      const mh2 = modalCanvases[1].parentElement.clientHeight;
+      const u_m2 = [phi[0][1] * q[1], phi[1][1] * q[1], phi[2][1] * q[1]];
+      drawBuildingFrame(ctxModes[1], mw2, mh2, u_m2, '#2563eb', 'M2-', false, modalAmpMultiplier);
+
+      // Mode 3:
+      const mw3 = modalCanvases[2].parentElement.clientWidth;
+      const mh3 = modalCanvases[2].parentElement.clientHeight;
+      const u_m3 = [phi[0][2] * q[2], phi[1][2] * q[2], phi[2][2] * q[2]];
+      drawBuildingFrame(ctxModes[2], mw3, mh3, u_m3, '#7c3aed', 'M3-', false, modalAmpMultiplier);
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KDS 41 내진설계 규준 인터랙티브 네비게이터 & 7단계 의사결정 파이프라인</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --panel-bg: #1e293b;
+      --panel-border: #334155;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.3);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --step-active: #0284c7;
+      --step-done: #059669;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background: #090d16;
+      border-bottom: 1px solid var(--panel-border);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-badge {
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    h1 { font-size: 1.15rem; font-weight: 700; color: #fff; }
+    .subtitle { font-size: 0.78rem; color: var(--text-muted); }
+
+    .preset-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .preset-btn {
+      background: #1e293b;
+      border: 1px solid #3b82f6;
+      color: #93c5fd;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .preset-btn:hover {
+      background: #2563eb;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+
+    /* Left Sidebar: 7-Step Pipeline Flowchart */
+    .flowchart-pane {
+      width: 370px;
+      background: #131b2e;
+      border-right: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+      padding: 14px 12px;
+    }
+    .flow-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .flow-step-card {
+      background: #1e293b;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .flow-step-card:hover {
+      border-color: var(--accent);
+      transform: translateX(3px);
+    }
+    .flow-step-card.active {
+      border-color: var(--accent);
+      background: #172554;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+    }
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .step-num {
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #334155;
+      color: #cbd5e1;
+    }
+    .flow-step-card.active .step-num { background: var(--step-active); color: #fff; }
+    .step-code { font-size: 0.66rem; color: #64748b; font-family: monospace; }
+    .step-name { font-size: 0.83rem; font-weight: 700; color: #e2e8f0; }
+    .step-summary {
+      font-size: 0.74rem;
+      color: #38bdf8;
+      font-weight: 600;
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .dynamics-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.65rem;
+      color: #c084fc;
+      background: rgba(168, 85, 247, 0.15);
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+    .flow-arrow {
+      text-align: center;
+      color: #475569;
+      font-size: 0.85rem;
+      line-height: 1;
+      margin: -3px 0;
+    }
+
+    /* Right Workbench Pane */
+    .workbench-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-dark);
+    }
+
+    .tab-bar {
+      display: flex;
+      background: #090d16;
+      border-bottom: 1px solid var(--panel-border);
+      padding: 0 16px;
+      gap: 4px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { color: #fff; }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: none;
+    }
+    .tab-content.active { display: block; }
+
+    /* Cards & Layout */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+
+    .card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 14px;
+      position: relative;
+    }
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title-left { display: flex; align-items: center; gap: 8px; }
+    .card-title .tag {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #334155;
+      color: #94a3b8;
+    }
+    .link-badge {
+      font-size: 0.68rem;
+      color: #a855f7;
+      text-decoration: none;
+      background: rgba(168, 85, 247, 0.12);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .link-badge:hover {
+      background: rgba(168, 85, 247, 0.25);
+      color: #d8b4fe;
+      transform: translateY(-1px);
+    }
+
+    .form-group { margin-bottom: 10px; }
+    .form-label {
+      display: block;
+      font-size: 0.74rem;
+      color: #94a3b8;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    select, input[type="number"], input[type="text"] {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-size: 0.75rem;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #cbd5e1;
+      cursor: pointer;
+      background: #111827;
+      padding: 5px 8px;
+      border-radius: 4px;
+      border: 1px solid #1f2937;
+    }
+    .checkbox-label input { accent-color: var(--accent); }
+
+    /* Metric & Highlight Box */
+    .metric-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+    .metric-value {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: monospace;
+    }
+    .metric-label { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+
+    .verdict-banner {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.83rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      background: #172554;
+      border: 1px solid #1e40af;
+    }
+
+    /* Math & Code Blocks */
+    .math-formula {
+      background: #0b1120;
+      border: 1px solid #1e293b;
+      border-left: 3px solid var(--accent);
+      padding: 6px 10px;
+      font-family: monospace;
+      font-size: 0.76rem;
+      color: #e2e8f0;
+      margin: 6px 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* Matrix Table */
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+      text-align: center;
+      margin-top: 6px;
+    }
+    .matrix-table th, .matrix-table td {
+      border: 1px solid #334155;
+      padding: 4px 6px;
+    }
+    .matrix-table th { background: #1e293b; color: #94a3b8; }
+    .matrix-table td.selected {
+      background: #0284c7;
+      color: #fff;
+      font-weight: 800;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+    }
+
+    /* Canvas visual */
+    .visual-wrapper {
+      position: relative;
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      overflow: hidden;
+      height: 340px;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    .canvas-toolbar {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+    .canvas-btn {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: all 0.2s;
+    }
+    .canvas-btn:hover { background: #3b82f6; border-color: #60a5fa; }
+    .canvas-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
+
+    /* Teacher notes */
+    .teacher-note {
+      background: #1e1e2e;
+      border-left: 4px solid #a855f7;
+      padding: 12px 14px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 12px;
+    }
+    .note-badge {
+      font-size: 0.65rem;
+      background: #a855f7;
+      color: #fff;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 6px;
+    }
+    .note-title { font-size: 0.82rem; font-weight: 700; color: #e9d5ff; margin-bottom: 4px; }
+    .note-text { font-size: 0.76rem; color: #cbd5e1; line-height: 1.55; }
+
+    /* Checklist Card */
+    .checklist-item {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .check-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      justify-content: space-between;
+    }
+    .check-desc {
+      font-size: 0.74rem;
+      color: #94a3b8;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    /* Tooltip / Badges */
+    .pill {
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .pill-blue { background: #1e3a8a; color: #93c5fd; }
+    .pill-green { background: #064e3b; color: #6ee7b7; }
+    .pill-red { background: #7f1d1d; color: #fca5a5; }
+    .pill-amber { background: #78350f; color: #fcd34d; }
+
+    /* Micro Table */
+    .micro-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+      text-align: right;
+    }
+    .micro-table th, .micro-table td {
+      border: 1px solid #334155;
+      padding: 4px 8px;
+    }
+    .micro-table th { background: #1e293b; color: #94a3b8; text-align: center; }
+    .micro-table tr:nth-child(even) { background: #0f172a; }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">KDS 41 NAVIGATOR</span>
+      <div>
+        <h1>KDS 41 내진설계 규준 인터랙티브 네비게이터 & 7단계 의사결정 파이프라인</h1>
+        <div class="subtitle">건축물 내진설계기준(KDS 41 17 00:2022) & 설계하중(KDS 41 12 00) 동역학 연계 전과정 실시간 해석</div>
+      </div>
+    </div>
+    <div class="preset-bar">
+      <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 600;">실무 대표 프리셋:</span>
+      <button class="preset-btn" onclick="applyPreset('apt')">🏢 서울 25층 아파트</button>
+      <button class="preset-btn" onclick="applyPreset('hospital')">🏥 경주 응급병원</button>
+      <button class="preset-btn" onclick="applyPreset('piloti')">🚗 포항 4층 필로티</button>
+      <button class="preset-btn" onclick="applyPreset('warehouse')">📦 인천 물류센터</button>
+      <button class="preset-btn" onclick="applyPreset('highrise')">🏙️ 부산 45층 복합</button>
+    </div>
+  </header>
+
+  <!-- Main Split Body -->
+  <div class="main-container">
+    
+    <!-- Left Pane: 7-Step Decision Pipeline DAG -->
+    <div class="flowchart-pane">
+      <div class="flow-title">
+        <span>7단계 의사결정 순서도 (DAG)</span>
+        <span style="font-size: 0.65rem; color: #38bdf8;">단계별 카드 클릭 시 이동</span>
+      </div>
+
+      <div class="flow-steps">
+        <!-- Step 1 -->
+        <div class="flow-step-card active" id="flow-card-1" onclick="jumpToStep(1)">
+          <div class="step-header">
+            <span class="step-num">STEP 1</span>
+            <span class="step-code">KDS 41 17 00 표 2.2-1</span>
+          </div>
+          <div class="step-name">중요도 및 내진등급</div>
+          <div class="step-summary" id="flow-summary-1">내진I등급 (Ie = 1.2)</div>
+          <div class="dynamics-tag">🔗 동역학: 01 SDOF 공진 & 감쇠</div>
+        </div>
+
+        <div class="flow-arrow">▼</div>
+
+        <!-- Step 2 -->
+        <div class="flow-step-card" id="flow-card-2" onclick="jumpToStep(2)">
+          <div class="step-header">
+            <span class="step-num">STEP 2</span>
+            <span class="step-code">표 4.2-1, 표 4.2-2</span>
+          </div>
+          <div class="step-name">지진구역 & 지반분류 (Fa, Fv)</div>
+          <div class="step-summary" id="flow-summary-2">S4지반 (Fa=1.36, Fv=1.96)</div>
+          <div class="dynamics-tag">🔗 동역학: 10 푸리에 FFT & 지반증폭</div>
+        </div>
+
+        <div class="flow-arrow">▼</div>
+
+        <!-- Step 3 -->
+        <div class="flow-step-card" id="flow-card-3" onclick="jumpToStep(3)">
+          <div class="step-header">
+            <span class="step-num">STEP 3</span>
+            <span class="step-code">표 5.2-1, 표 5.2-2</span>
+          </div>
+          <div class="step-name">설계스펙트럼 & SDC 판정</div>
+          <div class="step-summary" id="flow-summary-3">SDS=0.50g / SD1=0.29g ➔ SDC D</div>
+          <div class="dynamics-tag">🔗 동역학: 39 Newmark 삼분도 & ADRS</div>
+        </div>
+
+        <div class="flow-arrow">▼</div>
+
+        <!-- Step 4 -->
+        <div class="flow-step-card" id="flow-card-4" onclick="jumpToStep(4)">
+          <div class="step-header">
+            <span class="step-num">STEP 4</span>
+            <span class="step-code">표 5.3-1, 표 5.3-2</span>
+          </div>
+          <div class="step-name">평면/수직 비정형성 진단</div>
+          <div class="step-summary" id="flow-summary-4">정형 구조물 (비정형 없음)</div>
+          <div class="dynamics-tag">🔗 동역학: 05 타이베이101 & 43 비틀림</div>
+        </div>
+
+        <div class="flow-arrow">▼</div>
+
+        <!-- Step 5 -->
+        <div class="flow-step-card" id="flow-card-5" onclick="jumpToStep(5)">
+          <div class="step-header">
+            <span class="step-num">STEP 5</span>
+            <span class="step-code">표 6.2-1</span>
+          </div>
+          <div class="step-name">구조시스템 & R, Ω0, Cd</div>
+          <div class="step-summary" id="flow-summary-5">RC 특수전단벽 (R=5, Cd=5)</div>
+          <div class="dynamics-tag">🔗 동역학: 37 등변위 R & 41 이중골조</div>
+        </div>
+
+        <div class="flow-arrow">▼</div>
+
+        <!-- Step 6 -->
+        <div class="flow-step-card" id="flow-card-6" onclick="jumpToStep(6)">
+          <div class="step-header">
+            <span class="step-num">STEP 6</span>
+            <span class="step-code">표 7.1-1</span>
+          </div>
+          <div class="step-name">구조해석법 의무 판정</div>
+          <div class="step-summary" id="flow-summary-6">동적해석법 의무 (70m 초과)</div>
+          <div class="dynamics-tag">🔗 동역학: 03 모달스펙트럼 & 40 해석기</div>
+        </div>
+
+        <div class="flow-arrow">▼</div>
+
+        <!-- Step 7 -->
+        <div class="flow-step-card" id="flow-card-7" onclick="jumpToStep(7)">
+          <div class="step-header">
+            <span class="step-num">STEP 7</span>
+            <span class="step-code">제7.2절 & 제7.2.8절</span>
+          </div>
+          <div class="step-name">밑면전단력 & 층간변위 검증</div>
+          <div class="step-summary" id="flow-summary-7">V = 0.082W, Δi = 1.04% (OK)</div>
+          <div class="dynamics-tag">🔗 동역학: 42 Cd 변위증폭 & 06 85%보정</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Workbench Pane -->
+    <div class="workbench-pane">
+      
+      <!-- Tab Headers -->
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="setTab('workbench')">⚡ 7단계 파라미터 조작 & 계산서</button>
+        <button class="tab-btn" onclick="setTab('visuals')">🏢 3D/2D 구조 거동 & 응답스펙트럼 곡선</button>
+        <button class="tab-btn" onclick="setTab('fx-table')">📊 층별 횡하중(Fx) & 층전단력 수직분배</button>
+        <button class="tab-btn" onclick="setTab('checklist')">📋 초급 엔지니어 7대 실무 체크리스트</button>
+        <button class="tab-btn" onclick="setTab('lectures')">🎓 강사의 규준 해설 & 실무 함정</button>
+      </div>
+
+      <!-- Tab 1: Parameter & Calculations -->
+      <div class="tab-content active" id="tab-workbench">
+        
+        <!-- Top Overall Status Banner -->
+        <div class="verdict-banner" id="global-banner">
+          <div>
+            <span id="banner-text">내진설계범주 SDC D | 동적해석법(모달스펙트럼/시간이력) 의무 대상 구조물</span>
+          </div>
+          <div id="banner-badges" style="display: flex; gap: 6px;">
+            <span class="pill pill-blue" id="badge-sdc">SDC D</span>
+            <span class="pill pill-green" id="badge-system">시스템 허용</span>
+            <span class="pill pill-amber" id="badge-method">동적해석 의무</span>
+          </div>
+        </div>
+
+        <!-- Section 1 & 2 -->
+        <div class="grid-2">
+          
+          <!-- Step 1 Card -->
+          <div class="card" id="card-step-1">
+            <div class="card-title">
+              <div class="card-title-left">
+                <span>STEP 1: 건축물 중요도 및 내진등급</span>
+                <span class="tag">표 2.2-1</span>
+              </div>
+              <a href="01_sdof_resonance.html" target="_blank" class="link-badge">
+                <span>01 SDOF 공진 실습 ➔</span>
+              </a>
+            </div>
+            <div class="form-group">
+              <label class="form-label">건축물의 용도 및 규모 (KDS 41 10 05)</label>
+              <select id="inp-importance" onchange="updateAll()">
+                <option value="special">중요도(특): 소방서, 경찰서, 응급의료, 국가재난대응 (Ie = 1.5)</option>
+                <option value="1" selected>중요도(1): 16층 이상 공동주택, 연면적 1000㎡ 초과 집회시설, 학교 (Ie = 1.2)</option>
+                <option value="2">중요도(2): 일반 근린생활시설, 일반 사무소, 공장 (Ie = 1.0)</option>
+                <option value="3">중요도(3): 소규모 창고, 가설건축물, 농업용 시설 (Ie = 1.0)</option>
+              </select>
+            </div>
+            <div class="grid-2">
+              <div class="metric-box">
+                <div class="metric-value" id="val-grade">내진I등급</div>
+                <div class="metric-label">내진등급 (표 2.2-1)</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="val-ie">1.20</div>
+                <div class="metric-label">중요도계수 (Ie)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 Card -->
+          <div class="card" id="card-step-2">
+            <div class="card-title">
+              <div class="card-title-left">
+                <span>STEP 2: 지진구역 & 지반분류</span>
+                <span class="tag">표 4.2-1, 4.2-2</span>
+              </div>
+              <a href="10_fourier_fft_psd.html" target="_blank" class="link-badge">
+                <span>10 푸리에 FFT 실습 ➔</span>
+              </a>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">지진구역 (KDS 17 10 00)</label>
+                <select id="inp-zone" onchange="updateAll()">
+                  <option value="1" selected>지진구역 I (서울, 경기, 부산, 대구 등) : Z = 0.22</option>
+                  <option value="2">지진구역 II (강원 북부, 제주도) : Z = 0.14</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">지반분류 (표 4.1-1)</label>
+                <select id="inp-soil" onchange="updateAll()">
+                  <option value="S1">S1 : 경암 (Vs > 1500 m/s)</option>
+                  <option value="S2">S2 : 보통암 (Vs 760~1500 m/s)</option>
+                  <option value="S3">S3 : 연암/조밀토 (Vs 360~760 m/s)</option>
+                  <option value="S4" selected>S4 : 깊고 단단한 토사 (Vs 180~360 m/s)</option>
+                  <option value="S5">S5 : 연약지반 (Vs < 180 m/s, 두께>6m)</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="metric-box">
+                <div class="metric-value" id="val-fa">1.36</div>
+                <div class="metric-label">단주기 증폭계수 (Fa)</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="val-fv">1.96</div>
+                <div class="metric-label">1초주기 증폭계수 (Fv)</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Section 3 & 4 -->
+        <div class="grid-2">
+          
+          <!-- Step 3 Card -->
+          <div class="card" id="card-step-3">
+            <div class="card-title">
+              <div class="card-title-left">
+                <span>STEP 3: 설계스펙트럼 & 내진설계범주(SDC)</span>
+                <span class="tag">표 5.2-1, 5.2-2</span>
+              </div>
+              <a href="39_newmark_tripartite_adrs.html" target="_blank" class="link-badge">
+                <span>39 Newmark 삼분도 ➔</span>
+              </a>
+            </div>
+            <div class="math-formula">
+              SDS = S × 2.5 × Fa × (2/3) &nbsp;|&nbsp; SD1 = S × Fv × (2/3)
+            </div>
+            <div class="grid-2">
+              <div class="metric-box">
+                <div class="metric-value" id="val-sds">0.50 g</div>
+                <div class="metric-label">단주기 가속도 (SDS)</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="val-sd1">0.29 g</div>
+                <div class="metric-label">1초주기 가속도 (SD1)</div>
+              </div>
+            </div>
+            <!-- Matrix Table -->
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th>SDS 기준</th>
+                  <th>특</th>
+                  <th>I</th>
+                  <th>II</th>
+                  <th>SD1 기준</th>
+                  <th>특</th>
+                  <th>I</th>
+                  <th>II</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr id="row-sds-d">
+                  <td>≥ 0.50</td><td class="c-spec">D</td><td class="c-1">D</td><td class="c-2">D</td>
+                  <td>≥ 0.20</td><td class="c-spec">D</td><td class="c-1">D</td><td class="c-2">D</td>
+                </tr>
+                <tr id="row-sds-c">
+                  <td>0.33~0.50</td><td class="c-spec">D</td><td class="c-1">C</td><td class="c-2">C</td>
+                  <td>0.14~0.20</td><td class="c-spec">D</td><td class="c-1">C</td><td class="c-2">C</td>
+                </tr>
+                <tr id="row-sds-b">
+                  <td>0.17~0.33</td><td class="c-spec">C</td><td class="c-1">B</td><td class="c-2">B</td>
+                  <td>0.07~0.14</td><td class="c-spec">C</td><td class="c-1">B</td><td class="c-2">B</td>
+                </tr>
+                <tr id="row-sds-a">
+                  <td>&lt; 0.17</td><td class="c-spec">A</td><td class="c-1">A</td><td class="c-2">A</td>
+                  <td>&lt; 0.07</td><td class="c-spec">A</td><td class="c-1">A</td><td class="c-2">A</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="text-align: right; margin-top: 6px; font-size: 0.72rem; color: #38bdf8; font-weight: 700;">
+              최종 내진설계범주: max(SDC_sds, SDC_sd1) = <span id="val-final-sdc">SDC D</span>
+            </div>
+          </div>
+
+          <!-- Step 4 Card -->
+          <div class="card" id="card-step-4">
+            <div class="card-title">
+              <div class="card-title-left">
+                <span>STEP 4: 평면 및 수직 비정형성 진단</span>
+                <span class="tag">표 5.3-1, 5.3-2</span>
+              </div>
+              <a href="43_period_upper_bound_torsion_warning.html" target="_blank" class="link-badge">
+                <span>43 1모드 비틀림 경고 ➔</span>
+              </a>
+            </div>
+            <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 6px;">
+              건물에 해당하는 비정형성을 체크하십시오 (복수 선택 가능):
+            </div>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="chk-h1" onchange="updateAll()">
+                <span>[H-1] 비틀림비정형 (Δmax > 1.2Δavg)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chk-v1" onchange="updateAll()">
+                <span>[V-1] 연층 강성비정형 (Ki &lt; 0.7 Ki+1)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chk-h2" onchange="updateAll()">
+                <span>[H-2] 요철형 평면 (돌출부 > 15%)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chk-v2" onchange="updateAll()">
+                <span>[V-2] 중량비정형 (Wi > 1.5 Wi+1)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chk-h3" onchange="updateAll()">
+                <span>[H-3] 다이어프램 개구부 (&gt; 50%)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chk-v3" onchange="updateAll()">
+                <span>[V-3] 기하학적 형상비정형 (&gt; 130%)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chk-h4" onchange="updateAll()">
+                <span>[H-4] 면외 어긋남 불연속</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chk-v5" onchange="updateAll()">
+                <span>[V-5] 약층 강도비정형 (Vi &lt; 0.8 Vi+1)</span>
+              </label>
+            </div>
+            <div class="math-formula" id="irregular-summary" style="margin-top: 10px; color: #10b981;">
+              ✓ 정형 구조물: 비정형 결함 없음
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Section 5, 6, 7 -->
+        <div class="grid-3">
+          
+          <!-- Step 5 Card -->
+          <div class="card" id="card-step-5">
+            <div class="card-title">
+              <div class="card-title-left">
+                <span>STEP 5: 지진력저항시스템 & 설계계수</span>
+                <span class="tag">표 6.2-1</span>
+              </div>
+              <a href="41_r_factor_decomposition_dual_system.html" target="_blank" class="link-badge">
+                <span>41 R계수 분해 ➔</span>
+              </a>
+            </div>
+            <div class="form-group">
+              <label class="form-label">구조시스템 선택</label>
+              <select id="inp-system" onchange="updateAll()">
+                <optgroup label="1. 내력벽시스템">
+                  <option value="rc_special_wall" selected>1-a. 철근콘크리트 특수전단벽 (R=5, Ω0=2.5, Cd=5)</option>
+                  <option value="rc_ordinary_wall">1-b. 철근콘크리트 보통전단벽 (R=4, Ω0=2.5, Cd=4, D: 60m제한)</option>
+                  <option value="masonry_unreinforced">1-d. 무보강조적벽체 (R=1.5, C/D: 사용불가)</option>
+                </optgroup>
+                <optgroup label="2. 건물골조시스템">
+                  <option value="steel_ebf">2-a. 철골 편심가새골조(EBF) (R=8, Ω0=2, Cd=4)</option>
+                  <option value="steel_scbf">2-c. 철골 특수중심가새골조(SCBF) (R=6, Ω0=2, Cd=5)</option>
+                  <option value="steel_brbf">2-l. 철골 좌굴방지가새골조(BRBF) (R=8, Ω0=2.5, Cd=5)</option>
+                  <option value="steel_ocbf">2-d. 철골 보통중심가새골조(OCBF) (R=3.25, Ω0=2, Cd=3.25)</option>
+                </optgroup>
+                <optgroup label="3. 모멘트저항골조시스템">
+                  <option value="steel_smf">3-a. 철골 특수모멘트골조(SMF) (R=8, Ω0=3, Cd=5.5)</option>
+                  <option value="rc_smf">3-h. 철근콘크리트 특수모멘트골조 (R=8, Ω0=3, Cd=5.5)</option>
+                  <option value="rc_imf">3-i. 철근콘크리트 중간모멘트골조 (R=5, Ω0=3, Cd=4.5)</option>
+                  <option value="rc_omf">3-j. 철근콘크리트 보통모멘트골조 (R=3, Ω0=3, Cd=2.5, D: 30m제한)</option>
+                </optgroup>
+                <optgroup label="4. 이중골조시스템">
+                  <option value="dual_rc_special">4-j. 특수모멘트골조 + RC 특수전단벽 (R=7, Ω0=2.5, Cd=5.5)</option>
+                </optgroup>
+              </select>
+            </div>
+            <div id="system-verdict-box" style="padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; margin-bottom: 8px;">
+              <!-- Dynamic verdict -->
+            </div>
+            <div class="grid-3">
+              <div class="metric-box">
+                <div class="metric-value" id="val-r">5.0</div>
+                <div class="metric-label">반응수정 (R)</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="val-omega">2.5</div>
+                <div class="metric-label">초과강도 (Ω0)</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="val-cd">5.0</div>
+                <div class="metric-label">변위증폭 (Cd)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 6 Card -->
+          <div class="card" id="card-step-6">
+            <div class="card-title">
+              <div class="card-title-left">
+                <span>STEP 6: 구조해석법 의무 판정</span>
+                <span class="tag">표 7.1-1</span>
+              </div>
+              <a href="40_kds_analysis_method_selector.html" target="_blank" class="link-badge">
+                <span>40 해석법 판정 ➔</span>
+              </a>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">건물 높이 Hn (m)</label>
+                <input type="number" id="inp-height" value="75" min="3" max="300" onchange="updateAll()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">지상 층수 N (층)</label>
+                <input type="number" id="inp-stories" value="25" min="1" max="100" onchange="updateAll()">
+              </div>
+            </div>
+            <div id="method-verdict-box" style="padding: 8px; border-radius: 6px; font-size: 0.76rem; line-height: 1.4; margin-top: 4px;">
+              <!-- Dynamic interpretation -->
+            </div>
+            <div class="math-formula" id="method-code-ref">
+              근거: KDS 41 17 00 제7.1.3절 & 표 7.1-1 제4항
+            </div>
+          </div>
+
+          <!-- Step 7 Card -->
+          <div class="card" id="card-step-7">
+            <div class="card-title">
+              <div class="card-title-left">
+                <span>STEP 7: 밑면전단력 & 층간변위비</span>
+                <span class="tag">제7.2절</span>
+              </div>
+              <a href="42_cd_deflection_amplification_inelastic_drift.html" target="_blank" class="link-badge">
+                <span>42 Cd 증폭 랩 ➔</span>
+              </a>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">층당 유효중량 W (kN)</label>
+                <input type="number" id="inp-w-floor" value="6000" min="500" max="50000" step="500" onchange="updateAll()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">탄성 층간변위 δe (mm)</label>
+                <input type="number" id="inp-delta-e" value="7.5" min="0.5" max="100" step="0.5" onchange="updateAll()">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="metric-box">
+                <div class="metric-value" id="val-vbase">12,240 kN</div>
+                <div class="metric-label" id="lbl-vbase">밑면전단력 V (Cs=0.082)</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="val-drift">1.04 %</div>
+                <div class="metric-label" id="lbl-drift">비탄성 변위비 Δi (허용 1.5%)</div>
+              </div>
+            </div>
+            <div id="drift-verdict-box" style="padding: 6px 10px; border-radius: 6px; font-size: 0.74rem; text-align: center; margin-top: 6px;">
+              <!-- Dynamic Drift Verdict -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Tab 2: Visualizations (3D/2D building profile & Design Spectrum) -->
+      <div class="tab-content" id="tab-visuals">
+        <div class="grid-2">
+          
+          <!-- Building Visual Canvas -->
+          <div class="card">
+            <div class="card-title">
+              <span>🏢 건물 거동 & 지반-구조물 진동 시뮬레이션</span>
+              <span class="tag">Canvas Live</span>
+            </div>
+            <div class="visual-wrapper">
+              <div class="canvas-toolbar">
+                <button class="canvas-btn" id="btn-anim-toggle" onclick="toggleAnimation()">▶ 지진동 진동 시작</button>
+                <button class="canvas-btn" onclick="resetDeformation()">↺ 리셋</button>
+              </div>
+              <canvas id="building-canvas"></canvas>
+            </div>
+            <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 6px; display: flex; justify-content: space-between;">
+              <span>하늘색: 탄성변위 δe</span>
+              <span style="color: #f87171;">빨강/황색: Cd 증폭 비탄성변위 Δi (연층 취약부)</span>
+              <span>화살표: 층별 지진력 Fx (k-분포)</span>
+            </div>
+          </div>
+
+          <!-- Spectrum Visual Canvas -->
+          <div class="card">
+            <div class="card-title">
+              <span>📈 KDS 41 설계응답가속도스펙트럼 (Sa - T) 곡선</span>
+              <span class="tag">Chopra Eq. & KDS 41</span>
+            </div>
+            <div class="visual-wrapper">
+              <canvas id="spectrum-canvas"></canvas>
+            </div>
+            <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 6px; display: flex; justify-content: space-between;">
+              <span id="spec-params">SDS=0.50g, SD1=0.29g, T0=0.11s, TS=0.58s</span>
+              <span style="color: #ef4444;">빨간선: 구조물 주기 Ta (상한 CuTa 캡핑)</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Accidental Torsion Visualization -->
+        <div class="card" style="margin-top: 14px;">
+          <div class="card-title">
+            <span>🔄 평면 우발비틀림(Accidental Torsion) 및 CM-CR 편심 모멘트 (Mt)</span>
+            <span class="tag">KDS 41 17 00 제7.2.6.4절</span>
+          </div>
+          <div style="display: flex; gap: 20px; align-items: center;">
+            <div style="width: 280px; height: 160px; background: #0b1120; border: 1px solid #1e293b; border-radius: 6px; position: relative;">
+              <canvas id="torsion-canvas"></canvas>
+            </div>
+            <div style="flex: 1; font-size: 0.78rem; color: #cbd5e1; line-height: 1.6;">
+              <div><strong>규준 핵심 공식:</strong> <code>Mt = Vx × (e ± 0.05 B)</code></div>
+              <p style="color: #94a3b8; margin-top: 4px;">
+                질량중심(CM)과 강성중심(CR)이 완전히 일치하는 대칭 건물이라도, 시공 오차나 거주자 편중에 의한 예상치 못한 회전을 방어하기 위해 <strong>직교방향 평면치수 B의 ±5%를 우발편심</strong>으로 강제 가산해야 합니다.
+              </p>
+              <div style="margin-top: 8px; color: #38bdf8;">
+                우발편심 거리: <span id="acc-ecc-dist">± 1.50 m</span> (평면폭 B = 30m 가정 시)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Floor Shear & Vertical Distribution Table -->
+      <div class="tab-content" id="tab-fx-table">
+        <div class="card">
+          <div class="card-title">
+            <span>📊 KDS 41 17 00 제7.2.5절 층별 지진력(Fx) & 층전단력(Vx) 수직분배 계산서</span>
+            <span class="tag">k = <span id="val-k-factor">1.25</span> (T = <span id="val-table-ta">0.82</span>s)</span>
+          </div>
+          <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;">
+            공식: <code>Fx = Cvx × V</code>, <code>Cvx = (wx × hx^k) / ∑(wi × hi^k)</code> (T ≤ 0.5s: k=1.0, T ≥ 2.5s: k=2.0 선형보간)
+          </p>
+          <div style="max-height: 420px; overflow-y: auto;">
+            <table class="micro-table">
+              <thead>
+                <tr>
+                  <th>층 (Story)</th>
+                  <th>층고 (m)</th>
+                  <th>바닥높이 hi (m)</th>
+                  <th>층중량 wi (kN)</th>
+                  <th>wi × hi^k</th>
+                  <th>Cvx (분배비)</th>
+                  <th>층지진력 Fx (kN)</th>
+                  <th>층전단력 Vx (kN)</th>
+                  <th>전도모멘트 Mx (kN·m)</th>
+                </tr>
+              </thead>
+              <tbody id="fx-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Junior Engineer 7 Checklists -->
+      <div class="tab-content" id="tab-checklist">
+        <div class="card">
+          <div class="card-title">
+            <span>📋 초급 구조엔지니어를 위한 KDS 41 내진설계 7대 실무 체크리스트</span>
+            <span class="tag">구조감리 & 인허가 심의 단골 지적사항</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+            
+            <div class="checklist-item">
+              <div class="check-title">
+                <span>[체크 1] 컴퓨터 주기(Tcom) 맹신 금지 & 주기상한(CuTa) 캡핑 적용 여부</span>
+                <span class="pill pill-blue">제7.2.3절</span>
+              </div>
+              <div class="check-desc">
+                MIDAS Gen 등 구조해석 모델에서 칸막이벽/조적벽을 생략하면 고유주기가 실제보다 길게 계산됩니다. 이 긴 주기를 그대로 사용하여 밑면전단력(Cs)을 깎으면 불법 과소설계가 됩니다. 반드시 <code>T ≤ CuTa</code> 상한치를 걸었는지 확인하십시오.
+              </div>
+            </div>
+
+            <div class="checklist-item">
+              <div class="check-title">
+                <span>[체크 2] 1차 모드 질량참여율 병진(Translational) 우세 여부</span>
+                <span class="pill pill-amber">동역학 기본</span>
+              </div>
+              <div class="check-desc">
+                모드해석 결과 1차 모드에서 회전성분 질량참여율(RZ)이 30%를 초과하면 구조물의 강성 중심(CR)이 한쪽으로 쏠린 심각한 평면 비틀림 결함입니다. 기둥/벽체 배치를 조정하여 병진 모드가 1차 모드가 되도록 수정하십시오.
+              </div>
+            </div>
+
+            <div class="checklist-item">
+              <div class="check-title">
+                <span>[체크 3] 유효질량 참여율 90% 이상 확보 여부</span>
+                <span class="pill pill-blue">제7.3.2절</span>
+              </div>
+              <div class="check-desc">
+                모달응답스펙트럼 해석 시 고려한 모드들의 유효질량 합이 건물 전체 질량의 90% 이상(<code>∑Mn* ≥ 0.90 Mtotal</code>)이어야 합니다. 옥탑층이나 셋백이 있는 건물은 모드 수를 20~30개 이상으로 충분히 늘려야 90%를 충족합니다.
+              </div>
+            </div>
+
+            <div class="checklist-item">
+              <div class="check-title">
+                <span>[체크 4] 동적해석 밑면전단력 85% 스케일팩터(Scale Factor) 보정 여부</span>
+                <span class="pill pill-red">제7.3.4절</span>
+              </div>
+              <div class="check-desc">
+                동적해석으로 구한 밑면전단력(Vdyn)이 등가정적 밑면전단력(Vstat)의 85%에 미달하는 경우, 모든 부재력과 변위에 <code>0.85 × (Vstat / Vdyn)</code> 계수를 강제 곱해주어야 합니다. 이를 누락하면 심의에서 100% 반려됩니다.
+              </div>
+            </div>
+
+            <div class="checklist-item">
+              <div class="check-title">
+                <span>[체크 5] 우발편심 ±5% (Accidental Eccentricity) 하중조건 생성 여부</span>
+                <span class="pill pill-amber">제7.2.6.4절</span>
+              </div>
+              <div class="check-desc">
+                대칭 구조물이라도 직교방향 평면치수의 ±5% 편심을 준 4가지 지진하중 조합(Ex+Ey+Ecc, etc.)을 반드시 검토해야 모서리 기둥의 취약 비틀림 파괴를 방지할 수 있습니다.
+              </div>
+            </div>
+
+            <div class="checklist-item">
+              <div class="check-title">
+                <span>[체크 6] 층간변위 검토 시 Cd 변위증폭 적용 여부 (가장 흔한 탈락 사유)</span>
+                <span class="pill pill-red">제7.2.8절</span>
+              </div>
+              <div class="check-desc">
+                해석 프로그램 화면의 탄성변위(δe)는 R계수로 나눈 가상의 축소 변위입니다. 실제 비탄성 변위 <code>Δi = Cd × δe / Ie</code>를 구하여 허용 층간변위(1.5% 등)와 비교해야 합니다.
+              </div>
+            </div>
+
+            <div class="checklist-item">
+              <div class="check-title">
+                <span>[체크 7] 이중골조 시스템의 모멘트골조 25% 하중분담 검증</span>
+                <span class="pill pill-green">제6.2.4절</span>
+              </div>
+              <div class="check-desc">
+                이중골조(Dual System, R=7)로 설계할 때는 전단벽을 떼어내고 모멘트골조만 단독으로 밑면전단력의 최소 25%를 저항할 수 있는지 별도 모델로 교차 입증해야 합니다.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Lecture notes & Teacher commentary -->
+      <div class="tab-content" id="tab-lectures">
+        
+        <div class="teacher-note">
+          <div class="note-title"><span class="note-badge">강사 직관 강의 01</span> 왜 지반이 연약해질수록(S1 ➔ S5) 장주기 증폭(Fv)이 폭증하는가?</div>
+          <div class="note-text">
+            암반(S1)은 단단하여 고주파(단주기) 진동을 주로 전달하지만, 연약한 점토·모래층(S5)은 고주파 성분을 흡수·감쇠시키고 구조물에 가장 파괴적인 <strong>느리고 긴 주기(1초~2초 대역)의 파동을 무려 2.4배~3.0배까지 공진 증폭</strong>시킵니다. 1985년 멕시코시티 대지진 당시 진앙지에서 400km나 떨어진 도심 호수 퇴적층의 중고층 건물들이 모조리 붕괴된 이유가 바로 이 1초 주기 지반증폭계수(Fv)의 비극이었습니다.
+          </div>
+        </div>
+
+        <div class="teacher-note">
+          <div class="note-title"><span class="note-badge">강사 직관 강의 02</span> 왜 내진설계범주 SDC C, D에서는 무보강조적조를 전면 금지하는가?</div>
+          <div class="note-text">
+            무보강조적벽체(1-d)의 반응수정계수는 겨우 <strong>R = 1.5</strong>입니다. 이는 연성 능력이 전혀 없고 취성 전단파괴(Brittle Shear Failure)만 일어남을 뜻합니다. 2016년 경주, 2017년 포항 지진에서 벽돌 담장과 비보강 조적조가 순식간에 와르르 무너져 내린 사례를 반영하여, KDS 41은 중간지진(SDC C) 및 고지진(SDC D) 구역에서 무보강조적벽체를 지진력저항시스템으로 사용하는 것을 <strong>원천적으로 엄격히 금지("불가")</strong>하고 있습니다.
+          </div>
+        </div>
+
+        <div class="teacher-note">
+          <div class="note-title"><span class="note-badge">강사 직관 강의 03</span> 왜 70m(21층) 또는 비정형 건물은 '등가정적해석법'을 금지하는가?</div>
+          <div class="note-text">
+            등가정적해석법은 건물이 <strong>1모드(기본 모드) 역삼각형 형태로만 진동한다는 가정</strong>을 전제로 합니다. 하지만 건물이 70m를 넘거나 연층/비틀림 비정형이 생기면 2모드, 3모드 등 고차모드의 질량 참여율이 20~30% 이상 치솟고, 상부층의 채찍 효과(Whip Effect)와 비틀림 연성 변형이 극대화됩니다. 따라서 컴퓨터로 다수의 모드를 조합하는 <strong>모달응답스펙트럼 해석(CQC) 또는 시간이력해석 등 동적해석을 법적으로 의무화</strong>한 것입니다.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      importance: '1', // special, 1, 2, 3
+      zone: '1',       // 1, 2
+      soil: 'S4',      // S1, S2, S3, S4, S5
+      system: 'rc_special_wall',
+      height: 75,
+      stories: 25,
+      wFloor: 6000,
+      deltaE: 7.5,
+      irregulars: {
+        h1: false, h2: false, h3: false, h4: false,
+        v1: false, v2: false, v3: false, v5: false
+      },
+      animating: false,
+      animTime: 0
+    };
+
+    // Database: Soil amplification tables (KDS 41 17 00 Table 4.2-1 & 4.2-2)
+    const soilTableFa = {
+      S1: [1.12, 1.12, 1.12],
+      S2: [1.40, 1.40, 1.30],
+      S3: [1.70, 1.50, 1.30],
+      S4: [1.60, 1.40, 1.20],
+      S5: [1.80, 1.30, 1.30]
+    };
+    const soilTableFv = {
+      S1: [0.84, 0.84, 0.84],
+      S2: [1.50, 1.40, 1.30],
+      S3: [1.70, 1.60, 1.50],
+      S4: [2.20, 2.00, 1.80],
+      S5: [3.00, 2.70, 2.40]
+    };
+
+    // System DB (Table 6.2-1)
+    const systemsDB = {
+      rc_special_wall: { name: 'RC 특수전단벽', R: 5.0, Omega: 2.5, Cd: 5.0, limitAB: null, limitC: null, limitD: null },
+      rc_ordinary_wall: { name: 'RC 보통전단벽', R: 4.0, Omega: 2.5, Cd: 4.0, limitAB: null, limitC: null, limitD: 60 },
+      masonry_unreinforced: { name: '무보강 조적벽체', R: 1.5, Omega: 2.5, Cd: 1.5, limitAB: null, limitC: 'prohibited', limitD: 'prohibited' },
+      steel_ebf: { name: '철골 편심가새골조(EBF)', R: 8.0, Omega: 2.0, Cd: 4.0, limitAB: null, limitC: null, limitD: null },
+      steel_scbf: { name: '철골 특수중심가새골조(SCBF)', R: 6.0, Omega: 2.0, Cd: 5.0, limitAB: null, limitC: null, limitD: null },
+      steel_brbf: { name: '철골 좌굴방지가새골조(BRBF)', R: 8.0, Omega: 2.5, Cd: 5.0, limitAB: null, limitC: null, limitD: null },
+      steel_ocbf: { name: '철골 보통중심가새골조(OCBF)', R: 3.25, Omega: 2.0, Cd: 3.25, limitAB: null, limitC: null, limitD: null },
+      steel_smf: { name: '철골 특수모멘트골조(SMF)', R: 8.0, Omega: 3.0, Cd: 5.5, limitAB: null, limitC: null, limitD: null },
+      rc_smf: { name: 'RC 특수모멘트골조', R: 8.0, Omega: 3.0, Cd: 5.5, limitAB: null, limitC: null, limitD: null },
+      rc_imf: { name: 'RC 중간모멘트골조', R: 5.0, Omega: 3.0, Cd: 4.5, limitAB: null, limitC: null, limitD: null },
+      rc_omf: { name: 'RC 보통모멘트골조', R: 3.0, Omega: 3.0, Cd: 2.5, limitAB: null, limitC: null, limitD: 30 },
+      dual_rc_special: { name: 'RC 특수이중골조', R: 7.0, Omega: 2.5, Cd: 5.5, limitAB: null, limitC: null, limitD: null }
+    };
+
+    function interpolateSoil(table, S) {
+      if (S <= 0.1) return table[0];
+      if (S >= 0.3) return table[2];
+      if (S < 0.2) {
+        const ratio = (S - 0.1) / 0.1;
+        return table[0] + ratio * (table[1] - table[0]);
+      } else {
+        const ratio = (S - 0.2) / 0.1;
+        return table[1] + ratio * (table[2] - table[1]);
+      }
+    }
+
+    function setTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      const tabMap = {
+        workbench: 0,
+        visuals: 1,
+        'fx-table': 2,
+        checklist: 3,
+        lectures: 4
+      };
+
+      const idx = tabMap[tabId];
+      if (idx !== undefined) {
+        document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+        if (tabId === 'visuals') {
+          setTimeout(renderVisuals, 10);
+        }
+      }
+    }
+
+    function jumpToStep(stepNum) {
+      setTab('workbench');
+      document.querySelectorAll('.flow-step-card').forEach(c => c.classList.remove('active'));
+      document.getElementById(`flow-card-${stepNum}`).classList.add('active');
+
+      const targetCard = document.getElementById(`card-step-${stepNum}`);
+      if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetCard.style.boxShadow = '0 0 20px rgba(56, 189, 248, 0.4)';
+        setTimeout(() => targetCard.style.boxShadow = '', 1500);
+      }
+    }
+
+    // Presets
+    function applyPreset(presetKey) {
+      if (presetKey === 'apt') {
+        state.importance = '1';
+        state.zone = '1';
+        state.soil = 'S4';
+        state.system = 'rc_special_wall';
+        state.height = 75;
+        state.stories = 25;
+        state.wFloor = 6000;
+        state.deltaE = 7.5;
+        Object.keys(state.irregulars).forEach(k => state.irregulars[k] = false);
+      } else if (presetKey === 'hospital') {
+        state.importance = 'special';
+        state.zone = '1';
+        state.soil = 'S3';
+        state.system = 'rc_smf';
+        state.height = 20;
+        state.stories = 5;
+        state.wFloor = 8000;
+        state.deltaE = 3.5;
+        Object.keys(state.irregulars).forEach(k => state.irregulars[k] = false);
+      } else if (presetKey === 'piloti') {
+        state.importance = '2';
+        state.zone = '1';
+        state.soil = 'S5';
+        state.system = 'rc_omf';
+        state.height = 14;
+        state.stories = 4;
+        state.wFloor = 2500;
+        state.deltaE = 15.0;
+        Object.keys(state.irregulars).forEach(k => state.irregulars[k] = false);
+        state.irregulars.v1 = true;
+        state.irregulars.v5 = true;
+      } else if (presetKey === 'warehouse') {
+        state.importance = '2';
+        state.zone = '1';
+        state.soil = 'S4';
+        state.system = 'steel_ocbf';
+        state.height = 15;
+        state.stories = 2;
+        state.wFloor = 12000;
+        state.deltaE = 8.0;
+        Object.keys(state.irregulars).forEach(k => state.irregulars[k] = false);
+        state.irregulars.h2 = true;
+      } else if (presetKey === 'highrise') {
+        state.importance = '1';
+        state.zone = '1';
+        state.soil = 'S2';
+        state.system = 'dual_rc_special';
+        state.height = 160;
+        state.stories = 45;
+        state.wFloor = 9000;
+        state.deltaE = 12.0;
+        Object.keys(state.irregulars).forEach(k => state.irregulars[k] = false);
+        state.irregulars.h1 = true;
+      }
+
+      document.getElementById('inp-importance').value = state.importance;
+      document.getElementById('inp-zone').value = state.zone;
+      document.getElementById('inp-soil').value = state.soil;
+      document.getElementById('inp-system').value = state.system;
+      document.getElementById('inp-height').value = state.height;
+      document.getElementById('inp-stories').value = state.stories;
+      document.getElementById('inp-w-floor').value = state.wFloor;
+      document.getElementById('inp-delta-e').value = state.deltaE;
+
+      Object.keys(state.irregulars).forEach(k => {
+        const el = document.getElementById(`chk-${k}`);
+        if (el) el.checked = state.irregulars[k];
+      });
+
+      updateAll();
+    }
+
+    function readInputs() {
+      state.importance = document.getElementById('inp-importance').value;
+      state.zone = document.getElementById('inp-zone').value;
+      state.soil = document.getElementById('inp-soil').value;
+      state.system = document.getElementById('inp-system').value;
+      state.height = parseFloat(document.getElementById('inp-height').value) || 30;
+      state.stories = parseInt(document.getElementById('inp-stories').value) || 10;
+      state.wFloor = parseFloat(document.getElementById('inp-w-floor').value) || 5000;
+      state.deltaE = parseFloat(document.getElementById('inp-delta-e').value) || 5.0;
+
+      Object.keys(state.irregulars).forEach(k => {
+        const el = document.getElementById(`chk-${k}`);
+        state.irregulars[k] = el ? el.checked : false;
+      });
+    }
+
+    function updateAll() {
+      readInputs();
+
+      // Step 1: Importance & Grade
+      let grade = '내진II등급';
+      let Ie = 1.0;
+      if (state.importance === 'special') {
+        grade = '내진특등급';
+        Ie = 1.5;
+      } else if (state.importance === '1') {
+        grade = '내진I등급';
+        Ie = 1.2;
+      }
+      document.getElementById('val-grade').textContent = grade;
+      document.getElementById('val-ie').textContent = Ie.toFixed(2);
+      document.getElementById('flow-summary-1').textContent = `${grade} (Ie = ${Ie.toFixed(2)})`;
+
+      // Step 2: Zone & Soil
+      const Z = state.zone === '1' ? 0.22 : 0.14;
+      const S = Z;
+      const Fa = interpolateSoil(soilTableFa[state.soil], S);
+      const Fv = interpolateSoil(soilTableFv[state.soil], S);
+
+      document.getElementById('val-fa').textContent = Fa.toFixed(2);
+      document.getElementById('val-fv').textContent = Fv.toFixed(2);
+      document.getElementById('flow-summary-2').textContent = `${state.soil}지반 (Fa=${Fa.toFixed(2)}, Fv=${Fv.toFixed(2)})`;
+
+      // Step 3: Design Spectrum SDS, SD1 & SDC
+      const Sds = S * 2.5 * Fa * (2.0 / 3.0);
+      const Sd1 = S * Fv * (2.0 / 3.0);
+
+      document.getElementById('val-sds').textContent = `${Sds.toFixed(3)} g`;
+      document.getElementById('val-sd1').textContent = `${Sd1.toFixed(3)} g`;
+
+      let sdcSds = 'A';
+      if (Sds >= 0.50) sdcSds = 'D';
+      else if (Sds >= 0.33) sdcSds = state.importance === 'special' ? 'D' : 'C';
+      else if (Sds >= 0.17) sdcSds = state.importance === 'special' ? 'C' : 'B';
+      else sdcSds = 'A';
+
+      let sdcSd1 = 'A';
+      if (Sd1 >= 0.20) sdcSd1 = 'D';
+      else if (Sd1 >= 0.14) sdcSd1 = state.importance === 'special' ? 'D' : 'C';
+      else if (Sd1 >= 0.07) sdcSd1 = state.importance === 'special' ? 'C' : 'B';
+      else sdcSd1 = 'A';
+
+      const sdcOrder = { A: 1, B: 2, C: 3, D: 4 };
+      const finalSDC = sdcOrder[sdcSds] >= sdcOrder[sdcSd1] ? sdcSds : sdcSd1;
+
+      document.getElementById('val-final-sdc').textContent = `SDC ${finalSDC}`;
+      document.getElementById('flow-summary-3').textContent = `SDS=${Sds.toFixed(2)}g / SD1=${Sd1.toFixed(2)}g ➔ SDC ${finalSDC}`;
+
+      // Matrix highlight
+      document.querySelectorAll('.matrix-table td').forEach(td => td.classList.remove('selected'));
+      const colClass = state.importance === 'special' ? '.c-spec' : (state.importance === '1' ? '.c-1' : '.c-2');
+      let targetRowId = Sds >= 0.50 ? 'row-sds-d' : (Sds >= 0.33 ? 'row-sds-c' : (Sds >= 0.17 ? 'row-sds-b' : 'row-sds-a'));
+      const activeCell = document.querySelector(`#${targetRowId} ${colClass}`);
+      if (activeCell) activeCell.classList.add('selected');
+
+      // Step 4: Irregularities
+      const irrCount = Object.values(state.irregulars).filter(Boolean).length;
+      const irrBox = document.getElementById('irregular-summary');
+      const irrActiveList = Object.keys(state.irregulars).filter(k => state.irregulars[k]).map(k => k.toUpperCase());
+      const isIrregular = irrCount > 0;
+
+      if (isIrregular) {
+        irrBox.style.color = '#ef4444';
+        irrBox.innerHTML = `⚠️ <strong>비정형 구조물 (${irrCount}개 항목 해당)</strong>: ${irrActiveList.join(', ')}<br><span style="font-size:0.7rem; color:#94a3b8;">동적해석 의무화 및 우발비틀림 할증 증폭 검토 필요</span>`;
+        document.getElementById('flow-summary-4').textContent = `비정형 (${irrActiveList.join(', ')})`;
+      } else {
+        irrBox.style.color = '#10b981';
+        irrBox.innerHTML = `✓ <strong>정형 구조물</strong>: 비정형 결함 없음`;
+        document.getElementById('flow-summary-4').textContent = `정형 구조물 (비정형 없음)`;
+      }
+
+      // Step 5: System & Limits
+      const sysInfo = systemsDB[state.system];
+      document.getElementById('val-r').textContent = sysInfo.R.toFixed(1);
+      document.getElementById('val-omega').textContent = sysInfo.Omega.toFixed(1);
+      document.getElementById('val-cd').textContent = sysInfo.Cd.toFixed(1);
+
+      let limitVal = null;
+      if (finalSDC === 'A' || finalSDC === 'B') limitVal = sysInfo.limitAB;
+      else if (finalSDC === 'C') limitVal = sysInfo.limitC;
+      else if (finalSDC === 'D') limitVal = sysInfo.limitD;
+
+      const sysVerdictBox = document.getElementById('system-verdict-box');
+      let isSystemAllowed = true;
+      if (limitVal === 'prohibited') {
+        isSystemAllowed = false;
+        sysVerdictBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        sysVerdictBox.style.color = '#f87171';
+        sysVerdictBox.innerHTML = `⛔ <strong>사용 불가</strong>: ${sysInfo.name}은(는) SDC ${finalSDC}에서 설치가 전면 금지됩니다! (KDS 41 표 6.2-1)`;
+      } else if (limitVal !== null && state.height > limitVal) {
+        isSystemAllowed = false;
+        sysVerdictBox.style.background = 'rgba(245, 158, 11, 0.2)';
+        sysVerdictBox.style.color = '#fbbf24';
+        sysVerdictBox.innerHTML = `⚠️ <strong>높이제한 초과</strong>: 허용높이 ${limitVal}m이나 현재 건물은 ${state.height}m입니다! (설계 수정 필요)`;
+      } else if (limitVal !== null) {
+        sysVerdictBox.style.background = 'rgba(16, 185, 129, 0.15)';
+        sysVerdictBox.style.color = '#34d399';
+        sysVerdictBox.innerHTML = `✓ <strong>사용 가능</strong>: 허용높이 ${limitVal}m 이하 만족 (현재 ${state.height}m)`;
+      } else {
+        sysVerdictBox.style.background = 'rgba(16, 185, 129, 0.15)';
+        sysVerdictBox.style.color = '#34d399';
+        sysVerdictBox.innerHTML = `✓ <strong>사용 가능</strong>: SDC ${finalSDC}에서 높이제한 없이 적용 가능 (무제한)`;
+      }
+      document.getElementById('flow-summary-5').textContent = `${sysInfo.name} (R=${sysInfo.R}, Cd=${sysInfo.Cd})`;
+
+      // Step 6: Analysis Method Verdict
+      const methodBox = document.getElementById('method-verdict-box');
+      let methodVerdict = '등가정적해석법 또는 동적해석법 적용 가능';
+      let requiresDynamic = false;
+      let reasonText = '';
+
+      if (finalSDC === 'A' || finalSDC === 'B') {
+        methodVerdict = '등가정적해석법 적용 가능 (단, 동적해석 선택 가능)';
+        reasonText = 'SDC A 또는 B는 지진 위험도가 낮아 기본적으로 등가정적해석법이 전면 허용됩니다. (제7.1.1절)';
+      } else if (finalSDC === 'C') {
+        if (!isIrregular && (state.height >= 70 || state.stories >= 21)) {
+          requiresDynamic = true;
+          methodVerdict = '동적해석법(모달스펙트럼 / 시간이력) 의무';
+          reasonText = '정형 구조물이라도 높이 70m 이상 또는 21층 이상인 경우 고차모드 영향으로 동적해석법이 의무화됩니다. (제7.1.2절 ①)';
+        } else if (isIrregular && (state.height >= 20 || state.stories >= 6)) {
+          requiresDynamic = true;
+          methodVerdict = '동적해석법(모달스펙트럼 / 시간이력) 의무';
+          reasonText = '비정형 구조물이면서 높이 20m 이상 또는 6층 이상인 경우 동적해석법이 법적 의무입니다. (제7.1.2절 ②)';
+        } else {
+          methodVerdict = '등가정적해석법 적용 가능';
+          reasonText = 'SDC C 구역의 저층(20m 미만) 또는 정형 중저층 건물로 등가정적해석법이 허용됩니다.';
+        }
+      } else {
+        // SDC D
+        if (!isIrregular && state.height <= 70) {
+          methodVerdict = '등가정적해석법 또는 동적해석법 적용 가능';
+          reasonText = '높이 70m 이하인 정형 구조물은 등가정적해석법 적용이 가능합니다. (표 7.1-1 제2항)';
+        } else if (isIrregular && state.height <= 20 && state.stories <= 5 && !state.irregulars.h1 && !state.irregulars.v1 && !state.irregulars.v2 && !state.irregulars.v3) {
+          methodVerdict = '등가정적해석법 적용 가능 (경미한 비정형)';
+          reasonText = 'V-1~3 및 H-1을 제외한 비정형이면서 5층/20m 이하이므로 예외적으로 등가정적해석이 허용됩니다. (표 7.1-1 제3항)';
+        } else {
+          requiresDynamic = true;
+          methodVerdict = '동적해석법(모달스펙트럼 또는 시간이력해석) 필수 의무!';
+          reasonText = isIrregular 
+            ? '평면/수직 비정형성(연층, 약층, 비틀림 등)을 갖는 구조물이므로 동적해석법이 의무화됩니다. (표 7.1-1 제4항)'
+            : '높이가 70m를 초과하는 정형 구조물이므로 다중 모드 연성을 위해 동적해석법이 강제됩니다. (표 7.1-1 제4항)';
+        }
+      }
+
+      methodBox.style.background = requiresDynamic ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+      methodBox.style.color = requiresDynamic ? '#f87171' : '#34d399';
+      methodBox.innerHTML = `<strong>${requiresDynamic ? '🚨 [판정] 동적해석법 의무화' : '✓ [판정] 등가정적해석 허용'}</strong><br>${reasonText}`;
+      document.getElementById('flow-summary-6').textContent = requiresDynamic ? '동적해석법 의무' : '등가정적 허용';
+
+      // Step 7: Base Shear & Drift
+      let Ct = 0.0488, xExp = 0.75;
+      if (state.system.includes('smf') || state.system.includes('imf') || state.system.includes('omf')) {
+        Ct = 0.0466; xExp = 0.9;
+      }
+      const Ta = Ct * Math.pow(state.height, xExp);
+
+      let Cu = 1.4;
+      if (Sd1 <= 0.1) Cu = 1.7;
+      else if (Sd1 <= 0.15) Cu = 1.6;
+      else if (Sd1 <= 0.20) Cu = 1.5;
+      else if (Sd1 <= 0.30) Cu = 1.4;
+
+      let Cs = Sds / (sysInfo.R / Ie);
+      const CsMax = Sd1 / (Ta * (sysInfo.R / Ie));
+      if (Cs > CsMax) Cs = CsMax;
+      const CsMin = Math.max(0.044 * Sds * Ie, 0.01);
+      if (Cs < CsMin) Cs = CsMin;
+
+      const totalWeight = state.wFloor * state.stories;
+      const Vbase = Cs * totalWeight;
+
+      document.getElementById('val-vbase').textContent = `${Math.round(Vbase).toLocaleString()} kN`;
+      document.getElementById('lbl-vbase').textContent = `밑면전단력 V (Cs = ${Cs.toFixed(3)})`;
+
+      const deltaI = (sysInfo.Cd * state.deltaE) / Ie;
+      const storyHeightMm = (state.height / state.stories) * 1000;
+      const driftRatio = (deltaI / storyHeightMm) * 100;
+
+      const allowDriftRatio = state.importance === 'special' ? 1.0 : (state.importance === '1' ? 1.5 : 2.0);
+      const isDriftOk = driftRatio <= allowDriftRatio;
+
+      document.getElementById('val-drift').textContent = `${driftRatio.toFixed(2)} %`;
+      document.getElementById('val-drift').style.color = isDriftOk ? '#10b981' : '#ef4444';
+      document.getElementById('lbl-drift').textContent = `비탄성 변위비 Δi (허용 ${allowDriftRatio.toFixed(1)}%)`;
+
+      const driftBox = document.getElementById('drift-verdict-box');
+      if (isDriftOk) {
+        driftBox.style.background = 'rgba(16, 185, 129, 0.2)';
+        driftBox.style.color = '#34d399';
+        driftBox.innerHTML = `✓ <strong>층간변위 만족 (OK)</strong>: 설계변위비 ${driftRatio.toFixed(2)}% ≤ 허용치 ${allowDriftRatio.toFixed(1)}% (Δi = ${deltaI.toFixed(1)}mm)`;
+      } else {
+        driftBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        driftBox.style.color = '#f87171';
+        driftBox.innerHTML = `⛔ <strong>층간변위 초과 (NG)</strong>: 설계변위비 ${driftRatio.toFixed(2)}% > 허용치 ${allowDriftRatio.toFixed(1)}%! 부재 단면 증가 또는 제진장치 추가 필요`;
+      }
+      document.getElementById('flow-summary-7').textContent = `V = ${Math.round(Vbase)}kN, 층간변위 ${driftRatio.toFixed(2)}% (${isDriftOk ? 'OK' : 'NG'})`;
+
+      // Global Banner update
+      document.getElementById('badge-sdc').textContent = `SDC ${finalSDC}`;
+      document.getElementById('badge-sdc').className = `pill ${finalSDC === 'D' ? 'pill-red' : (finalSDC === 'C' ? 'pill-amber' : 'pill-blue')}`;
+
+      document.getElementById('badge-system').textContent = isSystemAllowed ? '시스템 허용' : '시스템 NG';
+      document.getElementById('badge-system').className = `pill ${isSystemAllowed ? 'pill-green' : 'pill-red'}`;
+
+      document.getElementById('badge-method').textContent = requiresDynamic ? '동적해석 의무' : '등가정적 허용';
+      document.getElementById('badge-method').className = `pill ${requiresDynamic ? 'pill-amber' : 'pill-green'}`;
+
+      const bannerText = document.getElementById('banner-text');
+      bannerText.textContent = `내진설계범주 SDC ${finalSDC} | ${requiresDynamic ? '동적해석(모달스펙트럼/시간이력) 의무' : '등가정적해석 가능'} | 층간변위비 ${driftRatio.toFixed(2)}% (${isDriftOk ? '안전' : '보강필요'})`;
+
+      document.getElementById('acc-ecc-dist').textContent = `± ${(30 * 0.05).toFixed(2)} m (평면폭 B = 30m 가정 시)`;
+
+      // Update Vertical Distribution Table (Tab 3)
+      updateVerticalDistributionTable(Ta, Vbase);
+
+      // Render Visuals if tab active
+      renderVisuals();
+    }
+
+    // Step 7 Detail: Vertical Distribution Table (KDS 41 17 00 7.2.5)
+    function updateVerticalDistributionTable(Ta, Vbase) {
+      let k = 1.0;
+      if (Ta <= 0.5) k = 1.0;
+      else if (Ta >= 2.5) k = 2.0;
+      else k = 1.0 + (Ta - 0.5) / 2.0;
+
+      document.getElementById('val-k-factor').textContent = k.toFixed(2);
+      document.getElementById('val-table-ta').textContent = Ta.toFixed(2);
+
+      const stories = state.stories;
+      const floorH = state.height / stories;
+      const wFloor = state.wFloor;
+
+      let sumWHk = 0;
+      const floorData = [];
+
+      for (let i = 1; i <= stories; i++) {
+        const hi = i * floorH;
+        const w_hik = wFloor * Math.pow(hi, k);
+        sumWHk += w_hik;
+        floorData.push({ floor: i, hi: hi, wi: wFloor, whk: w_hik });
+      }
+
+      // Calculate Cvx, Fx, Vx from top floor down
+      let cumVx = 0;
+      let cumMx = 0;
+      const rows = [];
+
+      for (let i = stories - 1; i >= 0; i--) {
+        const d = floorData[i];
+        const cvx = d.whk / sumWHk;
+        const fx = cvx * Vbase;
+        cumVx += fx;
+        cumMx += fx * d.hi;
+        rows.push({
+          floor: d.floor,
+          storyH: floorH.toFixed(2),
+          hi: d.hi.toFixed(2),
+          wi: d.wi.toLocaleString(),
+          whk: Math.round(d.whk).toLocaleString(),
+          cvx: (cvx * 100).toFixed(2) + '%',
+          fx: Math.round(fx).toLocaleString(),
+          vx: Math.round(cumVx).toLocaleString(),
+          mx: Math.round(cumMx).toLocaleString()
+        });
+      }
+
+      const tbody = document.getElementById('fx-table-body');
+      tbody.innerHTML = '';
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="text-align:center; font-weight:700; color:#38bdf8;">${r.floor}F</td>
+          <td>${r.storyH}</td>
+          <td>${r.hi}</td>
+          <td>${r.wi}</td>
+          <td style="font-family:monospace;">${r.whk}</td>
+          <td style="color:#60a5fa; font-weight:600;">${r.cvx}</td>
+          <td style="color:#f59e0b; font-weight:700;">${r.fx}</td>
+          <td style="color:#10b981; font-weight:700;">${r.vx}</td>
+          <td style="color:#c084fc;">${r.mx}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Canvas Visual Rendering & Animation
+    function toggleAnimation() {
+      state.animating = !state.animating;
+      const btn = document.getElementById('btn-anim-toggle');
+      if (state.animating) {
+        btn.textContent = '⏸ 일시정지';
+        btn.classList.add('active');
+        animLoop();
+      } else {
+        btn.textContent = '▶ 지진동 진동 시작';
+        btn.classList.remove('active');
+      }
+    }
+
+    function resetDeformation() {
+      state.animating = false;
+      state.animTime = 0;
+      const btn = document.getElementById('btn-anim-toggle');
+      btn.textContent = '▶ 지진동 진동 시작';
+      btn.classList.remove('active');
+      renderBuildingCanvas();
+    }
+
+    function animLoop() {
+      if (!state.animating) return;
+      state.animTime += 0.05;
+      renderBuildingCanvas();
+      requestAnimationFrame(animLoop);
+    }
+
+    function renderVisuals() {
+      renderBuildingCanvas();
+      renderSpectrumCanvas();
+      renderTorsionCanvas();
+    }
+
+    function renderBuildingCanvas() {
+      const cvs = document.getElementById('building-canvas');
+      if (!cvs || cvs.offsetParent === null) return;
+      cvs.width = cvs.clientWidth;
+      cvs.height = cvs.clientHeight;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width, h = cvs.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Soil layer background at bottom
+      const soilH = 65;
+      const groundY = h - soilH;
+      ctx.fillStyle = '#1e1b18';
+      ctx.fillRect(0, groundY, w, soilH);
+
+      // Oscillating ground motion offset
+      const gOffset = state.animating ? Math.sin(state.animTime * 3) * 12 : 0;
+
+      // Soil Hatching
+      ctx.fillStyle = '#3f2e1f';
+      for (let x = -20; x < w + 20; x += 20) {
+        ctx.beginPath();
+        ctx.moveTo(x + gOffset, groundY);
+        ctx.lineTo(x + 15 + gOffset, h);
+        ctx.strokeStyle = '#523a23';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '11px sans-serif';
+      ctx.fillText(`지반: ${state.soil} (Fa=${interpolateSoil(soilTableFa[state.soil], 0.22).toFixed(2)}, Fv=${interpolateSoil(soilTableFv[state.soil], 0.22).toFixed(2)})`, 15, groundY + 25);
+      ctx.fillText(`기반암 상부 지지층`, 15, groundY + 45);
+
+      // Ground surface line
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(w, groundY);
+      ctx.stroke();
+
+      // Building Drawing
+      const bldgBaseX = w * 0.45 + gOffset;
+      const bldgW = 110;
+      const stories = Math.min(state.stories, 25);
+      const floorH = (groundY - 30) / stories;
+
+      // Undeformed wireframe
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeRect(w * 0.45 - bldgW / 2, groundY - stories * floorH, bldgW, stories * floorH);
+      ctx.setLineDash([]);
+
+      // Vibration amplitude
+      const vibFactor = state.animating ? Math.sin(state.animTime * 3 - 0.6) : 1.0;
+      const maxDispl = 45 * vibFactor;
+
+      ctx.beginPath();
+      ctx.strokeStyle = state.irregulars.v1 ? '#ef4444' : '#38bdf8';
+      ctx.lineWidth = 2.5;
+
+      const floorCoords = [];
+
+      for (let i = 0; i <= stories; i++) {
+        const y = groundY - i * floorH;
+        let displ = 0;
+        if (state.irregulars.v1 && i === 1) {
+          displ = maxDispl * 0.65;
+        } else if (state.irregulars.v1 && i > 1) {
+          displ = maxDispl * 0.65 + (maxDispl * 0.35) * Math.pow((i - 1) / (stories - 1), 1.2);
+        } else {
+          displ = maxDispl * Math.pow(i / stories, 1.5);
+        }
+
+        const xLeft = bldgBaseX - bldgW / 2 + displ;
+        const xRight = bldgBaseX + bldgW / 2 + displ;
+        floorCoords.push({ y, xLeft, xRight, displ });
+      }
+
+      // Draw columns between floors
+      for (let i = 0; i < stories; i++) {
+        const f0 = floorCoords[i];
+        const f1 = floorCoords[i + 1];
+
+        ctx.strokeStyle = (state.irregulars.v1 && i === 0) ? '#ef4444' : '#64748b';
+        ctx.lineWidth = (state.irregulars.v1 && i === 0) ? 3.5 : 2;
+
+        // Left column
+        ctx.beginPath();
+        ctx.moveTo(f0.xLeft + 5, f0.y);
+        ctx.lineTo(f1.xLeft + 5, f1.y);
+        ctx.stroke();
+
+        // Right column
+        ctx.beginPath();
+        ctx.moveTo(f0.xRight - 5, f0.y);
+        ctx.lineTo(f1.xRight - 5, f1.y);
+        ctx.stroke();
+
+        // Center shear wall / column if shear wall system
+        if (state.system.includes('wall')) {
+          ctx.fillStyle = (state.irregulars.v1 && i === 0) ? 'rgba(239, 68, 68, 0.4)' : 'rgba(56, 189, 248, 0.2)';
+          ctx.beginPath();
+          ctx.moveTo(f0.xLeft + bldgW / 2 - 12, f0.y);
+          ctx.lineTo(f0.xLeft + bldgW / 2 + 12, f0.y);
+          ctx.lineTo(f1.xLeft + bldgW / 2 + 12, f1.y);
+          ctx.lineTo(f1.xLeft + bldgW / 2 - 12, f1.y);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
+      // Draw floor slabs
+      for (let i = 0; i <= stories; i++) {
+        const f = floorCoords[i];
+        ctx.fillStyle = i === 0 ? '#475569' : (state.irregulars.v1 && i === 1 ? 'rgba(239,68,68,0.5)' : '#1e293b');
+        ctx.fillRect(f.xLeft, f.y - 3, bldgW, 6);
+        ctx.strokeStyle = state.irregulars.v1 && i === 1 ? '#f87171' : '#60a5fa';
+        ctx.strokeRect(f.xLeft, f.y - 3, bldgW, 6);
+
+        // Draw lateral force arrows Fx on right side
+        if (i > 0 && (stories <= 10 || i % 2 === 0)) {
+          const arrowLen = 15 + 40 * Math.pow(i / stories, 1.8);
+          ctx.beginPath();
+          ctx.moveTo(f.xRight + 6, f.y);
+          ctx.lineTo(f.xRight + 6 + arrowLen, f.y);
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          // Arrowhead
+          ctx.beginPath();
+          ctx.moveTo(f.xRight + 6 + arrowLen, f.y);
+          ctx.lineTo(f.xRight + 6 + arrowLen - 8, f.y - 3.5);
+          ctx.lineTo(f.xRight + 6 + arrowLen - 8, f.y + 3.5);
+          ctx.fillStyle = '#f59e0b';
+          ctx.fill();
+        }
+      }
+
+      // Legend overlay
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(`${state.stories}층 (${state.height}m) ${systemsDB[state.system].name}`, 15, 25);
+      if (state.irregulars.v1) {
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(`🚨 [V-1] 1층 연층 강성비정형 극심한 전단변형 집중!`, 15, 45);
+      }
+    }
+
+    function renderSpectrumCanvas() {
+      const cvs = document.getElementById('spectrum-canvas');
+      if (!cvs || cvs.offsetParent === null) return;
+      cvs.width = cvs.clientWidth;
+      cvs.height = cvs.clientHeight;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width, h = cvs.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const padL = 45, padR = 20, padT = 25, padB = 35;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+
+      const Z = state.zone === '1' ? 0.22 : 0.14;
+      const S = Z;
+      const Fa = interpolateSoil(soilTableFa[state.soil], S);
+      const Fv = interpolateSoil(soilTableFv[state.soil], S);
+      const Sds = S * 2.5 * Fa * (2.0 / 3.0);
+      const Sd1 = S * Fv * (2.0 / 3.0);
+
+      const T0 = 0.2 * (Sd1 / Sds);
+      const Ts = Sd1 / Sds;
+      const maxT = 4.0;
+      const maxSa = Math.max(Sds * 1.25, 0.6);
+
+      function toX(t) { return padL + (t / maxT) * plotW; }
+      function toY(sa) { return padT + plotH - (sa / maxSa) * plotH; }
+
+      // Grid lines
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let t = 0.5; t <= maxT; t += 0.5) {
+        ctx.beginPath();
+        ctx.moveTo(toX(t), padT);
+        ctx.lineTo(toX(t), padT + plotH);
+        ctx.stroke();
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px monospace';
+        ctx.fillText(t.toFixed(1) + 's', toX(t) - 10, padT + plotH + 16);
+      }
+
+      // Spectrum Curve Sa(T)
+      ctx.beginPath();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+
+      let first = true;
+      for (let t = 0; t <= maxT; t += 0.02) {
+        let sa = 0;
+        if (t < T0) {
+          sa = 0.6 * (Sds / T0) * t + 0.4 * Sds;
+        } else if (t <= Ts) {
+          sa = Sds;
+        } else {
+          sa = Sd1 / t;
+        }
+
+        const px = toX(t), py = toY(sa);
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      // Highlight T0 and Ts
+      ctx.strokeStyle = '#f59e0b';
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(toX(T0), toY(Sds));
+      ctx.lineTo(toX(T0), padT + plotH);
+      ctx.moveTo(toX(Ts), toY(Sds));
+      ctx.lineTo(toX(Ts), padT + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(`T0=${T0.toFixed(2)}s`, toX(T0) - 15, padT + plotH + 28);
+      ctx.fillText(`Ts=${Ts.toFixed(2)}s`, toX(Ts) - 15, padT + plotH + 28);
+
+      // Structure Period Indicator Ta
+      let Ct = 0.0488, xExp = 0.75;
+      if (state.system.includes('smf') || state.system.includes('imf') || state.system.includes('omf')) {
+        Ct = 0.0466; xExp = 0.9;
+      }
+      const Ta = Ct * Math.pow(state.height, xExp);
+      const pX = toX(Math.min(Ta, maxT));
+
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pX, padT);
+      ctx.lineTo(pX, padT + plotH);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ef4444';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(`건물주기 Ta=${Ta.toFixed(2)}s`, pX + 5, padT + 30);
+
+      // Axis labels
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('Sa (g)', padL - 35, padT - 8);
+      ctx.fillText('주기 T (초)', padL + plotW - 40, padT + plotH + 30);
+    }
+
+    function renderTorsionCanvas() {
+      const cvs = document.getElementById('torsion-canvas');
+      if (!cvs || cvs.offsetParent === null) return;
+      cvs.width = cvs.clientWidth;
+      cvs.height = cvs.clientHeight;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width, h = cvs.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const planW = 160, planH = 100;
+      const cX = w / 2, cY = h / 2;
+
+      // Draw Floor Plan
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(cX - planW / 2, cY - planH / 2, planW, planH);
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cX - planW / 2, cY - planH / 2, planW, planH);
+
+      // Center of Rigidity (CR) - Cyan dot
+      const crX = cX - 15, crY = cY;
+      ctx.fillStyle = '#06b6d4';
+      ctx.beginPath();
+      ctx.arc(crX, crY, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#06b6d4';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('CR(강성중심)', crX - 25, crY - 10);
+
+      // Center of Mass (CM) - Amber dot
+      const cmX = cX + 15, cmY = cY;
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(cmX, cmY, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('CM(질량중심)', cmX - 25, cmY - 10);
+
+      // Accidental eccentricity 5% offset arrow
+      const eccX = cmX + 20;
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(cmX, cmY);
+      ctx.lineTo(eccX, cmY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#ef4444';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('±0.05B', cmX + 4, cmY + 14);
+
+      // Torsional moment arrow arc
+      ctx.beginPath();
+      ctx.arc(cX, cY, 35, -0.4, 1.8);
+      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#a855f7';
+      ctx.fillText('Mt (비틀림모멘트)', cX - 40, cY + 45);
+    }
+
+    window.addEventListener('resize', () => {
+      renderVisuals();
+    });
+
+    // Initialize
+    updateAll();
+  </script>
+</body>
+</html>

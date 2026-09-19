@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 07: 2계층 포락선(Envelope)과 가상 안전망</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .light-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-6 shadow-lg">
+    
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            포락선(Envelope)의 2개 층위와 가상의 안전 그물망
+          </h1>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+            실무 설계 종결 원리
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-1 font-medium">
+          1차 모달 포락선(SRSS/CQC 부호 소실) &rarr; 2차 하중조합 포락선(cENV 최외곽) &rarr; P-M 상관도 검토 함정
+        </p>
+      </div>
+
+      <!-- Tier Selection Buttons -->
+      <div class="flex items-center gap-2">
+        <button id="btn-tier1" onclick="setTier(1)" class="px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold transition shadow-sm">
+          1차: 모달 포락선 (SRSS/CQC)
+        </button>
+        <button id="btn-tier2" onclick="setTier(2)" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition">
+          2차: 하중조합 포락선 (cENV)
+        </button>
+        <button id="btn-tier3" onclick="setTier(3)" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition">
+          3차: P-M 부호소실 함정 (동시성 파괴)
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-5 items-stretch">
+      
+      <!-- 1. Bending Moment Diagram / Column Envelope Canvas (7 Cols) -->
+      <div class="lg:col-span-7 bg-slate-50/60 border border-slate-200 rounded-xl p-5 flex flex-col justify-between light-grid relative min-h-[440px]">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+          <span id="canvas-title" class="text-sm font-bold text-slate-900">1차 모달 포락선: 모드별 BMD와 SRSS 합성선</span>
+          <span class="text-xs font-mono text-slate-500">기둥 휨모멘트 분포 (kN&middot;m)</span>
+        </div>
+
+        <div class="relative flex-1 w-full my-2 min-h-[300px]">
+          <canvas id="bmdCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <div class="p-3 bg-white rounded-lg border border-slate-200 text-xs flex justify-between items-center font-medium">
+          <span class="text-slate-600">핵심 관찰 질문:</span>
+          <span id="question-text" class="text-blue-700 font-bold">"이 포락선 모양대로 건물이 휘어지는 순간이 실존할까요?" &rarr; 답: 영원히 없음</span>
+        </div>
+      </div>
+
+      <!-- 2. Two-Tier Table and Engineering Caution (5 Cols) -->
+      <div class="lg:col-span-5 flex flex-col justify-between gap-4">
+        
+        <!-- Two Tiers Comparison Table -->
+        <div class="bg-white border border-slate-200 rounded-xl p-4 text-xs">
+          <span class="font-bold text-slate-900 text-sm block border-b border-slate-100 pb-2 mb-3">
+            포락선 2개 층위의 구조적 차이
+          </span>
+
+          <div class="space-y-3">
+            <div class="p-3 rounded-lg bg-blue-50/50 border border-blue-200">
+              <span class="font-bold text-blue-800 block mb-1">1차: 모달 포락선 (지진 단일 사건)</span>
+              <p class="text-slate-600 text-[11px] leading-relaxed">
+                모드별 최대치 R<sub>i</sub>를 SRSS &radic;(&sum; R<sub>i</sub>&sup2;) 또는 CQC로 합성.<br>
+                <strong>통계적 제곱합</strong>이므로 <strong>부호(+/-)가 소실</strong>되어 실존하지 않는 가상의 외곽선입니다.
+              </p>
+            </div>
+
+            <div class="p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+              <span class="font-bold text-emerald-800 block mb-1">2차: 하중조합 포락선 (건물 수명 전체)</span>
+              <p class="text-slate-600 text-[11px] leading-relaxed">
+                1.2D + 1.0L + 1.3E 등 수십 개 하중조합 결과 중 <strong>max / min 최외곽</strong>만을 감싼 테두리(cENV).<br>
+                통계 합성이 아닌 <strong>단순 최대 &middot; 최소값 추출</strong>입니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Caution on P-M Interaction -->
+        <div class="p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 flex flex-col justify-between flex-1">
+          <div>
+            <span class="font-bold text-amber-800 text-sm block mb-1.5 flex items-center gap-1.5">
+              <span>⚠️ 실무 함정: 기둥 P-M 상관도 검토</span>
+            </span>
+            <p class="text-slate-700 leading-relaxed text-[11px]">
+              Envelope의 최대 축력(P<sub>max</sub>)과 최대 모멘트(M<sub>max</sub>)는 <strong>서로 다른 시점, 서로 다른 하중조합</strong>의 값입니다.
+              이 둘을 한 점으로 묶어 기둥 P-M 상관도에 찍으면 부재력을 불필요하게 과대평가하거나, 
+              최소 축력(P<sub>min</sub>) 시 인장 파괴 가능성을 놓칠 수 있습니다.
+            </p>
+          </div>
+          <div class="mt-2.5 pt-2 border-t border-amber-200 font-medium text-[11px] text-amber-900">
+            &rarr; 기둥 P-M 상관도는 Envelope(cENV)가 아닌 <strong>개별 LC</strong>로 확인해야 합니다.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Practical Summary -->
+    <div class="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed">
+      <strong>실무 종결 비유:</strong> 흙 묻은 신발로 방 안을 마구 돌아다닌 뒤, 바닥에 찍힌 수많은 발자국의 최외곽 테두리만 펜으로 이은 것이 Envelope입니다.
+      어떻게 움직였는지는 몰라도, 절대 이 테두리 밖으로는 나가지 않았다는 안전성을 보장하므로 철근 배근 설계의 종결 기준이 됩니다.
+    </div>
+
+  </div>
+
+  <script>
+    let currentTier = 1;
+    const canvas = document.getElementById('bmdCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      const r = canvas.parentElement.getBoundingClientRect();
+      canvas.width = r.width * window.devicePixelRatio;
+      canvas.height = r.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      draw();
+    }
+    window.addEventListener('resize', resize);
+
+    function setTier(tier) {
+      currentTier = tier;
+      document.getElementById('btn-tier1').className = tier === 1 ? 
+        'px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold transition shadow-sm' : 
+        'px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition';
+      document.getElementById('btn-tier2').className = tier === 2 ? 
+        'px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold transition shadow-sm' : 
+        'px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition';
+      document.getElementById('btn-tier3').className = tier === 3 ? 
+        'px-3.5 py-2 rounded-xl bg-red-600 text-white text-xs font-bold transition shadow-sm' : 
+        'px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition';
+
+      if (tier === 1) {
+        document.getElementById('canvas-title').innerText = '1차 모달 포락선: 모드별 BMD와 SRSS 합성선';
+        document.getElementById('question-text').innerText = '"이 포락선 모양대로 건물이 휘어지는 순간이 실존할까요?" → 답: 영원히 없음';
+      } else if (tier === 2) {
+        document.getElementById('canvas-title').innerText = '2차 하중조합 포락선: LC1~LC3 및 최외곽 cENV 포락선';
+        document.getElementById('question-text').innerText = '수명 기간 중 어떤 시나리오가 와도 이 테두리 안에서 안전함을 보장함';
+      } else {
+        document.getElementById('canvas-title').innerText = '3차: P-M 상관도 부호 소실 함정 — 동시성이 깨진 가상의 점';
+        document.getElementById('question-text').innerText = 'P_max와 M_max는 다른 시점에 발생하므로 (P_max, M_max)는 실제 궤적에 없는 허상점입니다.';
+      }
+      draw();
+    }
+
+    function draw() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.45;
+      const topY = 40;
+      const botY = h - 40;
+      const totalH = botY - topY;
+      const storyH = totalH / 3;
+
+      // Central Column Line
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, topY);
+      ctx.lineTo(cx, botY);
+      ctx.stroke();
+
+      // Floor markers
+      for (let i = 0; i <= 3; i++) {
+        const y = botY - i * storyH;
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - 15, y);
+        ctx.lineTo(cx + 15, y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 10px Pretendard, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(i === 0 ? '기초' : `${i}F`, cx - 22, y + 3);
+      }
+
+      if (currentTier === 1) {
+        // Modal BMDs
+        // Mode 1: Smooth cantilever-like moment
+        ctx.strokeStyle = 'rgba(5, 150, 105, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        for (let y = topY; y <= botY; y += 4) {
+          const s = (y - topY) / totalH;
+          const m1 = 120 * s * s;
+          if (y === topY) ctx.moveTo(cx + m1, y);
+          else ctx.lineTo(cx + m1, y);
+        }
+        ctx.stroke();
+
+        // Mode 2: Inflexion point
+        ctx.strokeStyle = 'rgba(37, 99, 235, 0.4)';
+        ctx.beginPath();
+        for (let y = topY; y <= botY; y += 4) {
+          const s = (y - topY) / totalH;
+          const m2 = 60 * Math.sin(s * Math.PI * 1.5);
+          if (y === topY) ctx.moveTo(cx + m2, y);
+          else ctx.lineTo(cx + m2, y);
+        }
+        ctx.stroke();
+
+        // Mode 3: Double inflexion
+        ctx.strokeStyle = 'rgba(147, 51, 234, 0.4)';
+        ctx.beginPath();
+        for (let y = topY; y <= botY; y += 4) {
+          const s = (y - topY) / totalH;
+          const m3 = 25 * Math.sin(s * Math.PI * 2.5);
+          if (y === topY) ctx.moveTo(cx + m3, y);
+          else ctx.lineTo(cx + m3, y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // SRSS Envelope (Bold Red)
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let y = topY; y <= botY; y += 4) {
+          const s = (y - topY) / totalH;
+          const m1 = 120 * s * s;
+          const m2 = 60 * Math.sin(s * Math.PI * 1.5);
+          const m3 = 25 * Math.sin(s * Math.PI * 2.5);
+          const srss = Math.sqrt(m1*m1 + m2*m2 + m3*m3);
+          if (y === topY) ctx.moveTo(cx + srss, y);
+          else ctx.lineTo(cx + srss, y);
+        }
+        ctx.stroke();
+
+        // Legends
+        ctx.font = 'bold 11px Pretendard, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#059669'; ctx.fillText('1모드 BMD', cx + 140, topY + 50);
+        ctx.fillStyle = '#2563eb'; ctx.fillText('2모드 BMD', cx + 140, topY + 70);
+        ctx.fillStyle = '#7c3aed'; ctx.fillText('3모드 BMD', cx + 140, topY + 90);
+        ctx.fillStyle = '#dc2626'; ctx.fillText('모달 포락선 (SRSS)', cx + 140, topY + 115);
+
+      } else if (currentTier === 2) {
+        // Tier 2: Load Combinations
+        const lcs = [
+          { color: '#64748b', name: 'LC1 (1.4D)', fn: s => 50 * s },
+          { color: '#0284c7', name: 'LC2 (1.2D+1.6L)', fn: s => 80 * s },
+          { color: '#d97706', name: 'LC3 (1.2D+1.0L+1.0E)', fn: s => 135 * (s*s + 0.1*Math.sin(s*Math.PI*2)) }
+        ];
+
+        lcs.forEach(lc => {
+          ctx.strokeStyle = lc.color;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          for (let y = topY; y <= botY; y += 4) {
+            const s = (y - topY) / totalH;
+            const m = lc.fn(s);
+            if (y === topY) ctx.moveTo(cx + m, y);
+            else ctx.lineTo(cx + m, y);
+          }
+          ctx.stroke();
+        });
+        ctx.setLineDash([]);
+
+        // cENV Envelope (Bold Green)
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let y = topY; y <= botY; y += 4) {
+          const s = (y - topY) / totalH;
+          const maxM = Math.max(lcs[0].fn(s), lcs[1].fn(s), lcs[2].fn(s));
+          if (y === topY) ctx.moveTo(cx + maxM, y);
+          else ctx.lineTo(cx + maxM, y);
+        }
+        ctx.stroke();
+
+        ctx.font = 'bold 11px Pretendard, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#64748b'; ctx.fillText('LC1: 1.4D', cx + 140, topY + 50);
+        ctx.fillStyle = '#0284c7'; ctx.fillText('LC2: 1.2D+1.6L', cx + 140, topY + 70);
+        ctx.fillStyle = '#d97706'; ctx.fillText('LC3: 1.2D+1.0L+1.0E', cx + 140, topY + 90);
+        ctx.fillStyle = '#059669'; ctx.fillText('최종 하중조합 포락선 (cENV)', cx + 140, topY + 115);
+      } else {
+        // Tier 3: P-M Correlation Diagram and Sign Loss Trap
+        const pmOx = w * 0.45;
+        const pmOy = h * 0.55;
+
+        // Draw P-M Axes
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(pmOx - 160, pmOy); ctx.lineTo(pmOx + 160, pmOy); // M axis
+        ctx.moveTo(pmOx, pmOy + 120); ctx.lineTo(pmOx, pmOy - 140); // P axis
+        ctx.stroke();
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('+M (휨모멘트)', pmOx + 165, pmOy + 4);
+        ctx.fillText('+P (축압축력)', pmOx + 6, pmOy - 145);
+
+        // Concrete Column P-M Capacity Curve (Safe Boundary)
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(pmOx, pmOy - 120); // Pure compression P0
+        ctx.quadraticCurveTo(pmOx + 130, pmOy - 40, pmOx + 110, pmOy + 20); // Balanced point
+        ctx.quadraticCurveTo(pmOx + 60, pmOy + 80, pmOx, pmOy + 90); // Pure tension
+        ctx.stroke();
+
+        // Real Dynamic Trajectory Ellipse of (P(t), M(t)) - SAFE inside!
+        ctx.fillStyle = 'rgba(5, 150, 105, 0.15)';
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Slanted ellipse
+        ctx.ellipse(pmOx + 35, pmOy - 20, 60, 25, Math.PI / 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#059669';
+        ctx.font = 'bold 10px Pretendard, sans-serif';
+        ctx.fillText('실제 지진 동적 거동 궤적 (P(t), M(t)) [안전]', pmOx + 40, pmOy - 55);
+
+        // Envelope's Phantom Point (P_max, M_max) - Falling OUTSIDE or near boundary!
+        const pMax = pmOy - 65;
+        const mMax = pmOx + 95;
+
+        // Dashed lines to phantom point
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(mMax, pmOy); ctx.lineTo(mMax, pMax);
+        ctx.moveTo(pmOx, pMax); ctx.lineTo(mMax, pMax);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Red cross phantom point
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath(); ctx.arc(mMax, pMax, 6, 0, Math.PI * 2); ctx.fill();
+
+        ctx.font = 'bold 11px Pretendard, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('🚨 포락선 가상점 (P_max, M_max)', mMax + 10, pMax - 5);
+        ctx.fillStyle = '#b91c1c';
+        ctx.font = '9px Pretendard, sans-serif';
+        ctx.fillText('동시 발생 불가! 부호소실로 인한 허상 과설계', mMax + 10, pMax + 10);
+      }
+    }
+
+    setTimeout(resize, 50);
+  </script>
+</body>
+</html>

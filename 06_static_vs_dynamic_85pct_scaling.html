@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 06: 등가정적 vs 동적 62% 분해 &middot; 85% 최소밑면전단력 보정</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .light-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    .math-var {
+      font-family: "Cambria Math", "Times New Roman", "STIX Two Math", serif;
+      font-style: italic;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .math-sym {
+      font-family: "Cambria Math", "Times New Roman", "STIX Two Math", serif;
+    }
+    .striped-pattern {
+      background-image: repeating-linear-gradient(45deg, rgba(217, 119, 6, 0.15), rgba(217, 119, 6, 0.15) 6px, rgba(254, 243, 199, 0.8) 6px, rgba(254, 243, 199, 0.8) 12px);
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-lg space-y-5">
+    
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            등가정적 vs 응답스펙트럼 62% 원인 분해 및 85% 기준 보정
+          </h1>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+            KDS 41 17 00 &middot; 3층 전단골조 (<span class="math-var">W</span> = 11,767 kN)
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-1 font-medium">
+          동일 건물에서 정적 <span class="math-var">V<sub>s</sub></span>(1,187 kN) vs 동적 <span class="math-var">V<sub>t</sub></span>(737 kN)의 62.1% 갭 분석 &rarr; 85% 하한선(1,009 kN) 강제 스케일링
+        </p>
+      </div>
+
+      <!-- Presets -->
+      <div class="flex flex-wrap items-center gap-2 font-sans">
+        <button onclick="applyT1Preset(0.648)" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">
+          본문 표준 (<span class="math-var">T</span>₁=0.65s, 62%)
+        </button>
+        <button onclick="applyT1Preset(0.400)" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs">
+          단주기 강체 (<span class="math-var">T</span>₁=0.40s, 92%)
+        </button>
+        <button onclick="applyT1Preset(0.950)" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-xs">
+          장주기 연성 (<span class="math-var">T</span>₁=0.95s, 42%)
+        </button>
+      </div>
+    </div>
+
+    <!-- Interactive Period Slider Strip -->
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs font-medium">
+      <div class="flex-1 min-w-[280px] flex items-center gap-3">
+        <span class="text-slate-800 font-bold whitespace-nowrap text-sm">
+          ⏱️ 해석 모델 1차 모드 주기 <span class="math-var">T</span>₁:
+        </span>
+        <input type="range" id="slider-t1" min="0.30" max="1.30" step="0.01" value="0.648" oninput="updateT1(this.value)" class="flex-1 accent-blue-600 cursor-pointer">
+        <span id="t1-val" class="font-mono font-bold text-blue-700 w-20 text-right text-sm">0.65 s</span>
+      </div>
+      <div id="status-badge" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+        🚨 85% 미달: 1.3688배 강제 증폭 필요
+      </div>
+    </div>
+
+    <!-- Main Comparison Cards & Vertical Bar Chart Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      
+      <!-- Left 7 Cols: 3 Analysis Cards Stacked -->
+      <div class="lg:col-span-7 space-y-3 flex flex-col justify-between">
+        
+        <!-- 1. Equivalent Static -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-xs flex flex-col justify-between flex-1">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-xs font-bold text-slate-600 uppercase flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-slate-600"></span>
+                등가정적해석 (ELF)
+              </span>
+              <span class="text-xs font-mono text-slate-500 font-bold"><span class="math-var">T<sub>a</sub></span> = 0.436s</span>
+            </div>
+            <div id="card-vs-val" class="text-2xl font-black text-slate-900 font-mono">1,187.5 kN</div>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              전체질량(<span class="math-var">W</span>=1,200t) + 보수적 경험주기(<span class="math-var">T<sub>a</sub></span>=0.436s) &middot; <span class="math-var">S<sub>a</sub>(T<sub>a</sub>)</span> = 0.505g &rarr; <span class="math-var">C<sub>s</sub></span> = 0.1009
+            </p>
+          </div>
+          <div class="mt-2 pt-2 border-t border-slate-200 text-[11px] text-slate-500 font-medium flex justify-between items-center">
+            <span>코드 기준값 (100%)</span>
+            <span class="font-mono text-slate-700 font-bold"><span class="math-var">V<sub>s</sub></span> = 1,187.5 kN</span>
+          </div>
+        </div>
+
+        <!-- 2. Dynamic RSA (Before Scaling) -->
+        <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-200 shadow-xs flex flex-col justify-between flex-1">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-xs font-bold text-blue-700 uppercase flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                응답스펙트럼해석 (RSA)
+              </span>
+              <span id="card-t1-badge" class="text-xs font-mono text-blue-600 font-bold"><span class="math-var">T</span>₁ = 0.65s</span>
+            </div>
+            <div id="card-vt-val" class="text-2xl font-black text-blue-700 font-mono">737.1 kN</div>
+            <p id="card-vt-desc" class="text-xs text-blue-900 mt-1 leading-relaxed">
+              모드별 질량분할(91.4% + 7.5% + 1.1%) + 주기 신장에 따른 하강부 가속도 + SRSS
+            </p>
+          </div>
+          <div id="card-ratio-badge" class="mt-2 pt-2 border-t border-blue-200 text-[11px] font-bold text-blue-700 flex justify-between items-center">
+            <span>정적 대비 62.1% (85% 미달)</span>
+            <span id="card-vt-sub" class="font-mono font-bold"><span class="math-var">V<sub>t</sub></span> = 737.1 kN</span>
+          </div>
+        </div>
+
+        <!-- 3. Final Design Base Shear (85% Rule) -->
+        <div id="card-design-box" class="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 shadow-xs flex flex-col justify-between flex-1">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-xs font-bold text-emerald-800 uppercase flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                KDS 41 최종 설계 밑면전단력
+              </span>
+              <span id="card-scale-badge" class="text-xs font-mono text-emerald-700 font-bold">1.3688배 보정</span>
+            </div>
+            <div id="card-vdesign-val" class="text-2xl font-black text-emerald-700 font-mono">1,009.4 kN</div>
+            <p id="card-vdesign-desc" class="text-xs text-emerald-900 mt-1 leading-relaxed">
+              <span class="math-var">V<sub>t</sub></span> &lt; 0.85<span class="math-var">V<sub>s</sub></span> 감지 &rarr; <strong>1.3688배</strong> 강제 증폭. MIDAS Scale: 1.961 &rarr; <strong>2.6845</strong>
+            </p>
+          </div>
+          <div class="mt-2 pt-2 border-t border-emerald-200 text-[11px] font-bold text-emerald-800 flex justify-between items-center">
+            <span>최종 설계 채택 하중 (부재력 &middot; 변위 일괄 증폭)</span>
+            <span id="card-vdesign-sub" class="font-mono font-bold"><span class="math-var">V<sub>design</sub></span> = 1,009.4 kN</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right 5 Cols: Vertical Comparison Bar Chart Column -->
+      <div class="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div>
+            <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+              밑면전단력 3단 비교 &middot; 85% 하한선
+            </span>
+            <span class="text-[11px] text-slate-500 font-medium">정적 vs 동적 vs 최종설계 실시간 수직 막대</span>
+          </div>
+          <span id="chart-scale-chip" class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-mono whitespace-nowrap">
+            &times;1.3688 증폭
+          </span>
+        </div>
+
+        <!-- Vertical Bar Chart Area -->
+        <div class="relative w-full h-[255px] bg-slate-50/80 border border-slate-200 rounded-xl px-4 pt-6 pb-2 flex flex-col justify-between overflow-hidden select-none">
+          
+          <!-- 1. The 3 Vertical Bars Container (Layer: z-10, 막대가 가장 뒤에 오게) -->
+          <div class="relative w-full h-[180px] flex items-end justify-around px-2 z-10">
+            
+            <!-- Bar 1: Vs Static (ELF) -->
+            <div class="flex flex-col items-center w-20 h-full justify-end group relative">
+              <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
+              <div class="z-30 bg-white/95 border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
+                <div class="text-xs font-black text-slate-800 font-mono">1,187.5</div>
+                <div class="text-[10px] font-bold text-slate-400 font-mono">100.0%</div>
+              </div>
+              <!-- Bar Body (z-10) -->
+              <div class="w-14 bg-gradient-to-t from-slate-700 to-slate-600 rounded-t-lg shadow-sm border border-slate-600 transition-all duration-300 hover:brightness-110 z-10" style="height: 156px;"></div>
+            </div>
+
+            <!-- Bar 2: Vt Dynamic (RSA) -->
+            <div class="flex flex-col items-center w-20 h-full justify-end group relative">
+              <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
+              <div id="chart-vt-lbl-box" class="z-30 bg-white/95 border border-blue-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
+                <div id="chart-vt-val" class="text-xs font-black text-blue-700 font-mono">737.1</div>
+                <div id="chart-vt-pct" class="text-[10px] font-bold text-blue-600 font-mono">62.1%</div>
+              </div>
+              <!-- Bar Body with optional gap stripe on top (z-10) -->
+              <div class="w-14 flex flex-col justify-end z-10">
+                <!-- Missing Gap (Striped, only if Vt < 85%) -->
+                <div id="chart-vt-gap" class="w-full striped-pattern border border-dashed border-amber-400 rounded-t-lg flex items-center justify-center text-[9px] font-bold text-amber-800 font-mono transition-all duration-300 z-10" style="height: 36px;">
+                  <span id="chart-vt-gap-txt">+272</span>
+                </div>
+                <!-- Actual Dynamic Shear Bar -->
+                <div id="chart-vt-bar" class="w-full bg-gradient-to-t from-blue-700 to-blue-500 shadow-sm border border-blue-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 97px;"></div>
+              </div>
+            </div>
+
+            <!-- Bar 3: Vdesign (Final Design) -->
+            <div class="flex flex-col items-center w-20 h-full justify-end group relative">
+              <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
+              <div id="chart-vdes-lbl-box" class="z-30 bg-white/95 border border-emerald-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
+                <div id="chart-vdes-val" class="text-xs font-black text-emerald-700 font-mono">1,009.4</div>
+                <div id="chart-vdes-pct" class="text-[10px] font-bold text-emerald-600 font-mono">85.0%</div>
+              </div>
+              <!-- Bar Body (z-10) -->
+              <div id="chart-vdes-bar" class="w-14 bg-gradient-to-t from-emerald-700 to-emerald-500 rounded-t-lg shadow-sm border border-emerald-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 133px;"></div>
+            </div>
+
+          </div>
+
+          <!-- 2. Reference Lines (Layer: z-20, 막대 앞) -->
+          <!-- 100% Vs Line -->
+          <div class="absolute left-0 right-0 border-b border-dashed border-slate-400 pointer-events-none z-20" style="bottom: 188px;">
+            <span class="absolute left-2.5 -top-4 text-[10px] font-mono font-semibold text-slate-500 bg-white/80 px-1 rounded">100% (Vs)</span>
+          </div>
+
+          <!-- 85% Statutory Limit Line (Prominent Red, z-20 line, z-30 badge) -->
+          <div class="absolute left-0 right-0 border-b-2 border-dashed border-red-500 pointer-events-none z-20" style="bottom: 165px;">
+            <div class="absolute right-2 -top-3.5 flex items-center gap-1 bg-white border-2 border-red-500 text-red-700 px-2 py-0.5 rounded-md text-[10px] font-black shadow-md z-30 pointer-events-auto">
+              <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+              <span>85% 하한선 (1,009.4 kN)</span>
+            </div>
+          </div>
+
+          <!-- 0 Baseline (z-20) -->
+          <div class="absolute left-0 right-0 border-b-2 border-slate-300 bottom-[32px] pointer-events-none z-20"></div>
+
+          <!-- 3. Bottom Axis Labels (z-30) -->
+          <div class="w-full flex items-center justify-around text-center pt-1.5 border-t border-slate-200 z-30 relative bg-slate-50/90">
+            <div class="w-20 text-center">
+              <span class="text-[11px] font-bold text-slate-700 block">정적 (ELF)</span>
+              <span class="text-[10px] font-mono text-slate-500 math-var">V<sub>s</sub></span>
+            </div>
+            <div class="w-20 text-center">
+              <span class="text-[11px] font-bold text-blue-700 block">동적 (RSA)</span>
+              <span class="text-[10px] font-mono text-blue-600 math-var">V<sub>t</sub></span>
+            </div>
+            <div class="w-20 text-center">
+              <span class="text-[11px] font-bold text-emerald-800 block">최종 설계</span>
+              <span class="text-[10px] font-mono text-emerald-700 math-var">V<sub>design</sub></span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Explanatory Footer -->
+        <div class="text-[11px] text-slate-500 pt-1 leading-relaxed font-medium flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm bg-amber-200 border border-amber-400"></span>
+            <span>노란 빗금: 85% 미달 시 채워야 하는 부족분 (강제 증폭)</span>
+          </span>
+          <span class="font-mono text-[10px] text-slate-400 font-bold">KDS 41 §17.3.3</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Decomposition & Spectrum Interactive Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      
+      <!-- Left 6 Cols: Mathematical Waterfall Decomposition -->
+      <div class="lg:col-span-6 bg-slate-50/60 border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-3">
+        <div class="border-b border-slate-200 pb-2">
+          <span class="text-sm font-bold text-slate-900">왜 62.1%인가? 2대 원인의 수학적 분해</span>
+          <p class="text-xs text-slate-500 mt-0.5">등가정적(100%)에서 동적(62.1%)으로 깎여나간 두 단계</p>
+        </div>
+
+        <div class="space-y-3 flex-1">
+          <!-- Step 1 -->
+          <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-slate-800 text-xs">① 질량 분할 및 SRSS 비동시성 효과</span>
+              <span class="font-mono font-bold text-red-600 text-xs">&minus;8.3% 절감</span>
+            </div>
+            <p class="text-[11px] text-slate-600 mt-1 leading-relaxed">
+              모든 모드가 동일한 가속도를 받아도, 질량이 쪼개지고 피타고라스(SRSS)로 묶이면서 자연 감소:
+            </p>
+            <div class="mt-1.5 font-mono text-[11px] bg-slate-50 p-1.5 rounded text-slate-700 border border-slate-100">
+              &radic;(0.9141&sup2; + 0.0749&sup2; + 0.0110&sup2;) = <strong>0.9172 (91.7%)</strong>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-slate-800 text-xs">② 주기 신장 효과 (경험주기 vs 모델주기)</span>
+              <span id="txt-period-drop" class="font-mono font-bold text-red-600 text-xs">&minus;32.7% 절감</span>
+            </div>
+            <p class="text-[11px] text-slate-600 mt-1 leading-relaxed">
+              보수적 경험주기(<span class="math-var">T<sub>a</sub></span>=0.436s, 0.505g) 대비 모델(<span class="math-var">T</span>₁=<span id="txt-t1-inline" class="font-bold text-blue-700">0.65s</span>, <span id="txt-sa1-inline" class="font-bold text-blue-700">0.340g</span>)의 하강부 이동:
+            </p>
+            <div id="txt-period-calc" class="mt-1.5 font-mono text-[11px] bg-slate-50 p-1.5 rounded text-slate-700 border border-slate-100">
+              <span class="math-var">S<sub>a</sub>(T₁) / S<sub>a</sub>(T<sub>a</sub>)</span> = 0.3396 / 0.5046 = <strong>0.6730 (67.3%)</strong>
+            </div>
+          </div>
+
+          <!-- Final Multiplier Box -->
+          <div class="p-3 rounded-xl bg-blue-50 border border-blue-200">
+            <div class="flex justify-between items-center font-bold text-blue-900 text-xs">
+              <span>최종 비율 산출 (두 효과의 결합)</span>
+              <span id="txt-final-mult" class="font-mono text-sm">0.9172 &times; 0.6730 &approx; 62.1%</span>
+            </div>
+            <p class="text-[11px] text-blue-700 mt-1">
+              주기 하나의 차이가 모드조합 방식 차이보다 4배 이상 지배적입니다.
+            </p>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-200 font-medium">
+          * 2&middot;3차 모드의 추가 기여는 밑면전단력을 단 0.6%p만 증가시킵니다 (0.6%의 역설).
+        </div>
+      </div>
+
+      <!-- Right 6 Cols: Interactive Spectrum Positioning Canvas -->
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+          <span class="text-sm font-bold text-slate-900">설계응답스펙트럼 상의 주기 위치 비교</span>
+          <span class="text-xs font-mono text-slate-600 font-semibold">KDS 41 (<span class="math-var">S<sub>DS</sub></span>=0.55g, <span class="math-var">S<sub>D1</sub></span>=0.22g)</span>
+        </div>
+
+        <!-- Canvas Container with generous height -->
+        <div class="relative flex-1 w-full my-1 min-h-[300px]">
+          <canvas id="specCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- MIDAS Scale Factor Calculator -->
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2 font-sans">
+          <span class="font-bold text-slate-900 text-xs block">MIDAS Gen 스케일 팩터(Scale Factor) 설정 원리</span>
+          <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+            <div class="p-2 rounded bg-white border border-slate-200">
+              <span class="text-slate-500 block text-[11px] font-sans">기본 Scale Factor (<span class="math-var">g&middot;I<sub>e</sub> / R</span>)</span>
+              <span class="font-bold text-slate-800 text-sm">1.9613</span>
+            </div>
+            <div class="p-2 rounded bg-emerald-50 border border-emerald-200">
+              <span class="text-emerald-700 block text-[11px] font-sans font-bold">85% 보정 후 Scale Factor</span>
+              <span id="midas-scale-val" class="font-bold text-emerald-700 text-sm">2.6845</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-500 leading-relaxed">
+            MIDAS Gen RS Load Case에서 Scale Factor를 <span id="txt-scale-mult" class="font-bold text-slate-800">1.3688배</span> 곱해 입력하면, 
+            모든 부재력과 층간변위가 KDS 85% 하한선에 맞춰 일괄 상향 조정됩니다.
+          </p>
+          <div class="p-2.5 bg-blue-50/70 border border-blue-200 rounded-lg text-[11px] text-blue-950 space-y-1">
+            <strong class="text-blue-900 block font-bold">🖥️ MIDAS Gen 4단계 실무 재현 절차 (마스터노트 §12.1):</strong>
+            <ol class="list-decimal list-inside space-y-0.5 text-slate-700 font-sans">
+              <li>Eigenvalue Analysis Control &rarr; 모달 참여질량 누적 90% (91.4% / 7.5% / 1.1%) 확인</li>
+              <li>RS Load Case &rarr; 초기 Scale Factor = 9.806 &times; I<sub>e</sub> / R = <strong>1.9612</strong> (CQC 지정)</li>
+              <li>정적 지진하중(T<sub>a</sub>)과 Story Shear 비교 &rarr; V<sub>t</sub> / V<sub>s</sub> = 0.621 (&lt; 0.85 미달 확인)</li>
+              <li>Scale Factor란에 1.3688배를 곱한 <strong class="text-emerald-700">2.6845</strong>를 입력하여 최종 설계력 확정</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Final Philosophical Conclusion -->
+    <div class="p-4 rounded-xl bg-slate-100 border border-slate-200 flex items-start gap-3.5 text-xs text-slate-700 leading-relaxed">
+      <span class="px-2.5 py-1 rounded-md bg-slate-800 text-white font-bold text-xs whitespace-nowrap">
+        실무 통찰
+      </span>
+      <div>
+        <strong>"코드는 당신의 해석을 신뢰하되, 당신의 모델은 신뢰하지 않는다."</strong><br>
+        비구조요소, 조적벽 등을 배제한 순수 골조 모델은 실제 건물보다 유연하여 주기가 길게 산출되므로 동적 하중이 과소평가될 위험이 있습니다.
+        따라서 코드는 <strong>총량은 보수적 경험식의 85%</strong>에 묶어 안전을 확보하고, 동적해석에서는 <strong>층별 하중 분포와 비틀림 형상</strong>만을 취합니다.
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- Constant Physical Parameters (Chopra 12/13장 & KDS 41) ---
+    const W = 11767.2; // Total building weight [kN] (1,200 ton)
+    const R = 5.0;      // Response modification coefficient
+    const Ie = 1.0;     // Importance factor
+    const Ta = 0.436;   // Empirical period [s]
+    const S_DS = 0.55;  // Design spectral acceleration at short period [g]
+    const S_D1 = 0.22;  // Design spectral acceleration at 1-sec [g]
+
+    // Effective modal mass ratios for 3-story benchmark
+    const meff_ratios = [0.9141, 0.0749, 0.0110];
+
+    // Equivalent static base shear (ELF)
+    const Sa_Ta = S_D1 / Ta; // 0.5046 g
+    const Cs_ELF = Sa_Ta / R; // 0.1009
+    const Vs = Cs_ELF * W;    // 1,187.5 kN
+    const V_limit = 0.85 * Vs; // 1,009.4 kN
+
+    let currentT1 = 0.648;
+
+    const canvas = document.getElementById('specCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function getSa(T) {
+      if (T <= 0) return 0.4 * S_DS;
+      const T0 = 0.08;
+      const Ts = S_D1 / S_DS; // 0.40 s
+      if (T < T0) {
+        return S_DS * (0.4 + 0.6 * (T / T0));
+      } else if (T <= Ts) {
+        return S_DS;
+      } else {
+        return S_D1 / T;
+      }
+    }
+
+    function applyT1Preset(val) {
+      document.getElementById('slider-t1').value = val;
+      updateT1(val);
+    }
+
+    function updateT1(val) {
+      currentT1 = parseFloat(val);
+      document.getElementById('t1-val').innerHTML = `<span class="math-var">T</span>₁ = ${currentT1.toFixed(2)} s`;
+      document.getElementById('card-t1-badge').innerHTML = `<span class="math-var">T</span>₁ = ${currentT1.toFixed(2)}s`;
+      document.getElementById('txt-t1-inline').innerText = `${currentT1.toFixed(2)}s`;
+
+      // 1. Calculate Dynamic Base Shear Vt via SRSS
+      const Sa1 = getSa(currentT1);
+      const Sa2 = getSa(currentT1 / 2.80);
+      const Sa3 = getSa(currentT1 / 4.05);
+
+      document.getElementById('txt-sa1-inline').innerText = `${Sa1.toFixed(3)}g`;
+
+      const Vb1 = (Sa1 / R) * (meff_ratios[0] * W);
+      const Vb2 = (Sa2 / R) * (meff_ratios[1] * W);
+      const Vb3 = (Sa3 / R) * (meff_ratios[2] * W);
+
+      const Vt = Math.sqrt(Vb1*Vb1 + Vb2*Vb2 + Vb3*Vb3);
+      const ratioPct = (Vt / Vs) * 100;
+
+      document.getElementById('card-vt-val').innerText = `${Vt.toFixed(1)} kN`;
+      document.getElementById('card-vt-sub').innerHTML = `<span class="math-var">V<sub>t</sub></span> = ${Vt.toFixed(1)} kN`;
+      document.getElementById('card-ratio-badge').innerHTML = `<span>정적 대비 ${ratioPct.toFixed(1)}% (${ratioPct < 85 ? '85% 미달' : '85% 충족'})</span><span class="font-mono font-bold"><span class="math-var">V<sub>t</sub></span> = ${Vt.toFixed(1)} kN</span>`;
+
+      // 2. 85% Code Check & Scale Factor
+      const statusBadge = document.getElementById('status-badge');
+      const cardDesignBox = document.getElementById('card-design-box');
+      const cardScaleBadge = document.getElementById('card-scale-badge');
+      const cardVdesignVal = document.getElementById('card-vdesign-val');
+      const cardVdesignDesc = document.getElementById('card-vdesign-desc');
+      const cardVdesignSub = document.getElementById('card-vdesign-sub');
+      const midasScaleVal = document.getElementById('midas-scale-val');
+      const txtScaleMult = document.getElementById('txt-scale-mult');
+      const chartScaleChip = document.getElementById('chart-scale-chip');
+
+      let eta = 1.0;
+      let V_final = Vt;
+
+      if (Vt < V_limit) {
+        eta = V_limit / Vt;
+        V_final = V_limit;
+        statusBadge.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300";
+        statusBadge.innerHTML = `🚨 85% 미달: <strong>${eta.toFixed(4)}배</strong> 강제 증폭 적용`;
+        cardDesignBox.className = "p-4 rounded-xl bg-emerald-50/70 border border-emerald-300 shadow-xs flex flex-col justify-between flex-1";
+        cardScaleBadge.innerText = `${eta.toFixed(4)}배 보정`;
+        cardVdesignVal.innerText = `${V_final.toFixed(1)} kN`;
+        cardVdesignDesc.innerHTML = `<span class="math-var">V<sub>t</sub></span>(${Vt.toFixed(1)} kN) &lt; 0.85<span class="math-var">V<sub>s</sub></span>(${V_limit.toFixed(1)} kN) &rarr; <strong>${eta.toFixed(4)}배</strong> 강제 증폭. MIDAS Scale: 1.961 &rarr; <strong>${(1.9613 * eta).toFixed(4)}</strong>`;
+        cardVdesignSub.innerHTML = `<span class="math-var">V<sub>design</sub></span> = ${V_final.toFixed(1)} kN`;
+
+        chartScaleChip.className = "text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-mono whitespace-nowrap";
+        chartScaleChip.innerHTML = `🚨 &times;${eta.toFixed(4)} 증폭`;
+      } else {
+        eta = 1.0;
+        V_final = Vt;
+        statusBadge.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300";
+        statusBadge.innerHTML = `✅ 85% 충족 (보정 불필요, 1.000배 유지)`;
+        cardDesignBox.className = "p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-xs flex flex-col justify-between flex-1";
+        cardScaleBadge.innerText = `보정 불필요 (1.00x)`;
+        cardVdesignVal.innerText = `${V_final.toFixed(1)} kN`;
+        cardVdesignDesc.innerHTML = `<span class="math-var">V<sub>t</sub></span>(${Vt.toFixed(1)} kN) &ge; 0.85<span class="math-var">V<sub>s</sub></span> 충족 &rarr; 동적해석 결과 직접 채택. MIDAS Scale: <strong>1.9613</strong> 유지`;
+        cardVdesignSub.innerHTML = `<span class="math-var">V<sub>design</sub></span> = ${V_final.toFixed(1)} kN`;
+
+        chartScaleChip.className = "text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono whitespace-nowrap";
+        chartScaleChip.innerHTML = `✅ 1.00x (보정 불필요)`;
+      }
+
+      midasScaleVal.innerText = (1.9613 * eta).toFixed(4);
+      txtScaleMult.innerText = `${eta.toFixed(4)}배`;
+
+      // 3. Update Vertical Bar Chart
+      // Base height reference: Vs (1187.5 kN) corresponds to 156px
+      const H_base = 156.0;
+      const H_limit = H_base * 0.85; // 132.6px
+      const H_vt = Math.min(176, H_base * (Vt / Vs));
+      const H_vdes = Math.min(176, H_base * (V_final / Vs));
+
+      // Bar 2 (Vt)
+      document.getElementById('chart-vt-val').innerText = Vt.toFixed(1);
+      document.getElementById('chart-vt-pct').innerText = `${ratioPct.toFixed(1)}%`;
+
+      const gapEl = document.getElementById('chart-vt-gap');
+      const barVtEl = document.getElementById('chart-vt-bar');
+
+      if (Vt < V_limit) {
+        const gapH = Math.max(8, H_limit - H_vt);
+        gapEl.style.display = 'flex';
+        gapEl.style.height = `${gapH.toFixed(1)}px`;
+        gapEl.style.borderTopLeftRadius = '0.5rem';
+        gapEl.style.borderTopRightRadius = '0.5rem';
+        document.getElementById('chart-vt-gap-txt').innerText = `+${(V_limit - Vt).toFixed(0)}`;
+
+        barVtEl.style.height = `${H_vt.toFixed(1)}px`;
+        barVtEl.style.borderTopLeftRadius = '0';
+        barVtEl.style.borderTopRightRadius = '0';
+      } else {
+        gapEl.style.display = 'none';
+        gapEl.style.height = '0px';
+
+        barVtEl.style.height = `${H_vt.toFixed(1)}px`;
+        barVtEl.style.borderTopLeftRadius = '0.5rem';
+        barVtEl.style.borderTopRightRadius = '0.5rem';
+      }
+
+      // Bar 3 (Vdesign)
+      document.getElementById('chart-vdes-val').innerText = V_final.toFixed(1);
+      document.getElementById('chart-vdes-pct').innerText = `${((V_final / Vs) * 100).toFixed(1)}%`;
+      document.getElementById('chart-vdes-bar').style.height = `${H_vdes.toFixed(1)}px`;
+
+      // 4. Update Waterfall Math Text
+      const massFactor = 0.9172; // sqrt(sum meff^2)
+      const periodFactor = Sa1 / Sa_Ta;
+      const combined = (massFactor * periodFactor * 100).toFixed(1);
+
+      const periodDropPct = ((1 - periodFactor) * 100).toFixed(1);
+      document.getElementById('txt-period-drop').innerText = `${periodDropPct >= 0 ? '-' : '+'}${Math.abs(periodDropPct)}% ${periodDropPct >= 0 ? '절감' : '증가'}`;
+      document.getElementById('txt-period-calc').innerHTML = 
+        `<span class="math-var">S<sub>a</sub>(T₁) / S<sub>a</sub>(T<sub>a</sub>)</span> = ${Sa1.toFixed(4)} / ${Sa_Ta.toFixed(4)} = <strong>${periodFactor.toFixed(4)} (${(periodFactor*100).toFixed(1)}%)</strong>`;
+      document.getElementById('txt-final-mult').innerHTML = 
+        `0.9172 &times; ${periodFactor.toFixed(4)} &approx; <strong>${combined}%</strong>`;
+
+      drawSpectrum();
+    }
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const r = canvas.parentElement.getBoundingClientRect();
+      canvas.width = r.width * dpr;
+      canvas.height = r.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawSpectrum();
+    }
+    window.addEventListener('resize', resize);
+
+    // Helper function for crisp rounded rectangles
+    function drawRoundRect(c, x, y, width, height, radius, fill, stroke) {
+      c.beginPath();
+      c.moveTo(x + radius, y);
+      c.lineTo(x + width - radius, y);
+      c.quadraticCurveTo(x + width, y, x + width, y + radius);
+      c.lineTo(x + width, y + height - radius);
+      c.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      c.lineTo(x + radius, y + height);
+      c.quadraticCurveTo(x, y + height, x, y + height - radius);
+      c.lineTo(x, y + radius);
+      c.quadraticCurveTo(x, y, x + radius, y);
+      c.closePath();
+      if (fill) c.fill();
+      if (stroke) c.stroke();
+    }
+
+    function drawSpectrum() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      ctx.clearRect(0, 0, w, h);
+
+      // Plot Margins
+      const marginL = 55;
+      const marginR = 35;
+      const marginT = 40;
+      const marginB = 38;
+      const plotW = w - marginL - marginR;
+      const plotH = h - marginT - marginB;
+      const maxG = 0.65;
+      const maxT = 1.4;
+
+      function toX(T) {
+        return marginL + (T / maxT) * plotW;
+      }
+      function toY(Sa) {
+        return (h - marginB) - (Sa / maxG) * plotH;
+      }
+
+      // 1. Grid Lines & Y Ticks
+      ctx.lineWidth = 1;
+      const yTicks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
+      yTicks.forEach(g => {
+        const y = toY(g);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(marginL, y);
+        ctx.lineTo(w - marginR, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#475569';
+        ctx.font = 'bold 11px Pretendard, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${g.toFixed(1)}g`, marginL - 8, y);
+      });
+
+      // 0.0g label
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 11px Pretendard, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('0.0g', marginL - 8, h - marginB);
+
+      // 2. Vertical Grid Lines & X Ticks
+      const xTicks = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4];
+      xTicks.forEach(t => {
+        const x = toX(t);
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(x, marginT);
+        ctx.lineTo(x, h - marginB);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#475569';
+        ctx.font = 'bold 11px Pretendard, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${t.toFixed(1)}s`, x, h - marginB + 8);
+      });
+      ctx.fillText('0.0s', marginL, h - marginB + 8);
+
+      // 3. Axes
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(marginL, marginT - 15);
+      ctx.lineTo(marginL, h - marginB);
+      ctx.lineTo(w - marginR + 15, h - marginB);
+      ctx.stroke();
+
+      // Axis Titles (with Italic Math Variables)
+      // Y-axis: Sa (g)
+      ctx.textBaseline = 'bottom';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('S', marginL - 48, marginT - 14);
+      const sW = ctx.measureText('S').width;
+      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('a', marginL - 48 + sW, marginT - 11);
+      const aW = ctx.measureText('a').width;
+      ctx.font = 'bold 11px Pretendard, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('(g)', marginL - 48 + sW + aW + 3, marginT - 14);
+
+      // X-axis: 주기 T (s)
+      ctx.textBaseline = 'top';
+      ctx.textAlign = 'right';
+      ctx.font = 'bold 11px Pretendard, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('주기 ', w - marginR + 10, h - marginB + 23);
+      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
+      ctx.fillStyle = '#1e293b';
+      ctx.fillText('T', w - marginR + 20, h - marginB + 22);
+      ctx.font = 'bold 11px Pretendard, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('(s)', w - marginR + 36, h - marginB + 23);
+
+      // 4. KDS 41 Characteristic Period Marker Ts = 0.40s
+      const Ts = S_D1 / S_DS; // 0.40s
+      const xTs = toX(Ts);
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(xTs, toY(S_DS));
+      ctx.lineTo(xTs, h - marginB);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Ts = 0.40s', xTs, toY(S_DS) + 14);
+
+      // 5. Area Gradient Fill under Spectrum Curve
+      const grad = ctx.createLinearGradient(0, marginT, 0, h - marginB);
+      grad.addColorStop(0, 'rgba(37, 99, 235, 0.16)');
+      grad.addColorStop(1, 'rgba(37, 99, 235, 0.01)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(toX(0), h - marginB);
+      for (let px = 0; px <= plotW; px += 2) {
+        const T = (px / plotW) * maxT;
+        ctx.lineTo(marginL + px, toY(getSa(T)));
+      }
+      ctx.lineTo(marginL + plotW, h - marginB);
+      ctx.closePath();
+      ctx.fill();
+
+      // 6. Spectrum Curve Stroke
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      for (let px = 0; px <= plotW; px += 2) {
+        const T = (px / plotW) * maxT;
+        const x = marginL + px;
+        const y = toY(getSa(T));
+        if (px === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Plateau Annotation
+      ctx.fillStyle = '#1d4ed8';
+      ctx.font = 'bold 10px Pretendard, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('가속도 평탄부 SDS = 0.55g', toX(0.24), toY(S_DS) - 8);
+
+      // Coordinates of Ta and T1
+      const xTa = toX(Ta);
+      const yTa = toY(Sa_Ta);
+      const Sa1 = getSa(currentT1);
+      const xT1 = toX(currentT1);
+      const yT1 = toY(Sa1);
+
+      // 7. Dynamic Transition Arc between Ta and T1
+      if (Math.abs(xT1 - xTa) > 20) {
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        const midX = (xTa + xT1) / 2;
+        const midY = Math.min(yTa, yT1) - 16;
+        ctx.moveTo(xTa, yTa);
+        ctx.quadraticCurveTo(midX, midY, xT1, yT1);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Amber floating badge on transition curve
+        const ratioDrop = ((Sa1 / Sa_Ta) * 100).toFixed(0);
+        const diffDrop = ((1 - Sa1 / Sa_Ta) * 100).toFixed(0);
+        const arcBadgeText = currentT1 > Ta ? `주기 신장: Sa ${diffDrop}% 절감` : `주기 단축: Sa 증가`;
+        ctx.font = 'bold 10px Pretendard, sans-serif';
+        const abW = ctx.measureText(arcBadgeText).width + 14;
+        const abH = 18;
+        const abX = midX - abW / 2;
+        const abY = midY - 7;
+
+        ctx.fillStyle = '#fffbeb';
+        ctx.strokeStyle = '#fde68a';
+        ctx.lineWidth = 1;
+        drawRoundRect(ctx, abX, abY, abW, abH, 4, true, true);
+        ctx.fillStyle = '#b45309';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(arcBadgeText, midX, abY + abH / 2);
+      }
+
+      // 8. Vertical Drop Lines for Ta and T1
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(xTa, h - marginB);
+      ctx.lineTo(xTa, yTa);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#34d399';
+      ctx.beginPath();
+      ctx.moveTo(xT1, h - marginB);
+      ctx.lineTo(xT1, yT1);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Point Dots
+      // Ta Dot
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(xTa, yTa, 5.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // T1 Dot
+      ctx.fillStyle = '#059669';
+      ctx.beginPath();
+      ctx.arc(xT1, yT1, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // 9. HIGH-QUALITY CALLOUT BADGES (Zero Overlap & Zero Clipping)
+      // A. Ta Callout Badge (Static ELF)
+      const taBadgeW = 150;
+      const taBadgeH = 44;
+      let taBx = xTa - taBadgeW - 10;
+      let taBy = yTa - taBadgeH - 8;
+      // Clamp Ta within canvas
+      if (taBx < marginL + 2) taBx = marginL + 2;
+      if (taBy < marginT - 18) taBy = marginT - 18;
+
+      // Leader line from Ta badge to Ta dot
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(taBx + taBadgeW, taBy + taBadgeH / 2);
+      ctx.lineTo(xTa, yTa);
+      ctx.stroke();
+
+      // Ta Badge Card
+      ctx.save();
+      ctx.shadowColor = 'rgba(220, 38, 38, 0.15)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#fca5a5';
+      ctx.lineWidth = 1.5;
+      drawRoundRect(ctx, taBx, taBy, taBadgeW, taBadgeH, 8, true, true);
+      ctx.restore();
+
+      // Ta Content: Line 1 (Ta = 0.44s, Sa = 0.505g)
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      let curX = taBx + 8;
+      const line1Y = taBy + 14;
+
+      ctx.fillStyle = '#dc2626';
+      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('T', curX, line1Y);
+      curX += ctx.measureText('T').width;
+      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('a', curX, line1Y + 3);
+      curX += ctx.measureText('a').width;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px Pretendard, sans-serif';
+      ctx.fillText(' = 0.44s', curX, line1Y);
+      curX += ctx.measureText(' = 0.44s').width + 5;
+
+      ctx.fillStyle = '#dc2626';
+      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('S', curX, line1Y);
+      curX += ctx.measureText('S').width;
+      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('a', curX, line1Y + 3);
+      curX += ctx.measureText('a').width;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px Pretendard, sans-serif';
+      ctx.fillText(' = 0.505g', curX, line1Y);
+
+      // Line 2: Tag [등가정적 ELF 기준점]
+      const line2Y = taBy + 31;
+      ctx.fillStyle = '#fef2f2';
+      ctx.strokeStyle = '#fecaca';
+      ctx.lineWidth = 1;
+      drawRoundRect(ctx, taBx + 8, line2Y - 8, 106, 17, 4, true, true);
+      ctx.fillStyle = '#b91c1c';
+      ctx.font = 'bold 10px Pretendard, sans-serif';
+      ctx.fillText('등가정적 (ELF) 기준점', taBx + 12, line2Y);
+
+      // B. T1 Callout Badge (Dynamic RSA)
+      const t1BadgeW = 160;
+      const t1BadgeH = 44;
+      let t1Bx, t1By;
+
+      // Smart positioning: if approaching right edge, flip to LEFT
+      if (xT1 + t1BadgeW + 14 > w - 4) {
+        t1Bx = xT1 - t1BadgeW - 12;
+        t1By = yT1 - t1BadgeH - 6;
+      } else if (currentT1 <= Ta) {
+        t1Bx = xT1 + 12;
+        t1By = yT1 - 20;
+      } else {
+        t1Bx = xT1 + 12;
+        t1By = yT1 - 22;
+      }
+
+      // Clamping within canvas boundaries
+      if (t1By < marginT - 18) t1By = marginT - 18;
+      if (t1By + t1BadgeH > h - marginB - 2) t1By = h - marginB - t1BadgeH - 2;
+      if (t1Bx < marginL + 2) t1Bx = marginL + 2;
+      if (t1Bx + t1BadgeW > w - 4) t1Bx = w - 4 - t1BadgeW;
+
+      // Check collision between Ta badge and T1 badge
+      const overlapX = (t1Bx < taBx + taBadgeW && t1Bx + t1BadgeW > taBx);
+      const overlapY = (t1By < taBy + taBadgeH && t1By + t1BadgeH > taBy);
+      if (overlapX && overlapY) {
+        if (currentT1 < Ta) {
+          t1By = taBy + taBadgeH + 8;
+        } else {
+          t1Bx = xT1 + 14;
+          t1By = yT1 + 10;
+        }
+      }
+
+      // Leader line from T1 badge to T1 dot
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      if (t1Bx > xT1) {
+        ctx.moveTo(t1Bx, t1By + t1BadgeH / 2);
+      } else {
+        ctx.moveTo(t1Bx + t1BadgeW, t1By + t1BadgeH / 2);
+      }
+      ctx.lineTo(xT1, yT1);
+      ctx.stroke();
+
+      // T1 Badge Card
+      ctx.save();
+      ctx.shadowColor = 'rgba(5, 150, 105, 0.15)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#6ee7b7';
+      ctx.lineWidth = 1.5;
+      drawRoundRect(ctx, t1Bx, t1By, t1BadgeW, t1BadgeH, 8, true, true);
+      ctx.restore();
+
+      // T1 Content: Line 1 (T1 = ...s, Sa = ...g)
+      curX = t1Bx + 8;
+      const t1Line1Y = t1By + 14;
+
+      ctx.fillStyle = '#059669';
+      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('T', curX, t1Line1Y);
+      curX += ctx.measureText('T').width;
+      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('1', curX, t1Line1Y + 3);
+      curX += ctx.measureText('1').width;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px Pretendard, sans-serif';
+      ctx.fillText(` = ${currentT1.toFixed(2)}s`, curX, t1Line1Y);
+      curX += ctx.measureText(` = ${currentT1.toFixed(2)}s`).width + 5;
+
+      ctx.fillStyle = '#059669';
+      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('S', curX, t1Line1Y);
+      curX += ctx.measureText('S').width;
+      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
+      ctx.fillText('a', curX, t1Line1Y + 3);
+      curX += ctx.measureText('a').width;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px Pretendard, sans-serif';
+      ctx.fillText(` = ${Sa1.toFixed(3)}g`, curX, t1Line1Y);
+
+      // Line 2: Tag [응답스펙트럼 RSA 모델점]
+      const t1Line2Y = t1By + 31;
+      ctx.fillStyle = '#ecfdf5';
+      ctx.strokeStyle = '#a7f3d0';
+      ctx.lineWidth = 1;
+      drawRoundRect(ctx, t1Bx + 8, line2Y - 8, 122, 17, 4, true, true);
+      ctx.fillStyle = '#047857';
+      ctx.font = 'bold 10px Pretendard, sans-serif';
+      ctx.fillText('응답스펙트럼 (RSA) 모델점', t1Bx + 12, t1Line2Y);
+    }
+
+    setTimeout(() => {
+      resize();
+      updateT1(0.648);
+    }, 50);
+  </script>
+</body>
+</html>

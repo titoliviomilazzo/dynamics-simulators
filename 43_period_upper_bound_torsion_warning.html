@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 43: 고유주기의 역설 — 약산주기 vs 전산주기 상한(CuTa) & MIDAS 비틀림 경고</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-amber: #f59e0b;
+    --accent-emerald: #10b981;
+    --accent-rose: #f43f5e;
+    --accent-purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+  .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+  .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+  .main-container { flex: 1; display: grid; grid-template-columns: 330px 1fr 310px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
+  @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
+
+  .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+  .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+
+  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .control-group label { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+  select, input[type="range"], input[type="number"] { background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 4px; font-size: 0.85rem; width: 100%; accent-color: var(--accent-blue); }
+
+  .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  button { background: #334155; color: #fff; border: 1px solid var(--border); padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
+  button:hover { background: #475569; }
+  button.active { background: var(--accent-blue); color: #0f172a; border-color: var(--accent-blue); font-weight: 700; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .stat-card { background: rgba(15, 23, 42, 0.6); padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+  .stat-card .label { font-size: 0.7rem; color: var(--text-muted); }
+  .stat-card .value { font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
+  .stat-card.blue .value { color: var(--accent-blue); }
+  .stat-card.amber .value { color: var(--accent-amber); }
+  .stat-card.emerald .value { color: var(--accent-emerald); }
+  .stat-card.rose .value { color: var(--accent-rose); }
+
+  .canvas-wrapper { flex: 1; background: #0b1120; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 400px; }
+  canvas { width: 100%; height: 100%; display: block; }
+
+  .midas-table { width: 100%; border-collapse: collapse; font-family: 'Consolas', monospace; font-size: 0.72rem; }
+  .midas-table th, .midas-table td { border: 1px solid var(--border); padding: 0.3rem 0.4rem; text-align: right; }
+  .midas-table th { background: #0b1120; color: var(--accent-blue); text-align: center; }
+  .midas-table tr.warning { background: rgba(244, 63, 94, 0.2); color: #ff8080; font-weight: 700; }
+
+  .takeaway { background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
+  .callout-amber { background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
+</style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+
+<header>
+  <div class="title-group">
+    <h1><span class="badge">Sim 43</span> 고유주기의 역설 — 약산주기(Ta) vs 전산주기 상한(CuTa) & MIDAS 비틀림 경고</h1>
+    <p>KDS 41 주기상한계수 CuTa로 밑면전단력 과소평가 방지 및 1차 모드 비틀림(RZ=49.5%) 진단</p>
+  </div>
+  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.85rem;">← 마스터 포털 복귀</a>
+</header>
+
+<div class="main-container">
+  <!-- Left Inputs -->
+  <div class="panel">
+    <div class="panel-title">1. 구조물 제원 및 주기 계산</div>
+
+    <div class="control-group">
+      <label>골조 시스템 (약산식 Ct, x)</label>
+      <select id="selFrameType" onchange="recalculate()">
+        <option value="rc_mr" selected>철근콘크리트 모멘트골조 (Ct=0.0466, x=0.9)</option>
+        <option value="steel_mr">철골 모멘트골조 (Ct=0.0724, x=0.8)</option>
+        <option value="brbf">철골 편심가새/BRBF (Ct=0.0731, x=0.75)</option>
+        <option value="rc_sw">RC 전단벽구조 (Ct=0.0488, x=0.75)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label><span>총 높이 hn</span> <span id="lblHn">45.0 m (15층)</span></label>
+      <input type="range" id="rngHn" min="10.0" max="120.0" step="1.0" value="45.0" oninput="updateHn(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>1초주기 설계가속도 SD1</span> <span id="lblSD1">0.25 g</span></label>
+      <input type="range" id="rngSD1" min="0.08" max="0.50" step="0.01" value="0.25" oninput="updateSD1(this.value)">
+    </div>
+
+    <div class="control-group">
+      <label><span>MIDAS 컴퓨터 계산주기 Tcom</span> <span id="lblTcom" style="color:var(--accent-amber); font-weight:700;">2.10 s</span></label>
+      <input type="range" id="rngTcom" min="0.3" max="4.0" step="0.05" value="2.10" oninput="updateTcom(this.value)">
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">2. 평면 편심도 (Torsion Test)</div>
+    <div class="control-group">
+      <label><span>질량중심-강성중심 편심 ey</span> <span id="lblEy">3.5 m (편심배치)</span></label>
+      <input type="range" id="rngEy" min="0" max="8.0" step="0.2" value="3.5" oninput="updateEy(this.value)">
+    </div>
+
+    <div class="callout-amber">
+      <strong>왜 컴퓨터 주기를 그대로 안 믿는가? (슬라이드 26)</strong><br>
+      해석 모델에서 비구조벽(조적벽 등) 강성을 빼먹으면 계산주기 \(T_{com}\)이 실제보다 1.5~2배 길게 나옵니다. 주기가 길어지면 설계 밑면전단력 \(V \propto 1/T\)이 급감하므로, KDS는 <strong>\(T \le C_u T_a\) 상한</strong>으로 밑면전단력 과소평가를 방지합니다.
+    </div>
+  </div>
+
+  <!-- Center Visualization -->
+  <div class="panel" style="display:flex; flex-direction:column; gap:0.8rem;">
+    <div class="panel-title">
+      <span id="centerTitle">밑면전단력 설계주기 절단(Cap) 및 평면 비틀림 모드형상</span>
+      <span id="torsionBadge" class="badge" style="color:var(--accent-rose); border-color:var(--accent-rose);">1차 모드 비틀림 위험 (RZ=49.5%)</span>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="viewCanvas"></canvas>
+    </div>
+
+    <div class="takeaway">
+      <strong>MIDAS Gen 1차 모드 비틀림 경고 (슬라이드 25)</strong><br>
+      1차 모드 질량참여율에서 \(RZ\)가 49.5%로 지배적이면, 지진 발생 시 건물이 전체적으로 꽈배기처럼 비틀리며 외곽 모퉁이 기둥이 먼저 파단됩니다. 코어 위치를 조정하여 1·2차 모드가 순수 병진(\(DX, DY\))이 되도록 유도해야 합니다.
+    </div>
+  </div>
+
+  <!-- Right Metrics & MIDAS Gen Table Mockup -->
+  <div class="panel">
+    <div class="panel-title">주기 상한 및 설계 밑면전단력 비교</div>
+
+    <div class="stat-grid">
+      <div class="stat-card blue">
+        <div class="label">약산 고유주기 Ta</div>
+        <div class="value" id="valTa">1.43 s</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="label">상한 계수 Cu</div>
+        <div class="value" id="valCu">1.45</div>
+      </div>
+      <div class="stat-card rose">
+        <div class="label">주기 상한 CuTa</div>
+        <div class="value" id="valCuTa">2.07 s</div>
+      </div>
+      <div class="stat-card emerald">
+        <div class="label">최종 적용주기 Tdes</div>
+        <div class="value" id="valTdes">2.07 s</div>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">MIDAS Gen 모달 참여율 (슬라이드 25)</div>
+    <div style="background:#0b1120; border:1px solid var(--border); border-radius:6px; overflow:hidden;">
+      <table class="midas-table">
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Period(s)</th>
+            <th>DX(%)</th>
+            <th>DY(%)</th>
+            <th>RZ(%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="rowM1" class="warning">
+            <td>1</td>
+            <td id="m1T">2.10</td>
+            <td id="m1DX">2.0</td>
+            <td id="m1DY">26.0</td>
+            <td id="m1RZ">49.5</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>1.85</td>
+            <td>71.4</td>
+            <td>3.1</td>
+            <td>5.2</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>1.40</td>
+            <td>8.2</td>
+            <td>52.3</td>
+            <td>12.8</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">밑면전단력 방어 효과</div>
+    <div class="stat-card">
+      <div class="label">CuTa 미적용 시 지진력 위험 과소평가율</div>
+      <div class="value" id="valShearDiff" style="color:var(--accent-rose);">- 23.5 %</div>
+      <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.2rem;">
+        CuTa 상한을 적용함으로써 약 <span id="lblSavedKn" style="font-weight:700; color:#fff;">380 kN</span>의 최소 안전 지진력을 추가 확보하여 설계를 보호했습니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let hn = 45.0; // m
+  let SD1 = 0.25; // g
+  let Tcom = 2.10; // s
+  let ey = 3.5; // m (eccentricity)
+  let animT = 0;
+
+  const canvas = document.getElementById('viewCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+  }
+  window.addEventListener('resize', () => { resize(); draw(); });
+
+  function updateHn(v) {
+    hn = parseFloat(v);
+    const nStory = Math.round(hn / 3.0);
+    document.getElementById('lblHn').textContent = `${hn.toFixed(1)} m (${nStory}층)`;
+    recalculate();
+  }
+  function updateSD1(v) {
+    SD1 = parseFloat(v);
+    document.getElementById('lblSD1').textContent = SD1.toFixed(2) + ' g';
+    recalculate();
+  }
+  function updateTcom(v) {
+    Tcom = parseFloat(v);
+    document.getElementById('lblTcom').textContent = Tcom.toFixed(2) + ' s';
+    recalculate();
+  }
+  function updateEy(v) {
+    ey = parseFloat(v);
+    document.getElementById('lblEy').textContent = ey.toFixed(1) + ' m';
+    recalculate();
+  }
+
+  // KDS 41 Cu interpolation (Table 7.2-1)
+  function getCu(sd1) {
+    if (sd1 >= 0.4) return 1.4;
+    if (sd1 <= 0.1) return 1.7;
+    if (sd1 >= 0.3) return 1.4 + (1.4 - 1.4) * ((0.4 - sd1) / 0.1);
+    if (sd1 >= 0.2) return 1.4 + (1.5 - 1.4) * ((0.3 - sd1) / 0.1);
+    if (sd1 >= 0.15) return 1.5 + (1.6 - 1.5) * ((0.2 - sd1) / 0.05);
+    return 1.6 + (1.7 - 1.6) * ((0.15 - sd1) / 0.05);
+  }
+
+  // Approximate Ta calculation
+  function getTa(frameType, height) {
+    if (frameType === 'rc_mr') return 0.0466 * Math.pow(height, 0.9);
+    if (frameType === 'steel_mr') return 0.0724 * Math.pow(height, 0.8);
+    if (frameType === 'brbf') return 0.0731 * Math.pow(height, 0.75);
+    return 0.0488 * Math.pow(height, 0.75);
+  }
+
+  function recalculate() {
+    const frame = document.getElementById('selFrameType').value;
+    const Ta = getTa(frame, hn);
+    const Cu = getCu(SD1);
+    const CuTa = Cu * Ta;
+
+    // Design period capped by CuTa
+    const isCapped = Tcom > CuTa;
+    const Tdes = isCapped ? CuTa : Tcom;
+
+    document.getElementById('valTa').textContent = Ta.toFixed(2) + ' s';
+    document.getElementById('valCu').textContent = Cu.toFixed(2);
+    document.getElementById('valCuTa').textContent = CuTa.toFixed(2) + ' s';
+    document.getElementById('valTdes').textContent = Tdes.toFixed(2) + ' s' + (isCapped ? ' (상한 적용)' : '');
+
+    // Seismic coefficient Cs ratio: Cs ~ 1 / T
+    const Cs_com = 1 / Tcom;
+    const Cs_des = 1 / Tdes;
+    const diffPct = ((Cs_com - Cs_des) / Cs_des) * 100;
+    document.getElementById('valShearDiff').textContent = `${diffPct.toFixed(1)} %`;
+    document.getElementById('lblSavedKn').textContent = `${Math.abs(Math.round(diffPct * 20))} kN`;
+
+    // Torsion modal participation calculation from eccentricity ey
+    const rzFrac = Math.min(0.85, 0.05 + (ey / 8.0) * 0.75);
+    const dyFrac = Math.max(0.1, 0.75 - rzFrac * 0.7);
+    const dxFrac = Math.max(0.02, 1.0 - rzFrac - dyFrac);
+
+    document.getElementById('m1T').textContent = Tcom.toFixed(2);
+    document.getElementById('m1DX').textContent = (dxFrac * 100).toFixed(1);
+    document.getElementById('m1DY').textContent = (dyFrac * 100).toFixed(1);
+    document.getElementById('m1RZ').textContent = (rzFrac * 100).toFixed(1);
+
+    const badge = document.getElementById('torsionBadge');
+    const rowM1 = document.getElementById('rowM1');
+    if (rzFrac > 0.3) {
+      badge.textContent = `1차 모드 비틀림 위험 (RZ = ${(rzFrac * 100).toFixed(1)}%)`;
+      badge.style.color = "var(--accent-rose)";
+      badge.style.borderColor = "var(--accent-rose)";
+      rowM1.className = "warning";
+    } else {
+      badge.textContent = `1차 모드 병진 우세 (정상, RZ = ${(rzFrac * 100).toFixed(1)}%)`;
+      badge.style.color = "var(--accent-emerald)";
+      badge.style.borderColor = "var(--accent-emerald)";
+      rowM1.className = "";
+    }
+
+    draw();
+  }
+
+  function draw() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Left half: Spectrum Curve & CuTa Cap
+    // Right half: 3D Isometric Building vibrating with torsion
+    const halfW = w / 2;
+
+    // --- LEFT: SPECTRUM CAP ---
+    const pad = { left: 45, right: 25, top: 35, bottom: 40 };
+    const pw = halfW - pad.left - pad.right;
+    const ph = h - pad.top - pad.bottom;
+
+    const maxT = 4.0;
+    const maxCs = 0.5;
+
+    function xOf(t) { return pad.left + (t / maxT) * pw; }
+    function yOf(cs) { return pad.top + ph - (cs / maxCs) * ph; }
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.fillStyle = "var(--text-muted)";
+    ctx.font = "10px sans-serif";
+
+    for (let t = 0; t <= maxT; t += 1.0) {
+      const x = xOf(t);
+      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+      ctx.fillText(t + 's', x - 6, pad.top + ph + 16);
+    }
+    for (let cs = 0; cs <= maxCs; cs += 0.1) {
+      const y = yOf(cs);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
+      ctx.fillText(cs.toFixed(1), pad.left - 24, y + 3);
+    }
+
+    // Cs curve: Cs = SD1 / (R * T) => assume SD1 / R = 0.08
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let t = 0.2; t <= maxT; t += 0.05) {
+      const cs = Math.min(maxCs, (SD1 * 0.4) / t);
+      const x = xOf(t), y = yOf(cs);
+      if (t === 0.2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    // CuTa vertical cutoff line
+    const frame = document.getElementById('selFrameType').value;
+    const Ta = getTa(frame, hn);
+    const Cu = getCu(SD1);
+    const CuTa = Cu * Ta;
+
+    const xCuTa = xOf(CuTa);
+    ctx.strokeStyle = "#f43f5e";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(xCuTa, pad.top); ctx.lineTo(xCuTa, pad.top + ph); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1;
+
+    ctx.fillStyle = "#f43f5e";
+    ctx.font = "bold 10px sans-serif";
+    ctx.fillText(`상한 CuTa = ${CuTa.toFixed(2)}s`, xCuTa - 35, pad.top + 15);
+
+    // Tcom operating point
+    const xTcom = xOf(Tcom);
+    ctx.strokeStyle = "#f59e0b";
+    ctx.beginPath(); ctx.moveTo(xTcom, pad.top); ctx.lineTo(xTcom, pad.top + ph); ctx.stroke();
+    ctx.fillStyle = "#f59e0b";
+    ctx.fillText(`Tcom = ${Tcom.toFixed(2)}s`, xTcom - 30, pad.top + 30);
+
+    // Shaded forbidden under-design area if Tcom > CuTa
+    if (Tcom > CuTa) {
+      ctx.fillStyle = "rgba(244, 63, 94, 0.15)";
+      ctx.fillRect(xCuTa, pad.top, xTcom - xCuTa, ph);
+      ctx.fillStyle = "#f43f5e";
+      ctx.fillText("과소설계 방지 차단구역", (xCuTa + xTcom) / 2 - 45, pad.top + ph / 2);
+    }
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText("스펙트럼 설계주기 상한 절단", pad.left + pw / 2 - 60, pad.top - 12);
+
+    // --- RIGHT: 3D PLAN & TORSION VIBRATION ---
+    const cx = halfW + halfW / 2;
+    const cy = h / 2 + 10;
+    const bW = 110, bD = 80;
+
+    // Vibration angle theta from torsion (rzFrac)
+    const rzFrac = Math.min(0.85, 0.05 + (ey / 8.0) * 0.75);
+    const theta = Math.sin(animT * 3.0) * (rzFrac * 0.35); // radians
+    const transY = Math.sin(animT * 3.0) * ((1 - rzFrac) * 20);
+
+    ctx.save();
+    ctx.translate(cx, cy + transY);
+    ctx.rotate(theta);
+
+    // Building slab footprint
+    ctx.fillStyle = "rgba(30, 41, 59, 0.8)";
+    ctx.strokeStyle = (rzFrac > 0.3) ? "#f43f5e" : "#38bdf8";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-bW / 2, -bD / 2, bW, bD);
+    ctx.fillRect(-bW / 2, -bD / 2, bW, bD);
+
+    // Corner columns
+    ctx.fillStyle = "#f59e0b";
+    [[-bW/2, -bD/2], [bW/2, -bD/2], [-bW/2, bD/2], [bW/2, bD/2]].forEach(([x, y]) => {
+      ctx.fillRect(x - 5, y - 5, 10, 10);
+    });
+
+    // Center of Mass (CM) - at (0, 0)
+    ctx.beginPath(); ctx.arc(0, 0, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = "#38bdf8"; ctx.fill();
+    ctx.strokeStyle = "#fff"; ctx.stroke();
+
+    // Center of Rigidity (CR) - offset by ey
+    const crY = -(ey / 8.0) * (bD / 2 - 15);
+    ctx.beginPath(); ctx.arc(0, crY, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = "#f43f5e"; ctx.fill();
+    ctx.strokeStyle = "#fff"; ctx.stroke();
+
+    // Eccentricity line between CM and CR
+    if (ey > 0.1) {
+      ctx.strokeStyle = "#f59e0b";
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, crY); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.restore();
+
+    // Center labels
+    ctx.fillStyle = "#38bdf8"; ctx.font = "10px sans-serif";
+    ctx.fillText("● 질량중심 CM", halfW + 15, h - 35);
+    ctx.fillStyle = "#f43f5e";
+    ctx.fillText("● 강성중심 CR", halfW + 115, h - 35);
+
+    if (rzFrac > 0.3) {
+      ctx.fillStyle = "#f43f5e";
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText(`⚠️ 비틀림 회전 발생 (편심 ey=${ey.toFixed(1)}m)`, halfW + 15, 30);
+    } else {
+      ctx.fillStyle = "#10b981";
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText("✅ 순수 병진 모드 (편심 미미)", halfW + 25, 30);
+    }
+  }
+
+  function animate() {
+    animT += 0.03;
+    draw();
+    requestAnimationFrame(animate);
+  }
+
+  resize();
+  recalculate();
+  animate();
+</script>
+
+</body>
+</html>

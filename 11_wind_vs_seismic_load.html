@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>11. 고층건물 풍하중 vs 지진하중 횡력 비교 시뮬레이터</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent-blue: #2563eb;
+    --accent-indigo: #4f46e5;
+    --accent-cyan: #0891b2;
+    --accent-red: #dc2626;
+    --accent-amber: #d97706;
+    --accent-emerald: #059669;
+    --font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-family);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.5;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: center;
+  }
+  .app-container {
+    width: 100%;
+    max-width: 1440px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  header {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 14px 20px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left h1 {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .header-left p {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+  }
+  .nav-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-indigo);
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    transition: all 0.15s;
+  }
+  .nav-badge:hover { background: #e2e8f0; }
+  .grid-layout {
+    display: grid;
+    grid-template-columns: 370px 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 1024px) {
+    .grid-layout { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .preset-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .preset-btn {
+    padding: 6px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover { background: #e2e8f0; color: var(--text-primary); }
+  .preset-btn.active {
+    background: var(--accent-indigo);
+    color: #ffffff;
+    border-color: var(--accent-indigo);
+  }
+  .form-group {
+    margin-bottom: 11px;
+  }
+  .form-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .form-val {
+    font-family: monospace;
+    color: var(--accent-blue);
+    font-weight: 700;
+  }
+  input[type="range"] {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--accent-indigo);
+    cursor: pointer;
+  }
+  select {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    font-family: var(--font-family);
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .hud-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .hud-tag-banner {
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .progress-track {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    transition: width 0.1s, background-color 0.2s;
+  }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .metric-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px;
+  }
+  .metric-label {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .metric-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 2px;
+    font-family: monospace;
+  }
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .canvas-wrapper {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .canvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .canvas-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .canvas-legend {
+    display: flex;
+    gap: 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 2px; }
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 210px 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 900px) {
+    .comparison-grid { grid-template-columns: 1fr; }
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+  }
+  .bottom-insight {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent-indigo);
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+</style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+
+<div class="app-container">
+  <header>
+    <div class="header-left">
+      <h1>11. 고층건물 풍하중(Wind) vs 지진하중(Seismic) 횡력 비교</h1>
+      <p>높이별 표면 풍압력(H^1.5) vs 질량비례 관성력 | 층별 횡하중 분포, 층전단력, 전복모멘트 교차(Crossover) 시뮬레이션</p>
+    </div>
+    <a href="index.html" class="nav-badge">← 마스터 대시보드</a>
+  </header>
+
+  <div class="grid-layout">
+    <!-- 좌측 컨트롤 패널 -->
+    <div class="panel">
+      <div class="section-title">📍 대표 건물 층수 원클릭 프리셋</div>
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="setPresetStories(5)">5층<br><span style="font-size:9px">지진 지배</span></button>
+        <button class="preset-btn" onclick="setPresetStories(15)">15층<br><span style="font-size:9px">전단Vs/OTM풍</span></button>
+        <button class="preset-btn" onclick="setPresetStories(30)">30층<br><span style="font-size:9px">풍하중 지배</span></button>
+        <button class="preset-btn" onclick="setPresetStories(50)">50층<br><span style="font-size:9px">풍하중 압도</span></button>
+      </div>
+
+      <div class="section-title">건물 제원 설정</div>
+      <div class="form-group">
+        <div class="form-label">
+          <span>건물 층수 (Stories)</span>
+          <span class="form-val" id="valStories">20 층 (66 m)</span>
+        </div>
+        <input type="range" id="rangeStories" min="3" max="50" step="1" value="20">
+      </div>
+      <div class="form-group">
+        <div class="form-label">
+          <span>층고 (Floor Height)</span>
+          <span class="form-val" id="valFloorH">3.3 m</span>
+        </div>
+        <input type="range" id="rangeFloorH" min="2.8" max="4.5" step="0.1" value="3.3">
+      </div>
+      <div class="form-group">
+        <div class="form-label">
+          <span>건물 폭 (Width B)</span>
+          <span class="form-val" id="valWidth">30.0 m</span>
+        </div>
+        <input type="range" id="rangeWidth" min="15.0" max="60.0" step="5.0" value="30.0">
+      </div>
+
+      <div class="section-title" style="margin-top:14px">설계 풍하중 (KDS 41 12 00)</div>
+      <div class="form-group">
+        <div class="form-label">
+          <span>기본 풍속 (V₀)</span>
+          <span class="form-val" id="valV0">36.0 m/s</span>
+        </div>
+        <input type="range" id="rangeV0" min="26.0" max="45.0" step="1.0" value="36.0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">지표면 조도 구분</label>
+        <select id="selectExposure">
+          <option value="B" selected>조도구분 B (도시 지역, α=0.22)</option>
+          <option value="C">조도구분 C (교외·평탄지, α=0.15)</option>
+          <option value="D">조도구분 D (해안·도서 지역, α=0.10)</option>
+        </select>
+      </div>
+
+      <div class="section-title" style="margin-top:14px">설계 지진하중 (KDS 41 17 00)</div>
+      <div class="form-group">
+        <div class="form-label">
+          <span>단주기 가속도 (S_DS)</span>
+          <span class="form-val" id="valSds">0.50 g</span>
+        </div>
+        <input type="range" id="rangeSds" min="0.2" max="0.9" step="0.05" value="0.50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">반응수정계수 (R)</label>
+        <select id="selectR">
+          <option value="5.0" selected>특수 모멘트골조 (R = 5.0)</option>
+          <option value="4.0">보통 전단벽 시스템 (R = 4.0)</option>
+          <option value="3.0">보통 모멘트골조 (R = 3.0)</option>
+        </select>
+      </div>
+
+      <!-- HUD BOX -->
+      <div class="hud-box">
+        <div id="hudTagBanner" class="hud-tag-banner" style="background:#e0f2fe;color:#0369a1">
+          <span id="metricGoverning">풍하중 지배 (Wind Governed)</span>
+          <span id="hudRatio" style="font-family:monospace;font-size:11px">Vw/Vs: 1.33</span>
+        </div>
+        <div class="progress-track">
+          <div id="progressFill" class="progress-fill" style="width:60%;background:#0891b2"></div>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">풍하중 밑면전단력</div>
+            <div class="metric-value" id="metricVw" style="color:#0891b2">2,850 kN</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">지진 밑면전단력</div>
+            <div class="metric-value" id="metricVs" style="color:#dc2626">2,140 kN</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">풍하중 전복모멘트</div>
+            <div class="metric-value" id="metricMw" style="color:#0891b2">125,400 kN·m</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">지진 전복모멘트</div>
+            <div class="metric-value" id="metricMs" style="color:#dc2626">98,200 kN·m</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 우측 메인 영역 -->
+    <div class="main-content">
+      <div class="canvas-wrapper">
+        <div class="canvas-header">
+          <div class="canvas-title">
+            <span>건물 입면 형상 & 층별 횡하중(Fx) 및 층전단력(Vx) 프로파일</span>
+          </div>
+          <div class="canvas-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background: #0891b2;"></div>
+              <span>풍하중 (Wind)</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background: #dc2626;"></div>
+              <span>지진하중 (Seismic)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="comparison-grid">
+          <div><canvas id="bldgCanvas" height="400"></canvas></div>
+          <div><canvas id="forceCanvas" height="400"></canvas></div>
+          <div><canvas id="shearCanvas" height="400"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 기술사 실무 해설 배너 -->
+      <div class="bottom-insight">
+        <span style="font-size:22px">💡</span>
+        <div>
+          <strong>20년차 구조기술사의 풍하중 vs 지진하중 실무 직관:</strong>
+          "밑면전단력($V_b$) 기준으로 풍하중이 지진하중을 역전하는 시점은 대략 <strong>30~35층</strong> 수준이지만, 건물의 전복모멘트($OTM$)는 풍압이 상층부($H^{1.5}$)에 집중되기 때문에 훨씬 저층인 <strong>20~22층</strong> 구간에서 지진하중을 먼저 추월합니다. 따라서 고층건물 구조설계 시 기둥의 인발력(Tension Uplift) 및 기초 지지력 검토는 항상 풍하중이 지배합니다."
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let stories = 20;
+let floorH = 3.3;
+let bldgWidth = 30.0;
+let V0 = 36.0;
+let exposure = 'B';
+let Sds = 0.50;
+let R = 5.0;
+
+// DOM
+const rangeStories = document.getElementById('rangeStories');
+const rangeFloorH = document.getElementById('rangeFloorH');
+const rangeWidth = document.getElementById('rangeWidth');
+const rangeV0 = document.getElementById('rangeV0');
+const selectExposure = document.getElementById('selectExposure');
+const rangeSds = document.getElementById('rangeSds');
+const selectR = document.getElementById('selectR');
+
+const valStories = document.getElementById('valStories');
+const valFloorH = document.getElementById('valFloorH');
+const valWidth = document.getElementById('valWidth');
+const valV0 = document.getElementById('valV0');
+const valSds = document.getElementById('valSds');
+
+const metricGoverning = document.getElementById('metricGoverning');
+const metricVw = document.getElementById('metricVw');
+const metricVs = document.getElementById('metricVs');
+const metricMw = document.getElementById('metricMw');
+const metricMs = document.getElementById('metricMs');
+const hudRatio = document.getElementById('hudRatio');
+const hudTagBanner = document.getElementById('hudTagBanner');
+const progressFill = document.getElementById('progressFill');
+
+const bldgCanvas = document.getElementById('bldgCanvas');
+const bldgCtx = bldgCanvas.getContext('2d');
+const forceCanvas = document.getElementById('forceCanvas');
+const forceCtx = forceCanvas.getContext('2d');
+const shearCanvas = document.getElementById('shearCanvas');
+const shearCtx = shearCanvas.getContext('2d');
+
+function resizeCanvas(c) {
+  const rect = c.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  c.width = rect.width * dpr;
+  c.height = rect.height * dpr;
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+}
+
+function setPresetStories(n) {
+  stories = n;
+  rangeStories.value = n;
+  updateAnalysis();
+}
+
+function updateAnalysis() {
+  const totalH = stories * floorH;
+  valStories.textContent = `${stories} 층 (${totalH.toFixed(1)} m)`;
+  valFloorH.textContent = `${floorH.toFixed(1)} m`;
+  valWidth.textContent = `${bldgWidth.toFixed(1)} m`;
+  valV0.textContent = `${V0.toFixed(1)} m/s`;
+  valSds.textContent = `${Sds.toFixed(2)} g`;
+
+  const hArr = [];
+  for (let i = 1; i <= stories; i++) {
+    hArr.push(i * floorH);
+  }
+
+  // 1. 풍하중 계산
+  let alpha = 0.22;
+  let zb = 10.0;
+  let zg = 350.0;
+  if (exposure === 'C') { alpha = 0.15; zb = 5.0; zg = 250.0; }
+  else if (exposure === 'D') { alpha = 0.10; zb = 3.0; zg = 200.0; }
+
+  const q0 = 0.5 * 1.225 * (V0 * V0);
+  const fWind = [];
+  const tribArea = bldgWidth * floorH;
+
+  for (let i = 0; i < stories; i++) {
+    const z = Math.max(hArr[i], zb);
+    const Kzr = 2.0 * Math.pow(Math.min(z, zg) / zg, alpha);
+    const Kz = Math.max(0.6, Kzr);
+    const qz = q0 * Kz;
+    const Gf = 1.85;
+    const Cp = 1.30;
+    const pz = qz * Gf * Cp;
+    const Fi_w = (pz * tribArea) / 1000.0;
+    fWind.push(Fi_w);
+  }
+
+  // 2. 지진하중 계산
+  const Tn = 0.0488 * Math.pow(totalH, 0.75);
+  const Sd1 = Sds / 2.5;
+  let Cs = Sds / (R / 1.0);
+  const Cs_max = Sd1 / (Tn * (R / 1.0));
+  const Cs_min = 0.044 * Sds;
+  Cs = Math.min(Cs, Cs_max);
+  Cs = Math.max(Cs, Cs_min);
+
+  const floorWeight = (bldgWidth * bldgWidth * 0.8) * 11.0;
+  const W_total = floorWeight * stories;
+  const Vbase_s = Cs * W_total;
+
+  let kExp = 1.0;
+  if (Tn <= 0.5) kExp = 1.0;
+  else if (Tn >= 2.5) kExp = 2.0;
+  else kExp = 1.0 + (Tn - 0.5) / 2.0;
+
+  let denom = 0.0;
+  for (let i = 0; i < stories; i++) {
+    denom += floorWeight * Math.pow(hArr[i], kExp);
+  }
+
+  const fSeismic = [];
+  for (let i = 0; i < stories; i++) {
+    const num = floorWeight * Math.pow(hArr[i], kExp);
+    const Fi_s = Vbase_s * (num / denom);
+    fSeismic.push(Fi_s);
+  }
+
+  // 3. 층전단력 및 OTM
+  const vWind = new Array(stories);
+  const vSeismic = new Array(stories);
+  let cumW = 0.0, cumS = 0.0;
+  for (let i = stories - 1; i >= 0; i--) {
+    cumW += fWind[i]; cumS += fSeismic[i];
+    vWind[i] = cumW; vSeismic[i] = cumS;
+  }
+
+  let otmW = 0.0, otmS = 0.0;
+  for (let i = 0; i < stories; i++) {
+    otmW += fWind[i] * hArr[i];
+    otmS += fSeismic[i] * hArr[i];
+  }
+
+  const baseVw = vWind[0];
+  const baseVs = vSeismic[0];
+
+  metricVw.textContent = `${Math.round(baseVw).toLocaleString()} kN`;
+  metricVs.textContent = `${Math.round(baseVs).toLocaleString()} kN`;
+  metricMw.textContent = `${Math.round(otmW).toLocaleString()} kN·m`;
+  metricMs.textContent = `${Math.round(otmS).toLocaleString()} kN·m`;
+
+  const ratio = (baseVw / baseVs).toFixed(2);
+  hudRatio.textContent = `Vw/Vs: ${ratio}`;
+
+  if (baseVw > baseVs || otmW > otmS) {
+    metricGoverning.textContent = '풍하중 지배 (Wind Governed)';
+    hudTagBanner.style.background = '#e0f2fe';
+    hudTagBanner.style.color = '#0369a1';
+    progressFill.style.background = '#0891b2';
+    progressFill.style.width = `${Math.min(100, Math.round((baseVw / (baseVw + baseVs)) * 100))}%`;
+  } else {
+    metricGoverning.textContent = '지진하중 지배 (Seismic Governed)';
+    hudTagBanner.style.background = '#fee2e2';
+    hudTagBanner.style.color = '#b91c1c';
+    progressFill.style.background = '#dc2626';
+    progressFill.style.width = `${Math.min(100, Math.round((baseVs / (baseVw + baseVs)) * 100))}%`;
+  }
+
+  // 렌더링 호출
+  drawBuilding(hArr);
+  drawProfile(forceCanvas, forceCtx, hArr, fWind, fSeismic, '층별 횡하중 Fi [kN]', 100);
+  drawProfile(shearCanvas, shearCtx, hArr, vWind, vSeismic, '층전단력 Vx [kN]', 500);
+}
+
+function drawBuilding(hArr) {
+  const w = bldgCanvas.parentElement.clientWidth;
+  const h = 400;
+  bldgCanvas.style.width = w + 'px';
+  bldgCanvas.style.height = h + 'px';
+  resizeCanvas(bldgCanvas);
+
+  bldgCtx.clearRect(0, 0, w, h);
+  const padBot = 40, padTop = 30;
+  const totalPlotH = h - padBot - padTop;
+
+  // 지반선
+  bldgCtx.strokeStyle = '#64748b';
+  bldgCtx.lineWidth = 2;
+  bldgCtx.beginPath();
+  bldgCtx.moveTo(15, h - padBot);
+  bldgCtx.lineTo(w - 15, h - padBot);
+  bldgCtx.stroke();
+
+  // 건물 본체
+  const bldgW = Math.min(w * 0.5, 90);
+  const bldgLeft = (w - bldgW) / 2;
+  bldgCtx.fillStyle = '#f8fafc';
+  bldgCtx.strokeStyle = '#475569';
+  bldgCtx.lineWidth = 1.5;
+  bldgCtx.fillRect(bldgLeft, padTop, bldgW, totalPlotH);
+  bldgCtx.strokeRect(bldgLeft, padTop, bldgW, totalPlotH);
+
+  // 층별 슬래브 라인
+  bldgCtx.strokeStyle = '#cbd5e1';
+  bldgCtx.lineWidth = 1;
+  const floorPx = totalPlotH / stories;
+  for (let i = 1; i <= stories; i++) {
+    const y = (h - padBot) - i * floorPx;
+    bldgCtx.beginPath();
+    bldgCtx.moveTo(bldgLeft, y);
+    bldgCtx.lineTo(bldgLeft + bldgW, y);
+    bldgCtx.stroke();
+  }
+
+  // 라벨
+  bldgCtx.fillStyle = '#0f172a';
+  bldgCtx.font = 'bold 11px Pretendard, sans-serif';
+  bldgCtx.textAlign = 'center';
+  bldgCtx.fillText(`${stories}F (${(stories * floorH).toFixed(0)}m)`, bldgLeft + bldgW / 2, padTop - 10);
+}
+
+function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal) {
+  const w = canvas.parentElement.clientWidth;
+  const h = 400;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  resizeCanvas(canvas);
+
+  ctx.clearRect(0, 0, w, h);
+  const padLeft = 50, padRight = 20, padTop = 35, padBot = 40;
+  const plotW = w - padLeft - padRight;
+  const plotH = h - padTop - padBot;
+
+  let maxW = Math.max(...windData);
+  let maxS = Math.max(...seismicData);
+  let xMax = Math.max(maxW, maxS, minMaxVal) * 1.15;
+
+  // Grid
+  ctx.strokeStyle = '#f1f5f9';
+  ctx.lineWidth = 1;
+  for (let g = 0; g <= 4; g++) {
+    const x = padLeft + (g / 4) * plotW;
+    ctx.beginPath(); ctx.moveTo(x, padTop); ctx.lineTo(x, padTop + plotH); ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round((g / 4) * xMax), x, padTop + plotH + 16);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(padLeft, padTop);
+  ctx.lineTo(padLeft, padTop + plotH);
+  ctx.lineTo(padLeft + plotW, padTop + plotH);
+  ctx.stroke();
+
+  // 풍하중 (Cyan)
+  ctx.strokeStyle = '#0891b2';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let i = 0; i < stories; i++) {
+    const x = padLeft + (windData[i] / xMax) * plotW;
+    const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
+    if (i === 0) ctx.moveTo(padLeft, padTop + plotH);
+    ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // 지진하중 (Red)
+  ctx.strokeStyle = '#dc2626';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  for (let i = 0; i < stories; i++) {
+    const x = padLeft + (seismicData[i] / xMax) * plotW;
+    const y = (padTop + plotH) - ((i + 1) / stories) * plotH;
+    if (i === 0) ctx.moveTo(padLeft, padTop + plotH);
+    ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Title
+  ctx.font = 'bold 12px Pretendard, sans-serif';
+  ctx.fillStyle = '#0f172a';
+  ctx.textAlign = 'left';
+  ctx.fillText(title, padLeft, padTop - 12);
+}
+
+// 60fps requestAnimationFrame Loop
+let animId = null;
+function animate() {
+  // 지속 렌더링 유지
+  animId = requestAnimationFrame(animate);
+}
+
+// Listeners
+rangeStories.addEventListener('input', (e) => { stories = parseInt(e.target.value); updateAnalysis(); });
+rangeFloorH.addEventListener('input', (e) => { floorH = parseFloat(e.target.value); updateAnalysis(); });
+rangeWidth.addEventListener('input', (e) => { bldgWidth = parseFloat(e.target.value); updateAnalysis(); });
+rangeV0.addEventListener('input', (e) => { V0 = parseFloat(e.target.value); updateAnalysis(); });
+selectExposure.addEventListener('change', (e) => { exposure = e.target.value; updateAnalysis(); });
+rangeSds.addEventListener('input', (e) => { Sds = parseFloat(e.target.value); updateAnalysis(); });
+selectR.addEventListener('change', (e) => { R = parseFloat(e.target.value); updateAnalysis(); });
+
+window.addEventListener('resize', () => { updateAnalysis(); });
+window.addEventListener('load', () => {
+  updateAnalysis();
+  animate();
+});
+</script>
+</body>
+</html>

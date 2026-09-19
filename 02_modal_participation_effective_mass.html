@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 02: 모드참여계수 및 유효모드질량</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .light-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-5xl bg-white border border-slate-200 rounded-2xl p-6 shadow-lg">
+    
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            모드참여계수(&Gamma;<sub>n</sub>)와 유효모드질량(M<sub>n</sub><sup>*</sup>)
+          </h1>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Chopra 12&middot;13장 &middot; KDS 41
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-1 font-medium">
+          질량 완전성 정리 &sum;M<sub>n</sub><sup>*</sup> = M<sub>total</sub> (100% 보존) &middot; KDS 41 누적 90% 규준 검증 &middot; 정규화 불변 법칙
+        </p>
+      </div>
+
+      <!-- Mode Selector Tabs -->
+      <div class="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs font-semibold">
+        <button id="tab-m1" onclick="selectMode(1)" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white transition shadow-xs">1차 모드</button>
+        <button id="tab-m2" onclick="selectMode(2)" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">2차 모드</button>
+        <button id="tab-m3" onclick="selectMode(3)" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">3차 모드</button>
+        <button id="tab-all" onclick="selectMode(0)" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">합성 응답</button>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 py-5 items-stretch">
+      
+      <!-- 1. Unified Kinematic Canvas (5 Cols) -->
+      <div class="lg:col-span-5 bg-slate-50/60 border border-slate-200 rounded-xl p-4 flex flex-col justify-between light-grid relative min-h-[420px]">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+          <span id="active-mode-label" class="font-bold text-emerald-700 text-sm">1차 모드 고유형상 거동</span>
+          <span id="mode-freq" class="text-slate-500 font-mono text-xs">T₁ = 0.65s (f₁ = 1.54 Hz)</span>
+        </div>
+
+        <div class="relative flex-1 w-full my-2 min-h-[300px]">
+          <canvas id="frameCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <div class="flex justify-between items-center text-xs text-slate-500 pt-2 border-t border-slate-200 font-medium">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>
+            단일 캔버스 절점 일체화
+          </span>
+          <span class="font-mono">Hermite 3차 이중곡률</span>
+        </div>
+      </div>
+
+      <!-- 2. Mathematical Breakdown (3 Cols) -->
+      <div class="lg:col-span-3 bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between text-xs">
+        <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-2 flex justify-between items-center">
+          <span>모드 파라미터 산출</span>
+          <span class="text-emerald-700 font-mono font-bold">모드 <span id="sub-mode-num">1</span></span>
+        </h3>
+
+        <div class="my-3 space-y-2.5 font-mono">
+          <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+            <span class="text-slate-500 text-[11px] block mb-1 font-sans">고유벡터 &phi;<sub>n</sub>:</span>
+            <span id="vec-phi" class="text-slate-900 font-bold text-xs">[ 0.445, 0.802, 1.000 ]ᵀ</span>
+          </div>
+
+          <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-600 font-sans">모드여기 L<sub>n</sub></span>
+              <span id="val-ln" class="text-slate-900 font-bold">898.8 t</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-600 font-sans">일반화질량 M<sub>n</sub></span>
+              <span id="val-mn" class="text-slate-900 font-bold">736.5 t</span>
+            </div>
+            <div class="border-t border-slate-200 pt-1.5 flex justify-between items-center">
+              <span class="text-amber-700 font-bold font-sans">참여계수 &Gamma;<sub>n</sub></span>
+              <span id="val-gamma" class="text-amber-700 font-bold">1.220</span>
+            </div>
+            <div class="border-t border-slate-200 pt-1.5 flex justify-between items-center">
+              <span class="text-blue-700 font-bold font-sans">유효질량 M<sub>n</sub><sup>*</sup></span>
+              <span id="val-meff" class="text-blue-700 font-bold">1096.9 t</span>
+            </div>
+          </div>
+
+          <div class="p-2.5 rounded-lg bg-blue-50/60 border border-blue-200 text-[11px] text-blue-900 leading-relaxed font-sans">
+            <strong>불변 법칙:</strong> 정규화 방식(&phi;<sub>roof</sub>=1 또는 질량정규화)을 변경해도 유효질량 M<sub>n</sub><sup>*</sup>은 물리량으로서 완전 보존됩니다.
+          </div>
+        </div>
+
+        <button id="btn-norm" onclick="toggleNorm()" class="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-300 transition">
+          정규화: Roof &phi;₃ = 1.0
+        </button>
+      </div>
+
+      <!-- 3. Mass Ratio & 90% Rule (4 Cols) -->
+      <div class="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between text-xs">
+        <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-2 flex justify-between items-center">
+          <span>유효질량비 누적 (KDS 41)</span>
+          <span class="text-emerald-700 font-mono font-bold">&sum;M<sub>n</sub>* = 1200t (100%)</span>
+        </h3>
+
+        <div class="my-3 space-y-3.5">
+          <!-- Mode 1 Bar -->
+          <div>
+            <div class="flex justify-between mb-1 font-mono text-xs">
+              <span class="text-emerald-700 font-bold font-sans">1차 모드 (M₁*)</span>
+              <span id="pct-m1" class="text-emerald-700 font-bold">91.4% (1096.9 t)</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+              <div id="bar-m1" class="h-full bg-emerald-600 transition-all duration-300" style="width: 91.4%;"></div>
+            </div>
+          </div>
+
+          <!-- Mode 2 Bar -->
+          <div>
+            <div class="flex justify-between mb-1 font-mono text-xs">
+              <span class="text-blue-700 font-bold font-sans">2차 모드 (M₂*)</span>
+              <span id="pct-m2" class="text-blue-700 font-bold">7.5% (89.9 t)</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+              <div id="bar-m2" class="h-full bg-blue-600 transition-all duration-300" style="width: 7.5%;"></div>
+            </div>
+          </div>
+
+          <!-- Mode 3 Bar -->
+          <div>
+            <div class="flex justify-between mb-1 font-mono text-xs">
+              <span class="text-purple-700 font-bold font-sans">3차 모드 (M₃*)</span>
+              <span id="pct-m3" class="text-purple-700 font-bold">1.1% (13.3 t)</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+              <div id="bar-m3" class="h-full bg-purple-600 transition-all duration-300" style="width: 1.1%;"></div>
+            </div>
+          </div>
+
+          <!-- Compliance Card -->
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-600">기준 요구치:</span>
+              <span class="font-bold text-slate-800">유효질량 90% 이상</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-600">1차 모드 단독:</span>
+              <span class="text-emerald-700 font-bold font-mono">91.4% (기준 통과)</span>
+            </div>
+            <div class="flex justify-between items-center border-t border-slate-200 pt-1.5">
+              <span class="text-slate-600">1+2차 모드 누적:</span>
+              <span class="text-blue-700 font-bold font-mono">98.9% (안전측 도달)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 leading-relaxed font-mono">
+          V<sub>bn</sub> = M<sub>n</sub><sup>*</sup> &middot; S<sub>a</sub>(T<sub>n</sub>)<br>
+          밑면전단력의 91.4%가 1차 모드에서 확정됩니다.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer Controls -->
+    <div class="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div class="flex items-center gap-3">
+        <span class="font-bold text-slate-700">진폭 조절(Amplitude):</span>
+        <input id="slider-amp" type="range" min="10" max="60" value="35" oninput="updateAmp()"
+               class="w-28 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+      </div>
+      <span class="text-slate-400 font-mono">정본: modal_RSA_3story.csv</span>
+    </div>
+
+  </div>
+
+  <script>
+    let activeMode = 1;
+    let isRoofNorm = true;
+    let simTime = 0;
+    let amp = 35;
+
+    const canvas = document.getElementById('frameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Exact constants from modal_RSA_3story.csv
+    const modalData = {
+      1: { omega: 9.6995, period: 0.6478, phi_raw: [0.4450, 0.8019, 1.0000], freqHz: 1.54 },
+      2: { omega: 27.1773, period: 0.2312, phi_raw: [-1.2470, -0.5550, 1.0000], freqHz: 4.33 },
+      3: { omega: 39.2723, period: 0.1600, phi_raw: [1.8019, -2.2470, 1.0000], freqHz: 6.25 }
+    };
+    let storyMasses = [400.0, 400.0, 400.0]; // tonnes
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function updateAmp() {
+      amp = parseFloat(document.getElementById('slider-amp').value);
+    }
+
+    function calculateMetrics(mNum) {
+      const mode = modalData[mNum];
+      const m = storyMasses;
+      let phi = [...mode.phi_raw];
+
+      if (!isRoofNorm) {
+        let genM = m[0]*phi[0]*phi[0] + m[1]*phi[1]*phi[1] + m[2]*phi[2]*phi[2];
+        let factor = 1 / Math.sqrt(genM);
+        phi = phi.map(v => v * factor);
+      }
+
+      let Ln = m[0]*phi[0] + m[1]*phi[1] + m[2]*phi[2];
+      let Mn = m[0]*phi[0]*phi[0] + m[1]*phi[1]*phi[1] + m[2]*phi[2]*phi[2];
+      let Gamma = Ln / Mn;
+      let Meff = (Ln * Ln) / Mn;
+
+      return { phi, Ln, Mn, Gamma, Meff };
+    }
+
+    function updateUI() {
+      const res1 = calculateMetrics(1);
+      const res2 = calculateMetrics(2);
+      const res3 = calculateMetrics(3);
+
+      const totalM = storyMasses[0] + storyMasses[1] + storyMasses[2];
+      const pct1 = (res1.Meff / totalM) * 100;
+      const pct2 = (res2.Meff / totalM) * 100;
+      const pct3 = (res3.Meff / totalM) * 100;
+
+      document.getElementById('pct-m1').textContent = `${pct1.toFixed(1)}% (${res1.Meff.toFixed(1)} t)`;
+      document.getElementById('bar-m1').style.width = `${pct1}%`;
+
+      document.getElementById('pct-m2').textContent = `${pct2.toFixed(1)}% (${res2.Meff.toFixed(1)} t)`;
+      document.getElementById('bar-m2').style.width = `${pct2}%`;
+
+      document.getElementById('pct-m3').textContent = `${pct3.toFixed(1)}% (${res3.Meff.toFixed(1)} t)`;
+      document.getElementById('bar-m3').style.width = `${pct3}%`;
+
+      const curMode = activeMode === 0 ? 1 : activeMode;
+      const curRes = activeMode === 0 ? res1 : calculateMetrics(curMode);
+
+      document.getElementById('sub-mode-num').textContent = activeMode === 0 ? 'Total' : activeMode;
+      document.getElementById('vec-phi').textContent = `[ ${curRes.phi.map(v => v.toFixed(3)).join(', ')} ]ᵀ`;
+      document.getElementById('val-ln').textContent = `${curRes.Ln.toFixed(1)} t`;
+      document.getElementById('val-mn').textContent = `${curRes.Mn.toFixed(1)} t`;
+      document.getElementById('val-gamma').textContent = curRes.Gamma.toFixed(3);
+      document.getElementById('val-meff').textContent = `${curRes.Meff.toFixed(1)} t (${((curRes.Meff/totalM)*100).toFixed(1)}%)`;
+
+      const lbl = document.getElementById('active-mode-label');
+      if (activeMode === 0) {
+        lbl.textContent = '합성 지진 응답 (SRSS 연성 거동)';
+        lbl.className = 'font-bold text-blue-700 text-sm';
+        document.getElementById('mode-freq').textContent = '1+2+3차 모드 합성';
+      } else {
+        lbl.textContent = `${activeMode}차 모드 고유형상 거동`;
+        lbl.className = activeMode === 1 ? 'font-bold text-emerald-700 text-sm' : (activeMode === 2 ? 'font-bold text-blue-700 text-sm' : 'font-bold text-purple-700 text-sm');
+        document.getElementById('mode-freq').textContent = `T${activeMode} = ${modalData[activeMode].period.toFixed(2)}s (f${activeMode} = ${modalData[activeMode].freqHz.toFixed(2)} Hz)`;
+      }
+    }
+
+    function selectMode(m) {
+      activeMode = m;
+      [1, 2, 3, 0].forEach(n => {
+        const btnId = n === 0 ? 'tab-all' : `tab-m${n}`;
+        const btn = document.getElementById(btnId);
+        if (n === m) {
+          btn.className = 'px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold transition shadow-xs';
+        } else {
+          btn.className = 'px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+        }
+      });
+      updateUI();
+    }
+
+    function toggleNorm() {
+      isRoofNorm = !isRoofNorm;
+      document.getElementById('btn-norm').textContent = isRoofNorm ? '정규화: Roof \u03c6\u2083 = 1.0' : '정규화: 질량 (\u03c6ᵀM\u03c6 = 1)';
+      updateUI();
+    }
+
+    function animate(timestamp) {
+      simTime += 0.02;
+      draw();
+      requestAnimationFrame(animate);
+    }
+
+    function draw() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const baseY = h - 45;
+      const totalH = baseY - 45;
+      const storyH = totalH / 3;
+      const bay = Math.min(160, w * 0.48);
+      const halfBay = bay / 2;
+
+      let dx = [0, 0, 0];
+      if (activeMode === 0) {
+        const q1 = Math.sin(modalData[1].omega * simTime * 0.3) * 0.8;
+        const q2 = Math.sin(modalData[2].omega * simTime * 0.3) * 0.25;
+        const q3 = Math.sin(modalData[3].omega * simTime * 0.3) * 0.1;
+        for (let i = 0; i < 3; i++) {
+          dx[i] = (modalData[1].phi_raw[i]*q1 + modalData[2].phi_raw[i]*q2 + modalData[3].phi_raw[i]*q3) * amp;
+        }
+      } else {
+        const phi = modalData[activeMode].phi_raw;
+        const q = Math.sin(modalData[activeMode].omega * simTime * 0.3);
+        for (let i = 0; i < 3; i++) {
+          dx[i] = phi[i] * q * amp;
+        }
+      }
+
+      // Ground Line
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - halfBay - 25, baseY);
+      ctx.lineTo(cx + halfBay + 25, baseY);
+      ctx.stroke();
+
+      for (let x = cx - halfBay - 20; x <= cx + halfBay + 20; x += 12) {
+        ctx.beginPath();
+        ctx.moveTo(x, baseY);
+        ctx.lineTo(x - 6, baseY + 8);
+        ctx.stroke();
+      }
+
+      const nodeLeft = [
+        { x: cx - halfBay, y: baseY },
+        { x: cx - halfBay + dx[0], y: baseY - storyH },
+        { x: cx - halfBay + dx[1], y: baseY - storyH * 2 },
+        { x: cx - halfBay + dx[2], y: baseY - storyH * 3 }
+      ];
+
+      const nodeRight = [
+        { x: cx + halfBay, y: baseY },
+        { x: cx + halfBay + dx[0], y: baseY - storyH },
+        { x: cx + halfBay + dx[1], y: baseY - storyH * 2 },
+        { x: cx + halfBay + dx[2], y: baseY - storyH * 3 }
+      ];
+
+      // Columns
+      ctx.strokeStyle = activeMode === 1 ? '#059669' : (activeMode === 2 ? '#2563eb' : (activeMode === 3 ? '#7c3aed' : '#0284c7'));
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+
+      for (let i = 0; i < 3; i++) {
+        drawHermiteColumn(nodeLeft[i], nodeLeft[i+1]);
+        drawHermiteColumn(nodeRight[i], nodeRight[i+1]);
+      }
+
+      // Floor Slabs
+      for (let i = 1; i <= 3; i++) {
+        const sw = bay + 30;
+        const sh = 13;
+        const slabY = nodeLeft[i].y;
+        const midX = (nodeLeft[i].x + nodeRight[i].x) / 2;
+
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(midX - sw/2, slabY - sh/2, sw, sh, 3);
+        ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(nodeLeft[i].x, slabY, 3.5, 0, Math.PI*2);
+        ctx.arc(nodeRight[i].x, slabY, 3.5, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px Pretendard, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${i}F (400t)`, midX, slabY);
+      }
+    }
+
+    function drawHermiteColumn(nBottom, nTop) {
+      const steps = 14;
+      ctx.beginPath();
+      ctx.moveTo(nBottom.x, nBottom.y);
+      for (let s = 1; s <= steps; s++) {
+        const t = s / steps;
+        const h1 = 2*t*t*t - 3*t*t + 1;
+        const h2 = -2*t*t*t + 3*t*t;
+        const x = h1 * nBottom.x + h2 * nTop.x;
+        const y = (1 - t) * nBottom.y + t * nTop.y;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    setTimeout(() => {
+      resizeCanvas();
+      updateUI();
+      animate(0);
+    }, 50);
+  </script>
+</body>
+</html>

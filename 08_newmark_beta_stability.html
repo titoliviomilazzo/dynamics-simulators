@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>08. Newmark-β 수치적분법 & 안정성 한계 시뮬레이터</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent-blue: #2563eb;
+    --accent-indigo: #4f46e5;
+    --accent-red: #dc2626;
+    --accent-amber: #d97706;
+    --accent-emerald: #059669;
+    --font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-family);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.5;
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+  }
+  .app-container {
+    width: 100%;
+    max-width: 1360px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  header {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 20px 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .header-left p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+  .nav-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f1f5f9;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-indigo);
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+  }
+  .nav-badge:hover { background: #e2e8f0; }
+  .grid-layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 1024px) {
+    .grid-layout { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .control-section {
+    margin-bottom: 20px;
+  }
+  .control-section:last-child { margin-bottom: 0; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .form-val {
+    font-family: monospace;
+    color: var(--accent-blue);
+    font-weight: 700;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-blue);
+  }
+  select, button {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    font-family: var(--font-family);
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  select:focus, button:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+  }
+  .btn-primary {
+    background: var(--accent-blue);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-group {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-group button { flex: 1; }
+  .btn-secondary {
+    background: #f1f5f9;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+  }
+  .btn-secondary:hover { background: #e2e8f0; }
+  .alert-box {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    margin-top: 14px;
+  }
+  .alert-info {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+  }
+  .alert-danger {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  }
+  .alert-warning {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+  }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .metric-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .metric-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 2px;
+    font-family: monospace;
+  }
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .canvas-wrapper {
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .canvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .canvas-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .canvas-legend {
+    display: flex;
+    gap: 14px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+  .sdof-canvas-container {
+    height: 140px;
+    width: 100%;
+    margin-bottom: 14px;
+    background: #fafafa;
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+  }
+  .theory-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px 22px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .theory-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+  .theory-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+  .theory-table th, .theory-table td {
+    border: 1px solid #e2e8f0;
+    padding: 8px 10px;
+    text-align: left;
+  }
+  .theory-table th {
+    background: #f8fafc;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .formula-badge {
+    font-family: monospace;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #0f172a;
+    font-weight: 600;
+  }
+</style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+
+<div class="app-container">
+  <header>
+    <div class="header-left">
+      <h1>08. Newmark-β 수치적분법 & 시간간격 안정성 한계</h1>
+      <p>단자유도계 비선형·선형 시간이력 직접적분 알고리즘 | 평균가속도법 vs 선형가속도법 발산(Divergence) 임계조건 실증</p>
+    </div>
+    <a href="index.html" class="nav-badge">← 마스터 대시보드</a>
+  </header>
+
+  <div class="grid-layout">
+    <!-- 좌측 컨트롤 패널 -->
+    <div class="panel">
+      <div class="control-section">
+        <div class="section-title">적분 알고리즘 선택</div>
+        <div class="form-group">
+          <label class="form-label">수치적분 기법</label>
+          <select id="selectMethod">
+            <option value="avg">평균가속도법 (γ=1/2, β=1/4) - 무조건 안정</option>
+            <option value="linear" selected>선형가속도법 (γ=1/2, β=1/6) - 조건부 안정</option>
+            <option value="central">중앙차분법 (Explicit CDM) - 조건부 안정</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">가진 하중 유형</label>
+          <select id="selectExcitation">
+            <option value="free">자유진동 (Free Vibration, u₀ = 1.0 m)</option>
+            <option value="sine">조화가진 (Harmonic, F₀ sin ωt)</option>
+            <option value="elcentro">El Centro 1940 지진파 가속도</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control-section">
+        <div class="section-title">구조계 & 시간간격 설정</div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>고유주기 (Tₙ)</span>
+            <span class="form-val" id="valTn">1.00 s</span>
+          </div>
+          <input type="range" id="rangeTn" min="0.2" max="3.0" step="0.05" value="1.0">
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>감쇠비 (ζ)</span>
+            <span class="form-val" id="valZeta">2.0 %</span>
+          </div>
+          <input type="range" id="rangeZeta" min="0.0" max="0.20" step="0.005" value="0.02">
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>시간간격비 (Δt / Tₙ)</span>
+            <span class="form-val" id="valDtRatio">0.500</span>
+          </div>
+          <input type="range" id="rangeDtRatio" min="0.02" max="0.90" step="0.01" value="0.50">
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>해석 총 시간 (T_total)</span>
+            <span class="form-val" id="valTotalT">15.0 s</span>
+          </div>
+          <input type="range" id="rangeTotalT" min="5" max="30" step="1" value="15">
+        </div>
+      </div>
+
+      <div class="control-section">
+        <div class="section-title">시뮬레이션 제어</div>
+        <div class="btn-group">
+          <button class="btn-primary" id="btnPlay"><i class="fa-solid fa-play mr-1.5"></i> <span id="btnPlayText">재생 / 일시정지</span></button>
+          <button class="btn-secondary" id="btnReset"><i class="fa-solid fa-rotate-right mr-1.5"></i> 초기화</button>
+        </div>
+
+        <div id="stabilityAlert" class="alert-box alert-warning">
+          <strong>조건부 안정 경계:</strong> 선형가속도법은 <span class="formula-badge">Δt / Tₙ ≤ 0.551</span> 일 때만 수렴합니다.
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">적분 시간간격 (Δt)</div>
+            <div class="metric-value" id="metricDt">0.500 s</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">안정성 상태</div>
+            <div class="metric-value" id="metricStatus" style="color: var(--accent-emerald);">안정 (Stable)</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">주기 신장비 (T̃ / Tₙ)</div>
+            <div class="metric-value" id="metricPeriodElong">1.042</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">최대 변위 (u_max)</div>
+            <div class="metric-value" id="metricUmax">1.000 m</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 우측 시각화 영역 -->
+    <div class="main-content">
+      <!-- 상단 단자유도 모션 애니메이션 캔버스 -->
+      <div class="canvas-wrapper">
+        <div class="canvas-header">
+          <div class="canvas-title">
+            <i class="fa-solid fa-microchip text-blue-600"></i>
+            <span>SDOF 정밀 질량-스프링 감쇠기 수치 시뮬레이션</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <!-- Ghost Cart Toggle -->
+            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; font-weight: 600; cursor: pointer; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <input type="checkbox" id="chkGhost" checked style="accent-color: #2563eb;">
+              <span>정확해 고스트 수레 비교</span>
+            </label>
+            <!-- Speed controls -->
+            <div style="display: inline-flex; align-items: center; gap: 4px; background: #f1f5f9; padding: 3px 6px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 11px; font-family: monospace;">
+              <span style="color: #64748b; margin-right: 2px;">속도:</span>
+              <button onclick="setSimSpeed(0.25)" class="btn-speed" data-s="0.25" style="padding: 2px 6px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #475569;">0.25x</button>
+              <button onclick="setSimSpeed(0.5)" class="btn-speed" data-s="0.5" style="padding: 2px 6px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #475569;">0.5x</button>
+              <button onclick="setSimSpeed(1.0)" class="btn-speed" data-s="1.0" style="padding: 2px 6px; border-radius: 4px; border: none; background: #2563eb; color: #fff; cursor: pointer; font-weight: bold;">1.0x</button>
+              <button onclick="setSimSpeed(2.0)" class="btn-speed" data-s="2.0" style="padding: 2px 6px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #475569;">2.0x</button>
+            </div>
+            <div style="font-size: 12px; color: #64748b; font-family: monospace; font-weight: bold; min-width: 130px; text-align: right;" id="animTime">
+              t = 0.00 s
+            </div>
+          </div>
+        </div>
+        <canvas id="sdofCanvas" width="900" height="175"></canvas>
+      </div>
+
+      <!-- 하단 시간이력 변위 비교 플롯 캔버스 -->
+      <div class="canvas-wrapper">
+        <div class="canvas-header">
+          <div class="canvas-title">
+            <span>시간이력 수치해(Newmark) vs 정확해(Analytical) 비교 곡선</span>
+          </div>
+          <div class="canvas-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background: #94a3b8;"></div>
+              <span>정확해 (Exact)</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background: #2563eb;"></div>
+              <span id="legendMethodName">선형가속도법 수치해</span>
+            </div>
+          </div>
+        </div>
+        <canvas id="plotCanvas" width="900" height="380"></canvas>
+      </div>
+
+      <!-- 공학 해설 카드 -->
+      <div class="theory-card">
+        <h3>수치적분 안정성 & 주기 신장(Period Elongation) 공학 원리</h3>
+        <p>
+          직접수치적분법(Direct Numerical Integration)은 연속미분방정식을 유한한 시간간격 <span class="formula-badge">Δt</span>의 대수방정식으로 근사합니다.
+          선형가속도법 및 중앙차분법은 조건부 안정 기법으로서 시간간격비가 임계값을 초과하면 수치오차가 지수함수적으로 누적되어 해가 폭발(Divergence)합니다.
+        </p>
+        <table class="theory-table">
+          <thead>
+            <tr>
+              <th>기법 명칭</th>
+              <th>파라미터 (γ, β)</th>
+              <th>안정성 한계 (Stability Limit)</th>
+              <th>수치적 특성</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>평균가속도법 (Average Acc.)</strong></td>
+              <td>γ = 1/2, β = 1/4</td>
+              <td><strong style="color: var(--accent-emerald);">무조건 안정 (Unconditional)</strong></td>
+              <td>수치 감쇠 없음, Δt 증가 시 주기 신장(Period Elongation)만 발생</td>
+            </tr>
+            <tr>
+              <td><strong>선형가속도법 (Linear Acc.)</strong></td>
+              <td>γ = 1/2, β = 1/6</td>
+              <td><strong style="color: var(--accent-red);">Δt / Tₙ ≤ 0.551 (√3/π)</strong></td>
+              <td>한계 초과 시 즉각 진폭 무한대 발산, 한계 이하에서는 3차 정확도</td>
+            </tr>
+            <tr>
+              <td><strong>중앙차분법 (Central Diff.)</strong></td>
+              <td>Explicit (외연적)</td>
+              <td><strong style="color: var(--accent-amber);">Δt / Tₙ ≤ 0.318 (1/π)</strong></td>
+              <td>역행렬 연산 불필요하나 매우 미세한 고정 시간간격 요구</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// El Centro 1940 NS 대표 가속도 파형 샘플 (g 단위, 0.02초 간격 200포인트 약식 복원)
+const EL_CENTRO_PGA = 0.348; // g
+const EL_CENTRO_DT = 0.02;
+const EL_CENTRO_DATA = [
+  0.00000, 0.00000, -0.00786, -0.00008, -0.00249, -0.00226, 0.00237, -0.00231, -0.00747, -0.00708,
+  0.00158, 0.00042, -0.01272, -0.02104, -0.01032, 0.00044, -0.01378, -0.00975, -0.00575, -0.02155,
+  -0.03711, -0.02569, -0.00522, 0.01529, 0.03580, 0.02535, 0.01162, -0.00219, -0.00989, -0.01690,
+  -0.02385, -0.02818, -0.00731, 0.00829, -0.00580, -0.00999, -0.01367, -0.01740, -0.01302, -0.00068,
+  0.02270, 0.05535, 0.08783, 0.12047, 0.10174, 0.07738, 0.06181, 0.08120, 0.10042, 0.10307,
+  0.09462, 0.08633, 0.08369, 0.09181, 0.09048, 0.07788, 0.06462, 0.05136, 0.03828, 0.02502,
+  0.03165, 0.02486, -0.02238, -0.06976, -0.11716, -0.05320, 0.01674, 0.08649, 0.15627, 0.19884,
+  0.18892, 0.17898, 0.17069, 0.16042, 0.17234, 0.23697, 0.22868, 0.18892, 0.14997, 0.11037,
+  0.07075, 0.03115, -0.00985, -0.05088, -0.09197, -0.13307, -0.17399, -0.21376, -0.25023, -0.21205,
+  -0.18063, -0.15893, -0.16738, -0.15676, -0.07689, 0.00860, 0.20050, 0.34303, 0.29662, 0.27507,
+  0.25851, 0.24194, 0.22702, 0.21205, 0.19884, 0.18395, 0.16903, 0.13753, 0.10125, 0.03944,
+  -0.06959, -0.17898, -0.16206, -0.10357, -0.04524, 0.01370, 0.09595, 0.17069, 0.11318, 0.05535,
+  -0.00289, -0.06745, -0.13189, -0.19719, -0.17234, -0.13290, -0.09347, -0.03679, 0.02735, 0.09147,
+  0.14881, 0.07970, 0.01061, -0.04441, -0.09478, -0.14500, -0.19553, -0.13853, -0.05484, 0.02883,
+  0.00808, -0.04756, -0.11500, -0.19223, -0.25686, -0.31651, -0.26846, -0.20879, -0.13604, -0.06331,
+  -0.03529, -0.07441, -0.11334, -0.12710, -0.11534, -0.10357, -0.09181, -0.07987, -0.09793, -0.11599,
+  -0.13406, -0.09826, -0.00881, 0.08069, 0.06331, 0.00977, -0.04209, -0.08136, -0.12047, -0.15974,
+  -0.12064, -0.06778, -0.01500, -0.05237, -0.09446, -0.13671, -0.17898, -0.10141, -0.00283, 0.08253,
+  0.15179, 0.17234, 0.15893, 0.14599, 0.14101, 0.12593, 0.10478, 0.08352, 0.06230, 0.04110,
+  0.01973, -0.00148, 0.00928, 0.05916, 0.10904, 0.12561, 0.06462, 0.00721, -0.03646, 0.00829,
+  0.08235, 0.11863, 0.04110, -0.03628, -0.04673, -0.03646, -0.06131, -0.08616, -0.11104, 0.17399,
+  0.24028, 0.18892, 0.12280, 0.04441, -0.03380, -0.10754, -0.16373, -0.19884, -0.17399, -0.14798,
+  -0.11831, -0.08850, -0.09793, -0.16571, -0.16223, -0.13687, -0.11699, -0.09545, 0.09064, 0.19389,
+  0.18892, 0.18726, 0.17399, 0.15809, 0.22702, 0.23199, 0.18892, 0.14665, 0.10158, 0.04872,
+  -0.00465, -0.06497, -0.12528, -0.13074, -0.12246, -0.11401, -0.10572, -0.13173, -0.11965, -0.09577,
+  -0.07192, -0.08601, -0.10208, -0.10738, -0.05219, 0.00309, 0.03264, 0.00486, -0.07109, -0.17234,
+  -0.11251, 0.01724, 0.02021, -0.06147, -0.12710, -0.17566, -0.21205, -0.19884, -0.12627, 0.00798,
+  0.01142, 0.01488, 0.01839, 0.02933, 0.10821, 0.17234, 0.17069, 0.16141, 0.11732, 0.07341,
+  0.03083, -0.00366, -0.03812, -0.08302, -0.11948, -0.04308, 0.01159, 0.05916, 0.08601, 0.09114,
+  0.05403, 0.01690, 0.03529, 0.13671, 0.10406, 0.06446, 0.02468, -0.01807, -0.06115, -0.03083,
+  0.03083, 0.07904, 0.05054, 0.02203, -0.00925, -0.04391, -0.06992, -0.07738, -0.03762, 0.00028,
+  0.03596, 0.07158, 0.03778, -0.01906, -0.07590, -0.13272, -0.07042, 0.00410, 0.05981, 0.11549,
+  0.10158, 0.07987, 0.05663, 0.02717, -0.00231, -0.03182, -0.03497, -0.02933, -0.02369, -0.04508,
+  -0.06230, -0.04077, -0.01906, 0.00255, 0.02502, 0.04805, 0.06347, 0.00985, -0.04374, -0.06513,
+  -0.03083, -0.01756, 0.00515, 0.03198, 0.05882, 0.08566, 0.08120, 0.10192, 0.09959, 0.04772,
+  -0.01326, -0.10655, -0.18395, -0.13240, -0.08086, -0.00674, 0.07938, 0.14633, 0.16024, 0.10588,
+  0.05154, 0.07887, 0.12660, 0.07639, 0.00874, -0.04872, -0.09628, -0.13820, -0.16738, -0.16074,
+  -0.12462, -0.08850, -0.05684, -0.02585, 0.01388, 0.06644, 0.11898, 0.10125, 0.06032, 0.01433,
+  0.01872, 0.04374, 0.06877, 0.07142, 0.04010, 0.00410, -0.03893, -0.08187, -0.12494, -0.09727,
+  -0.06595, -0.04077, -0.01706, 0.00747, 0.04259, 0.06198, 0.05518, 0.03099, 0.02155, 0.04657,
+  0.07142, 0.08914, 0.10671, 0.12445, 0.10257, 0.07075, 0.03893, 0.08007, 0.12096, 0.09230,
+  0.06016, 0.02800, -0.00167, -0.01740, 0.07208, 0.04274, 0.01350, -0.01423, -0.07341, -0.02385,
+  0.02585, 0.07241, 0.11467, 0.15676, 0.20216, 0.18560, 0.07109, -0.06082, -0.19223, -0.16407,
+  -0.17731, -0.20548, -0.21874, -0.10655, -0.07572, -0.09927, -0.12262, -0.09015, 0.04607, 0.03960,
+  0.04259, 0.04855, 0.04160, -0.01773, -0.07706, -0.12593, -0.07987, -0.03364, -0.01477, -0.04425,
+  -0.12909, -0.18063, -0.19223, -0.19057, -0.15312, -0.11334, -0.12047, -0.12743, -0.13456, -0.14152,
+  -0.14864, -0.15561, -0.08318, 0.00224, -0.00903, -0.02021, -0.03149, -0.04270, -0.05398, -0.06529,
+  -0.02735, 0.01081, 0.04888, 0.08700, 0.06280, 0.04954, 0.04243, 0.03513, 0.08170, 0.15130,
+  0.15079, 0.08684, 0.02270, -0.07324, -0.09031, -0.05037, 0.04043, 0.10275, 0.16521, 0.14301,
+  0.09048, -0.00570, -0.08336, -0.06165, -0.03497, -0.02021, -0.04142, -0.06248, -0.07208, -0.01674
+];
+
+// 상태 변수
+let Tn = 1.0;
+let zeta = 0.02;
+let dtRatio = 0.50;
+let totalT = 15.0;
+let method = 'linear';
+let excitation = 'free';
+
+let isPlaying = true;
+let animCurrentTime = 0.0;
+let lastTimestamp = 0;
+
+let timeHistory = []; // {t, u_exact, u_num}
+let uMax = 1.0;
+let isDiverged = false;
+
+// DOM 요소
+const selectMethod = document.getElementById('selectMethod');
+const selectExcitation = document.getElementById('selectExcitation');
+const rangeTn = document.getElementById('rangeTn');
+const rangeZeta = document.getElementById('rangeZeta');
+const rangeDtRatio = document.getElementById('rangeDtRatio');
+const rangeTotalT = document.getElementById('rangeTotalT');
+
+const valTn = document.getElementById('valTn');
+const valZeta = document.getElementById('valZeta');
+const valDtRatio = document.getElementById('valDtRatio');
+const valTotalT = document.getElementById('valTotalT');
+
+const btnPlay = document.getElementById('btnPlay');
+const btnReset = document.getElementById('btnReset');
+const stabilityAlert = document.getElementById('stabilityAlert');
+const legendMethodName = document.getElementById('legendMethodName');
+
+const metricDt = document.getElementById('metricDt');
+const metricStatus = document.getElementById('metricStatus');
+const metricPeriodElong = document.getElementById('metricPeriodElong');
+const metricUmax = document.getElementById('metricUmax');
+const animTime = document.getElementById('animTime');
+
+const sdofCanvas = document.getElementById('sdofCanvas');
+const sdofCtx = sdofCanvas.getContext('2d');
+const plotCanvas = document.getElementById('plotCanvas');
+const plotCtx = plotCanvas.getContext('2d');
+
+function updateUIValues() {
+  valTn.textContent = Tn.toFixed(2) + ' s';
+  valZeta.textContent = (zeta * 100).toFixed(1) + ' %';
+  valDtRatio.textContent = dtRatio.toFixed(3);
+  valTotalT.textContent = totalT.toFixed(1) + ' s';
+
+  const dt = dtRatio * Tn;
+  metricDt.textContent = dt.toFixed(4) + ' s';
+
+  // 안정성 평가
+  let limit = Infinity;
+  let methodNameStr = '평균가속도법';
+  if (method === 'avg') {
+    limit = Infinity;
+    methodNameStr = '평균가속도법 (β=1/4)';
+    legendMethodName.textContent = '평균가속도법 수치해';
+    stabilityAlert.className = 'alert-box alert-info';
+    stabilityAlert.innerHTML = '<strong>무조건 안정 (Unconditionally Stable):</strong> 시간간격 Δt 크기와 무관하게 발산하지 않음.';
+    metricStatus.textContent = '무조건 안정';
+    metricStatus.style.color = 'var(--accent-emerald)';
+  } else if (method === 'linear') {
+    limit = Math.sqrt(3) / Math.PI; // 0.5513
+    methodNameStr = '선형가속도법 (β=1/6)';
+    legendMethodName.textContent = '선형가속도법 수치해';
+    if (dtRatio <= limit) {
+      stabilityAlert.className = 'alert-box alert-info';
+      stabilityAlert.innerHTML = `<strong>안정 구역:</strong> Δt / Tₙ = ${dtRatio.toFixed(3)} ≤ 0.551 (수렴 범위 내 안정)`;
+      metricStatus.textContent = '안정 (Stable)';
+      metricStatus.style.color = 'var(--accent-emerald)';
+    } else {
+      stabilityAlert.className = 'alert-box alert-danger';
+      stabilityAlert.innerHTML = `<strong>발산 경보 (Divergence!):</strong> Δt / Tₙ = ${dtRatio.toFixed(3)} > 0.551 한계 초과로 수치폭발 발생!`;
+      metricStatus.textContent = '발산 (DIVERGED)';
+      metricStatus.style.color = 'var(--accent-red)';
+    }
+  } else if (method === 'central') {
+    limit = 1.0 / Math.PI; // 0.3183
+    methodNameStr = '중앙차분법 (Explicit)';
+    legendMethodName.textContent = '중앙차분법 수치해';
+    if (dtRatio <= limit) {
+      stabilityAlert.className = 'alert-box alert-info';
+      stabilityAlert.innerHTML = `<strong>안정 구역:</strong> Δt / Tₙ = ${dtRatio.toFixed(3)} ≤ 0.318 (외연적 안정 범위 내)`;
+      metricStatus.textContent = '안정 (Stable)';
+      metricStatus.style.color = 'var(--accent-emerald)';
+    } else {
+      stabilityAlert.className = 'alert-box alert-danger';
+      stabilityAlert.innerHTML = `<strong>발산 경보 (Divergence!):</strong> Δt / Tₙ = ${dtRatio.toFixed(3)} > 0.318 한계 초과로 수치폭발 발생!`;
+      metricStatus.textContent = '발산 (DIVERGED)';
+      metricStatus.style.color = 'var(--accent-red)';
+    }
+  }
+
+  // 주기 신장비 (대략적 근사: T_num / T_n ≈ 1 + (π² / 12) * (Δt/Tₙ)² for avg acc)
+  let elong = 1.0;
+  if (method === 'avg') {
+    elong = 1.0 + (Math.PI * Math.PI / 12.0) * Math.pow(dtRatio, 2);
+  } else if (method === 'linear') {
+    elong = 1.0 - (Math.PI * Math.PI / 24.0) * Math.pow(dtRatio, 2);
+  } else {
+    elong = 1.0 - (Math.PI * Math.PI / 6.0) * Math.pow(dtRatio, 2);
+  }
+  metricPeriodElong.textContent = isNaN(elong) || elong < 0 ? 'N/A' : elong.toFixed(3);
+}
+
+// 지진하중 또는 가진력 계산 함수 p(t)
+function getExcitationForce(t, m) {
+  if (excitation === 'free') {
+    return 0.0;
+  } else if (excitation === 'sine') {
+    const omegaEx = (2.0 * Math.PI / Tn) * 0.9; // 공진 인접 가진
+    return 5.0 * m * Math.sin(omegaEx * t);
+  } else if (excitation === 'elcentro') {
+    // el centro 0.02s 선형보간
+    const idx = t / EL_CENTRO_DT;
+    const i = Math.floor(idx);
+    if (i >= EL_CENTRO_DATA.length - 1) return 0.0;
+    const frac = idx - i;
+    const ag = (EL_CENTRO_DATA[i] * (1 - frac) + EL_CENTRO_DATA[i+1] * frac) * 9.81; // m/s2
+    return -m * ag;
+  }
+  return 0.0;
+}
+
+// 해석 시뮬레이션 계산
+// 해석 시뮬레이션 계산
+function computeSimulation() {
+  const dt = dtRatio * Tn;
+  const m = 1.0; // kg 단위화
+  const wn = 2.0 * Math.PI / Tn;
+  const k = m * wn * wn;
+  const c = 2.0 * m * wn * zeta;
+  const wd = wn * Math.sqrt(Math.max(0.0001, 1.0 - zeta * zeta));
+
+  const nSteps = Math.ceil(totalT / dt);
+  timeHistory = [];
+  isDiverged = false;
+  divergedStepIndex = -1;
+
+  // Newmark 파라미터
+  let gamma = 0.5;
+  let beta = 0.25;
+  if (method === 'linear') {
+    gamma = 0.5;
+    beta = 1.0 / 6.0;
+  }
+
+  // 초기조건
+  let u0 = (excitation === 'free') ? 1.0 : 0.0;
+  let v0 = 0.0;
+  let p0 = getExcitationForce(0.0, m);
+  let a0 = (p0 - c * v0 - k * u0) / m;
+
+  let u_num = u0;
+  let v_num = v0;
+  let a_num = a0;
+
+  // 중앙차분법용 과거 스텝 u_{-1}
+  let u_prev = u0 - dt * v0 + (dt * dt / 2.0) * a0;
+
+  uMax = 0.0;
+
+  let exactMap = {};
+  if (excitation === 'elcentro') {
+    const dt_ref = 0.0005;
+    const nRef = Math.ceil(totalT / dt_ref);
+    let u_e = 0.0, v_e = 0.0;
+    let a_e = (getExcitationForce(0.0, m) - c * v_e - k * u_e) / m;
+    const g_e = 0.5, b_e = 0.25;
+    const k_hat_e = k + (g_e * c) / (b_e * dt_ref) + m / (b_e * dt_ref * dt_ref);
+    const a_coeff_e = m / (b_e * dt_ref) + (g_e * c) / b_e;
+    const b_coeff_e = m / (2.0 * b_e);
+
+    exactMap[0] = 0.0;
+    for (let s = 0; s < nRef; s++) {
+      const cur_t = s * dt_ref;
+      const t_next = (s + 1) * dt_ref;
+      const p_now = getExcitationForce(cur_t, m);
+      const p_next = getExcitationForce(t_next, m);
+      const dp_hat = (p_next - p_now) + a_coeff_e * v_e + b_coeff_e * a_e;
+      const du = dp_hat / k_hat_e;
+      const dv = (g_e / (b_e * dt_ref)) * du - (g_e / b_e) * v_e;
+      u_e += du;
+      v_e += dv;
+      a_e = (p_next - c * v_e - k * u_e) / m;
+      exactMap[Math.round(t_next * 2000)] = u_e;
+    }
+  }
+
+  for (let i = 0; i <= nSteps; i++) {
+    const t = i * dt;
+
+    // 정확해 계산 (자유진동에 대해 닫힌해, 기타는 미세시간 적분 근사)
+    let u_exact = 0.0;
+    if (excitation === 'free') {
+      u_exact = Math.exp(-zeta * wn * t) * (u0 * Math.cos(wd * t) + ((v0 + zeta * wn * u0) / wd) * Math.sin(wd * t));
+    } else if (excitation === 'sine') {
+      const w_force = (2.0 * Math.PI / Tn) * 0.9;
+      const r = w_force / wn;
+      const F0 = 5.0 * m;
+      const DAF = 1.0 / Math.sqrt(Math.pow(1 - r * r, 2) + Math.pow(2 * zeta * r, 2));
+      const phi = Math.atan2(2 * zeta * r, 1 - r * r);
+      u_exact = (F0 / k) * DAF * Math.sin(w_force * t - phi);
+    } else {
+      const idx = Math.round(t * 2000);
+      u_exact = exactMap[idx] !== undefined ? exactMap[idx] : 0.0;
+    }
+
+    // 발산 검출 (발산되어도 시각적 폭발 그래프를 위해 제한값으로 기록)
+    if (!isDiverged && (Math.abs(u_num) > 25.0 || isNaN(u_num))) {
+      isDiverged = true;
+      divergedStepIndex = i;
+    }
+
+    const recordedNum = isDiverged ? Math.max(-12.0, Math.min(12.0, isNaN(u_num) ? (i % 2 === 0 ? 10 : -10) : u_num)) : u_num;
+
+    timeHistory.push({
+      t: t,
+      u_exact: u_exact,
+      u_num: recordedNum,
+      isDiverged: isDiverged
+    });
+
+    if (!isDiverged && Math.abs(u_num) > uMax) {
+      uMax = Math.abs(u_num);
+    }
+
+    // 다음 스텝 계산
+    if (i < nSteps) {
+      const t_next = (i + 1) * dt;
+      const p_next = getExcitationForce(t_next, m);
+
+      if (method === 'avg' || method === 'linear') {
+        const a1 = m / (beta * dt * dt) + (gamma * c) / (beta * dt);
+        const a2 = m / (beta * dt) + c * (gamma / beta - 1.0);
+        const a3 = m * (0.5 / beta - 1.0) + dt * c * (0.5 * gamma / beta - 1.0);
+
+        const k_hat = k + a1;
+        const delta_p_hat = (p_next - getExcitationForce(t, m)) + a2 * v_num + a3 * a_num;
+        const delta_u = delta_p_hat / k_hat;
+
+        const delta_v = (gamma / (beta * dt)) * delta_u - (gamma / beta) * v_num + dt * (1.0 - 0.5 * gamma / beta) * a_num;
+        const delta_a = (1.0 / (beta * dt * dt)) * delta_u - (1.0 / (beta * dt)) * v_num - (0.5 / beta) * a_num;
+
+        u_num += delta_u;
+        v_num += delta_v;
+        a_num += delta_a;
+      } else if (method === 'central') {
+        const m_hat = m / (dt * dt) + c / (2.0 * dt);
+        const p_hat = getExcitationForce(t, m) - (k - 2.0 * m / (dt * dt)) * u_num - (m / (dt * dt) - c / (2.0 * dt)) * u_prev;
+        const u_next = p_hat / m_hat;
+
+        u_prev = u_num;
+        u_num = u_next;
+      }
+    }
+  }
+
+  metricUmax.textContent = isDiverged ? '발산 (DIVERGED)' : uMax.toFixed(3) + ' m';
+}
+
+// 60FPS 부드러운 연속 시간 보간 함수 (수레 및 지시선 끊김 현상 원천 방지)
+function getInterpolatedMotion(t) {
+  if (!timeHistory || timeHistory.length === 0) return { u_num: 0, u_exact: 0, isDiv: false };
+  const dt = dtRatio * Tn;
+  const index = t / dt;
+  const i = Math.floor(index);
+  if (i >= timeHistory.length - 1) {
+    const last = timeHistory[timeHistory.length - 1];
+    return { u_num: last.u_num, u_exact: last.u_exact, isDiv: isDiverged };
+  }
+  const frac = index - i;
+  const p0 = timeHistory[i];
+  const p1 = timeHistory[i + 1];
+  const u_num = p0.u_num * (1 - frac) + p1.u_num * frac;
+  const u_exact = p0.u_exact * (1 - frac) + p1.u_exact * frac;
+  const isDiv = isDiverged && (divergedStepIndex >= 0 && i >= divergedStepIndex);
+  return { u_num, u_exact, isDiv };
+}
+
+// 속도 제어
+let simSpeed = 1.0;
+function setSimSpeed(s) {
+  simSpeed = s;
+  document.querySelectorAll('.btn-speed').forEach(b => {
+    if (parseFloat(b.dataset.s) === s) {
+      b.style.background = '#2563eb';
+      b.style.color = '#fff';
+    } else {
+      b.style.background = 'transparent';
+      b.style.color = '#475569';
+    }
+  });
+}
+
+// 캔버스 드로잉 - 상단 고품격 CAD SDOF 모션 렌더러
+function drawSDOF(motion) {
+  const w = sdofCanvas.width;
+  const h = sdofCanvas.height;
+  sdofCtx.clearRect(0, 0, w, h);
+
+  const { u_num, u_exact, isDiv } = motion;
+  const showGhost = document.getElementById('chkGhost')?.checked ?? true;
+
+  // 1. 기초 바닥 콘크리트 및 해칭
+  const groundY = h - 34;
+  sdofCtx.fillStyle = '#f8fafc';
+  sdofCtx.fillRect(0, groundY, w, h - groundY);
+  sdofCtx.strokeStyle = '#94a3b8';
+  sdofCtx.lineWidth = 1.5;
+  sdofCtx.beginPath();
+  sdofCtx.moveTo(0, groundY);
+  sdofCtx.lineTo(w, groundY);
+  sdofCtx.stroke();
+
+  sdofCtx.strokeStyle = '#cbd5e1';
+  sdofCtx.lineWidth = 1;
+  for (let x = 10; x < w; x += 16) {
+    sdofCtx.beginPath();
+    sdofCtx.moveTo(x, groundY);
+    sdofCtx.lineTo(x - 8, groundY + 12);
+    sdofCtx.stroke();
+  }
+
+  // 2. 정밀 스테인리스 LM 리니어 레일 (LM Guideway)
+  const wallX = 65;
+  const railTop = groundY - 8;
+  const railH = 8;
+  const railGrad = sdofCtx.createLinearGradient(0, railTop, 0, groundY);
+  railGrad.addColorStop(0, '#94a3b8');
+  railGrad.addColorStop(0.3, '#f1f5f9');
+  railGrad.addColorStop(0.7, '#cbd5e1');
+  railGrad.addColorStop(1, '#64748b');
+  sdofCtx.fillStyle = railGrad;
+  sdofCtx.fillRect(wallX + 15, railTop, w - wallX - 35, railH);
+  sdofCtx.strokeStyle = '#475569';
+  sdofCtx.lineWidth = 1;
+  sdofCtx.strokeRect(wallX + 15, railTop, w - wallX - 35, railH);
+
+  // 레일 양단 고무 스토퍼 (Bumpers)
+  sdofCtx.fillStyle = '#dc2626';
+  sdofCtx.fillRect(wallX + 15, railTop - 6, 8, 14);
+  sdofCtx.fillRect(w - 28, railTop - 6, 8, 14);
+
+  // 3. 좌측 3D 콘크리트 고정 앵커 벽체 (Reaction Pier)
+  const wallW = 30;
+  const wallGrad = sdofCtx.createLinearGradient(wallX - wallW, 0, wallX, 0);
+  wallGrad.addColorStop(0, '#475569');
+  wallGrad.addColorStop(0.4, '#94a3b8');
+  wallGrad.addColorStop(0.8, '#cbd5e1');
+  wallGrad.addColorStop(1, '#64748b');
+  sdofCtx.fillStyle = wallGrad;
+  sdofCtx.fillRect(wallX - wallW, 16, wallW, groundY - 16);
+  sdofCtx.strokeStyle = '#334155';
+  sdofCtx.lineWidth = 2;
+  sdofCtx.strokeRect(wallX - wallW, 16, wallW, groundY - 16);
+
+  // 댐퍼 & 수레 기하학적 치수 정의 (절대 충돌 방지 제약)
+  const cylStartX = wallX + 15;
+  const cylLen = 100;
+  const cylEndX = cylStartX + cylLen; // 180
+  const minClearance = 50; // 댐퍼와 수레 사이 최소 안전 이격거리 (피스톤 로드 가시영역)
+  const massW = 90;
+  const massH = 58;
+  const massY = groundY - massH - 12;
+  const springY = massY + 18;
+  const damperY = massY + 42;
+
+  // 벽면 앵커 브래킷 & 힌지 핀
+  function drawAnchorPin(yCenter) {
+    sdofCtx.fillStyle = '#1e293b';
+    sdofCtx.fillRect(wallX - 4, yCenter - 12, 6, 24);
+    sdofCtx.fillStyle = '#334155';
+    sdofCtx.beginPath();
+    sdofCtx.roundRect(wallX + 2, yCenter - 8, 10, 16, 2);
+    sdofCtx.fill();
+    sdofCtx.fillStyle = '#f8fafc';
+    sdofCtx.beginPath();
+    sdofCtx.arc(wallX + 7, yCenter, 3, 0, Math.PI * 2);
+    sdofCtx.fill();
+  }
+  drawAnchorPin(springY);
+  drawAnchorPin(damperY);
+
+  // 평형점 (중립점) 및 스트로크 스케일링
+  const eqX = Math.max(380, w * 0.46);
+  const minCartLeft = cylEndX + minClearance; // 180 + 50 = 230
+  const maxNegativeStroke = eqX - (minCartLeft + massW / 2); // 좌측 허용 최대 스트로크
+
+  const refAmp = Math.max(1.0, Math.min(4.0, uMax));
+  
+  // (A) 고스트 정확해 수레 렌더링 (옵션)
+  if (showGhost) {
+    const ghostRatio = Math.max(-1.0, Math.min(1.5, u_exact / refAmp));
+    const ghostShift = ghostRatio * maxNegativeStroke;
+    const gCenterX = eqX + ghostShift;
+    const gLeft = gCenterX - massW / 2;
+
+    sdofCtx.save();
+    sdofCtx.strokeStyle = '#0284c7';
+    sdofCtx.fillStyle = 'rgba(14, 165, 233, 0.15)';
+    sdofCtx.lineWidth = 1.5;
+    sdofCtx.setLineDash([4, 3]);
+    sdofCtx.beginPath();
+    sdofCtx.roundRect(gLeft, massY, massW, massH, 6);
+    sdofCtx.fill();
+    sdofCtx.stroke();
+    sdofCtx.setLineDash([]);
+
+    sdofCtx.fillStyle = '#0369a1';
+    sdofCtx.font = 'bold 10px monospace';
+    sdofCtx.textAlign = 'center';
+    sdofCtx.fillText('Exact (정확해)', gCenterX, massY - 6);
+    sdofCtx.restore();
+  }
+
+  // (B) 주 수치해 수레 렌더링
+  const numRatio = Math.max(-1.0, Math.min(1.5, u_num / refAmp));
+  const numShift = numRatio * maxNegativeStroke;
+  const massCenterX = eqX + numShift;
+  const cartLeft = massCenterX - massW / 2;
+
+  // 4. 상단 3D 듀얼 패스 나선형 스프링 (Helical Coil Spring)
+  const springStartX = wallX + 12;
+  const springEndX = cartLeft - 10;
+  const springSpan = springEndX - springStartX;
+  const numTurns = 9;
+  const pitch = (springSpan - 16) / numTurns;
+
+  // 리드선
+  sdofCtx.strokeStyle = '#2563eb';
+  sdofCtx.lineWidth = 3;
+  sdofCtx.lineCap = 'round';
+  sdofCtx.beginPath();
+  sdofCtx.moveTo(springStartX, springY);
+  sdofCtx.lineTo(springStartX + 8, springY);
+  sdofCtx.stroke();
+
+  // 후면 코일 (어두운 그림자)
+  sdofCtx.strokeStyle = '#1d4ed8';
+  sdofCtx.lineWidth = 2.8;
+  sdofCtx.beginPath();
+  for (let i = 0; i < numTurns; i++) {
+    const x0 = springStartX + 8 + i * pitch;
+    sdofCtx.moveTo(x0, springY - 11);
+    sdofCtx.lineTo(x0 + pitch * 0.5, springY + 11);
+  }
+  sdofCtx.stroke();
+
+  // 전면 코일 (밝은 하이라이트)
+  sdofCtx.strokeStyle = '#38bdf8';
+  sdofCtx.lineWidth = 3.2;
+  sdofCtx.beginPath();
+  for (let i = 0; i < numTurns; i++) {
+    const x0 = springStartX + 8 + i * pitch;
+    sdofCtx.moveTo(x0 + pitch * 0.5, springY + 11);
+    sdofCtx.lineTo(x0 + pitch, springY - 11);
+  }
+  sdofCtx.stroke();
+
+  sdofCtx.strokeStyle = '#2563eb';
+  sdofCtx.lineWidth = 3;
+  sdofCtx.beginPath();
+  sdofCtx.moveTo(springStartX + 8 + numTurns * pitch, springY);
+  sdofCtx.lineTo(springEndX, springY);
+  sdofCtx.stroke();
+
+  // 5. 하단 정밀 유압식 점성감쇠기 (Hydraulic Viscous Damper)
+  const cylH = 20;
+  const cylGrad = sdofCtx.createLinearGradient(0, damperY - cylH/2, 0, damperY + cylH/2);
+  cylGrad.addColorStop(0, '#1e293b');
+  cylGrad.addColorStop(0.3, '#64748b');
+  cylGrad.addColorStop(0.7, '#334155');
+  cylGrad.addColorStop(1, '#0f172a');
+  sdofCtx.fillStyle = cylGrad;
+  sdofCtx.beginPath();
+  sdofCtx.roundRect(cylStartX, damperY - cylH/2, cylLen, cylH, 4);
+  sdofCtx.fill();
+  sdofCtx.strokeStyle = '#0f172a';
+  sdofCtx.lineWidth = 1.2;
+  sdofCtx.stroke();
+
+  // 투명 오일 점검창 (Amber Fluid Window)
+  const winX = cylStartX + 12;
+  const winW = cylLen - 24;
+  const winH = cylH - 6;
+  sdofCtx.fillStyle = 'rgba(217, 119, 6, 0.40)';
+  sdofCtx.fillRect(winX, damperY - winH/2, winW, winH);
+  sdofCtx.strokeStyle = '#78350f';
+  sdofCtx.lineWidth = 1;
+  sdofCtx.strokeRect(winX, damperY - winH/2, winW, winH);
+
+  // 피스톤 헤드 (내부 오리피스 홀)
+  const pMinX = winX + 6;
+  const pMaxX = winX + winW - 6;
+  const pHeadX = pMinX + ((numRatio + 1.0) / 2.5) * (pMaxX - pMinX);
+  sdofCtx.fillStyle = '#475569';
+  sdofCtx.fillRect(pHeadX - 4, damperY - winH/2, 8, winH);
+  sdofCtx.fillStyle = '#f59e0b';
+  sdofCtx.fillRect(pHeadX - 2, damperY - 3, 4, 2);
+
+  // 피스톤 로드 (고광택 크롬 로드)
+  const rodGrad = sdofCtx.createLinearGradient(0, damperY - 3, 0, damperY + 3);
+  rodGrad.addColorStop(0, '#94a3b8');
+  rodGrad.addColorStop(0.4, '#ffffff');
+  rodGrad.addColorStop(0.8, '#cbd5e1');
+  rodGrad.addColorStop(1, '#475569');
+  sdofCtx.fillStyle = rodGrad;
+  sdofCtx.fillRect(pHeadX + 4, damperY - 3.5, cartLeft - 10 - (pHeadX + 4), 7);
+  sdofCtx.strokeStyle = '#334155';
+  sdofCtx.lineWidth = 1;
+  sdofCtx.strokeRect(pHeadX + 4, damperY - 3.5, cartLeft - 10 - (pHeadX + 4), 7);
+
+  // 황동 와이퍼 씰
+  sdofCtx.fillStyle = '#d97706';
+  sdofCtx.fillRect(cylEndX - 5, damperY - cylH/2, 5, cylH);
+
+  // 6. 메인 수레 차체 (Precision Machined Cart)
+  const cartGrad = sdofCtx.createLinearGradient(0, massY, 0, massY + massH);
+  if (isDiv) {
+    cartGrad.addColorStop(0, '#ef4444');
+    cartGrad.addColorStop(0.5, '#dc2626');
+    cartGrad.addColorStop(1, '#991b1b');
+  } else {
+    cartGrad.addColorStop(0, '#3b82f6');
+    cartGrad.addColorStop(0.5, '#2563eb');
+    cartGrad.addColorStop(1, '#1d4ed8');
+  }
+
+  sdofCtx.save();
+  sdofCtx.shadowColor = isDiv ? 'rgba(220, 38, 38, 0.6)' : 'rgba(37, 99, 235, 0.35)';
+  sdofCtx.shadowBlur = isDiv ? 16 : 8;
+  sdofCtx.fillStyle = cartGrad;
+  sdofCtx.beginPath();
+  sdofCtx.roundRect(cartLeft, massY, massW, massH, 8);
+  sdofCtx.fill();
+  sdofCtx.strokeStyle = isDiv ? '#fca5a5' : '#bfdbfe';
+  sdofCtx.lineWidth = 2;
+  sdofCtx.stroke();
+  sdofCtx.restore();
+
+  // 수레 전면 연결 브래킷
+  function drawCartMount(yCenter) {
+    sdofCtx.fillStyle = '#1e293b';
+    sdofCtx.beginPath();
+    sdofCtx.roundRect(cartLeft - 10, yCenter - 7, 10, 14, 2);
+    sdofCtx.fill();
+    sdofCtx.fillStyle = '#e2e8f0';
+    sdofCtx.beginPath();
+    sdofCtx.arc(cartLeft - 5, yCenter, 2.5, 0, Math.PI * 2);
+    sdofCtx.fill();
+  }
+  drawCartMount(springY);
+  drawCartMount(damperY);
+
+  // 볼베어링 휠 캐리지
+  function drawWheel(wx) {
+    sdofCtx.fillStyle = '#0f172a';
+    sdofCtx.beginPath();
+    sdofCtx.arc(wx, groundY - 6, 6, 0, Math.PI * 2);
+    sdofCtx.fill();
+    sdofCtx.strokeStyle = '#94a3b8';
+    sdofCtx.lineWidth = 1.5;
+    sdofCtx.stroke();
+    sdofCtx.fillStyle = '#f1f5f9';
+    sdofCtx.beginPath();
+    sdofCtx.arc(wx, groundY - 6, 2.5, 0, Math.PI * 2);
+    sdofCtx.fill();
+  }
+  drawWheel(cartLeft + 20);
+  drawWheel(cartLeft + massW - 20);
+
+  // 수레 텍스트 텔레메트리
+  sdofCtx.fillStyle = '#ffffff';
+  sdofCtx.font = 'bold 12px Pretendard, sans-serif';
+  sdofCtx.textAlign = 'center';
+  sdofCtx.fillText('질량 m = 1.0 ton', massCenterX, massY + 22);
+
+  sdofCtx.font = 'bold 11px monospace';
+  sdofCtx.fillStyle = isDiv ? '#fef08a' : '#93c5fd';
+  sdofCtx.fillText(`u(t) = ${(u_num >= 0 ? '+' : '') + u_num.toFixed(3)} m`, massCenterX, massY + 42);
+
+  if (isDiv) {
+    sdofCtx.fillStyle = '#fee2e2';
+    sdofCtx.font = 'bold 9px Pretendard';
+    sdofCtx.fillText('⚠️ 발산 폭발!', massCenterX, massY - 6);
+  }
+
+  // 중앙 원점 평형선 가이드
+  sdofCtx.strokeStyle = '#94a3b8';
+  sdofCtx.lineWidth = 1;
+  sdofCtx.setLineDash([3, 3]);
+  sdofCtx.beginPath();
+  sdofCtx.moveTo(eqX, 14);
+  sdofCtx.lineTo(eqX, groundY);
+  sdofCtx.stroke();
+  sdofCtx.setLineDash([]);
+  sdofCtx.fillStyle = '#64748b';
+  sdofCtx.font = '9px monospace';
+  sdofCtx.textAlign = 'center';
+  sdofCtx.fillText('평형점 (u=0)', eqX, groundY + 22);
+}
+
+// 캔버스 드로잉 - 하단 시간-변위 정밀 비교 플롯
+function drawPlot(currT) {
+  const w = plotCanvas.width;
+  const h = plotCanvas.height;
+  plotCtx.clearRect(0, 0, w, h);
+
+  const padLeft = 65;
+  const padRight = 30;
+  const padTop = 30;
+  const padBottom = 45;
+
+  const plotW = w - padLeft - padRight;
+  const plotH = h - padTop - padBottom;
+
+  let yLimit = Math.max(1.5, Math.min(5.0, uMax * 1.15));
+  if (isDiverged) yLimit = 8.0;
+
+  // 축 배경
+  plotCtx.fillStyle = '#fcfdfe';
+  plotCtx.fillRect(padLeft, padTop, plotW, plotH);
+  plotCtx.strokeStyle = '#e2e8f0';
+  plotCtx.lineWidth = 1;
+  plotCtx.strokeRect(padLeft, padTop, plotW, plotH);
+
+  // 그리드 가로선
+  const yTicks = 6;
+  plotCtx.font = '11px monospace';
+  plotCtx.fillStyle = '#64748b';
+  plotCtx.textAlign = 'right';
+  for (let i = 0; i <= yTicks; i++) {
+    const val = -yLimit + (2 * yLimit * i) / yTicks;
+    const y = padTop + plotH - (i / yTicks) * plotH;
+    plotCtx.beginPath();
+    plotCtx.moveTo(padLeft, y);
+    plotCtx.lineTo(w - padRight, y);
+    plotCtx.stroke();
+    plotCtx.fillText(val.toFixed(1), padLeft - 8, y + 4);
+  }
+
+  // 그리드 세로선 (시간)
+  const xTicks = Math.min(10, Math.floor(totalT));
+  plotCtx.textAlign = 'center';
+  for (let i = 0; i <= xTicks; i++) {
+    const tVal = (i / xTicks) * totalT;
+    const x = padLeft + (i / xTicks) * plotW;
+    plotCtx.beginPath();
+    plotCtx.moveTo(x, padTop);
+    plotCtx.lineTo(x, padTop + plotH);
+    plotCtx.stroke();
+    plotCtx.fillText(tVal.toFixed(0) + 's', x, padTop + plotH + 18);
+  }
+
+  // Y = 0 중심 기준선
+  const yZero = padTop + plotH / 2;
+  plotCtx.strokeStyle = '#475569';
+  plotCtx.lineWidth = 1.2;
+  plotCtx.beginPath();
+  plotCtx.moveTo(padLeft, yZero);
+  plotCtx.lineTo(w - padRight, yZero);
+  plotCtx.stroke();
+
+  // (1) 정확해 곡선 (회색 솔리드 곡선)
+  plotCtx.strokeStyle = '#94a3b8';
+  plotCtx.lineWidth = 2;
+  plotCtx.beginPath();
+  let firstExact = true;
+  for (let pt of timeHistory) {
+    const x = padLeft + (pt.t / totalT) * plotW;
+    const clampedU = Math.max(-yLimit * 1.5, Math.min(yLimit * 1.5, pt.u_exact));
+    const y = yZero - (clampedU / yLimit) * (plotH / 2);
+    if (firstExact) {
+      plotCtx.moveTo(x, y);
+      firstExact = false;
+    } else {
+      plotCtx.lineTo(x, y);
+    }
+  }
+  plotCtx.stroke();
+
+  // (2) Newmark 수치해 곡선 (수렴 시 청색, 발산 시 폭발 적색)
+  plotCtx.strokeStyle = isDiverged ? '#dc2626' : '#2563eb';
+  plotCtx.lineWidth = 2.5;
+  plotCtx.beginPath();
+  let firstNum = true;
+  for (let pt of timeHistory) {
+    const x = padLeft + (pt.t / totalT) * plotW;
+    const clampedU = Math.max(-yLimit * 1.5, Math.min(yLimit * 1.5, pt.u_num));
+    const y = yZero - (clampedU / yLimit) * (plotH / 2);
+    if (firstNum) {
+      plotCtx.moveTo(x, y);
+      firstNum = false;
+    } else {
+      plotCtx.lineTo(x, y);
+    }
+  }
+  plotCtx.stroke();
+
+  // (3) 현재 재생 시점 수직 가이드라인 & 엠버 헤드
+  const currX = padLeft + (currT / totalT) * plotW;
+  plotCtx.strokeStyle = '#f59e0b';
+  plotCtx.lineWidth = 2;
+  plotCtx.beginPath();
+  plotCtx.moveTo(currX, padTop);
+  plotCtx.lineTo(currX, padTop + plotH);
+  plotCtx.stroke();
+
+  // 시간 지시 태그
+  plotCtx.fillStyle = '#f59e0b';
+  plotCtx.beginPath();
+  plotCtx.arc(currX, padTop, 4, 0, Math.PI * 2);
+  plotCtx.fill();
+
+  // 발산 경고 텍스트 오버레이
+  if (isDiverged) {
+    plotCtx.fillStyle = 'rgba(220, 38, 38, 0.95)';
+    plotCtx.font = 'bold 15px Pretendard, sans-serif';
+    plotCtx.textAlign = 'center';
+    plotCtx.fillText('⚠️ 수치적 발산 폭발 발생! (DIVERGENCE DETECTED)', padLeft + plotW / 2, padTop + 35);
+    plotCtx.font = '12px Pretendard, sans-serif';
+    plotCtx.fillText('시간간격비 Δt / Tn이 한계조건을 초과하여 오차가 지수함수적으로 급격히 증폭되었습니다.', padLeft + plotW / 2, padTop + 55);
+  }
+}
+
+// 부드러운 60FPS 애니메이션 루프
+function animate(timestamp) {
+  if (!lastTimestamp) lastTimestamp = timestamp;
+  const elapsed = (timestamp - lastTimestamp) / 1000.0;
+  lastTimestamp = timestamp;
+
+  if (isPlaying) {
+    animCurrentTime += elapsed * simSpeed;
+    if (animCurrentTime > totalT) {
+      animCurrentTime = 0.0;
+    }
+  }
+
+  animTime.textContent = `t = ${animCurrentTime.toFixed(2)} s / ${totalT.toFixed(1)} s`;
+
+  const motion = getInterpolatedMotion(animCurrentTime);
+
+  drawSDOF(motion);
+  drawPlot(animCurrentTime);
+
+  requestAnimationFrame(animate);
+}
+
+// 플롯 클릭/드래그 타임 스크러버 지원
+let isScrubbing = false;
+function handlePlotScrub(e) {
+  const rect = plotCanvas.getBoundingClientRect();
+  const padLeft = 65;
+  const padRight = 30;
+  const plotW = rect.width - padLeft - padRight;
+  const mouseX = e.clientX - rect.left - padLeft;
+  const ratio = Math.max(0, Math.min(1, mouseX / plotW));
+  animCurrentTime = ratio * totalT;
+}
+
+plotCanvas.addEventListener('mousedown', (e) => {
+  isScrubbing = true;
+  handlePlotScrub(e);
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (isScrubbing) handlePlotScrub(e);
+});
+
+window.addEventListener('mouseup', () => {
+  isScrubbing = false;
+});
+
+// 이벤트 리스너 등록
+selectMethod.addEventListener('change', (e) => {
+  method = e.target.value;
+  updateUIValues();
+  computeSimulation();
+  animCurrentTime = 0.0;
+});
+
+selectExcitation.addEventListener('change', (e) => {
+  excitation = e.target.value;
+  updateUIValues();
+  computeSimulation();
+  animCurrentTime = 0.0;
+});
+
+rangeTn.addEventListener('input', (e) => {
+  Tn = parseFloat(e.target.value);
+  updateUIValues();
+  computeSimulation();
+});
+
+rangeZeta.addEventListener('input', (e) => {
+  zeta = parseFloat(e.target.value);
+  updateUIValues();
+  computeSimulation();
+});
+
+rangeDtRatio.addEventListener('input', (e) => {
+  dtRatio = parseFloat(e.target.value);
+  updateUIValues();
+  computeSimulation();
+});
+
+rangeTotalT.addEventListener('input', (e) => {
+  totalT = parseFloat(e.target.value);
+  updateUIValues();
+  computeSimulation();
+  if (animCurrentTime > totalT) animCurrentTime = 0.0;
+});
+
+btnPlay.addEventListener('click', () => {
+  isPlaying = !isPlaying;
+  const icon = isPlaying ? '<i class="fa-solid fa-pause mr-1.5"></i>' : '<i class="fa-solid fa-play mr-1.5"></i>';
+  btnPlay.innerHTML = icon + (isPlaying ? '일시정지' : '재생');
+});
+
+btnReset.addEventListener('click', () => {
+  animCurrentTime = 0.0;
+  computeSimulation();
+});
+
+// 초기화 실행
+updateUIValues();
+computeSimulation();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 40: KDS 구조해석법 선정 매트릭스 & 지반·비정형성 판정기</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-amber: #f59e0b;
+    --accent-emerald: #10b981;
+    --accent-rose: #f43f5e;
+    --accent-purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+  .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+  .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+  .main-container { flex: 1; display: grid; grid-template-columns: 340px 1fr 320px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
+  @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
+
+  .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+  .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+
+  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .control-group label { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+  select, input[type="number"], input[type="range"] { background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 4px; font-size: 0.85rem; width: 100%; }
+  .checkbox-list { display: flex; flex-direction: column; gap: 0.4rem; background: rgba(15, 23, 42, 0.5); padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border); }
+  .checkbox-item { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.78rem; color: var(--text-main); cursor: pointer; }
+  .checkbox-item input { margin-top: 0.2rem; accent-color: var(--accent-rose); }
+
+  .decision-box { padding: 1.2rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.6rem; border: 2px solid; text-align: center; }
+  .decision-box.static-ok { background: rgba(16, 185, 129, 0.1); border-color: var(--accent-emerald); }
+  .decision-box.dynamic-req { background: rgba(244, 63, 94, 0.12); border-color: var(--accent-rose); }
+  .decision-title { font-size: 1.25rem; font-weight: 800; }
+  .decision-sub { font-size: 0.8rem; line-height: 1.4; }
+
+  .sdc-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 800; font-size: 1.1rem; }
+  .sdc-A { background: rgba(56, 189, 248, 0.2); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
+  .sdc-B { background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald); border: 1px solid var(--accent-emerald); }
+  .sdc-C { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
+  .sdc-D { background: rgba(244, 63, 94, 0.2); color: var(--accent-rose); border: 1px solid var(--accent-rose); }
+
+  .code-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+  .code-table th, .code-table td { border: 1px solid var(--border); padding: 0.4rem 0.5rem; text-align: left; }
+  .code-table th { background: #0b1120; color: var(--accent-blue); }
+  .code-table tr.highlight { background: rgba(245, 158, 11, 0.15); font-weight: 700; color: #fff; }
+
+  .building-view { flex: 1; background: #0b1120; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 380px; }
+  canvas { width: 100%; height: 100%; display: block; }
+</style>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-fx.js" defer></script>
+</head>
+<body>
+
+<header>
+  <div class="title-group">
+    <h1><span class="badge">Sim 40</span> KDS 해석법 선정기 & 지반·비정형성 매트릭스</h1>
+    <p>KDS 41 17 00 표 7.1-1: 내진설계범주(SDC A~D) 판정과 비정형성에 따른 동적해석 의무화 진단</p>
+  </div>
+  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.85rem;">← 마스터 포털 복귀</a>
+</header>
+
+<div class="main-container">
+  <!-- Left Inputs -->
+  <div class="panel">
+    <div class="panel-title">1. 지역 지반 및 건물 기본제원</div>
+
+    <div class="control-group">
+      <label>지진구역 (Seismic Zone)</label>
+      <select id="selZone" onchange="recalculate()">
+        <option value="0.22" selected>1구역 (서울, 경기, 영남, 호남: S = 0.22g)</option>
+        <option value="0.14">2구역 (강원 북부, 제주: S = 0.14g)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>지반 종류 (Site Class)</label>
+      <select id="selSoil" onchange="recalculate()">
+        <option value="S1">S1: 보통암 지반 (Vs > 760 m/s)</option>
+        <option value="S2" selected>S2: 얕고 단단한 지반 (기반암 20m 미만)</option>
+        <option value="S3">S3: 얕고 연약한 지반</option>
+        <option value="S4">S4: 깊고 단단한 지반 (기반암 20m 이상)</option>
+        <option value="S5">S5: 깊고 연약한 지반 (연약점토/모래)</option>
+        <option value="S6">S6: 부지응답해석 필수 지반</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>내진등급 및 중요도 계수 (IE)</label>
+      <select id="selImportance" onchange="recalculate()">
+        <option value="1.0" selected>내진 II등급 (주택, 사무실: IE = 1.0)</option>
+        <option value="1.2">내진 I등급 (학교, 대형마트, 1000인 집회: IE = 1.2)</option>
+        <option value="1.5">내진 특등급 (병원, 소방서, 대피소: IE = 1.5)</option>
+      </select>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+      <div class="control-group">
+        <label><span>층수 (N)</span> <span id="lblStories">15층</span></label>
+        <input type="range" id="rngStories" min="1" max="40" value="15" oninput="updateStories(this.value)">
+      </div>
+      <div class="control-group">
+        <label><span>총 높이 (H)</span> <span id="lblHeight">45.0 m</span></label>
+        <input type="number" id="numHeight" value="45.0" step="0.5" onchange="updateHeight(this.value)">
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">2. 비정형성 체크리스트 (Irregularities)</div>
+
+    <div class="checkbox-list">
+      <label class="checkbox-item">
+        <input type="checkbox" id="chkSoftStory" onchange="recalculate()">
+        <span><strong>[V-1] 강성 비정형 (Soft Story)</strong><br><small style="color:var(--text-muted);">1층 필로티 등 하부 강성이 상부층 대비 70% 미만</small></span>
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chkMass" onchange="recalculate()">
+        <span><strong>[V-2] 중량/질량 비정형</strong><br><small style="color:var(--text-muted);">특정 층 질량이 인접 층의 150% 초과 (기계실 등)</small></span>
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chkSetback" onchange="recalculate()">
+        <span><strong>[V-3] 기하학적 비정형 (Setback)</strong><br><small style="color:var(--text-muted);">수평 치수 단차 130% 초과 셋백</small></span>
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chkDiscontinuity" onchange="recalculate()">
+        <span><strong>[V-4] 면내 내력요소 불연속</strong><br><small style="color:var(--text-muted);">상부 전단벽이 하부 기둥/전이보에서 꺾임</small></span>
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chkTorsion" onchange="recalculate()">
+        <span><strong>[H-1] 평면 비틀림 비정형</strong><br><small style="color:var(--text-muted);">최대 층간변위가 평균 변위의 1.2배 초과</small></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Center Visualization & Decision -->
+  <div class="panel" style="display:flex; flex-direction:column; gap:0.8rem;">
+    <!-- Big Decision Banner -->
+    <div id="decisionBox" class="decision-box static-ok">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.8rem; color:var(--text-muted);">KDS 41 17 00 해석법 적용 판정</span>
+        <span id="sdcBadge" class="sdc-badge sdc-D">내진설계범주 SDC D</span>
+      </div>
+      <div id="decisionTitle" class="decision-title" style="color:var(--accent-emerald);">등가정적해석법 적용 가능 (Pass)</div>
+      <div id="decisionReason" class="decision-sub">SDC D에서 높이 70m 미만의 정형 구조물 요건을 충족합니다.</div>
+    </div>
+
+    <!-- 3D Building Sketch -->
+    <div class="building-view">
+      <canvas id="bldgCanvas"></canvas>
+    </div>
+
+    <!-- Code Rule Reference Table -->
+    <div style="background:rgba(15,23,42,0.6); padding:0.6rem; border-radius:6px; border:1px solid var(--border);">
+      <div style="font-size:0.8rem; font-weight:700; color:var(--accent-blue); margin-bottom:0.4rem;">
+        KDS 41 17 00 [표 7.1-1] 내진설계범주 'D'에 대한 해석방법 규준
+      </div>
+      <table class="code-table">
+        <thead>
+          <tr>
+            <th>구조물 형태</th>
+            <th>허용 해석방법</th>
+            <th>해당 여부</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Right Details & Design Acceleration -->
+  <div class="panel">
+    <div class="panel-title">설계 가속도 계수 산출 근거</div>
+
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+      <div style="background:#0b1120; padding:0.6rem; border-radius:6px; border:1px solid var(--border);">
+        <div style="font-size:0.75rem; color:var(--text-muted);">단주기 설계스펙트럼 가속도 SDS</div>
+        <div style="font-size:1.1rem; font-weight:800; color:var(--accent-blue);" id="valSDS">0.550 g</div>
+        <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.2rem;">SDS = 2/3 × 2.5 × S × Fa</div>
+      </div>
+
+      <div style="background:#0b1120; padding:0.6rem; border-radius:6px; border:1px solid var(--border);">
+        <div style="font-size:0.75rem; color:var(--text-muted);">1초주기 설계스펙트럼 가속도 SD1</div>
+        <div style="font-size:1.1rem; font-weight:800; color:var(--accent-amber);" id="valSD1">0.220 g</div>
+        <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.2rem;">SD1 = 2/3 × S × Fv</div>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:0.5rem;">엔지니어링 핵심 교훈 (슬라이드 2~6)</div>
+
+    <div class="takeaway" style="font-size:0.75rem; line-height:1.4;">
+      <strong>⚠️ 필로티 연약층(Soft Story)의 함정</strong><br>
+      건물 높이가 15m에 불과한 4~5층 소형 건물이라도, 1층에 필로티(V-1)가 있는 순간 <strong>SDC D에서 등가정적해석이 원천 금지</strong>되며 반드시 동적해석(모드스펙트럼/시간이력)을 수행해야 합니다.
+    </div>
+
+    <div class="takeaway" style="font-size:0.75rem; line-height:1.4; border-left-color:var(--accent-amber);">
+      <strong>정형 vs 비정형의 경계</strong><br>
+      SDC C에서는 70m/21층 미만 정형, 20m/6층 미만 비정형까지 등가정적이 허용되지만, SDC D에서는 주요 비정형(V-1,2,3, H-1)이 하나라도 감지되면 즉시 동적해석으로 강제 전환됩니다.
+    </div>
+  </div>
+</div>
+
+<script>
+  let nStories = 15;
+  let bldgHeight = 45.0;
+
+  const canvas = document.getElementById('bldgCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+  }
+  window.addEventListener('resize', () => { resize(); recalculate(); });
+
+  function updateStories(v) {
+    nStories = parseInt(v);
+    document.getElementById('lblStories').textContent = nStories + '층';
+    bldgHeight = nStories * 3.0;
+    document.getElementById('numHeight').value = bldgHeight.toFixed(1);
+    document.getElementById('lblHeight').textContent = bldgHeight.toFixed(1) + ' m';
+    recalculate();
+  }
+
+  function updateHeight(v) {
+    bldgHeight = parseFloat(v);
+    document.getElementById('lblHeight').textContent = bldgHeight.toFixed(1) + ' m';
+    recalculate();
+  }
+
+  function recalculate() {
+    const S = parseFloat(document.getElementById('selZone').value);
+    const soil = document.getElementById('selSoil').value;
+    const Ie = parseFloat(document.getElementById('selImportance').value);
+
+    // Site amplification coefficients (KDS 41 Table)
+    let Fa = 1.0, Fv = 1.0;
+    if (soil === 'S1') { Fa = 1.0; Fv = 1.0; }
+    else if (soil === 'S2') { Fa = 1.2; Fv = 1.3; }
+    else if (soil === 'S3') { Fa = 1.4; Fv = 1.6; }
+    else if (soil === 'S4') { Fa = 1.3; Fv = 1.8; }
+    else if (soil === 'S5') { Fa = 1.2; Fv = 2.4; }
+    else if (soil === 'S6') { Fa = 1.0; Fv = 1.0; } // Site response needed
+
+    const SDS = (2/3) * 2.5 * S * Fa;
+    const SD1 = (2/3) * S * Fv;
+
+    document.getElementById('valSDS').textContent = SDS.toFixed(3) + ' g';
+    document.getElementById('valSD1').textContent = SD1.toFixed(3) + ' g';
+
+    // SDC Determination (KDS Table 4.1-1, 4.1-2)
+    let sdcShort = 'D', sdc1s = 'D';
+    if (SDS < 0.167) sdcShort = 'A';
+    else if (SDS < 0.33) sdcShort = 'B';
+    else if (SDS < 0.50) sdcShort = 'C';
+    else sdcShort = 'D';
+
+    if (SD1 < 0.067) sdc1s = 'A';
+    else if (SD1 < 0.133) sdc1s = 'B';
+    else if (SD1 < 0.20) sdc1s = 'C';
+    else sdc1s = 'D';
+
+    // Strict priority: D > C > B > A
+    const ranks = { 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
+    let sdc = (ranks[sdcShort] >= ranks[sdc1s]) ? sdcShort : sdc1s;
+
+    // Importance Factor 'Special' (1.5) upgrades C to D
+    if (Ie === 1.5 && sdc === 'C') sdc = 'D';
+
+    // SDC Badge UI
+    const sdcBadge = document.getElementById('sdcBadge');
+    sdcBadge.textContent = `내진설계범주 SDC ${sdc}`;
+    sdcBadge.className = `sdc-badge sdc-${sdc}`;
+
+    // Irregularity checks
+    const hasSoftStory = document.getElementById('chkSoftStory').checked;
+    const hasMass = document.getElementById('chkMass').checked;
+    const hasSetback = document.getElementById('chkSetback').checked;
+    const hasDiscontinuity = document.getElementById('chkDiscontinuity').checked;
+    const hasTorsion = document.getElementById('chkTorsion').checked;
+
+    const hasAnyIrreg = hasSoftStory || hasMass || hasSetback || hasDiscontinuity || hasTorsion;
+    const hasMajorIrreg = hasSoftStory || hasMass || hasSetback || hasTorsion; // V-1,2,3 or H-1
+
+    // Analysis procedure logic (KDS 7.1)
+    let staticAllowed = true;
+    let failReason = "";
+
+    if (sdc === 'A' || sdc === 'B') {
+      staticAllowed = true;
+      failReason = `SDC ${sdc}이므로 등가정적해석법 적용이 허용됩니다.`;
+    } else if (sdc === 'C') {
+      if (!hasAnyIrreg) {
+        if (bldgHeight >= 70 || nStories >= 21) {
+          staticAllowed = false;
+          failReason = "SDC C에서 높이 70m 이상 또는 21층 이상의 정형구조물이므로 동적해석법을 사용하여야 합니다.";
+        } else {
+          staticAllowed = true;
+          failReason = "SDC C에서 높이 70m 미만 & 21층 미만의 정형구조물이므로 등가정적해석이 가능합니다.";
+        }
+      } else {
+        if (bldgHeight >= 20 || nStories >= 6) {
+          staticAllowed = false;
+          failReason = "SDC C에서 비정형성을 가지며 높이 20m 이상 또는 6층 이상이므로 동적해석법이 의무화됩니다.";
+        } else {
+          staticAllowed = true;
+          failReason = "SDC C의 비정형구조물이나 20m 미만 & 6층 미만이므로 등가정적해석이 허용됩니다.";
+        }
+      }
+    } else { // SDC D
+      if (!hasAnyIrreg) {
+        if (bldgHeight < 70) {
+          staticAllowed = true;
+          failReason = "SDC D에서 높이 70m 미만의 정형구조물이므로 등가정적해석이 가능합니다.";
+        } else {
+          staticAllowed = false;
+          failReason = "SDC D에서 높이 70m를 초과하므로 동적해석법이 의무화됩니다.";
+        }
+      } else {
+        // Has irregularity in SDC D
+        if (hasMajorIrreg) {
+          staticAllowed = false;
+          failReason = "SDC D에서 주요 비정형(V-1 연약층, V-2 질량, V-3 셋백, H-1 비틀림)이 감지되어 등가정적해석이 불가하며 동적해석법이 의무입니다.";
+        } else {
+          // only discontinuity (V-4), allowed if <= 5 stories and <= 20m
+          if (nStories <= 5 && bldgHeight <= 20) {
+            staticAllowed = true;
+            failReason = "SDC D에서 기타 비정형(V-4)을 가지나 5층 이하 및 20m 이하이므로 등가정적해석이 허용됩니다.";
+          } else {
+            staticAllowed = false;
+            failReason = "SDC D에서 비정형성을 가지며 5층/20m를 초과하므로 동적해석법을 사용하여야 합니다.";
+          }
+        }
+      }
+    }
+
+    // Update Decision Box UI
+    const decBox = document.getElementById('decisionBox');
+    const decTitle = document.getElementById('decisionTitle');
+    const decReason = document.getElementById('decisionReason');
+
+    if (staticAllowed) {
+      decBox.className = "decision-box static-ok";
+      decTitle.textContent = "등가정적해석법 적용 가능 (Pass)";
+      decTitle.style.color = "var(--accent-emerald)";
+      decReason.textContent = failReason;
+    } else {
+      decBox.className = "decision-box dynamic-req";
+      decTitle.textContent = "동적해석법 의무 적용 (Dynamic Analysis Required)";
+      decTitle.style.color = "var(--accent-rose)";
+      decReason.textContent = "🚨 " + failReason;
+    }
+
+    updateTable(sdc, staticAllowed);
+    drawBuilding(hasSoftStory, hasMass, hasSetback, hasDiscontinuity, hasTorsion);
+  }
+
+  function updateTable(sdc, isStaticOk) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = `
+      <tr class="${(!isStaticOk ? 'highlight' : '')}">
+        <td>4. 평면 또는 수직 비정형성을 가지는 기타 구조물, 또는 높이 70m 초과 정형구조물</td>
+        <td>동적해석법 필수</td>
+        <td>${!isStaticOk ? '🔴 해당 (의무)' : '-'}</td>
+      </tr>
+      <tr class="${(isStaticOk ? 'highlight' : '')}">
+        <td>2. 높이 70m 미만의 정형구조물</td>
+        <td>등가정적 또는 동적해석법</td>
+        <td>${isStaticOk ? '🟢 해당 (허용)' : '-'}</td>
+      </tr>
+      <tr>
+        <td>1. 3층 이하 경량골조 / 2층 이하 유연격막</td>
+        <td>등가정적 또는 동적해석법</td>
+        <td>-</td>
+      </tr>
+    `;
+  }
+
+  function drawBuilding(soft, mass, setback, discont, torsion) {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const btmY = h - 30;
+    const topY = 40;
+    const totalAvailH = btmY - topY;
+    const storyH = Math.min(22, totalAvailH / nStories);
+
+    const midX = w / 2;
+    const bldgW = 140;
+
+    // Ground
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(midX - 100, btmY, 200, 6);
+
+    for (let s = 0; s < nStories; s++) {
+      const curY = btmY - (s + 1) * storyH;
+      let curW = bldgW;
+      let curLeft = midX - bldgW / 2;
+
+      // Setback simulation (top 40% floors shrink)
+      if (setback && s >= Math.floor(nStories * 0.6)) {
+        curW = bldgW * 0.6;
+        curLeft = midX - curW / 2;
+      }
+
+      // Fill color
+      ctx.fillStyle = "rgba(30, 41, 59, 0.7)";
+      if (soft && s === 0) {
+        // Soft story (story 1)
+        ctx.fillStyle = "rgba(244, 63, 94, 0.4)";
+      } else if (mass && s === Math.floor(nStories / 2)) {
+        // Heavy mechanical floor
+        ctx.fillStyle = "rgba(245, 158, 11, 0.4)";
+      }
+      ctx.fillRect(curLeft, curY, curW, storyH);
+
+      // Floor slab line
+      ctx.strokeStyle = "#475569";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(curLeft, curY, curW, storyH);
+
+      // Soft story columns
+      if (soft && s === 0) {
+        ctx.strokeStyle = "#f43f5e";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(curLeft + 15, curY); ctx.lineTo(curLeft + 15, curY + storyH);
+        ctx.moveTo(curLeft + curW - 15, curY); ctx.lineTo(curLeft + curW - 15, curY + storyH);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+
+        ctx.fillStyle = "#f43f5e";
+        ctx.font = "bold 10px sans-serif";
+        ctx.fillText("V-1 Soft Story", curLeft + curW + 10, curY + storyH / 2 + 3);
+      }
+
+      // Mass label
+      if (mass && s === Math.floor(nStories / 2)) {
+        ctx.fillStyle = "#f59e0b";
+        ctx.font = "bold 10px sans-serif";
+        ctx.fillText("V-2 Heavy Mass (+150%)", curLeft + curW + 10, curY + storyH / 2 + 3);
+      }
+    }
+
+    // Setback label
+    if (setback) {
+      const sbY = btmY - (Math.floor(nStories * 0.6) + 1) * storyH;
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillText("V-3 Setback (-40% 폭)", midX + bldgW / 2 + 10, sbY);
+    }
+
+    // Torsion rotation mark
+    if (torsion) {
+      ctx.strokeStyle = "#a855f7";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(midX, topY - 15, 20, 0.2 * Math.PI, 1.8 * Math.PI);
+      ctx.stroke();
+      ctx.fillStyle = "#a855f7";
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText("H-1 비틀림 연성 (RZ)", midX - 50, topY - 20);
+    }
+  }
+
+  resize();
+  recalculate();
+</script>
+
+</body>
+</html>
