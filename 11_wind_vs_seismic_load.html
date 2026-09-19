@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>11. 고층건물 풍하중 vs 지진하중 횡력 비교 시뮬레이터 (A/B 병렬 검수)</title>
+<title>11. 고층건물 풍하중 vs 지진하중 횡력 비교 시뮬레이터 (3D BIM + CAD 통합)</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<!-- Three.js & OrbitControls for Option B -->
+<!-- Three.js & OrbitControls -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <style>
@@ -312,7 +312,7 @@
 
   .comparison-grid {
     display: grid;
-    grid-template-columns: 290px 1fr 1fr;
+    grid-template-columns: 310px 1fr 1fr;
     gap: 14px;
   }
   @media (max-width: 960px) {
@@ -321,7 +321,7 @@
 
   .viewer-col {
     position: relative;
-    height: 440px;
+    height: 460px;
     border-radius: 6px;
     border: 1px solid #e2e8f0;
     background: #ffffff;
@@ -329,7 +329,7 @@
   }
   .chart-col {
     position: relative;
-    height: 440px;
+    height: 460px;
     border-radius: 6px;
     border: 1px solid #e2e8f0;
     background: #ffffff;
@@ -347,21 +347,21 @@
     position: absolute;
     top: 0;
     left: 0;
-    display: none;
   }
   #threeHud {
     position: absolute;
     bottom: 8px;
     left: 8px;
-    font-size: 10px;
+    font-size: 10.5px;
     font-family: monospace;
-    color: #475569;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 3px 8px;
-    border-radius: 4px;
+    color: #334155;
+    background: rgba(255, 255, 255, 0.94);
+    padding: 4px 9px;
+    border-radius: 6px;
     border: 1px solid #cbd5e1;
     pointer-events: none;
     z-index: 10;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
 
   .bottom-insight {
@@ -388,7 +388,7 @@
   <header>
     <div class="header-left">
       <h1>11. 고층건물 풍하중(Wind) vs 지진하중(Seismic) 횡력 비교</h1>
-      <p>A/B 병렬 검수: <strong>[A안] CAD 정밀 도면</strong> vs <strong>[B안] Three.js 실시간 3D 뷰어</strong></p>
+      <p>3D 건축 모델 + CAD 정밀 치수선(H, B, 표고) + 공기역학 3D 기류 & 지진 모달 진동 시뮬레이터</p>
     </div>
     <a href="index.html" class="nav-badge">← 마스터 대시보드</a>
   </header>
@@ -495,10 +495,10 @@
     <div class="main-content">
       <div class="canvas-wrapper">
         <div class="canvas-header">
-          <!-- A/B 선택 스위처 -->
+          <!-- A/B 뷰 스위처 (기본값 B안: 3D BIM + CAD 통합) -->
           <div class="view-switcher-bar">
-            <button id="btnViewA" class="view-btn active" onclick="switchView('A')">📐 A안: CAD 정밀 도면 (2D)</button>
-            <button id="btnViewB" class="view-btn" onclick="switchView('B')">🌐 B안: Three.js 3D 뷰어 (3D)</button>
+            <button id="btnViewB" class="view-btn active" onclick="switchView('B')">🌐 3D 건축 BIM + CAD 치수 (A+B 통합)</button>
+            <button id="btnViewA" class="view-btn" onclick="switchView('A')">📐 2D CAD 평면도/입면도</button>
           </div>
 
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -521,12 +521,12 @@
         </div>
 
         <div class="comparison-grid">
-          <!-- 1열: 입면 뷰어 (A: 2D CAD Canvas / B: Three.js WebGL Container) -->
+          <!-- 1열: 입면 뷰어 (Three.js 3D 건축 모델 + 3D 치수선 / 2D CAD 전환) -->
           <div class="viewer-col">
-            <canvas id="bldgCanvas"></canvas>
             <div id="threeContainer">
-              <div id="threeHud">🖱️ 좌클릭 드래그: 3D 회전 | 우클릭: 이동 | 스크롤: 줌</div>
+              <div id="threeHud">🖱️ 좌클릭: 3D 회전 | 우클릭: 이동 | 휠: 줌</div>
             </div>
+            <canvas id="bldgCanvas" style="display: none;"></canvas>
           </div>
           <!-- 2열: 횡하중 Fi 프로파일 -->
           <div class="chart-col">
@@ -555,7 +555,7 @@
 // =============================================================================
 // GLOBAL STATE & PARAMETERS
 // =============================================================================
-let activeView = 'A'; // 'A' (CAD 2D) or 'B' (Three.js 3D)
+let activeView = 'B'; // Default to B (Three.js 3D BIM + CAD Dimensions)
 let stories = 20;
 let floorH = 3.3;
 let bldgWidth = 30.0;
@@ -576,7 +576,7 @@ let currentVSeismic = [];
 let hoverFloor = -1;
 let hoverCanvasType = null; // 'force' or 'shear'
 
-// Streamline particles for Option A (2D CAD)
+// Streamline particles for Option A (2D CAD fallback)
 const streamlines2D = [];
 for (let i = 0; i < 22; i++) {
   streamlines2D.push({
@@ -647,6 +647,9 @@ function setAnimMode(mode) {
   document.getElementById('btnModeCompare').classList.toggle('active', mode === 'compare');
   document.getElementById('btnModeWind').classList.toggle('active', mode === 'wind');
   document.getElementById('btnModeSeismic').classList.toggle('active', mode === 'seismic');
+  if (activeView === 'B' && threeScene) {
+    updateThreeVectorVisibility();
+  }
 }
 
 function setPresetStories(n) {
@@ -687,16 +690,16 @@ function updateAnalysis() {
     const qz = q0 * Kz;
     const Gf = 1.85;
     const Cp = 1.30;
-    const pz = qz * Gf * Cp; // N/m²
-    const Fi_w = (pz * tribArea) / 1000.0; // kN
+    const pz = qz * Gf * Cp;
+    const Fi_w = (pz * tribArea) / 1000.0;
     currentFWind.push(Fi_w);
   }
 
   // 2. 지진하중 계산 (KDS 41 17 00 등가정적해석법)
   const floorArea = bldgWidth * bldgWidth;
-  const floorWeight = floorArea * 11.5; // 11.5 kN/m²
+  const floorWeight = floorArea * 11.5;
   const totalW = floorWeight * stories;
-  const Tn = 0.07 * Math.pow(totalH, 0.75); // 근사고유주기
+  const Tn = 0.07 * Math.pow(totalH, 0.75);
   const Cs = Math.min(Sds / (R / 1.0), Sds / (Tn * (R / 1.0)));
   const Vbase_s = Math.max(0.044 * Sds * totalW, Cs * totalW);
 
@@ -770,7 +773,6 @@ function updateAnalysis() {
 function handleResize() {
   const dpr = window.devicePixelRatio || 1;
 
-  // 1. 2D Canvases Sizing
   [bldgCanvas, forceCanvas, shearCanvas].forEach((c) => {
     const rect = c.parentElement.getBoundingClientRect();
     const w = rect.width;
@@ -779,7 +781,6 @@ function handleResize() {
     c.height = Math.round(h * dpr);
   });
 
-  // 2. Three.js Sizing
   if (threeRenderer) {
     resizeThree();
   }
@@ -788,7 +789,413 @@ function handleResize() {
 }
 
 // =============================================================================
-// OPTION A: CAD / BIM ARCHITECTURAL TECHNICAL DRAWING (2D)
+// OPTION B: THREE.JS 3D BIM + CAD DIMENSIONS INTEGRATED
+// =============================================================================
+let threeScene, threeCamera, threeRenderer, threeControls;
+let floorMeshes = [];
+let threeParticles;
+const THREE_NUM_PARTICLES = 70;
+let threeParticlePositions;
+let dimensionGroup, vectorGroup, beaconMesh;
+
+// Helper: Create High-DPI Canvas Text Sprites for 3D Dimensions
+function createCADSprite(text, color = '#0f172a', bg = 'rgba(255, 255, 255, 0.92)', border = '#cbd5e1') {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = bg;
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 4;
+  if (ctx.roundRect) {
+    ctx.roundRect(8, 8, 496, 112, 16);
+  } else {
+    ctx.rect(8, 8, 496, 112);
+  }
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = color;
+  ctx.font = 'bold 44px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, 64);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(6.8, 1.7, 1);
+  return sprite;
+}
+
+function initThreeScene() {
+  const container = document.getElementById('threeContainer');
+  const w = container.clientWidth || 310;
+  const h = container.clientHeight || 460;
+
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color(0xf8fafc);
+
+  threeCamera = new THREE.PerspectiveCamera(38, w / h, 1, 1000);
+  threeCamera.position.set(52, 38, 62);
+
+  threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  threeRenderer.setPixelRatio(window.devicePixelRatio || 1);
+  threeRenderer.setSize(w, h);
+  threeRenderer.shadowMap.enabled = true;
+  container.appendChild(threeRenderer.domElement);
+
+  threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+  threeControls.enableDamping = true;
+  threeControls.dampingFactor = 0.08;
+  threeControls.maxPolarAngle = Math.PI / 2 - 0.02;
+  threeControls.target.set(0, 15, 0);
+  threeControls.update();
+
+  // 조명 (Architectural Studio Lighting)
+  const ambLight = new THREE.AmbientLight(0xffffff, 0.82);
+  threeScene.add(ambLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
+  dirLight.position.set(35, 55, 45);
+  dirLight.castShadow = true;
+  threeScene.add(dirLight);
+
+  const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+  fillLight.position.set(-35, 25, -35);
+  threeScene.add(fillLight);
+
+  // 바닥 지반 그리드 (Ground Grid)
+  const gridHelper = new THREE.GridHelper(80, 24, 0x64748b, 0xe2e8f0);
+  gridHelper.position.y = 0;
+  threeScene.add(gridHelper);
+
+  // 3D 공기역학 기류 파티클 (3D Streamlines)
+  const pGeom = new THREE.BufferGeometry();
+  threeParticlePositions = new Float32Array(THREE_NUM_PARTICLES * 3);
+  for (let i = 0; i < THREE_NUM_PARTICLES; i++) {
+    threeParticlePositions[i * 3 + 0] = -40 + Math.random() * 80;
+    threeParticlePositions[i * 3 + 1] = 1 + Math.random() * 45;
+    threeParticlePositions[i * 3 + 2] = -25 + Math.random() * 50;
+  }
+  pGeom.setAttribute('position', new THREE.BufferAttribute(threeParticlePositions, 3));
+
+  const pMat = new THREE.PointsMaterial({
+    color: 0x0891b2,
+    size: 1.8,
+    transparent: true,
+    opacity: 0.75
+  });
+  threeParticles = new THREE.Points(pGeom, pMat);
+  threeScene.add(threeParticles);
+}
+
+function resizeThree() {
+  if (!threeRenderer || !threeCamera) return;
+  const container = document.getElementById('threeContainer');
+  const w = container.clientWidth || 310;
+  const h = container.clientHeight || 460;
+  threeCamera.aspect = w / h;
+  threeCamera.updateProjectionMatrix();
+  threeRenderer.setSize(w, h);
+}
+
+function rebuildThreeBuilding() {
+  if (!threeScene) return;
+
+  // 1. 기존 메쉬 및 그룹 정리
+  floorMeshes.forEach(m => threeScene.remove(m));
+  floorMeshes = [];
+  if (dimensionGroup) threeScene.remove(dimensionGroup);
+  if (vectorGroup) threeScene.remove(vectorGroup);
+
+  dimensionGroup = new THREE.Group();
+  vectorGroup = new THREE.Group();
+  threeScene.add(dimensionGroup);
+  threeScene.add(vectorGroup);
+
+  const bldgScale = 0.52;
+  const slabW = (bldgWidth / 2.0) * bldgScale;
+  const slabD = (bldgWidth / 2.0) * bldgScale;
+  const slabH = 0.40;
+  const totalH3D = stories * (floorH * bldgScale * 0.45);
+  const storyH3D = totalH3D / stories;
+
+  // 2. 지하 매트 기초 & 지반 블록 (Foundation & Bedrock)
+  const matGeom = new THREE.BoxGeometry(slabW * 1.32, 2.2, slabD * 1.32);
+  const matMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.4 });
+  const matMesh = new THREE.Mesh(matGeom, matMat);
+  matMesh.position.set(0, -1.1, 0);
+  const matEdges = new THREE.EdgesGeometry(matGeom);
+  matMesh.add(new THREE.LineSegments(matEdges, new THREE.LineBasicMaterial({ color: 0x334155, linewidth: 1.5 })));
+  threeScene.add(matMesh);
+  floorMeshes.push(matMesh);
+
+  // 3. 층별 슬래브, 커튼월 창호, 기둥, 코어 생성
+  for (let i = 0; i < stories; i++) {
+    const group = new THREE.Group();
+    const yPos = (i + 1) * storyH3D;
+
+    // A. 층 슬래브 (Floor Slab)
+    const slabGeom = new THREE.BoxGeometry(slabW, slabH, slabD);
+    const slabMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.25,
+      metalness: 0.05
+    });
+    const slabMesh = new THREE.Mesh(slabGeom, slabMat);
+    slabMesh.castShadow = true;
+    slabMesh.receiveShadow = true;
+
+    // 슬래브 엣지 라인
+    const edges = new THREE.EdgesGeometry(slabGeom);
+    slabMesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x334155, linewidth: 1.5 })));
+
+    // B. 커튼월 유리 외장 (Curtain Wall Glass Facade)
+    const glassH = storyH3D - slabH;
+    const glassGeom = new THREE.BoxGeometry(slabW * 0.98, glassH, slabD * 0.98);
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0xbde0fe,
+      transparent: true,
+      opacity: 0.35,
+      roughness: 0.1,
+      metalness: 0.15
+    });
+    const glassMesh = new THREE.Mesh(glassGeom, glassMat);
+    glassMesh.position.y = -glassH / 2;
+    slabMesh.add(glassMesh);
+
+    // C. 스팬드럴 밴드 (Spandrel Band, 층간 어두운 띠)
+    const spandrelGeom = new THREE.BoxGeometry(slabW * 0.99, glassH * 0.22, slabD * 0.99);
+    const spandrelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+    const spandrelMesh = new THREE.Mesh(spandrelGeom, spandrelMat);
+    spandrelMesh.position.y = -glassH * 0.11;
+    slabMesh.add(spandrelMesh);
+
+    // D. 4개 코너 기둥 (Corner Structural Columns)
+    const colH = storyH3D - slabH;
+    const colGeom = new THREE.BoxGeometry(0.5, colH, 0.5);
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+    const colOffset = slabW / 2 - 0.35;
+
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+      const col = new THREE.Mesh(colGeom, colMat);
+      col.position.set(cx * colOffset, -colH / 2, cz * colOffset);
+      slabMesh.add(col);
+    });
+
+    // E. 중앙 엘리베이터/계단 전단벽 코어 (Central Shear Core)
+    const coreGeom = new THREE.BoxGeometry(slabW * 0.38, storyH3D, slabD * 0.38);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x64748b,
+      transparent: true,
+      opacity: 0.28,
+      roughness: 0.3
+    });
+    const coreMesh = new THREE.Mesh(coreGeom, coreMat);
+    coreMesh.position.y = -storyH3D / 2;
+    slabMesh.add(coreMesh);
+
+    // F. 1층 그랜드 로비 출입구 캐노피 (Entrance Canopy on 1F)
+    if (i === 0) {
+      const canopyGeom = new THREE.BoxGeometry(slabW * 0.45, 0.2, 2.2);
+      const canopyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a });
+      const canopyMesh = new THREE.Mesh(canopyGeom, canopyMat);
+      canopyMesh.position.set(0, -glassH * 0.5, slabD / 2 + 1.1);
+      slabMesh.add(canopyMesh);
+    }
+
+    group.position.set(0, yPos, 0);
+    group.userData = { baseY: yPos, storyIndex: i };
+    threeScene.add(group);
+    floorMeshes.push(group);
+  }
+
+  // 4. 옥상 기계실(Penthouse) & 통신 안테나 & 점멸 항공장애등
+  if (floorMeshes.length > 1) {
+    const topGroup = floorMeshes[floorMeshes.length - 1];
+
+    // 기계실
+    const pentGeom = new THREE.BoxGeometry(slabW * 0.52, 1.8, slabD * 0.52);
+    const pentMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+    const pentMesh = new THREE.Mesh(pentGeom, pentMat);
+    pentMesh.position.set(0, 1.1, 0);
+    pentMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(pentGeom), new THREE.LineBasicMaterial({ color: 0x0f172a })));
+    topGroup.add(pentMesh);
+
+    // 안테나 마스트
+    const mastGeom = new THREE.CylinderGeometry(0.12, 0.16, 3.2, 8);
+    const mastMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+    const mastMesh = new THREE.Mesh(mastGeom, mastMat);
+    mastMesh.position.set(0, 3.2, 0);
+    topGroup.add(mastMesh);
+
+    // 점멸 항공장애등 (Beacon Sphere)
+    const beaconGeom = new THREE.SphereGeometry(0.35, 16, 16);
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    beaconMesh = new THREE.Mesh(beaconGeom, beaconMat);
+    beaconMesh.position.set(0, 4.8, 0);
+    topGroup.add(beaconMesh);
+  }
+
+  // 5. [A안 병합] 3D CAD 정밀 치수선 (Vertical H Dimension & Base B Dimension)
+  buildCAD3DDimensions(slabW, slabD, totalH3D);
+
+  // 6. [A안 병합] 3D 횡력 벡터 화살표 (Fi Wind & Seismic Vector Arrows)
+  buildCAD3DForceVectors(slabW, storyH3D);
+
+  // 카메라 타겟 자동 중심화
+  if (threeControls) {
+    threeControls.target.set(0, totalH3D * 0.46, 0);
+    threeControls.update();
+  }
+}
+
+// 5. 3D 공간 상에 CAD 정밀 치수선 및 표고 마커 렌더링
+function buildCAD3DDimensions(slabW, slabD, totalH3D) {
+  const dimColor = 0x334155;
+  const lineMat = new THREE.LineBasicMaterial({ color: dimColor, linewidth: 2 });
+
+  // A. 좌측 수직 치수선 (Total Height H)
+  const dimX = -slabW / 2 - 5.5;
+  const hPoints = [
+    // 보조선 (Witness lines)
+    new THREE.Vector3(-slabW / 2, 0, 0), new THREE.Vector3(dimX - 1.5, 0, 0),
+    new THREE.Vector3(-slabW / 2, totalH3D, 0), new THREE.Vector3(dimX - 1.5, totalH3D, 0),
+    // 메인 치수선 (Dimension line)
+    new THREE.Vector3(dimX, 0, 0), new THREE.Vector3(dimX, totalH3D, 0),
+    // 상/하단 CAD 45도 틱마크 (Tick marks)
+    new THREE.Vector3(dimX - 0.7, -0.7, 0), new THREE.Vector3(dimX + 0.7, 0.7, 0),
+    new THREE.Vector3(dimX - 0.7, totalH3D - 0.7, 0), new THREE.Vector3(dimX + 0.7, totalH3D + 0.7, 0),
+  ];
+  const hGeom = new THREE.BufferGeometry().setFromPoints(hPoints);
+  dimensionGroup.add(new THREE.LineSegments(hGeom, lineMat));
+
+  // H 라벨 스프라이트
+  const hSprite = createCADSprite(`H = ${(stories * floorH).toFixed(1)}m`, '#0f172a');
+  hSprite.position.set(dimX - 4.2, totalH3D / 2, 0);
+  dimensionGroup.add(hSprite);
+
+  // B. 전면 폭 치수선 (Building Width B)
+  const dimZ = slabD / 2 + 5.0;
+  const bPoints = [
+    new THREE.Vector3(-slabW / 2, 0, slabD / 2), new THREE.Vector3(-slabW / 2, 0, dimZ + 1.2),
+    new THREE.Vector3(slabW / 2, 0, slabD / 2), new THREE.Vector3(slabW / 2, 0, dimZ + 1.2),
+    new THREE.Vector3(-slabW / 2, 0, dimZ), new THREE.Vector3(slabW / 2, 0, dimZ),
+    new THREE.Vector3(-slabW / 2 - 0.7, 0, dimZ - 0.7), new THREE.Vector3(-slabW / 2 + 0.7, 0, dimZ + 0.7),
+    new THREE.Vector3(slabW / 2 - 0.7, 0, dimZ - 0.7), new THREE.Vector3(slabW / 2 + 0.7, 0, dimZ + 0.7),
+  ];
+  const bGeom = new THREE.BufferGeometry().setFromPoints(bPoints);
+  dimensionGroup.add(new THREE.LineSegments(bGeom, lineMat));
+
+  // B 라벨 스프라이트
+  const bSprite = createCADSprite(`B = ${bldgWidth.toFixed(0)}m`, '#0f172a');
+  bSprite.position.set(0, -0.5, dimZ + 3.8);
+  dimensionGroup.add(bSprite);
+
+  // C. 층별 표고 마커 (Floor Elevation Markers)
+  for (let i = 0; i <= stories; i += (stories > 25 ? 5 : (stories > 15 ? 5 : 3))) {
+    if (i === 0 || i === stories || i % 5 === 0) {
+      const y = (i / stories) * totalH3D;
+      const tagText = i === 0 ? `▼ GL ±0.00` : `▼ ${i}F (+${(i * floorH).toFixed(1)}m)`;
+      const sprite = createCADSprite(tagText, i === stories ? '#dc2626' : '#475569', 'rgba(255,255,255,0.95)', '#cbd5e1');
+      sprite.scale.set(5.5, 1.4, 1);
+      sprite.position.set(slabW / 2 + 3.8, y, slabD / 2);
+      dimensionGroup.add(sprite);
+    }
+  }
+}
+
+// 6. 3D 공간 상에 층별 횡하중 벡터 화살표 렌더링
+function buildCAD3DForceVectors(slabW, storyH3D) {
+  const maxF = Math.max(...currentFWind, ...currentFSeismic, 1.0);
+  const stepFloor = stories > 25 ? 3 : (stories > 15 ? 2 : 1);
+
+  for (let i = 0; i < stories; i += stepFloor) {
+    const y = (i + 1) * storyH3D;
+
+    // 풍하중 벡터 (Cyan, 좌측에서 건물 가압)
+    if (currentFWind[i]) {
+      const len = Math.min(8.5, (currentFWind[i] / maxF) * 7.5);
+      const dir = new THREE.Vector3(1, 0, 0);
+      const origin = new THREE.Vector3(-slabW / 2 - len - 0.4, y, 0);
+      const arrow = new THREE.ArrowHelper(dir, origin, len, 0x0891b2, 1.1, 0.7);
+      arrow.userData = { type: 'wind' };
+      vectorGroup.add(arrow);
+    }
+
+    // 지진하중 벡터 (Red, 우측으로 작용하는 관성력)
+    if (currentFSeismic[i]) {
+      const len = Math.min(8.5, (currentFSeismic[i] / maxF) * 7.5);
+      const dir = new THREE.Vector3(1, 0, 0);
+      const origin = new THREE.Vector3(slabW / 2 + 0.4, y, 0);
+      const arrow = new THREE.ArrowHelper(dir, origin, len, 0xdc2626, 1.1, 0.7);
+      arrow.userData = { type: 'seismic' };
+      vectorGroup.add(arrow);
+    }
+  }
+
+  updateThreeVectorVisibility();
+}
+
+function updateThreeVectorVisibility() {
+  if (!vectorGroup) return;
+  const isSeismic = (animMode === 'seismic' || animMode === 'compare');
+  const isWind = (animMode === 'wind' || animMode === 'compare');
+
+  vectorGroup.children.forEach(arrow => {
+    if (arrow.userData.type === 'wind') arrow.visible = isWind;
+    if (arrow.userData.type === 'seismic') arrow.visible = isSeismic;
+  });
+}
+
+function updateThreeAnimation() {
+  if (!threeRenderer || activeView !== 'B') return;
+
+  const isSeismic = (animMode === 'seismic' || animMode === 'compare');
+  const isWind = (animMode === 'wind' || animMode === 'compare');
+
+  // 1. 3D 모달 지진 진동 & 풍하중 정적 변위
+  const topSway = isSeismic ? Math.sin(animTime * 3.2) * 2.8 : 0;
+  const windDeflect = isWind ? 1.2 : 0;
+
+  floorMeshes.forEach((mesh, idx) => {
+    // 0번은 기초
+    if (idx === 0) return;
+    const ratio = idx / stories;
+    const dx = (topSway * Math.pow(ratio, 1.4)) + (windDeflect * Math.pow(ratio, 1.8));
+    mesh.position.x = dx;
+  });
+
+  // 2. 항공장애등 점멸 애니메이션 (1Hz)
+  if (beaconMesh) {
+    const glow = 0.35 + 0.65 * Math.abs(Math.sin(animTime * 4.5));
+    beaconMesh.scale.setScalar(0.9 + 0.3 * glow);
+    beaconMesh.material.color.setRGB(1.0 * glow, 0.15, 0.15);
+  }
+
+  // 3. 3D 공기역학 파티클 이동
+  if (threeParticles && isWind) {
+    const pos = threeParticles.geometry.attributes.position.array;
+    for (let i = 0; i < THREE_NUM_PARTICLES; i++) {
+      pos[i * 3 + 0] += 0.48 * (V0 / 32.0);
+      if (pos[i * 3 + 0] > 40) {
+        pos[i * 3 + 0] = -40;
+        pos[i * 3 + 1] = 1 + Math.random() * 45;
+        pos[i * 3 + 2] = -25 + Math.random() * 50;
+      }
+    }
+    threeParticles.geometry.attributes.position.needsUpdate = true;
+  }
+
+  threeControls.update();
+  threeRenderer.render(threeScene, threeCamera);
+}
+
+// =============================================================================
+// OPTION A: 2D CAD DRAWING (FALLBACK)
 // =============================================================================
 function drawCADBuilding() {
   const dpr = window.devicePixelRatio || 1;
@@ -805,10 +1212,10 @@ function drawCADBuilding() {
   const totalPlotH = groundY - padTop;
   const floorH_px = totalPlotH / stories;
 
-  const bldgW = Math.min(105, Math.max(75, w * 0.34));
+  const bldgW = Math.min(110, Math.max(75, w * 0.34));
   const bldgBaseLeft = (w - bldgW) / 2 + 15;
 
-  // 1. 배경 미세 그리드 (CAD Blueprint Grid)
+  // 1. 배경 미세 그리드
   bldgCtx.strokeStyle = '#f8fafc';
   bldgCtx.lineWidth = 1;
   for (let gx = 0; gx < w; gx += 20) {
@@ -818,40 +1225,20 @@ function drawCADBuilding() {
     bldgCtx.beginPath(); bldgCtx.moveTo(0, gy); bldgCtx.lineTo(w, gy); bldgCtx.stroke();
   }
 
-  // 2. 지반 및 기반암층 (Technical Soil Profile)
+  // 2. 지반 및 매트 기초
   bldgCtx.fillStyle = '#f8fafc';
   bldgCtx.fillRect(0, groundY, w, h - groundY);
-
   bldgCtx.strokeStyle = '#334155';
   bldgCtx.lineWidth = 2;
-  bldgCtx.beginPath();
-  bldgCtx.moveTo(0, groundY);
-  bldgCtx.lineTo(w, groundY);
-  bldgCtx.stroke();
+  bldgCtx.beginPath(); bldgCtx.moveTo(0, groundY); bldgCtx.lineTo(w, groundY); bldgCtx.stroke();
 
-  // 지반 암반 해칭선 (45도 CAD 사선)
-  bldgCtx.strokeStyle = '#cbd5e1';
-  bldgCtx.lineWidth = 1;
-  for (let gx = -20; gx < w + 20; gx += 18) {
-    bldgCtx.beginPath();
-    bldgCtx.moveTo(gx, groundY + 12);
-    bldgCtx.lineTo(gx + 14, h);
-    bldgCtx.stroke();
-  }
-
-  // 매트 기초 (Mat Foundation)
   bldgCtx.fillStyle = '#e2e8f0';
   bldgCtx.fillRect(bldgBaseLeft - 12, groundY, bldgW + 24, 12);
   bldgCtx.strokeStyle = '#475569';
   bldgCtx.lineWidth = 1.5;
   bldgCtx.strokeRect(bldgBaseLeft - 12, groundY, bldgW + 24, 12);
 
-  bldgCtx.fillStyle = '#64748b';
-  bldgCtx.font = 'bold 9px monospace';
-  bldgCtx.textAlign = 'left';
-  bldgCtx.fillText(`▼ GL ±0.00 / MAT FOUNDATION`, 10, groundY + 36);
-
-  // 3. 물리적 진동 및 횡변위 계산
+  // 3. 물리 변위 계산
   const isSeismic = (animMode === 'seismic' || animMode === 'compare');
   const isWind = (animMode === 'wind' || animMode === 'compare');
   const groundSway = isSeismic ? Math.sin(animTime * 3.2) * 3.5 : 0;
@@ -870,178 +1257,37 @@ function drawCADBuilding() {
     nodeR.push({ x: bldgBaseLeft + bldgW + totalDx, y: y });
   }
 
-  // 4. 중앙 전단벽 코어 (Central Shear Core Wall)
-  const coreW = bldgW * 0.38;
-  bldgCtx.fillStyle = '#f1f5f9';
-  bldgCtx.beginPath();
-  const cL0 = (nodeL[0].x + nodeR[0].x) / 2 - coreW / 2;
-  const cR0 = cL0 + coreW;
-  const cLt = (nodeL[stories].x + nodeR[stories].x) / 2 - coreW / 2;
-  const cRt = cLt + coreW;
-  bldgCtx.moveTo(cL0, nodeL[0].y);
-  bldgCtx.lineTo(cLt, nodeL[stories].y);
-  bldgCtx.lineTo(cRt, nodeR[stories].y);
-  bldgCtx.lineTo(cR0, nodeR[0].y);
-  bldgCtx.closePath();
-  bldgCtx.fill();
-
-  // 코어 내부 사선 해칭 (Shear Wall Pattern)
-  bldgCtx.strokeStyle = '#e2e8f0';
-  bldgCtx.lineWidth = 1;
-  for (let i = 0; i < stories; i += 2) {
-    const cy1 = nodeL[i].y;
-    const cy2 = nodeL[i + 1].y;
-    const cx1 = (nodeL[i].x + nodeR[i].x) / 2 - coreW / 2;
-    const cx2 = cx1 + coreW;
-    bldgCtx.beginPath();
-    bldgCtx.moveTo(cx1, cy1);
-    bldgCtx.lineTo(cx2, cy2);
-    bldgCtx.stroke();
-  }
-
-  // 5. 층별 슬래브 (Floor Slabs) & 외곽 기둥 (Columns)
+  // 4. 슬래브 및 기둥
   for (let i = 0; i <= stories; i++) {
     const nl = nodeL[i], nr = nodeR[i];
-
-    // 슬래브 (두께 3px 솔리드 라인)
     bldgCtx.strokeStyle = '#334155';
     bldgCtx.lineWidth = 2.5;
-    bldgCtx.beginPath();
-    bldgCtx.moveTo(nl.x, nl.y);
-    bldgCtx.lineTo(nr.x, nr.y);
-    bldgCtx.stroke();
-
-    // 주요 층 번호 CAD 텍스트 (5F 단위)
-    if (i > 0 && (i % 5 === 0 || i === stories)) {
-      bldgCtx.fillStyle = '#64748b';
-      bldgCtx.font = 'bold 9px monospace';
-      bldgCtx.textAlign = 'right';
-      bldgCtx.fillText(`${i}F`, nl.x - 8, nl.y + 3);
-    }
+    bldgCtx.beginPath(); bldgCtx.moveTo(nl.x, nl.y); bldgCtx.lineTo(nr.x, nr.y); bldgCtx.stroke();
   }
 
-  // 외곽 메인 기둥 (Left/Right Perimeter Columns)
   bldgCtx.strokeStyle = '#0f172a';
   bldgCtx.lineWidth = 3.0;
-  // 좌측 기둥
   bldgCtx.beginPath();
   bldgCtx.moveTo(nodeL[0].x, nodeL[0].y);
   for (let i = 1; i <= stories; i++) bldgCtx.lineTo(nodeL[i].x, nodeL[i].y);
   bldgCtx.stroke();
-  // 우측 기둥
+
   bldgCtx.beginPath();
   bldgCtx.moveTo(nodeR[0].x, nodeR[0].y);
   for (let i = 1; i <= stories; i++) bldgCtx.lineTo(nodeR[i].x, nodeR[i].y);
   bldgCtx.stroke();
 
-  // 구조 중심선 (Dash-Dot Center Axis)
-  const roofMidX = (nodeL[stories].x + nodeR[stories].x) / 2;
-  const baseMidX = (nodeL[0].x + nodeR[0].x) / 2;
-  bldgCtx.strokeStyle = '#94a3b8';
-  bldgCtx.lineWidth = 1;
-  bldgCtx.setLineDash([8, 4, 2, 4]);
-  bldgCtx.beginPath();
-  bldgCtx.moveTo(baseMidX, groundY + 12);
-  bldgCtx.lineTo(roofMidX, nodeL[stories].y - 20);
-  bldgCtx.stroke();
-  bldgCtx.setLineDash([]);
-
-  // 6. 공기역학 바람 유선 (Aerodynamic Streamlines, isWind 시)
-  if (isWind) {
-    const totalH = groundY - padTop;
-    for (let p of streamlines2D) {
-      const altRatio = Math.max(0, Math.min(1, (groundY - p.y) / totalH));
-      const vFactor = Math.pow(Math.max(0.15, altRatio), 0.35) * (V0 / 32.0);
-      p.x += p.speed * 2.5 * vFactor;
-
-      // 건물 앞에서 유선 굴절 (Windward upward deflection)
-      if (p.x > bldgBaseLeft - 30 && p.x < bldgBaseLeft + 10) {
-        if (p.y < padTop + 40) p.y -= 1.2;
-        else p.y += (p.y > (groundY + padTop) / 2) ? 0.35 : -0.35;
-      }
-      if (p.x > w + 20) {
-        p.x = -15;
-        p.y = padTop + Math.random() * (groundY - padTop);
-      }
-
-      bldgCtx.strokeStyle = `rgba(8, 145, 178, ${p.alpha})`;
-      bldgCtx.lineWidth = 1.5;
-      bldgCtx.beginPath();
-      bldgCtx.moveTo(p.x, p.y);
-      bldgCtx.lineTo(p.x - p.len, p.y);
-      bldgCtx.stroke();
-    }
-  }
-
-  // 7. 층별 횡하중 벡터 화살표 (Fi)
-  const maxF = Math.max(...currentFWind, ...currentFSeismic, 1.0);
-  const stepFloor = stories > 25 ? 3 : (stories > 15 ? 2 : 1);
-
-  for (let i = 0; i < stories; i += stepFloor) {
-    const fY = nodeL[i + 1].y;
-
-    // 풍하중 벡터 (Cyan, 좌측 가압)
-    if (isWind && currentFWind[i]) {
-      const arrowLen = Math.min(45, (currentFWind[i] / maxF) * 40);
-      const tipX = nodeL[i + 1].x - 3;
-      const startX = tipX - arrowLen;
-
-      bldgCtx.strokeStyle = '#0891b2';
-      bldgCtx.lineWidth = 1.8;
-      bldgCtx.beginPath();
-      bldgCtx.moveTo(startX, fY);
-      bldgCtx.lineTo(tipX, fY);
-      bldgCtx.stroke();
-
-      bldgCtx.fillStyle = '#0891b2';
-      bldgCtx.beginPath();
-      bldgCtx.moveTo(tipX, fY);
-      bldgCtx.lineTo(tipX - 5, fY - 3);
-      bldgCtx.lineTo(tipX - 5, fY + 3);
-      bldgCtx.closePath();
-      bldgCtx.fill();
-    }
-
-    // 지진하중 벡터 (Red, 우측 관성력)
-    if (isSeismic && currentFSeismic[i]) {
-      const arrowLen = Math.min(45, (currentFSeismic[i] / maxF) * 40);
-      const startX = nodeR[i + 1].x + 3;
-      const tipX = startX + arrowLen;
-
-      bldgCtx.strokeStyle = '#dc2626';
-      bldgCtx.lineWidth = 1.8;
-      bldgCtx.beginPath();
-      bldgCtx.moveTo(startX, fY);
-      bldgCtx.lineTo(tipX, fY);
-      bldgCtx.stroke();
-
-      bldgCtx.fillStyle = '#dc2626';
-      bldgCtx.beginPath();
-      bldgCtx.moveTo(tipX, fY);
-      bldgCtx.lineTo(tipX - 5, fY - 3);
-      bldgCtx.lineTo(tipX - 5, fY + 3);
-      bldgCtx.closePath();
-      bldgCtx.fill();
-    }
-  }
-
-  // 8. 좌측 CAD 치수선 (Dimension Line: H)
+  // 치수선
   const dimX = 24;
-  const dimTopY = nodeL[stories].y;
-  const dimBotY = groundY;
-
   bldgCtx.strokeStyle = '#64748b';
   bldgCtx.lineWidth = 1;
   bldgCtx.beginPath();
-  bldgCtx.moveTo(dimX, dimTopY);
-  bldgCtx.lineTo(dimX, dimBotY);
-  // 상/하단 틱마크 (45도 사선)
-  bldgCtx.moveTo(dimX - 4, dimTopY + 4); bldgCtx.lineTo(dimX + 4, dimTopY - 4);
-  bldgCtx.moveTo(dimX - 4, dimBotY + 4); bldgCtx.lineTo(dimX + 4, dimBotY - 4);
+  bldgCtx.moveTo(dimX, nodeL[stories].y);
+  bldgCtx.lineTo(dimX, groundY);
   bldgCtx.stroke();
 
   bldgCtx.save();
-  bldgCtx.translate(dimX - 6, (dimTopY + dimBotY) / 2);
+  bldgCtx.translate(dimX - 6, (nodeL[stories].y + groundY) / 2);
   bldgCtx.rotate(-Math.PI / 2);
   bldgCtx.fillStyle = '#334155';
   bldgCtx.font = 'bold 10px monospace';
@@ -1049,210 +1295,7 @@ function drawCADBuilding() {
   bldgCtx.fillText(`H = ${(stories * floorH).toFixed(1)}m`, 0, 0);
   bldgCtx.restore();
 
-  // 상단 제원 태그
-  bldgCtx.fillStyle = '#0f172a';
-  bldgCtx.font = 'bold 11px Pretendard, sans-serif';
-  bldgCtx.textAlign = 'center';
-  bldgCtx.fillText(`${stories}F (${(stories * floorH).toFixed(1)}m) · B=${bldgWidth.toFixed(0)}m`, roofMidX, padTop - 20);
-
   bldgCtx.restore();
-}
-
-// =============================================================================
-// OPTION B: THREE.JS REAL-TIME 3D SKYSCRAPER VIEWER (WebGL)
-// =============================================================================
-let threeScene, threeCamera, threeRenderer, threeControls;
-let floorMeshes = [];
-let threeParticles;
-const THREE_NUM_PARTICLES = 60;
-let threeParticlePositions;
-
-function initThreeScene() {
-  const container = document.getElementById('threeContainer');
-  const w = container.clientWidth || 290;
-  const h = container.clientHeight || 440;
-
-  threeScene = new THREE.Scene();
-  threeScene.background = new THREE.Color(0xf8fafc);
-
-  threeCamera = new THREE.PerspectiveCamera(40, w / h, 1, 1000);
-  threeCamera.position.set(48, 38, 55);
-
-  threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  threeRenderer.setPixelRatio(window.devicePixelRatio || 1);
-  threeRenderer.setSize(w, h);
-  threeRenderer.shadowMap.enabled = true;
-  container.appendChild(threeRenderer.domElement);
-
-  threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
-  threeControls.enableDamping = true;
-  threeControls.dampingFactor = 0.08;
-  threeControls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't go below ground
-  threeControls.target.set(0, 16, 0);
-  threeControls.update();
-
-  // 조명 설정 (Architectural Studio Lighting)
-  const ambLight = new THREE.AmbientLight(0xffffff, 0.75);
-  threeScene.add(ambLight);
-
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
-  dirLight.position.set(30, 50, 40);
-  dirLight.castShadow = true;
-  threeScene.add(dirLight);
-
-  const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.35);
-  dirLight2.position.set(-30, 20, -30);
-  threeScene.add(dirLight2);
-
-  // 바닥 그리드 (Ground Grid)
-  const gridHelper = new THREE.GridHelper(70, 20, 0x64748b, 0xe2e8f0);
-  gridHelper.position.y = 0;
-  threeScene.add(gridHelper);
-
-  // 3D 공기역학 파티클 (3D Streamlines)
-  const pGeom = new THREE.BufferGeometry();
-  threeParticlePositions = new Float32Array(THREE_NUM_PARTICLES * 3);
-  for (let i = 0; i < THREE_NUM_PARTICLES; i++) {
-    threeParticlePositions[i * 3 + 0] = -35 + Math.random() * 70; // X
-    threeParticlePositions[i * 3 + 1] = 1 + Math.random() * 40;   // Y
-    threeParticlePositions[i * 3 + 2] = -20 + Math.random() * 40; // Z
-  }
-  pGeom.setAttribute('position', new THREE.BufferAttribute(threeParticlePositions, 3));
-
-  const pMat = new THREE.PointsMaterial({
-    color: 0x0891b2,
-    size: 1.6,
-    transparent: true,
-    opacity: 0.75
-  });
-  threeParticles = new THREE.Points(pGeom, pMat);
-  threeScene.add(threeParticles);
-}
-
-function resizeThree() {
-  if (!threeRenderer || !threeCamera) return;
-  const container = document.getElementById('threeContainer');
-  const w = container.clientWidth || 290;
-  const h = container.clientHeight || 440;
-  threeCamera.aspect = w / h;
-  threeCamera.updateProjectionMatrix();
-  threeRenderer.setSize(w, h);
-}
-
-function rebuildThreeBuilding() {
-  if (!threeScene) return;
-
-  // 기존 층 메쉬 삭제
-  floorMeshes.forEach(m => threeScene.remove(m));
-  floorMeshes = [];
-
-  const bldgScale = 0.55;
-  const slabW = (bldgWidth / 2.0) * bldgScale;
-  const slabD = (bldgWidth / 2.0) * bldgScale;
-  const slabH = 0.45;
-  const totalH3D = stories * (floorH * bldgScale * 0.45);
-  const storyH3D = totalH3D / stories;
-
-  // 층별 슬래브 및 코어 생성
-  for (let i = 0; i < stories; i++) {
-    const group = new THREE.Group();
-    const yPos = (i + 1) * storyH3D;
-
-    // 슬래브 메쉬
-    const slabGeom = new THREE.BoxGeometry(slabW, slabH, slabD);
-    const slabMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.25,
-      metalness: 0.1
-    });
-    const slabMesh = new THREE.Mesh(slabGeom, slabMat);
-    slabMesh.castShadow = true;
-    slabMesh.receiveShadow = true;
-
-    // 슬래브 엣지 라인 (Sharp Architectural Outlines)
-    const edges = new THREE.EdgesGeometry(slabGeom);
-    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x334155, linewidth: 1.5 }));
-    slabMesh.add(line);
-
-    // 4개 코너 기둥 (Corner Columns)
-    const colH = storyH3D - slabH;
-    const colGeom = new THREE.BoxGeometry(0.5, colH, 0.5);
-    const colMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
-    const colOffset = slabW / 2 - 0.4;
-
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
-      const col = new THREE.Mesh(colGeom, colMat);
-      col.position.set(cx * colOffset, -colH / 2, cz * colOffset);
-      slabMesh.add(col);
-    });
-
-    // 중앙 유리 코어 (Translucent Core)
-    const coreGeom = new THREE.BoxGeometry(slabW * 0.4, storyH3D, slabD * 0.4);
-    const coreMat = new THREE.MeshStandardMaterial({
-      color: 0x93c5fd,
-      transparent: true,
-      opacity: 0.25,
-      roughness: 0.1
-    });
-    const coreMesh = new THREE.Mesh(coreGeom, coreMat);
-    coreMesh.position.y = -storyH3D / 2;
-    slabMesh.add(coreMesh);
-
-    group.position.set(0, yPos, 0);
-    group.userData = { baseY: yPos, storyIndex: i };
-    threeScene.add(group);
-    floorMeshes.push(group);
-  }
-
-  // 옥상 기계실 (Penthouse)
-  if (floorMeshes.length > 0) {
-    const topSlab = floorMeshes[floorMeshes.length - 1];
-    const pentGeom = new THREE.BoxGeometry(slabW * 0.5, 1.4, slabD * 0.5);
-    const pentMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
-    const pentMesh = new THREE.Mesh(pentGeom, pentMat);
-    pentMesh.position.set(0, 0.9, 0);
-    topSlab.add(pentMesh);
-  }
-
-  // 카메라 타겟을 건물 중앙 높이로 자동 조정
-  if (threeControls) {
-    threeControls.target.set(0, totalH3D * 0.45, 0);
-    threeControls.update();
-  }
-}
-
-function updateThreeAnimation() {
-  if (!threeRenderer || activeView !== 'B') return;
-
-  const isSeismic = (animMode === 'seismic' || animMode === 'compare');
-  const isWind = (animMode === 'wind' || animMode === 'compare');
-
-  // 1. 3D 층별 물리 변위 (Modal Sway & Wind Deflection)
-  const topSway = isSeismic ? Math.sin(animTime * 3.2) * 2.8 : 0;
-  const windDeflect = isWind ? 1.2 : 0;
-
-  floorMeshes.forEach((mesh, idx) => {
-    const ratio = (idx + 1) / stories;
-    const dx = (topSway * Math.pow(ratio, 1.4)) + (windDeflect * Math.pow(ratio, 1.8));
-    mesh.position.x = dx;
-  });
-
-  // 2. 3D 공기역학 파티클 이동
-  if (threeParticles && isWind) {
-    const pos = threeParticles.geometry.attributes.position.array;
-    for (let i = 0; i < THREE_NUM_PARTICLES; i++) {
-      pos[i * 3 + 0] += 0.45 * (V0 / 32.0); // X 속도
-      if (pos[i * 3 + 0] > 35) {
-        pos[i * 3 + 0] = -35;
-        pos[i * 3 + 1] = 1 + Math.random() * 40;
-        pos[i * 3 + 2] = -20 + Math.random() * 40;
-      }
-    }
-    threeParticles.geometry.attributes.position.needsUpdate = true;
-  }
-
-  threeControls.update();
-  threeRenderer.render(threeScene, threeCamera);
 }
 
 // =============================================================================
@@ -1305,7 +1348,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.fillText(f === 0 ? '0' : `${f}F`, padLeft - 6, y + 3);
   }
 
-  // 1. 풍하중 영역 채우기 (Cyan)
+  // 1. 풍하중 영역 (Cyan)
   const windAreaGrad = ctx.createLinearGradient(padLeft, 0, padLeft + plotW, 0);
   windAreaGrad.addColorStop(0, 'rgba(8, 145, 178, 0.03)');
   windAreaGrad.addColorStop(1, 'rgba(8, 145, 178, 0.18)');
@@ -1321,7 +1364,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   ctx.closePath();
   ctx.fill();
 
-  // 2. 지진하중 영역 채우기 (Red)
+  // 2. 지진하중 영역 (Red)
   const seismicAreaGrad = ctx.createLinearGradient(padLeft, 0, padLeft + plotW, 0);
   seismicAreaGrad.addColorStop(0, 'rgba(220, 38, 38, 0.03)');
   seismicAreaGrad.addColorStop(1, 'rgba(220, 38, 38, 0.16)');
@@ -1337,7 +1380,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   ctx.closePath();
   ctx.fill();
 
-  // 3. 풍하중 곡선 (Cyan Solid 2.5px)
+  // 3. 곡선
   ctx.strokeStyle = '#0891b2';
   ctx.lineWidth = 2.5;
   ctx.beginPath();
@@ -1349,7 +1392,6 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   }
   ctx.stroke();
 
-  // 4. 지진하중 곡선 (Red Solid 2.5px)
   ctx.strokeStyle = '#dc2626';
   ctx.lineWidth = 2.5;
   ctx.beginPath();
@@ -1361,7 +1403,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
   }
   ctx.stroke();
 
-  // 5. 하중 역전점(Crossover Point) 감지 & 펄스 마커
+  // 4. 역전점(Crossover Point) 감지 & 펄스 마커
   let crossIdx = -1;
   for (let i = 0; i < stories - 1; i++) {
     if ((windData[i] <= seismicData[i] && windData[i + 1] >= seismicData[i + 1]) ||
@@ -1397,7 +1439,7 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.fillText(badgeText, crossX + 8, crossY - 6);
   }
 
-  // 6. 마우스 호버 크로스헤어
+  // 5. 마우스 호버 크로스헤어
   if (hoverFloor >= 0 && hoverCanvasType === type) {
     const hY = (padTop + plotH) - ((hoverFloor + 1) / stories) * plotH;
     ctx.strokeStyle = '#475569';
@@ -1422,7 +1464,6 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
     ctx.fillText(`${hoverFloor + 1}F: 풍 ${wVal.toLocaleString()}kN | 지진 ${sVal.toLocaleString()}kN`, padLeft + 16, hY - 10);
   }
 
-  // 차트 타이틀
   ctx.font = 'bold 12px Pretendard, sans-serif';
   ctx.fillStyle = '#0f172a';
   ctx.textAlign = 'left';
@@ -1432,16 +1473,16 @@ function drawProfile(canvas, ctx, hArr, windData, seismicData, title, minMaxVal,
 }
 
 // =============================================================================
-// MAIN 60FPS RAF ANIMATION LOOP
+// MAIN 60FPS ANIMATION LOOP
 // =============================================================================
 let animId = null;
 function animate() {
   animTime += 0.025;
 
-  if (activeView === 'A') {
-    drawCADBuilding();
-  } else {
+  if (activeView === 'B') {
     updateThreeAnimation();
+  } else {
+    drawCADBuilding();
   }
 
   drawProfile(forceCanvas, forceCtx, currentHArr, currentFWind, currentFSeismic, '층별 횡하중 Fi [kN]', 100, 'force');
@@ -1487,7 +1528,9 @@ selectR.addEventListener('change', (e) => { R = parseFloat(e.target.value); upda
 
 window.addEventListener('resize', handleResize);
 window.addEventListener('load', () => {
+  initThreeScene();
   handleResize();
+  rebuildThreeBuilding();
   animate();
 });
 </script>
