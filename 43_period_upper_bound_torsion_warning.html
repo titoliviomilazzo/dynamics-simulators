@@ -215,8 +215,13 @@
   const ctx = canvas.getContext('2d');
 
   function resize() {
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
   }
   window.addEventListener('resize', () => { resize(); draw(); });
 
@@ -310,8 +315,11 @@
   }
 
   function draw() {
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(dpr, dpr);
 
     // Left half: Spectrum Curve & CuTa Cap
     // Right half: 3D Isometric Building vibrating with torsion
@@ -343,11 +351,17 @@
       ctx.fillText(cs.toFixed(1), pad.left - 24, y + 3);
     }
 
+    // 클리핑: 플롯 영역 안에서만 스펙트럼 곡선/상한 절단 렌더링
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad.left, pad.top, pw, ph);
+    ctx.clip();
+
     // Cs curve: Cs = SD1 / (R * T) => assume SD1 / R = 0.08
-    ctx.strokeStyle = "#38bdf8";
+    ctx.strokeStyle = "#0284c7";
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    for (let t = 0.2; t <= maxT; t += 0.05) {
+    for (let t = 0.2; t <= maxT; t += 0.02) {
       const cs = Math.min(maxCs, (SD1 * 0.4) / t);
       const x = xOf(t), y = yOf(cs);
       if (t === 0.2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
@@ -369,16 +383,10 @@
     ctx.setLineDash([]);
     ctx.lineWidth = 1;
 
-    ctx.fillStyle = "#f43f5e";
-    ctx.font = "bold 10px sans-serif";
-    ctx.fillText(`상한 CuTa = ${CuTa.toFixed(2)}s`, xCuTa - 35, pad.top + 15);
-
     // Tcom operating point
     const xTcom = xOf(Tcom);
     ctx.strokeStyle = "#f59e0b";
     ctx.beginPath(); ctx.moveTo(xTcom, pad.top); ctx.lineTo(xTcom, pad.top + ph); ctx.stroke();
-    ctx.fillStyle = "#f59e0b";
-    ctx.fillText(`Tcom = ${Tcom.toFixed(2)}s`, xTcom - 30, pad.top + 30);
 
     // Shaded forbidden under-design area if Tcom > CuTa
     if (Tcom > CuTa) {
@@ -387,6 +395,15 @@
       ctx.fillStyle = "#f43f5e";
       ctx.fillText("과소설계 방지 차단구역", (xCuTa + xTcom) / 2 - 45, pad.top + ph / 2);
     }
+
+    ctx.restore(); // 클리핑 해제
+
+    ctx.fillStyle = "#f43f5e";
+    ctx.font = "bold 10px sans-serif";
+    ctx.fillText(`상한 CuTa = ${CuTa.toFixed(2)}s`, xCuTa - 35, pad.top + 15);
+
+    ctx.fillStyle = "#f59e0b";
+    ctx.fillText(`Tcom = ${Tcom.toFixed(2)}s`, xTcom - 30, pad.top + 30);
 
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 11px sans-serif";
@@ -408,7 +425,7 @@
 
     // Building slab footprint
     ctx.fillStyle = "rgba(30, 41, 59, 0.8)";
-    ctx.strokeStyle = (rzFrac > 0.3) ? "#f43f5e" : "#38bdf8";
+    ctx.strokeStyle = (rzFrac > 0.3) ? "#f43f5e" : "#0284c7";
     ctx.lineWidth = 2;
     ctx.strokeRect(-bW / 2, -bD / 2, bW, bD);
     ctx.fillRect(-bW / 2, -bD / 2, bW, bD);
@@ -421,7 +438,7 @@
 
     // Center of Mass (CM) - at (0, 0)
     ctx.beginPath(); ctx.arc(0, 0, 6, 0, 2 * Math.PI);
-    ctx.fillStyle = "#38bdf8"; ctx.fill();
+    ctx.fillStyle = "#0284c7"; ctx.fill();
     ctx.strokeStyle = "#0f172a"; ctx.stroke();
 
     // Center of Rigidity (CR) - offset by ey
@@ -441,7 +458,7 @@
     ctx.restore();
 
     // Center labels
-    ctx.fillStyle = "#38bdf8"; ctx.font = "10px sans-serif";
+    ctx.fillStyle = "#0284c7"; ctx.font = "10px sans-serif";
     ctx.fillText("● 질량중심 CM", halfW + 15, h - 35);
     ctx.fillStyle = "#f43f5e";
     ctx.fillText("● 강성중심 CR", halfW + 115, h - 35);
@@ -455,6 +472,8 @@
       ctx.font = "bold 11px sans-serif";
       ctx.fillText("✅ 순수 병진 모드 (편심 미미)", halfW + 25, 30);
     }
+
+    ctx.restore();
   }
 
   function animate() {

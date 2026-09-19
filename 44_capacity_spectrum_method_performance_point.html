@@ -213,8 +213,13 @@
   const ctx = canvas.getContext('2d');
 
   function resize() {
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
   }
   window.addEventListener('resize', () => { resize(); draw(); });
 
@@ -424,8 +429,11 @@
   }
 
   function draw() {
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(dpr, dpr);
 
     const pad = { left: 60, right: 30, top: 30, bottom: 45 };
     const pw = w - pad.left - pad.right;
@@ -452,6 +460,12 @@
       ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
       ctx.fillText(sa.toFixed(1), pad.left - 26, y + 4);
     }
+
+    // Clip plot region to prevent overflow
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad.left, pad.top, pw, ph);
+    ctx.clip();
 
     // Radial Period Lines: T0 (initial) and Teq (elongated)
     const sdy = getSdy();
@@ -483,7 +497,7 @@
     ctx.strokeStyle = "#10b981";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    for (let sd = 0; sd <= maxSd; sd += 0.2) {
+    for (let sd = 0; sd <= maxSd; sd += 0.05) {
       const sa = capacitySa(sd);
       const x = xOf(sd), y = yOf(sa);
       if (sd === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
@@ -499,10 +513,10 @@
     ctx.strokeStyle = "rgba(244, 63, 94, 0.35)";
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
-    for (let sd = 0.2; sd <= maxSd; sd += 0.2) {
+    for (let sd = 0.05; sd <= maxSd; sd += 0.05) {
       const sa = demandSa(sd, 0.05);
       const x = xOf(sd), y = yOf(sa);
-      if (sd === 0.2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      if (sd <= 0.05) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
     ctx.setLineDash([]);
@@ -513,10 +527,10 @@
     ctx.strokeStyle = "#f43f5e";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    for (let sd = 0.2; sd <= maxSd; sd += 0.2) {
+    for (let sd = 0.05; sd <= maxSd; sd += 0.05) {
       const sa = demandSa(sd, last.beta);
       const x = xOf(sd), y = yOf(sa);
-      if (sd === 0.2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      if (sd <= 0.05) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
     ctx.lineWidth = 1;
@@ -553,6 +567,8 @@
       ctx.fillText(`P${idx}`, x - 12, y - 8);
     });
 
+    ctx.restore(); // restore clipping
+
     // Axis labels
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 12px sans-serif";
@@ -562,6 +578,8 @@
     ctx.rotate(-Math.PI / 2);
     ctx.fillText("스펙트럴 가속도 Sa (g)", -60, 0);
     ctx.restore();
+
+    ctx.restore(); // restore dpr scale
   }
 
   resize();

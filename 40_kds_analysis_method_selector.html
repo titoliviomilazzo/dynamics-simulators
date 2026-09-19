@@ -219,8 +219,13 @@
   const ctx = canvas.getContext('2d');
 
   function resize() {
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
   }
   window.addEventListener('resize', () => { resize(); recalculate(); });
 
@@ -388,8 +393,11 @@
   }
 
   function drawBuilding(soft, mass, setback, discont, torsion) {
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(dpr, dpr);
 
     const btmY = h - 30;
     const topY = 40;
@@ -456,7 +464,7 @@
     // Setback label
     if (setback) {
       const sbY = btmY - (Math.floor(nStories * 0.6) + 1) * storyH;
-      ctx.fillStyle = "#38bdf8";
+      ctx.fillStyle = "#0284c7";
       ctx.font = "bold 10px sans-serif";
       ctx.fillText("V-3 Setback (-40% 폭)", midX + bldgW / 2 + 10, sbY);
     }
@@ -472,6 +480,8 @@
       ctx.font = "bold 11px sans-serif";
       ctx.fillText("H-1 비틀림 연성 (RZ)", midX - 50, topY - 20);
     }
+
+    ctx.restore();
   }
 
   resize();

@@ -202,10 +202,20 @@
   const sdofCtx = sdofCanvas.getContext('2d');
 
   function resize() {
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight;
-    sdofCanvas.width = sdofCanvas.parentElement.clientWidth;
-    sdofCanvas.height = sdofCanvas.parentElement.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const w1 = canvas.parentElement.clientWidth;
+    const h1 = canvas.parentElement.clientHeight;
+    canvas.width = Math.round(w1 * dpr);
+    canvas.height = Math.round(h1 * dpr);
+    canvas.style.width = w1 + 'px';
+    canvas.style.height = h1 + 'px';
+
+    const w2 = sdofCanvas.parentElement.clientWidth;
+    const h2 = sdofCanvas.parentElement.clientHeight;
+    sdofCanvas.width = Math.round(w2 * dpr);
+    sdofCanvas.height = Math.round(h2 * dpr);
+    sdofCanvas.style.width = w2 + 'px';
+    sdofCanvas.style.height = h2 + 'px';
   }
   window.addEventListener('resize', () => { resize(); draw(); });
 
@@ -316,8 +326,11 @@
   }
 
   function drawTripartite() {
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(dpr, dpr);
 
     const pad = { left: 70, right: 60, top: 40, bottom: 60 };
     const pw = w - pad.left - pad.right;
@@ -332,6 +345,12 @@
 
     function tToX(t) { return pad.left + ((Math.log10(t) - logMinT) / (logMaxT - logMinT)) * pw; }
     function vToY(v) { return pad.top + ph - ((Math.log10(v) - logMinV) / (logMaxV - logMinV)) * ph; }
+
+    // 클리핑: 플롯 영역 안에서만 도형/곡선 렌더링
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad.left, pad.top, pw, ph);
+    ctx.clip();
 
     // Zone backdrops
     const x01 = tToX(0.02), x05 = tToX(0.5), x30 = tToX(3.0), x50 = tToX(50.0);
@@ -348,20 +367,17 @@
       ctx.setLineDash([4, 4]);
       ctx.strokeRect(xEpa1, pad.top, xEpa2 - xEpa1, ph);
       ctx.setLineDash([]);
-      ctx.fillStyle = "#38bdf8";
+      ctx.fillStyle = "#0284c7";
       ctx.font = "10px sans-serif";
       ctx.fillText("EPA 평균구간 (0.1~0.5s)", xEpa1 + 6, pad.top + 16);
     }
 
     // Grid lines for Tn (vertical)
     ctx.strokeStyle = "rgba(15, 23, 42, 0.12)";
-    ctx.fillStyle = "var(--text-muted)";
-    ctx.font = "11px sans-serif";
     const tDecades = [0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0];
     tDecades.forEach(t => {
       const x = tToX(t);
       ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
-      ctx.fillText(t.toString(), x - 8, pad.top + ph + 18);
     });
 
     // Grid lines for V (horizontal)
@@ -369,7 +385,6 @@
     vDecades.forEach(v => {
       const y = vToY(v);
       ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
-      ctx.fillText(v.toString(), pad.left - 30, y + 4);
     });
 
     // 45-degree diagonal grid lines for D and A (Chopra Fig 6.6.1 Tripartite grid)
@@ -378,7 +393,7 @@
     dValues.forEach(d => {
       ctx.beginPath();
       let started = false;
-      for (let t = minT; t <= maxT; t *= 1.2) {
+      for (let t = minT; t <= maxT; t *= 1.15) {
         const v = (2 * Math.PI / t) * d;
         if (v >= minV && v <= maxV) {
           const x = tToX(t), y = vToY(v);
@@ -394,7 +409,7 @@
     aValues.forEach(a => {
       ctx.beginPath();
       let started = false;
-      for (let t = minT; t <= maxT; t *= 1.2) {
+      for (let t = minT; t <= maxT; t *= 1.15) {
         const v = (a * g * t) / (2 * Math.PI);
         if (v >= minV && v <= maxV) {
           const x = tToX(t), y = vToY(v);
@@ -404,12 +419,12 @@
       ctx.stroke();
     });
 
-    // Draw Spectrum Curve
-    ctx.strokeStyle = "#38bdf8";
-    ctx.lineWidth = 3;
+    // Draw Spectrum Curve (고밀도 샘플링)
+    ctx.strokeStyle = "#0284c7";
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     let first = true;
-    for (let t = minT; t <= maxT; t *= 1.03) {
+    for (let t = minT; t <= maxT; t *= 1.015) {
       const res = getSpectrumValues(t, zeta, pga);
       const x = tToX(t);
       const y = vToY(res.Sv);
@@ -417,6 +432,21 @@
     }
     ctx.stroke();
     ctx.lineWidth = 1;
+
+    // 클리핑 해제
+    ctx.restore();
+
+    // 플롯 테두리 외곽 텍스트 및 눈금 라벨
+    ctx.fillStyle = "var(--text-muted)";
+    ctx.font = "11px sans-serif";
+    tDecades.forEach(t => {
+      const x = tToX(t);
+      ctx.fillText(t.toString(), x - 8, pad.top + ph + 18);
+    });
+    vDecades.forEach(v => {
+      const y = vToY(v);
+      ctx.fillText(v.toString(), pad.left - 30, y + 4);
+    });
 
     // Current Operating Point (Tn, V)
     const cur = getSpectrumValues(Tn, zeta, pga);
@@ -455,11 +485,16 @@
     ctx.fillText("↗ 변위 Sd (cm)", pad.left + 15, pad.top + 25);
     ctx.fillStyle = "#f43f5e";
     ctx.fillText("↘ 가속도 Sa (g)", pad.left + pw - 90, pad.top + 25);
+
+    ctx.restore();
   }
 
   function drawADRS() {
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(dpr, dpr);
 
     const pad = { left: 70, right: 40, top: 40, bottom: 50 };
     const pw = w - pad.left - pad.right;
@@ -487,6 +522,12 @@
       ctx.fillText(sa.toFixed(1), pad.left - 30, y + 4);
     }
 
+    // 클리핑: 플롯 영역 안에서만 선분/곡선 렌더링
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad.left, pad.top, pw, ph);
+    ctx.clip();
+
     // Constant Period Radial Lines
     const g = 980.665;
     const radialT = [0.2, 0.5, 1.0, 1.5, 2.0, 3.0];
@@ -511,12 +552,12 @@
     });
     ctx.setLineDash([]);
 
-    // ADRS Curve
-    ctx.strokeStyle = "#38bdf8";
-    ctx.lineWidth = 3;
+    // ADRS Curve (고밀도 샘플링)
+    ctx.strokeStyle = "#0284c7";
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     let first = true;
-    for (let t = 0.03; t <= 5.0; t += 0.02) {
+    for (let t = 0.03; t <= 5.0; t += 0.01) {
       const res = getSpectrumValues(t, zeta, pga);
       const x = sdToX(res.Sd);
       const y = saToY(res.Sa_g);
@@ -524,6 +565,8 @@
     }
     ctx.stroke();
     ctx.lineWidth = 1;
+
+    ctx.restore(); // 클리핑 해제
 
     // Current Operating Point
     const cur = getSpectrumValues(Tn, zeta, pga);
@@ -553,16 +596,22 @@
     ctx.rotate(-Math.PI / 2);
     ctx.fillText("스펙트럴 가속도 Sa (g)", -60, 0);
     ctx.restore();
+
+    ctx.restore();
   }
 
   function drawSDOF() {
-    const w = sdofCanvas.width, h = sdofCanvas.height;
-    sdofCtx.clearRect(0, 0, w, h);
+    const dpr = window.devicePixelRatio || 1;
+    const w = sdofCanvas.width / dpr, h = sdofCanvas.height / dpr;
+    sdofCtx.clearRect(0, 0, sdofCanvas.width, sdofCanvas.height);
+    sdofCtx.save();
+    sdofCtx.scale(dpr, dpr);
 
     const cur = getSpectrumValues(Tn, zeta, pga);
     const disp = cur.Sd * Math.sin(cur.omega * animTime);
     const scale = 2.0;
-    const dx = disp * scale;
+    const maxDx = w / 2 - 40;
+    const dx = Math.max(-maxDx, Math.min(maxDx, disp * scale));
 
     const baseLineY = h - 25;
     const groundX = w / 2;
@@ -604,6 +653,8 @@
     sdofCtx.fillText(`u(t) = ${disp.toFixed(2)} cm`, 15, 25);
     sdofCtx.fillStyle = "#f43f5e";
     sdofCtx.fillText(`V_base = ${(cur.Sa_g * 100).toFixed(1)}% W`, 15, 42);
+
+    sdofCtx.restore();
   }
 
   function draw() {
@@ -623,7 +674,7 @@
   canvas.addEventListener('mousedown', (e) => {
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
-    const w = canvas.width;
+    const w = canvas.width / (window.devicePixelRatio || 1);
     const pad = { left: 70, right: 60 };
     const pw = w - pad.left - pad.right;
 

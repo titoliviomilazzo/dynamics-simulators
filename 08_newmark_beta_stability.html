@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -432,7 +433,7 @@
             </div>
           </div>
         </div>
-        <canvas id="sdofCanvas" width="900" height="175"></canvas>
+        <canvas id="sdofCanvas"></canvas>
       </div>
 
       <!-- 하단 시간이력 변위 비교 플롯 캔버스 -->
@@ -452,7 +453,7 @@
             </div>
           </div>
         </div>
-        <canvas id="plotCanvas" width="900" height="380"></canvas>
+        <canvas id="plotCanvas"></canvas>
       </div>
 
       <!-- 공학 해설 카드 -->
@@ -566,9 +567,11 @@ let isPlaying = true;
 let animCurrentTime = 0.0;
 let lastTimestamp = 0;
 
-let timeHistory = []; // {t, u_exact, u_num}
+let timeHistory = []; // {t, u_exact, u_num, isDiverged}
+let fineExactHistory = []; // {t, u} smooth analytical reference
 let uMax = 1.0;
 let isDiverged = false;
+let divergedStepIndex = -1;
 
 // DOM 요소
 const selectMethod = document.getElementById('selectMethod');
@@ -598,6 +601,28 @@ const sdofCanvas = document.getElementById('sdofCanvas');
 const sdofCtx = sdofCanvas.getContext('2d');
 const plotCanvas = document.getElementById('plotCanvas');
 const plotCtx = plotCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const dpr = window.devicePixelRatio || 1;
+  const sdofWrapper = sdofCanvas.parentElement;
+  const plotWrapper = plotCanvas.parentElement;
+
+  const sw = sdofWrapper.clientWidth - 32;
+  const sh = 175;
+  sdofCanvas.width = sw * dpr;
+  sdofCanvas.height = sh * dpr;
+  sdofCanvas.style.width = sw + 'px';
+  sdofCanvas.style.height = sh + 'px';
+
+  const pw = plotWrapper.clientWidth - 32;
+  const ph = 380;
+  plotCanvas.width = pw * dpr;
+  plotCanvas.height = ph * dpr;
+  plotCanvas.style.width = pw + 'px';
+  plotCanvas.style.height = ph + 'px';
+}
+window.addEventListener('resize', resizeCanvases);
+
 
 function updateUIValues() {
   valTn.textContent = Tn.toFixed(2) + ' s';
@@ -682,7 +707,23 @@ function getExcitationForce(t, m) {
   return 0.0;
 }
 
-// 해석 시뮬레이션 계산
+// 정확해 산출 함수 (시간 t)
+function getExactAtTime(t, m, wn, wd, k, u0, v0, exactMap) {
+  if (excitation === 'free') {
+    return Math.exp(-zeta * wn * t) * (u0 * Math.cos(wd * t) + ((v0 + zeta * wn * u0) / wd) * Math.sin(wd * t));
+  } else if (excitation === 'sine') {
+    const w_force = (2.0 * Math.PI / Tn) * 0.9;
+    const r = w_force / wn;
+    const F0 = 5.0 * m;
+    const DAF = 1.0 / Math.sqrt(Math.pow(1 - r * r, 2) + Math.pow(2 * zeta * r, 2));
+    const phi = Math.atan2(2 * zeta * r, 1 - r * r);
+    return (F0 / k) * DAF * Math.sin(w_force * t - phi);
+  } else {
+    const idx = Math.round(t * 2000);
+    return exactMap && exactMap[idx] !== undefined ? exactMap[idx] : 0.0;
+  }
+}
+
 // 해석 시뮬레이션 계산
 function computeSimulation() {
   const dt = dtRatio * Tn;
@@ -694,6 +735,7 @@ function computeSimulation() {
 
   const nSteps = Math.ceil(totalT / dt);
   timeHistory = [];
+  fineExactHistory = [];
   isDiverged = false;
   divergedStepIndex = -1;
 
@@ -745,6 +787,13 @@ function computeSimulation() {
       a_e = (p_next - c * v_e - k * u_e) / m;
       exactMap[Math.round(t_next * 2000)] = u_e;
     }
+  }
+
+  // 고해상도 연속 정확해 기준선 생성 (800 포인트)
+  const nFine = 800;
+  for (let j = 0; j <= nFine; j++) {
+    const tf = (j / nFine) * totalT;
+    fineExactHistory.push({ t: tf, u: getExactAtTime(tf, m, wn, wd, k, u0, v0, exactMap) });
   }
 
   for (let i = 0; i <= nSteps; i++) {
@@ -855,9 +904,12 @@ function setSimSpeed(s) {
 
 // 캔버스 드로잉 - 상단 고품격 CAD SDOF 모션 렌더러
 function drawSDOF(motion) {
-  const w = sdofCanvas.width;
-  const h = sdofCanvas.height;
-  sdofCtx.clearRect(0, 0, w, h);
+  const dpr = window.devicePixelRatio || 1;
+  const w = sdofCanvas.width / dpr;
+  const h = sdofCanvas.height / dpr;
+  sdofCtx.clearRect(0, 0, sdofCanvas.width, sdofCanvas.height);
+  sdofCtx.save();
+  sdofCtx.scale(dpr, dpr);
 
   const { u_num, u_exact, isDiv } = motion;
   const showGhost = document.getElementById('chkGhost')?.checked ?? true;
@@ -977,7 +1029,9 @@ function drawSDOF(motion) {
   // (B) 주 수치해 수레 렌더링
   const numRatio = Math.max(-1.0, Math.min(1.5, u_num / refAmp));
   const numShift = numRatio * maxNegativeStroke;
-  const massCenterX = eqX + numShift;
+  const minCartCenter = wallX + 35 + massW / 2;
+  const maxCartCenter = w - 40 - massW / 2;
+  const massCenterX = Math.max(minCartCenter, Math.min(maxCartCenter, eqX + numShift));
   const cartLeft = massCenterX - massW / 2;
 
   // 4. 상단 3D 듀얼 패스 나선형 스프링 (Helical Coil Spring)
@@ -1163,9 +1217,12 @@ function drawSDOF(motion) {
 
 // 캔버스 드로잉 - 하단 시간-변위 정밀 비교 플롯
 function drawPlot(currT) {
-  const w = plotCanvas.width;
-  const h = plotCanvas.height;
-  plotCtx.clearRect(0, 0, w, h);
+  const dpr = window.devicePixelRatio || 1;
+  const w = plotCanvas.width / dpr;
+  const h = plotCanvas.height / dpr;
+  plotCtx.clearRect(0, 0, plotCanvas.width, plotCanvas.height);
+  plotCtx.save();
+  plotCtx.scale(dpr, dpr);
 
   const padLeft = 65;
   const padRight = 30;
@@ -1222,14 +1279,22 @@ function drawPlot(currT) {
   plotCtx.lineTo(w - padRight, yZero);
   plotCtx.stroke();
 
-  // (1) 정확해 곡선 (회색 솔리드 곡선)
+  // 클리핑 영역 설정: 그래프 곡선이 축 경계를 절대 벗어나지 않도록 방어
+  plotCtx.save();
+  plotCtx.beginPath();
+  plotCtx.rect(padLeft, padTop, plotW, plotH);
+  plotCtx.clip();
+
+  // (1) 정확해 곡선 (고밀도 800포인트 스무스 곡선)
   plotCtx.strokeStyle = '#94a3b8';
-  plotCtx.lineWidth = 2;
+  plotCtx.lineWidth = 1.8;
   plotCtx.beginPath();
   let firstExact = true;
-  for (let pt of timeHistory) {
+  const exactPoints = (fineExactHistory && fineExactHistory.length > 0) ? fineExactHistory : timeHistory;
+  for (let pt of exactPoints) {
     const x = padLeft + (pt.t / totalT) * plotW;
-    const clampedU = Math.max(-yLimit * 1.5, Math.min(yLimit * 1.5, pt.u_exact));
+    const uVal = pt.u !== undefined ? pt.u : pt.u_exact;
+    const clampedU = Math.max(-yLimit, Math.min(yLimit, uVal));
     const y = yZero - (clampedU / yLimit) * (plotH / 2);
     if (firstExact) {
       plotCtx.moveTo(x, y);
@@ -1242,12 +1307,12 @@ function drawPlot(currT) {
 
   // (2) Newmark 수치해 곡선 (수렴 시 청색, 발산 시 폭발 적색)
   plotCtx.strokeStyle = isDiverged ? '#dc2626' : '#2563eb';
-  plotCtx.lineWidth = 2.5;
+  plotCtx.lineWidth = 2.2;
   plotCtx.beginPath();
   let firstNum = true;
   for (let pt of timeHistory) {
     const x = padLeft + (pt.t / totalT) * plotW;
-    const clampedU = Math.max(-yLimit * 1.5, Math.min(yLimit * 1.5, pt.u_num));
+    const clampedU = Math.max(-yLimit, Math.min(yLimit, pt.u_num));
     const y = yZero - (clampedU / yLimit) * (plotH / 2);
     if (firstNum) {
       plotCtx.moveTo(x, y);
@@ -1257,6 +1322,22 @@ function drawPlot(currT) {
     }
   }
   plotCtx.stroke();
+
+  // (2-1) 수치 계산 스텝 마커 점 (이산 Δt 시점 시각화)
+  if (timeHistory.length <= 150) {
+    plotCtx.fillStyle = isDiverged ? '#dc2626' : '#2563eb';
+    for (let pt of timeHistory) {
+      const x = padLeft + (pt.t / totalT) * plotW;
+      const clampedU = Math.max(-yLimit, Math.min(yLimit, pt.u_num));
+      const y = yZero - (clampedU / yLimit) * (plotH / 2);
+      plotCtx.beginPath();
+      plotCtx.arc(x, y, 2.5, 0, Math.PI * 2);
+      plotCtx.fill();
+    }
+  }
+
+  // 클리핑 해제
+  plotCtx.restore();
 
   // (3) 현재 재생 시점 수직 가이드라인 & 엠버 헤드
   const currX = padLeft + (currT / totalT) * plotW;
@@ -1384,6 +1465,7 @@ btnReset.addEventListener('click', () => {
 });
 
 // 초기화 실행
+resizeCanvases();
 updateUIValues();
 computeSimulation();
 requestAnimationFrame(animate);

@@ -1675,12 +1675,17 @@
     function renderBuildingCanvas() {
       const cvs = document.getElementById('building-canvas');
       if (!cvs || cvs.offsetParent === null) return;
-      cvs.width = cvs.clientWidth;
-      cvs.height = cvs.clientHeight;
+      const dpr = window.devicePixelRatio || 1;
+      const w = cvs.clientWidth, h = cvs.clientHeight;
+      cvs.width = Math.round(w * dpr);
+      cvs.height = Math.round(h * dpr);
+      cvs.style.width = w + 'px';
+      cvs.style.height = h + 'px';
       const ctx = cvs.getContext('2d');
-      const w = cvs.width, h = cvs.height;
 
-      ctx.clearRect(0, 0, w, h);
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      ctx.save();
+      ctx.scale(dpr, dpr);
 
       // Soil layer background at bottom
       const soilH = 65;
@@ -1721,7 +1726,7 @@
       const floorH = (groundY - 30) / stories;
 
       // Undeformed wireframe
-      ctx.strokeStyle = '#334155';
+      ctx.strokeStyle = '#94a3b8';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       ctx.strokeRect(w * 0.45 - bldgW / 2, groundY - stories * floorH, bldgW, stories * floorH);
@@ -1732,7 +1737,7 @@
       const maxDispl = 45 * vibFactor;
 
       ctx.beginPath();
-      ctx.strokeStyle = state.irregulars.v1 ? '#ef4444' : '#38bdf8';
+      ctx.strokeStyle = state.irregulars.v1 ? '#ef4444' : '#0284c7';
       ctx.lineWidth = 2.5;
 
       const floorCoords = [];
@@ -1789,9 +1794,9 @@
       // Draw floor slabs
       for (let i = 0; i <= stories; i++) {
         const f = floorCoords[i];
-        ctx.fillStyle = i === 0 ? '#475569' : (state.irregulars.v1 && i === 1 ? 'rgba(239,68,68,0.5)' : '#1e293b');
+        ctx.fillStyle = i === 0 ? '#475569' : (state.irregulars.v1 && i === 1 ? 'rgba(239,68,68,0.5)' : '#334155');
         ctx.fillRect(f.xLeft, f.y - 3, bldgW, 6);
-        ctx.strokeStyle = state.irregulars.v1 && i === 1 ? '#f87171' : '#60a5fa';
+        ctx.strokeStyle = state.irregulars.v1 && i === 1 ? '#f87171' : '#0284c7';
         ctx.strokeRect(f.xLeft, f.y - 3, bldgW, 6);
 
         // Draw lateral force arrows Fx on right side
@@ -1800,7 +1805,7 @@
           ctx.beginPath();
           ctx.moveTo(f.xRight + 6, f.y);
           ctx.lineTo(f.xRight + 6 + arrowLen, f.y);
-          ctx.strokeStyle = '#f59e0b';
+          ctx.strokeStyle = '#d97706';
           ctx.lineWidth = 2;
           ctx.stroke();
           // Arrowhead
@@ -1808,31 +1813,38 @@
           ctx.moveTo(f.xRight + 6 + arrowLen, f.y);
           ctx.lineTo(f.xRight + 6 + arrowLen - 8, f.y - 3.5);
           ctx.lineTo(f.xRight + 6 + arrowLen - 8, f.y + 3.5);
-          ctx.fillStyle = '#f59e0b';
+          ctx.fillStyle = '#d97706';
           ctx.fill();
         }
       }
 
       // Legend overlay
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '12px sans-serif';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px sans-serif';
       ctx.fillText(`${state.stories}층 (${state.height}m) ${systemsDB[state.system].name}`, 15, 25);
       if (state.irregulars.v1) {
         ctx.fillStyle = '#ef4444';
         ctx.font = 'bold 12px sans-serif';
         ctx.fillText(`🚨 [V-1] 1층 연층 강성비정형 극심한 전단변형 집중!`, 15, 45);
       }
+
+      ctx.restore();
     }
 
     function renderSpectrumCanvas() {
       const cvs = document.getElementById('spectrum-canvas');
       if (!cvs || cvs.offsetParent === null) return;
-      cvs.width = cvs.clientWidth;
-      cvs.height = cvs.clientHeight;
+      const dpr = window.devicePixelRatio || 1;
+      const w = cvs.clientWidth, h = cvs.clientHeight;
+      cvs.width = Math.round(w * dpr);
+      cvs.height = Math.round(h * dpr);
+      cvs.style.width = w + 'px';
+      cvs.style.height = h + 'px';
       const ctx = cvs.getContext('2d');
-      const w = cvs.width, h = cvs.height;
 
-      ctx.clearRect(0, 0, w, h);
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      ctx.save();
+      ctx.scale(dpr, dpr);
 
       const padL = 45, padR = 20, padT = 25, padB = 35;
       const plotW = w - padL - padR;
@@ -1854,7 +1866,7 @@
       function toY(sa) { return padT + plotH - (sa / maxSa) * plotH; }
 
       // Grid lines
-      ctx.strokeStyle = '#1e293b';
+      ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1;
       for (let t = 0.5; t <= maxT; t += 0.5) {
         ctx.beginPath();
@@ -1866,13 +1878,19 @@
         ctx.fillText(t.toFixed(1) + 's', toX(t) - 10, padT + plotH + 16);
       }
 
+      // Clip plot area to prevent curve overflow
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(padL, padT, plotW, plotH);
+      ctx.clip();
+
       // Spectrum Curve Sa(T)
       ctx.beginPath();
-      ctx.strokeStyle = '#38bdf8';
+      ctx.strokeStyle = '#0284c7';
       ctx.lineWidth = 3;
 
       let first = true;
-      for (let t = 0; t <= maxT; t += 0.02) {
+      for (let t = 0; t <= maxT; t += 0.01) {
         let sa = 0;
         if (t < T0) {
           sa = 0.6 * (Sds / T0) * t + 0.4 * Sds;
@@ -1889,7 +1907,7 @@
       ctx.stroke();
 
       // Highlight T0 and Ts
-      ctx.strokeStyle = '#f59e0b';
+      ctx.strokeStyle = '#d97706';
       ctx.setLineDash([2, 2]);
       ctx.beginPath();
       ctx.moveTo(toX(T0), toY(Sds));
@@ -1898,11 +1916,6 @@
       ctx.lineTo(toX(Ts), padT + plotH);
       ctx.stroke();
       ctx.setLineDash([]);
-
-      ctx.fillStyle = '#f59e0b';
-      ctx.font = '10px sans-serif';
-      ctx.fillText(`T0=${T0.toFixed(2)}s`, toX(T0) - 15, padT + plotH + 28);
-      ctx.fillText(`Ts=${Ts.toFixed(2)}s`, toX(Ts) - 15, padT + plotH + 28);
 
       // Structure Period Indicator Ta
       let Ct = 0.0488, xExp = 0.75;
@@ -1919,32 +1932,46 @@
       ctx.lineTo(pX, padT + plotH);
       ctx.stroke();
 
+      ctx.restore(); // restore clipping
+
+      ctx.fillStyle = '#d97706';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(`T0=${T0.toFixed(2)}s`, toX(T0) - 15, padT + plotH + 28);
+      ctx.fillText(`Ts=${Ts.toFixed(2)}s`, toX(Ts) - 15, padT + plotH + 28);
+
       ctx.fillStyle = '#ef4444';
       ctx.font = 'bold 11px sans-serif';
       ctx.fillText(`건물주기 Ta=${Ta.toFixed(2)}s`, pX + 5, padT + 30);
 
       // Axis labels
-      ctx.fillStyle = '#cbd5e1';
-      ctx.font = '11px sans-serif';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 11px sans-serif';
       ctx.fillText('Sa (g)', padL - 35, padT - 8);
       ctx.fillText('주기 T (초)', padL + plotW - 40, padT + plotH + 30);
+
+      ctx.restore(); // restore dpr
     }
 
     function renderTorsionCanvas() {
       const cvs = document.getElementById('torsion-canvas');
       if (!cvs || cvs.offsetParent === null) return;
-      cvs.width = cvs.clientWidth;
-      cvs.height = cvs.clientHeight;
+      const dpr = window.devicePixelRatio || 1;
+      const w = cvs.clientWidth, h = cvs.clientHeight;
+      cvs.width = Math.round(w * dpr);
+      cvs.height = Math.round(h * dpr);
+      cvs.style.width = w + 'px';
+      cvs.style.height = h + 'px';
       const ctx = cvs.getContext('2d');
-      const w = cvs.width, h = cvs.height;
 
-      ctx.clearRect(0, 0, w, h);
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      ctx.save();
+      ctx.scale(dpr, dpr);
 
       const planW = 160, planH = 100;
       const cX = w / 2, cY = h / 2;
 
       // Draw Floor Plan
-      ctx.fillStyle = '#1e293b';
+      ctx.fillStyle = '#f1f5f9';
       ctx.fillRect(cX - planW / 2, cY - planH / 2, planW, planH);
       ctx.strokeStyle = '#475569';
       ctx.lineWidth = 2;
@@ -1952,22 +1979,22 @@
 
       // Center of Rigidity (CR) - Cyan dot
       const crX = cX - 15, crY = cY;
-      ctx.fillStyle = '#06b6d4';
+      ctx.fillStyle = '#0284c7';
       ctx.beginPath();
       ctx.arc(crX, crY, 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#06b6d4';
-      ctx.font = '10px sans-serif';
+      ctx.fillStyle = '#0284c7';
+      ctx.font = 'bold 10px sans-serif';
       ctx.fillText('CR(강성중심)', crX - 25, crY - 10);
 
       // Center of Mass (CM) - Amber dot
       const cmX = cX + 15, cmY = cY;
-      ctx.fillStyle = '#f59e0b';
+      ctx.fillStyle = '#d97706';
       ctx.beginPath();
       ctx.arc(cmX, cmY, 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#f59e0b';
-      ctx.font = '10px sans-serif';
+      ctx.fillStyle = '#d97706';
+      ctx.font = 'bold 10px sans-serif';
       ctx.fillText('CM(질량중심)', cmX - 25, cmY - 10);
 
       // Accidental eccentricity 5% offset arrow
@@ -1988,11 +2015,13 @@
       // Torsional moment arrow arc
       ctx.beginPath();
       ctx.arc(cX, cY, 35, -0.4, 1.8);
-      ctx.strokeStyle = '#a855f7';
+      ctx.strokeStyle = '#7c3aed';
       ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.fillStyle = '#a855f7';
+      ctx.fillStyle = '#7c3aed';
       ctx.fillText('Mt (비틀림모멘트)', cX - 40, cY + 45);
+
+      ctx.restore();
     }
 
     window.addEventListener('resize', () => {

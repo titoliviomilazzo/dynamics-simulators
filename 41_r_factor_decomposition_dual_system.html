@@ -205,8 +205,13 @@
   const ctx = canvas.getContext('2d');
 
   function resize() {
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
   }
   window.addEventListener('resize', () => { resize(); draw(); });
 
@@ -314,8 +319,11 @@
   }
 
   function draw() {
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(dpr, dpr);
 
     const pad = { left: 60, right: 30, top: 30, bottom: 45 };
     const pw = w - pad.left - pad.right;
@@ -343,6 +351,27 @@
       ctx.fillText(r.toString(), pad.left - 24, y + 4);
     }
 
+    // 클리핑: 플롯 영역 안에서만 곡선 렌더링
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad.left, pad.top, pw, ph);
+    ctx.clip();
+
+    // Rule regions annotation
+    ctx.fillStyle = "rgba(244, 63, 94, 0.1)";
+    ctx.fillRect(xOf(0), pad.top, xOf(0.125) - xOf(0), ph);
+    ctx.fillStyle = "rgba(245, 158, 11, 0.1)";
+    ctx.fillRect(xOf(0.125), pad.top, xOf(0.5) - xOf(0.125), ph);
+    ctx.fillStyle = "rgba(16, 185, 129, 0.1)";
+    ctx.fillRect(xOf(0.5), pad.top, xOf(maxT) - xOf(0.5), ph);
+
+    ctx.fillStyle = "#f43f5e"; ctx.font = "10px sans-serif";
+    ctx.fillText("Rμ ≈ 1 (강체)", xOf(0.01) + 5, pad.top + 20);
+    ctx.fillStyle = "#f59e0b";
+    ctx.fillText("등에너지 Rμ=√(2μ-1)", xOf(0.13) + 5, pad.top + 20);
+    ctx.fillStyle = "#10b981";
+    ctx.fillText("등변위 Rμ = μ", xOf(1.2), pad.top + 20);
+
     // Benchmark curves for mu = 2, 4, 6
     const testMus = [2, 4, 6];
     testMus.forEach(m => {
@@ -362,8 +391,8 @@
     });
 
     // Active Curve for current mu
-    ctx.strokeStyle = "#38bdf8";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#0284c7";
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     for (let t = 0.02; t <= maxT; t += 0.02) {
       const rVal = getRmu(t, mu);
@@ -372,6 +401,8 @@
     }
     ctx.stroke();
     ctx.lineWidth = 1;
+
+    ctx.restore(); // 클리핑 해제
 
     // Operating point
     const curRmu = getRmu(Tn, mu);
@@ -392,21 +423,6 @@
     ctx.stroke();
     ctx.lineWidth = 1;
 
-    // Rule regions annotation
-    ctx.fillStyle = "rgba(244, 63, 94, 0.1)";
-    ctx.fillRect(xOf(0), pad.top, xOf(0.125) - xOf(0), ph);
-    ctx.fillStyle = "rgba(245, 158, 11, 0.1)";
-    ctx.fillRect(xOf(0.125), pad.top, xOf(0.5) - xOf(0.125), ph);
-    ctx.fillStyle = "rgba(16, 185, 129, 0.1)";
-    ctx.fillRect(xOf(0.5), pad.top, xOf(maxT) - xOf(0.5), ph);
-
-    ctx.fillStyle = "#f43f5e"; ctx.font = "10px sans-serif";
-    ctx.fillText("Rμ ≈ 1 (강체)", xOf(0.01) + 5, pad.top + 20);
-    ctx.fillStyle = "#f59e0b";
-    ctx.fillText("등에너지 Rμ=√(2μ-1)", xOf(0.13) + 5, pad.top + 20);
-    ctx.fillStyle = "#10b981";
-    ctx.fillText("등변위 Rμ = μ", xOf(1.2), pad.top + 20);
-
     // Axis labels
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 12px sans-serif";
@@ -415,6 +431,8 @@
     ctx.translate(pad.left - 40, pad.top + ph / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.fillText("연성감소계수 Rμ", -45, 0);
+    ctx.restore();
+
     ctx.restore();
   }
 
@@ -432,8 +450,11 @@
   }
 
   function drawDualFrame() {
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(dpr, dpr);
 
     const groundY = h - 50;
     const midX = w / 2;
@@ -498,7 +519,7 @@
       const c2X_bot = frameX + bayW + disp * prevFrac;
 
       // Columns
-      ctx.strokeStyle = "#38bdf8";
+      ctx.strokeStyle = "#0284c7";
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(c1X_bot, prevY); ctx.lineTo(c1X_top, curY);
@@ -519,7 +540,7 @@
     }
     ctx.lineWidth = 1;
 
-    ctx.fillStyle = "#38bdf8";
+    ctx.fillStyle = "#0284c7";
     ctx.font = "bold 11px sans-serif";
     ctx.fillText(isMain ? "모멘트골조 (25% 백업 대기)" : "모멘트골조 (100% 잔여 지탱 - 붕괴 저지!)", frameX - 10, groundY - wallH - 15);
 
@@ -542,6 +563,8 @@
       ? "● [본진 단계] 전단벽이 횡하중 75%를 감당하며 먼저 소성 힌지를 형성하여 대지진 에너지를 소산합니다."
       : "● [여진 단계] 전단벽이 깨진 후에도 25% 모멘트 골조가 살아서 최종 붕괴(Collapse)를 철통 방어합니다.";
     ctx.fillText(statusText, 50, groundY + 30);
+
+    ctx.restore();
   }
 
   function animate() {

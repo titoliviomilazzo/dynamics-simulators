@@ -369,8 +369,12 @@
       pctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
       pctx.beginPath(); pctx.moveTo(0, midY); pctx.lineTo(w, midY); pctx.stroke();
 
-      // 1. Force p(t) (Amber trace)
+      // 1. Force p(t) (Amber trace) & 2. Displacement u(t) with strict clipping
       pctx.save();
+      pctx.beginPath();
+      pctx.rect(0, 0, w - 70, h);
+      pctx.clip();
+
       pctx.shadowColor = '#f59e0b';
       pctx.shadowBlur = 4;
       pctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
@@ -378,15 +382,13 @@
       pctx.beginPath();
       for (let i = 0; i < historyP.length; i++) {
         const x = (i / maxHistory) * (w - 70);
-        const y = midY - (historyP[i] / p0) * (h * 0.35);
+        const y = Math.max(5, Math.min(h - 5, midY - (historyP[i] / p0) * (h * 0.35)));
         if (i === 0) pctx.moveTo(x, y);
         else pctx.lineTo(x, y);
       }
       pctx.stroke();
-      pctx.restore();
 
       // 2. Displacement u(t) (Glowing Cyan Laser)
-      pctx.save();
       pctx.shadowColor = '#06b6d4';
       pctx.shadowBlur = 8;
       pctx.strokeStyle = '#0284c7';
@@ -394,7 +396,7 @@
       pctx.beginPath();
       for (let i = 0; i < historyU.length; i++) {
         const x = (i / maxHistory) * (w - 70);
-        const y = midY - (historyU[i] / (p0 * 0.5)) * (h * 0.4);
+        const y = Math.max(5, Math.min(h - 5, midY - (historyU[i] / (p0 * 0.5)) * (h * 0.4)));
         if (i === 0) pctx.moveTo(x, y);
         else pctx.lineTo(x, y);
       }

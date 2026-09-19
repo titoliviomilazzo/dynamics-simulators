@@ -330,7 +330,7 @@
             </div>
           </div>
         </div>
-        <canvas id="timeCanvas" width="900" height="200"></canvas>
+        <canvas id="timeCanvas"></canvas>
       </div>
 
       <!-- 주파수영역 푸리에 진폭 & PSD 플롯 -->
@@ -350,7 +350,7 @@
             </div>
           </div>
         </div>
-        <canvas id="freqCanvas" width="900" height="260"></canvas>
+        <canvas id="freqCanvas"></canvas>
       </div>
 
       <!-- 이론 설명 카드 -->
@@ -396,6 +396,30 @@ const timeCanvas = document.getElementById('timeCanvas');
 const timeCtx = timeCanvas.getContext('2d');
 const freqCanvas = document.getElementById('freqCanvas');
 const freqCtx = freqCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const dpr = window.devicePixelRatio || 1;
+  const timeWrapper = timeCanvas.parentElement;
+  const freqWrapper = freqCanvas.parentElement;
+
+  const tw = timeWrapper.clientWidth - 32;
+  const th = 200;
+  timeCanvas.width = Math.round(tw * dpr);
+  timeCanvas.height = Math.round(th * dpr);
+  timeCanvas.style.width = tw + 'px';
+  timeCanvas.style.height = th + 'px';
+
+  const fw = freqWrapper.clientWidth - 32;
+  const fh = 260;
+  freqCanvas.width = Math.round(fw * dpr);
+  freqCanvas.height = Math.round(fh * dpr);
+  freqCanvas.style.width = fw + 'px';
+  freqCanvas.style.height = fh + 'px';
+}
+window.addEventListener('resize', () => {
+  resizeCanvases();
+  updateSimulation();
+});
 
 // 신호 생성 함수
 function generateSignal() {
@@ -503,9 +527,12 @@ function updateSimulation() {
 }
 
 function drawTimeDomain(tArr, xArr) {
-  const w = timeCanvas.width;
-  const h = timeCanvas.height;
-  timeCtx.clearRect(0, 0, w, h);
+  const dpr = window.devicePixelRatio || 1;
+  const w = timeCanvas.width / dpr;
+  const h = timeCanvas.height / dpr;
+  timeCtx.clearRect(0, 0, timeCanvas.width, timeCanvas.height);
+  timeCtx.save();
+  timeCtx.scale(dpr, dpr);
 
   const padLeft = 60;
   const padRight = 30;
@@ -556,23 +583,35 @@ function drawTimeDomain(tArr, xArr) {
     timeCtx.fillText(`${t}s`, x, padTop + plotH + 16);
   }
 
-  // 신호 곡선
+  // 신호 곡선 (클리핑 적용으로 경계 밖 오버플로 완벽 차단)
+  timeCtx.save();
+  timeCtx.beginPath();
+  timeCtx.rect(padLeft, padTop, plotW, plotH);
+  timeCtx.clip();
+
   timeCtx.strokeStyle = '#2563eb';
   timeCtx.lineWidth = 1.8;
   timeCtx.beginPath();
   for (let i = 0; i < tArr.length; i++) {
     const x = padLeft + (tArr[i] / duration) * plotW;
-    const y = yZero - (xArr[i] / yMax) * (plotH / 2);
+    const clampedY = Math.max(-yMax, Math.min(yMax, xArr[i]));
+    const y = yZero - (clampedY / yMax) * (plotH / 2);
     if (i === 0) timeCtx.moveTo(x, y);
     else timeCtx.lineTo(x, y);
   }
   timeCtx.stroke();
+  timeCtx.restore();
+
+  timeCtx.restore();
 }
 
 function drawFreqDomain(freqArr, magArr, peaks) {
-  const w = freqCanvas.width;
-  const h = freqCanvas.height;
-  freqCtx.clearRect(0, 0, w, h);
+  const dpr = window.devicePixelRatio || 1;
+  const w = freqCanvas.width / dpr;
+  const h = freqCanvas.height / dpr;
+  freqCtx.clearRect(0, 0, freqCanvas.width, freqCanvas.height);
+  freqCtx.save();
+  freqCtx.scale(dpr, dpr);
 
   const padLeft = 60;
   const padRight = 30;
@@ -617,6 +656,12 @@ function drawFreqDomain(freqArr, magArr, peaks) {
     freqCtx.fillText(val.toFixed(2), padLeft - 6, y + 3);
   }
 
+  // 스펙트럼 라인 및 피크 마커 (클리핑 적용)
+  freqCtx.save();
+  freqCtx.beginPath();
+  freqCtx.rect(padLeft, padTop, plotW, plotH);
+  freqCtx.clip();
+
   // 스펙트럼 라인 (보라 막대/스파이크)
   freqCtx.strokeStyle = '#7c3aed';
   freqCtx.lineWidth = 2.0;
@@ -624,7 +669,8 @@ function drawFreqDomain(freqArr, magArr, peaks) {
   for (let i = 0; i < freqArr.length; i++) {
     if (freqArr[i] > fMax) break;
     const x = padLeft + (freqArr[i] / fMax) * plotW;
-    const y = padTop + plotH - (magArr[i] / magMax) * plotH;
+    const clampedMag = Math.min(magMax, magArr[i]);
+    const y = padTop + plotH - (clampedMag / magMax) * plotH;
 
     freqCtx.beginPath();
     freqCtx.moveTo(x, padTop + plotH);
@@ -641,14 +687,18 @@ function drawFreqDomain(freqArr, magArr, peaks) {
     const p = peaks[i];
     if (p.f > fMax) continue;
     const x = padLeft + (p.f / fMax) * plotW;
-    const y = padTop + plotH - (p.mag / magMax) * plotH;
+    const clampedMag = Math.min(magMax, p.mag);
+    const y = padTop + plotH - (clampedMag / magMax) * plotH;
 
     freqCtx.beginPath();
     freqCtx.arc(x, y, 5, 0, Math.PI * 2);
     freqCtx.fill();
 
-    freqCtx.fillText(`f_${i+1}=${p.f.toFixed(2)}Hz`, x, y - 10);
+    freqCtx.fillText(`f_${i+1}=${p.f.toFixed(2)}Hz`, x, Math.max(padTop + 14, y - 10));
   }
+
+  freqCtx.restore();
+  freqCtx.restore();
 }
 
 // 이벤트
@@ -673,6 +723,7 @@ rangeFs.addEventListener('input', (e) => {
 });
 
 // 초기화
+resizeCanvases();
 updateSimulation();
 </script>
 
