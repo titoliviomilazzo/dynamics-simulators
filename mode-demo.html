@@ -30,6 +30,7 @@ function line(x1,y1,x2,y2,col,w=3){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.begin
 function draw(){
   const i=Number(slider.value),u=values();
   const dpr=window.devicePixelRatio||1;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.save();
   const scale=((canvas.width/dpr)/1400)*dpr;

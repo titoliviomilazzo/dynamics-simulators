@@ -907,6 +907,7 @@ function drawSDOF(motion) {
   const dpr = window.devicePixelRatio || 1;
   const w = sdofCanvas.width / dpr;
   const h = sdofCanvas.height / dpr;
+  sdofCtx.setTransform(1, 0, 0, 1, 0, 0);
   sdofCtx.clearRect(0, 0, sdofCanvas.width, sdofCanvas.height);
   sdofCtx.save();
   sdofCtx.scale(dpr, dpr);
@@ -1213,6 +1214,7 @@ function drawSDOF(motion) {
   sdofCtx.font = '9px monospace';
   sdofCtx.textAlign = 'center';
   sdofCtx.fillText('평형점 (u=0)', eqX, groundY + 22);
+  sdofCtx.restore();
 }
 
 // 캔버스 드로잉 - 하단 시간-변위 정밀 비교 플롯
@@ -1220,6 +1222,7 @@ function drawPlot(currT) {
   const dpr = window.devicePixelRatio || 1;
   const w = plotCanvas.width / dpr;
   const h = plotCanvas.height / dpr;
+  plotCtx.setTransform(1, 0, 0, 1, 0, 0);
   plotCtx.clearRect(0, 0, plotCanvas.width, plotCanvas.height);
   plotCtx.save();
   plotCtx.scale(dpr, dpr);
@@ -1363,6 +1366,7 @@ function drawPlot(currT) {
     plotCtx.font = '12px Pretendard, sans-serif';
     plotCtx.fillText('시간간격비 Δt / Tn이 한계조건을 초과하여 오차가 지수함수적으로 급격히 증폭되었습니다.', padLeft + plotW / 2, padTop + 55);
   }
+  plotCtx.restore();
 }
 
 // 부드러운 60FPS 애니메이션 루프

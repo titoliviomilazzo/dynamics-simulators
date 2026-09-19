@@ -431,6 +431,7 @@
   function draw() {
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.scale(dpr, dpr);

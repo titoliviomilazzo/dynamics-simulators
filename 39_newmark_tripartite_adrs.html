@@ -492,6 +492,7 @@
   function drawADRS() {
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.scale(dpr, dpr);
@@ -603,6 +604,7 @@
   function drawSDOF() {
     const dpr = window.devicePixelRatio || 1;
     const w = sdofCanvas.width / dpr, h = sdofCanvas.height / dpr;
+    sdofCtx.setTransform(1, 0, 0, 1, 0, 0);
     sdofCtx.clearRect(0, 0, sdofCanvas.width, sdofCanvas.height);
     sdofCtx.save();
     sdofCtx.scale(dpr, dpr);
