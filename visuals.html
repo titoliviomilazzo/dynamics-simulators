@@ -1,0 +1,25 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2주차 구조동역학 복습 · 시각자료</title><style>
+body{margin:0;background:#142e38;color:white;font-family:'Malgun Gothic',sans-serif}
+nav{position:sticky;top:0;padding:12px;background:#142e38;display:flex;gap:12px;flex-wrap:wrap;z-index:2}
+a{color:white;font-size:20px;padding:5px}section{min-height:90vh;display:grid;place-items:center;scroll-margin-top:75px}
+img{width:100%;max-width:1600px;height:auto}header{padding:16px 4%;font-size:22px}button{font-size:20px;cursor:pointer}
+@media print{nav,header{display:none}section{min-height:0;break-after:page}body{background:white}img{max-width:100%}}
+</style><nav><button onclick="document.documentElement.requestFullscreen()">전체화면</button><a href="#01_sdof">01</a> <a href="#02_equation">02</a> <a href="#03_step">03</a> <a href="#04_energy">04</a> <a href="#05_damping">05</a> <a href="#06_transient">06</a> <a href="#07_daf">07</a> <a href="#08_phase">08</a> <a href="#09_modes">09</a> <a href="#10_eigen">10</a> <a href="#11_orthogonal">11</a> <a href="#12_reconstruct">12</a> <a href="#13_methods">13</a> <a href="#14_spectrum">14</a></nav>
+<header>좌우 방향키: 그림 이동 · 브라우저 F11: 전체화면 · 계산 기반 PNG/SVG · 실제 지진기록 그래프 없음</header><section id="01_sdof"><img src="figures/01_sdof.png" alt="자유도는 층수가 아니라, 필요한 독립 좌표의 수다"></section>
+<section id="02_equation"><img src="figures/02_equation.png" alt="지진은 바닥을 움직인다: 관성은 절대가속도에 반응한다"></section>
+<section id="03_step"><img src="figures/03_step.png" alt="같은 하중도, 올리는 속도가 다르면 최대변위가 달라진다"></section>
+<section id="04_energy"><img src="figures/04_energy.png" alt="최대변위에서는 멈추고, 평형점에서는 가장 빠르다"></section>
+<section id="05_damping"><img src="figures/05_damping.png" alt="감쇠는 강도를 높이는 것이 아니라, 운동에너지를 빼낸다"></section>
+<section id="06_transient"><img src="figures/06_transient.png" alt="실제 응답은 “시작의 기억”과 “지속되는 가진”의 합이다"></section>
+<section id="07_daf"><img src="figures/07_daf.png" alt="증폭은 힘의 크기보다 “두 진동수의 비”로 읽는다"></section>
+<section id="08_phase"><img src="figures/08_phase.png" alt="힘이 클 때, 변위도 가장 큰 것은 아니다"></section>
+<section id="09_modes"><img src="figures/09_modes.png" alt="모드는 여러 층이 같은 박자로 움직이는 고유한 비율이다"></section>
+<section id="10_eigen"><img src="figures/10_eigen.png" alt="고유벡터는 “가속도가 형상을 바꾸지 않는 방향”이다"></section>
+<section id="11_orthogonal"><img src="figures/11_orthogonal.png" alt="질량을 반영한 좌표에서는 모드가 서로 직각이다"></section>
+<section id="12_reconstruct"><img src="figures/12_reconstruct.png" alt="복잡한 층 응답을 두 개의 단자유도 응답으로 나눈다"></section>
+<section id="13_methods"><img src="figures/13_methods.png" alt="해석법의 차이는 “시간을 보존하는가”에서 갈린다"></section>
+<section id="14_spectrum"><img src="figures/14_spectrum.png" alt="응답스펙트럼은 여러 진동계가 남긴 “최대값의 명함”이다"></section>
+<script>const sections=[...document.querySelectorAll('section')];document.addEventListener('keydown',e=>{
+if(!['ArrowRight','ArrowLeft'].includes(e.key))return;e.preventDefault();let i=sections.findIndex(s=>s.id===location.hash.slice(1));
+i=Math.max(0,Math.min(sections.length-1,i+(e.key==='ArrowRight'?1:-1)));location.hash=sections[i].id;});</script></html>
