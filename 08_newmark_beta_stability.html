@@ -27,7 +27,7 @@
     background-color: var(--bg-main);
     color: var(--text-primary);
     line-height: 1.5;
-    padding: 24px;
+    padding: 12px 16px;
     display: flex;
     justify-content: center;
   }
@@ -36,35 +36,35 @@
     max-width: 1360px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
   }
   header {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    padding: 20px 24px;
-    border-radius: 12px;
+    padding: 10px 18px;
+    border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
   .header-left h1 {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.02em;
   }
   .header-left p {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-secondary);
-    margin-top: 4px;
+    margin-top: 2px;
   }
   .nav-badge {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     background: #f1f5f9;
-    padding: 6px 14px;
+    padding: 5px 12px;
     border-radius: 9999px;
     font-size: 12px;
     font-weight: 600;
@@ -75,8 +75,8 @@
   .nav-badge:hover { background: #e2e8f0; }
   .grid-layout {
     display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 20px;
+    grid-template-columns: 350px 1fr;
+    gap: 12px;
   }
   @media (max-width: 1024px) {
     .grid-layout { grid-template-columns: 1fr; }
@@ -84,35 +84,35 @@
   .panel {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: 10px;
+    padding: 14px 16px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .control-section {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
   }
   .control-section:last-child { margin-bottom: 0; }
   .section-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-muted);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 6px;
   }
   .form-group {
-    margin-bottom: 14px;
+    margin-bottom: 8px;
   }
   .form-label {
     display: flex;
     justify-content: space-between;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
   .form-val {
     font-family: monospace;
@@ -160,11 +160,11 @@
   }
   .btn-secondary:hover { background: #e2e8f0; }
   .alert-box {
-    padding: 12px 14px;
+    padding: 8px 12px;
     border-radius: 8px;
-    font-size: 12px;
-    line-height: 1.5;
-    margin-top: 14px;
+    font-size: 11px;
+    line-height: 1.4;
+    margin-top: 8px;
   }
   .alert-info {
     background: #eff6ff;
@@ -184,23 +184,23 @@
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-top: 14px;
+    gap: 8px;
+    margin-top: 10px;
   }
   .metric-card {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 10px;
+    padding: 8px 10px;
   }
   .metric-label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-muted);
     font-weight: 600;
     text-transform: uppercase;
   }
   .metric-value {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--text-primary);
     margin-top: 2px;
@@ -209,24 +209,24 @@
   .main-content {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
   }
   .canvas-wrapper {
     position: relative;
     background: #fff;
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 10px;
+    padding: 12px 14px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .canvas-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
   .canvas-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-primary);
     display: flex;
@@ -235,18 +235,18 @@
   }
   .canvas-legend {
     display: flex;
-    gap: 14px;
-    font-size: 12px;
+    gap: 12px;
+    font-size: 11px;
     font-weight: 600;
   }
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
   }
   .legend-dot {
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
     border-radius: 2px;
   }
   canvas {
@@ -258,7 +258,7 @@
   .sdof-canvas-container {
     height: 140px;
     width: 100%;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
     background: #fafafa;
     border: 1px solid #f1f5f9;
     border-radius: 8px;
@@ -266,23 +266,23 @@
   .theory-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 18px 22px;
-    font-size: 13px;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 12px;
     color: var(--text-secondary);
-    line-height: 1.6;
+    line-height: 1.5;
   }
   .theory-card h3 {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .theory-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 10px;
-    font-size: 12px;
+    margin-top: 8px;
+    font-size: 11px;
   }
   .theory-table th, .theory-table td {
     border: 1px solid #e2e8f0;
@@ -442,7 +442,7 @@
         </div>
 
         <!-- SDOF Viewport Container -->
-        <div style="position: relative; width: 100%; height: 260px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; background: #faf8f5;">
+        <div style="position: relative; width: 100%; height: 210px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; background: #faf8f5;">
           <!-- 3D BIM Container -->
           <div id="threeSdofContainer" style="position: absolute; inset: 0; width: 100%; height: 100%; background: #faf8f5;">
             <div style="position: absolute; bottom: 8px; left: 8px; font-size: 10px; font-family: monospace; color: #475569; background: rgba(255,255,255,0.92); padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; z-index: 10; display: flex; align-items: center; gap: 6px;">
@@ -718,7 +718,7 @@ function resizeCanvases() {
 
   if (plotWrapper) {
     const pw = plotWrapper.clientWidth - 32;
-    const ph = 380;
+    const ph = 260;
     plotCanvas.width = pw * dpr;
     plotCanvas.height = ph * dpr;
     plotCanvas.style.width = pw + 'px';
@@ -764,11 +764,11 @@ function initThreeSdof() {
   threeControls.minDistance = 5;
   threeControls.maxDistance = 25;
 
-  // Studio Lighting (Multi-point bright architectural illumination)
-  const ambLight = new THREE.AmbientLight(0xffffff, 1.25);
+  // Studio Lighting (Balanced architectural illumination, no washed-out blowout)
+  const ambLight = new THREE.AmbientLight(0xffffff, 0.90);
   threeScene.add(ambLight);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.05);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.80);
   dirLight.position.set(10, 18, 12);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
@@ -782,57 +782,61 @@ function initThreeSdof() {
   dirLight.shadow.bias = 0.0005;
   threeScene.add(dirLight);
 
-  const fillLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.40);
   fillLight.position.set(-12, 14, 10);
   threeScene.add(fillLight);
 
-  const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.45);
+  const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.30);
   rimLight.position.set(0, 10, -12);
   threeScene.add(rimLight);
 
-  // 1. Bedrock Plinth (Bright Pure White Surface Plate)
+  // 1. Bedrock Plinth (Architectural Concrete with Solid Black Edges)
   const bedGeo = new THREE.BoxGeometry(13.4, 0.45, 6.4);
-  const bedMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45, metalness: 0.10 });
+  const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.45, metalness: 0.15 });
   const bedrock = new THREE.Mesh(bedGeo, bedMat);
   bedrock.position.set(0.5, 0.225, 0);
   bedrock.receiveShadow = true;
   threeScene.add(bedrock);
 
   const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
-  bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0xcbd5e1 })));
+  bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 })));
 
-  // 4 Leveling Mount Pads at corners
+  // 4 Leveling Mount Pads at corners (Dark Titanium Slate with Black Edges)
   const padGeo = new THREE.CylinderGeometry(0.35, 0.45, 0.25, 16);
-  const padMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
+  const padMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.35, roughness: 0.25 });
+  const padEdgeGeo = new THREE.EdgesGeometry(padGeo);
   for (let px of [-5.8, 6.8]) {
     for (let pz of [-2.8, 2.8]) {
       const pad = new THREE.Mesh(padGeo, padMat);
       pad.position.set(px, 0.125, pz);
       pad.castShadow = true;
       pad.receiveShadow = true;
+      pad.add(new THREE.LineSegments(padEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
       threeScene.add(pad);
     }
   }
 
-  // 2. Left Reaction Buttress Wall (Bright Pure Architectural Concrete)
+  // 2. Left Reaction Buttress Wall (Architectural Concrete with Solid Black Edges)
   const wallGeo = new THREE.BoxGeometry(1.4, 3.4, 4.4);
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35, metalness: 0.05 });
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.40, metalness: 0.10 });
   const wall = new THREE.Mesh(wallGeo, wallMat);
   wall.position.set(-4.9, 1.925, 0);
   wall.castShadow = true;
   wall.receiveShadow = true;
+  wall.add(new THREE.LineSegments(new THREE.EdgesGeometry(wallGeo), new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 })));
   threeScene.add(wall);
 
-  // Steel Anchor Faceplate on Wall
+  // Steel Anchor Faceplate on Wall (Dark Gunmetal Slate with Black Edges)
   const faceplateGeo = new THREE.BoxGeometry(0.12, 3.0, 3.8);
-  const faceplateMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
+  const faceplateMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.40, roughness: 0.25 });
   const faceplate = new THREE.Mesh(faceplateGeo, faceplateMat);
   faceplate.position.set(-4.14, 1.925, 0);
+  faceplate.add(new THREE.LineSegments(new THREE.EdgesGeometry(faceplateGeo), new THREE.LineBasicMaterial({ color: 0x0f172a })));
   threeScene.add(faceplate);
 
-  // Wall Anchor Bolts
+  // Wall Anchor Bolts (Mirror Chrome)
   const boltGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.18, 12);
-  const boltMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
+  const boltMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.85, roughness: 0.10 });
   boltGeo.rotateZ(Math.PI / 2);
   for (let by of [0.8, 1.5, 2.2, 2.9]) {
     for (let bz of [-1.6, 1.6]) {
@@ -842,19 +846,27 @@ function initThreeSdof() {
     }
   }
 
-  // Wall Clevis Brackets for Spring & Damper
+  // Wall Clevis Brackets for Spring & Damper (Dark Slate with Black Edges)
   function createClevisBracket(x, y, z) {
     const group = new THREE.Group();
     group.position.set(x, y, z);
-    const bp = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.55, 0.55), faceplateMat);
+    const bpGeo = new THREE.BoxGeometry(0.12, 0.55, 0.55);
+    const bp = new THREE.Mesh(bpGeo, faceplateMat);
+    bp.add(new THREE.LineSegments(new THREE.EdgesGeometry(bpGeo), new THREE.LineBasicMaterial({ color: 0x0f172a })));
     group.add(bp);
+
     const earGeo = new THREE.BoxGeometry(0.4, 0.35, 0.08);
+    const earEdgeGeo = new THREE.EdgesGeometry(earGeo);
     const ear1 = new THREE.Mesh(earGeo, faceplateMat);
     ear1.position.set(0.2, 0, -0.16);
+    ear1.add(new THREE.LineSegments(earEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
     group.add(ear1);
+
     const ear2 = new THREE.Mesh(earGeo, faceplateMat);
     ear2.position.set(0.2, 0, 0.16);
+    ear2.add(new THREE.LineSegments(earEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
     group.add(ear2);
+
     const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.44, 16), boltMat);
     pin.position.set(0.28, 0, 0);
     group.add(pin);
@@ -863,13 +875,14 @@ function initThreeSdof() {
   threeScene.add(createClevisBracket(-4.08, 1.55, -0.85)); // Wall Spring Clevis
   threeScene.add(createClevisBracket(-4.08, 1.55, 0.85));  // Wall Damper Clevis
 
-  // 3. Precision Stainless Linear Guideway (LM Rails - Mirror Chrome)
+  // 3. Precision Stainless Linear Guideway (LM Rails - Satin Steel & Chrome)
   for (let z of [-1.2, 1.2]) {
     const railGeo = new THREE.BoxGeometry(9.6, 0.12, 0.20);
-    const railMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.15 });
+    const railMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.50, roughness: 0.20 });
     const rail = new THREE.Mesh(railGeo, railMat);
     rail.position.set(0.5, 0.51, z);
     rail.receiveShadow = true;
+    rail.add(new THREE.LineSegments(new THREE.EdgesGeometry(railGeo), new THREE.LineBasicMaterial({ color: 0x0f172a })));
     threeScene.add(rail);
 
     for (let rx = -3.5; rx <= 4.5; rx += 1.2) {
@@ -879,32 +892,39 @@ function initThreeSdof() {
     }
 
     const bumperGeo = new THREE.BoxGeometry(0.25, 0.35, 0.28);
-    const bumperMat = new THREE.MeshStandardMaterial({ color: 0xf87171, roughness: 0.3 });
+    const bumperMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.25 });
+    const bumperEdgeGeo = new THREE.EdgesGeometry(bumperGeo);
     const bumperL = new THREE.Mesh(bumperGeo, bumperMat);
     bumperL.position.set(-4.1, 0.65, z);
+    bumperL.add(new THREE.LineSegments(bumperEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
     threeScene.add(bumperL);
+
     const bumperR = new THREE.Mesh(bumperGeo, bumperMat);
     bumperR.position.set(5.1, 0.65, z);
+    bumperR.add(new THREE.LineSegments(bumperEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
     threeScene.add(bumperR);
   }
 
-  // 4. MAIN SDOF NUMERICAL CART (Bright Cerulean Blue & White)
+  // 4. MAIN SDOF NUMERICAL CART (Vibrant Royal Blue & Dark Steel Slabs with Black Edges)
   threeCartGroup = new THREE.Group();
   threeCartGroup.position.set(1.30, 0, 0);
 
   const chassisGeo = new THREE.BoxGeometry(2.4, 0.18, 2.9);
-  const chassisMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.25, roughness: 0.3 });
+  const chassisMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.35, roughness: 0.30 });
   const chassis = new THREE.Mesh(chassisGeo, chassisMat);
   chassis.position.set(0, 0.66, 0);
   chassis.castShadow = true;
+  chassis.add(new THREE.LineSegments(new THREE.EdgesGeometry(chassisGeo), new THREE.LineBasicMaterial({ color: 0x0f172a })));
   threeCartGroup.add(chassis);
 
   const pillowGeo = new THREE.BoxGeometry(0.48, 0.16, 0.32);
-  const pillowMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
+  const pillowMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.35, roughness: 0.25 });
+  const pillowEdgeGeo = new THREE.EdgesGeometry(pillowGeo);
   for (let px of [-0.75, 0.75]) {
     for (let pz of [-1.2, 1.2]) {
       const pb = new THREE.Mesh(pillowGeo, pillowMat);
       pb.position.set(px, 0.54, pz);
+      pb.add(new THREE.LineSegments(pillowEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
       threeCartGroup.add(pb);
     }
   }
@@ -912,14 +932,15 @@ function initThreeSdof() {
   threeWheelMeshes = [];
   const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.10, 24);
   wheelGeo.rotateX(Math.PI / 2);
-  const wheelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.35, roughness: 0.15 });
-  const hubMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.45, roughness: 0.25 });
+  const hubMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.85, roughness: 0.10 });
   for (let wx of [-0.75, 0.75]) {
     for (let wz of [-1.2, 1.2]) {
       const wGroup = new THREE.Group();
       wGroup.position.set(wx, 0.54, wz);
 
       const wMesh = new THREE.Mesh(wheelGeo, wheelMat);
+      wMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(wheelGeo), new THREE.LineBasicMaterial({ color: 0x0f172a })));
       wGroup.add(wMesh);
 
       const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.12, 16), hubMat);
@@ -935,28 +956,33 @@ function initThreeSdof() {
     }
   }
 
-  // Main Mass Block (Bright Cerulean Blue)
+  // Main Mass Block (Vibrant Royal Blue with Solid Black Edges)
   const massGeo = new THREE.BoxGeometry(2.1, 1.35, 2.4);
-  const massMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.25, roughness: 0.3 });
+  const massMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.25, roughness: 0.25 });
   threeCartBodyMesh = new THREE.Mesh(massGeo, massMat);
   threeCartBodyMesh.position.set(0, 1.425, 0);
   threeCartBodyMesh.castShadow = true;
+  threeCartBodyMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(massGeo), new THREE.LineBasicMaterial({ color: 0x0f172a })));
   threeCartGroup.add(threeCartBodyMesh);
 
-  // Counterweight Slabs on Top
+  // Counterweight Slabs on Top (Dark Industrial Steel Slabs with Black Edges - High Contrast)
   const slabGeo = new THREE.BoxGeometry(1.8, 0.14, 2.0);
-  const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.15, roughness: 0.25 });
+  const slabMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.45, roughness: 0.25 });
+  const slabEdgeGeo = new THREE.EdgesGeometry(slabGeo);
+
   const slab1 = new THREE.Mesh(slabGeo, slabMat);
   slab1.position.set(0, 2.17, 0);
   slab1.castShadow = true;
+  slab1.add(new THREE.LineSegments(slabEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
   threeCartGroup.add(slab1);
 
   const slab2 = new THREE.Mesh(slabGeo, slabMat);
   slab2.position.set(0, 2.31, 0);
   slab2.castShadow = true;
+  slab2.add(new THREE.LineSegments(slabEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
   threeCartGroup.add(slab2);
 
-  // Top Hex Studs
+  // Top Hex Studs (Mirror Chrome)
   for (let bx of [-0.75, 0.75]) {
     for (let bz of [-0.85, 0.85]) {
       const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.14, 8), boltMat);
@@ -965,17 +991,22 @@ function initThreeSdof() {
     }
   }
 
-  // Front Clevis Brackets on Cart
+  // Front Clevis Brackets on Cart (Dark Slate with Black Edges)
   function createCartClevis(x, y, z) {
     const group = new THREE.Group();
     group.position.set(x, y, z);
     const earGeo = new THREE.BoxGeometry(0.35, 0.35, 0.08);
+    const earEdgeGeo = new THREE.EdgesGeometry(earGeo);
     const ear1 = new THREE.Mesh(earGeo, faceplateMat);
     ear1.position.set(-0.15, 0, -0.15);
+    ear1.add(new THREE.LineSegments(earEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
     group.add(ear1);
+
     const ear2 = new THREE.Mesh(earGeo, faceplateMat);
     ear2.position.set(-0.15, 0, 0.15);
+    ear2.add(new THREE.LineSegments(earEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
     group.add(ear2);
+
     const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.42, 16), boltMat);
     pin.position.set(-0.25, 0, 0);
     group.add(pin);
@@ -984,22 +1015,23 @@ function initThreeSdof() {
   threeCartGroup.add(createCartClevis(-1.05, 1.55, -0.85)); // Spring clevis on cart
   threeCartGroup.add(createCartClevis(-1.05, 1.55, 0.85));  // Damper clevis on cart
 
-  // Cart Nameplate
+  // Cart Nameplate (Dark Slate Bezel with Cyan LED)
   const plateGeo = new THREE.BoxGeometry(1.6, 0.5, 0.04);
-  const plateMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.25, roughness: 0.3 });
+  const plateMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.30, roughness: 0.30 });
   const nameplate = new THREE.Mesh(plateGeo, plateMat);
   nameplate.position.set(0, 1.45, 1.22);
+  nameplate.add(new THREE.LineSegments(new THREE.EdgesGeometry(plateGeo), new THREE.LineBasicMaterial({ color: 0x0f172a })));
   threeCartGroup.add(nameplate);
 
   const ledGeo = new THREE.BoxGeometry(1.4, 0.18, 0.05);
-  const ledMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+  const ledMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
   const ledBezel = new THREE.Mesh(ledGeo, ledMat);
   ledBezel.position.set(0, 1.35, 1.23);
   threeCartGroup.add(ledBezel);
 
   threeScene.add(threeCartGroup);
 
-  // 5. GHOST CART (Exact Analytical Holographic Ghost)
+  // 5. GHOST CART (Exact Analytical Holographic Ghost with Distinct Outlines)
   threeGhostCartGroup = new THREE.Group();
   threeGhostCartGroup.position.set(1.30, 0, -0.35); // Slight Z-offset for high-clarity comparison
 
@@ -1008,10 +1040,11 @@ function initThreeSdof() {
     metalness: 0.2,
     roughness: 0.3,
     transparent: true,
-    opacity: 0.35
+    opacity: 0.45
   });
   const ghostChassis = new THREE.Mesh(chassisGeo, ghostChassisMat);
   ghostChassis.position.set(0, 0.66, 0);
+  ghostChassis.add(new THREE.LineSegments(new THREE.EdgesGeometry(chassisGeo), new THREE.LineBasicMaterial({ color: 0x0369a1, transparent: true, opacity: 0.85 })));
   threeGhostCartGroup.add(ghostChassis);
 
   const ghostMassMat = new THREE.MeshStandardMaterial({
@@ -1019,30 +1052,32 @@ function initThreeSdof() {
     metalness: 0.2,
     roughness: 0.3,
     transparent: true,
-    opacity: 0.38
+    opacity: 0.48
   });
   const ghostBody = new THREE.Mesh(massGeo, ghostMassMat);
   ghostBody.position.set(0, 1.425, 0);
+  ghostBody.add(new THREE.LineSegments(new THREE.EdgesGeometry(massGeo), new THREE.LineBasicMaterial({ color: 0x0369a1, transparent: true, opacity: 0.85 })));
   threeGhostCartGroup.add(ghostBody);
 
   const ghostSlabMat = new THREE.MeshStandardMaterial({
-    color: 0xe0f2fe,
+    color: 0x38bdf8,
     metalness: 0.2,
     roughness: 0.3,
     transparent: true,
-    opacity: 0.42
+    opacity: 0.50
   });
   const ghostSlab = new THREE.Mesh(slabGeo, ghostSlabMat);
   ghostSlab.position.set(0, 2.17, 0);
+  ghostSlab.add(new THREE.LineSegments(new THREE.EdgesGeometry(slabGeo), new THREE.LineBasicMaterial({ color: 0x0369a1, transparent: true, opacity: 0.85 })));
   threeGhostCartGroup.add(ghostSlab);
 
   threeGhostWheelMeshes = [];
   const ghostWheelMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
+    color: 0xbae6fd,
     metalness: 0.3,
     roughness: 0.2,
     transparent: true,
-    opacity: 0.40
+    opacity: 0.45
   });
   for (let wx of [-0.75, 0.75]) {
     for (let wz of [-1.2, 1.2]) {
@@ -1054,39 +1089,40 @@ function initThreeSdof() {
   }
   threeScene.add(threeGhostCartGroup);
 
-  // 6. TRUE 3D HELICAL COIL SPRING (Metallic Sky Blue)
+  // 6. TRUE 3D HELICAL COIL SPRING (Metallic Royal Blue, Thick Wire)
   const springStart = new THREE.Vector3(-3.8, 1.55, -0.85);
   const springEnd = new THREE.Vector3(0.0, 1.55, -0.85);
-  const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.28, 10);
-  const springGeo = new THREE.TubeGeometry(springCurve, 120, 0.045, 10, false);
+  const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.32, 10);
+  const springGeo = new THREE.TubeGeometry(springCurve, 120, 0.065, 10, false);
   const springMat = new THREE.MeshStandardMaterial({
-    color: 0x38bdf8,
-    metalness: 0.3,
-    roughness: 0.2,
+    color: 0x1d4ed8,
+    metalness: 0.45,
+    roughness: 0.20,
   });
   threeSpringMesh = new THREE.Mesh(springGeo, springMat);
   threeSpringMesh.castShadow = true;
   threeScene.add(threeSpringMesh);
 
-  // 7. INDUSTRIAL HYDRAULIC DAMPER (Bright Aluminum + Amber Window + Gold Wiper)
+  // 7. INDUSTRIAL HYDRAULIC DAMPER (Titanium Slate + Amber Window + Gold Wiper + Chrome Rod)
   const cylLen = 1.70;
   const cylGeo = new THREE.CylinderGeometry(0.18, 0.18, cylLen, 24);
   cylGeo.rotateZ(Math.PI / 2);
-  const cylMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.25, roughness: 0.3 });
+  const cylMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.45, roughness: 0.25 });
   threeDamperCyl = new THREE.Mesh(cylGeo, cylMat);
   threeDamperCyl.position.set(-2.95, 1.55, 0.85);
   threeDamperCyl.castShadow = true;
+  threeDamperCyl.add(new THREE.LineSegments(new THREE.EdgesGeometry(cylGeo), new THREE.LineBasicMaterial({ color: 0x0f172a })));
   threeScene.add(threeDamperCyl);
 
   // Amber Oil Window
   const glassGeo = new THREE.CylinderGeometry(0.175, 0.175, 1.1, 24);
   glassGeo.rotateZ(Math.PI / 2);
   const glassMat = new THREE.MeshStandardMaterial({
-    color: 0xfbbf24,
-    metalness: 0.05,
-    roughness: 0.05,
+    color: 0xf59e0b,
+    metalness: 0.10,
+    roughness: 0.10,
     transparent: true,
-    opacity: 0.60
+    opacity: 0.85
   });
   const damperGlass = new THREE.Mesh(glassGeo, glassMat);
   damperGlass.position.set(-2.95, 1.55, 0.85);
@@ -1095,7 +1131,7 @@ function initThreeSdof() {
   // Gold Wiper Nut (front at X = -1.96m)
   const wiperGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.14, 24);
   wiperGeo.rotateZ(Math.PI / 2);
-  const wiperMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.4, roughness: 0.25 });
+  const wiperMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.60, roughness: 0.20 });
   const wiper = new THREE.Mesh(wiperGeo, wiperMat);
   wiper.position.set(-2.03, 1.55, 0.85);
   threeScene.add(wiper);
@@ -1104,7 +1140,7 @@ function initThreeSdof() {
   const rodLen = 3.6;
   const rodGeo = new THREE.CylinderGeometry(0.075, 0.075, rodLen, 24);
   rodGeo.rotateZ(Math.PI / 2);
-  const rodMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
+  const rodMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.85, roughness: 0.10 });
   threeDamperRod = new THREE.Mesh(rodGeo, rodMat);
   threeDamperRod.position.set(-1.47, 1.55, 0.85);
   threeDamperRod.castShadow = true;
@@ -1112,7 +1148,7 @@ function initThreeSdof() {
 
   const pHeadGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.14, 20);
   pHeadGeo.rotateZ(Math.PI / 2);
-  const pHeadMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.4, roughness: 0.25 });
+  const pHeadMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.50, roughness: 0.20 });
   threeDamperPistonHead = new THREE.Mesh(pHeadGeo, pHeadMat);
   threeDamperPistonHead.position.set(-2.95, 1.55, 0.85);
   threeScene.add(threeDamperPistonHead);
@@ -1144,13 +1180,13 @@ function renderThreeSdof(motion) {
       threeCartGroup.position.y = (Math.random() - 0.5) * 0.06;
       threeCartGroup.rotation.z = (Math.random() - 0.5) * 0.04;
       if (threeCartBodyMesh) {
-        threeCartBodyMesh.material.color.setHex(0xef4444);
+        threeCartBodyMesh.material.color.setHex(0xdc2626);
       }
     } else {
       threeCartGroup.position.y = 0;
       threeCartGroup.rotation.z = -0.015 * Math.tanh((motion.a_num || 0) / 40.0);
       if (threeCartBodyMesh) {
-        threeCartBodyMesh.material.color.setHex(0x3b82f6);
+        threeCartBodyMesh.material.color.setHex(0x2563eb);
       }
     }
   }
@@ -1184,13 +1220,13 @@ function renderThreeSdof(motion) {
     }
   }
 
-  // 4. Dynamic Spring Update (Zero collision)
+  // 4. Dynamic Spring Update (Zero collision, Thick Wire)
   if (threeSpringMesh) {
     const springStart = new THREE.Vector3(-3.8, 1.55, -0.85);
     const springEnd = new THREE.Vector3(cartCenterX - 1.30, 1.55, -0.85);
-    const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.28, 10);
+    const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.32, 10);
     threeSpringMesh.geometry.dispose();
-    threeSpringMesh.geometry = new THREE.TubeGeometry(springCurve, 120, 0.045, 10, false);
+    threeSpringMesh.geometry = new THREE.TubeGeometry(springCurve, 120, 0.065, 10, false);
   }
 
   // 5. Dynamic Damper Piston Update
