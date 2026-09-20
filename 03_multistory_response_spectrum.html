@@ -93,8 +93,13 @@
 
         <div class="relative flex-1 w-full my-2 min-h-[320px] rounded-lg overflow-hidden border border-slate-200 bg-white">
           <div id="threeFrameContainer" class="w-full h-full absolute inset-0">
-            <div id="threeHud" class="absolute bottom-2 left-2 text-[10.5px] font-mono text-slate-600 bg-white/95 px-2.5 py-1 rounded border border-slate-300 pointer-events-none z-10 shadow-xs">
-              🖱️ 좌클릭: 3D 회전 | 우클릭: 이동 | 휠: 줌
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[10.5px] font-mono text-slate-700 bg-white/95 px-2.5 py-1.5 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1.5 flex-wrap">
+              <span>🖱️ 3D 회전/줌</span>
+              <span class="text-slate-300">|</span>
+              <span class="font-bold text-slate-800">변위 증폭:</span>
+              <button onclick="setThreeAmp(40)" id="btnAmp40" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(75)" id="btnAmp75" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x (표준)</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x (확대)</button>
             </div>
           </div>
           <canvas id="frameCanvas" class="w-full h-full block absolute inset-0" style="display: none;"></canvas>
@@ -948,10 +953,24 @@
       }
     }
 
+    let threeDispAmp = 75.0; // 기본 75배 증폭으로 3D 진동이 역동적이고 선명하게 보임
+
+    function setThreeAmp(val) {
+      threeDispAmp = val;
+      [40, 75, 140].forEach(v => {
+        const btn = document.getElementById(`btnAmp${v}`);
+        if (btn) {
+          btn.className = v === val 
+            ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' 
+            : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+        }
+      });
+    }
+
     function updateThreeFrameAnimation(u1_m, u2_m, u3_m, baseShift_m) {
       if (!threeFrameRenderer || activeFrameView !== '3D') return;
 
-      const scaleFactor = 12.0; // 3D 시각적 가시성 스케일
+      const scaleFactor = threeDispAmp; // 3D 시각적 가시성 대폭 확대 (기본 75.0배)
       const bX = baseShift_m * scaleFactor;
       const x1 = (baseShift_m + u1_m) * scaleFactor;
       const x2 = (baseShift_m + u2_m) * scaleFactor;
@@ -1113,7 +1132,7 @@
         `u₃=${(u3_m * 100).toFixed(1)}cm, u₂=${(u2_m * 100).toFixed(1)}cm, u₁=${(u1_m * 100).toFixed(1)}cm`;
 
       if (activeFrameView === '3D') {
-        updateThreeFrameAnimation(u1_m, u2_m, u3_m, groundDisp * 80 * 0.0025);
+        updateThreeFrameAnimation(u1_m, u2_m, u3_m, groundDisp * 0.4);
       } else {
         drawFrame2D(u1_m, u2_m, u3_m, groundDisp * 80);
       }
