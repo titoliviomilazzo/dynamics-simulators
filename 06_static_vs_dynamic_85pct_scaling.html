@@ -463,8 +463,7 @@
       const ratioPct = (Vt / Vs) * 100;
 
       document.getElementById('card-vt-val').innerText = `${Vt.toFixed(1)} kN`;
-      document.getElementById('card-vt-sub').innerHTML = `<span class="math-var">V<sub>t</sub></span> = ${Vt.toFixed(1)} kN`;
-      document.getElementById('card-ratio-badge').innerHTML = `<span>정적 대비 ${ratioPct.toFixed(1)}% (${ratioPct < 85 ? '85% 미달' : '85% 충족'})</span><span class="font-mono font-bold"><span class="math-var">V<sub>t</sub></span> = ${Vt.toFixed(1)} kN</span>`;
+      document.getElementById('card-ratio-badge').innerHTML = `<span>정적 대비 ${ratioPct.toFixed(1)}% (${ratioPct < 85 ? '85% 미달' : '85% 충족'})</span><span id="card-vt-sub" class="font-mono font-bold"><span class="math-var">V<sub>t</sub></span> = ${Vt.toFixed(1)} kN</span>`;
 
       // 2. 85% Code Check & Scale Factor
       const statusBadge = document.getElementById('status-badge');
@@ -968,7 +967,7 @@
       const marginB = 38;
       const plotW = w - marginL - marginR;
       const plotH = h - marginT - marginB;
-      const maxG = 0.65;
+      const maxG = 0.70;
       const maxT = 1.4;
 
       function toX(T) { return marginL + (T / maxT) * plotW; }
@@ -1056,10 +1055,13 @@
       ctx.lineTo(xTs, h - marginB);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = 'italic bold 10px "Cambria Math", serif';
+
+      // Ts text placed cleanly near bottom axis (never collides with curve or dots)
+      ctx.fillStyle = '#64748b';
+      ctx.font = 'bold 9.5px "Cambria Math", Pretendard, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Ts = 0.40s', xTs, toY(S_DS) + 14);
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('Ts = 0.40s', xTs, h - marginB - 5);
 
       // 5. Area Fill under Spectrum Curve (Soft Light Pastel Tint - 어두운 색상 배제)
       ctx.fillStyle = 'rgba(37, 99, 235, 0.07)';
@@ -1090,11 +1092,13 @@
       }
       ctx.stroke();
 
-      // Plateau Annotation
-      ctx.fillStyle = '#1d4ed8';
+      // Plateau Annotation - INSIDE the shaded region (leaves headroom completely free)
+      const xMidPlateau = (toX(0.08) + xTs) / 2;
+      ctx.fillStyle = '#2563eb';
       ctx.font = 'bold 10px Pretendard, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('가속도 평탄부 SDS = 0.55g', toX(0.24), toY(S_DS) - 8);
+      ctx.textBaseline = 'top';
+      ctx.fillText('가속도 평탄부 SDS = 0.55g', xMidPlateau, toY(S_DS) + 14);
 
       // Coordinates of Ta and T1
       const xTa = toX(Ta);
@@ -1104,25 +1108,30 @@
       const yT1 = toY(Sa1);
 
       // 7. Dynamic Transition Arc between Ta and T1
-      if (Math.abs(xT1 - xTa) > 20) {
+      const diffT = currentT1 - Ta;
+      if (Math.abs(diffT) >= 0.05) {
+        const midX = (xTa + xT1) / 2;
+        const arcY = Math.min(yTa, yT1) - 16;
+
         ctx.strokeStyle = '#d97706';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 3]);
         ctx.beginPath();
-        const midX = (xTa + xT1) / 2;
-        const midY = Math.min(yTa, yT1) - 16;
         ctx.moveTo(xTa, yTa);
-        ctx.quadraticCurveTo(midX, midY, xT1, yT1);
+        ctx.quadraticCurveTo(midX, arcY, xT1, yT1);
         ctx.stroke();
         ctx.setLineDash([]);
 
         const diffDrop = ((1 - Sa1 / Sa_Ta) * 100).toFixed(0);
-        const arcBadgeText = currentT1 > Ta ? `주기 신장: Sa ${diffDrop}% 절감` : `주기 단축: Sa 증가`;
+        const arcBadgeText = diffT > 0 ? `주기 신장: Sa ${diffDrop}% 절감` : `주기 단축: Sa 증가`;
         ctx.font = 'bold 9.5px Pretendard, sans-serif';
-        const abW = ctx.measureText(arcBadgeText).width + 14;
-        const abH = 18;
-        const abX = midX - abW / 2;
-        const abY = midY - 7;
+        const abW = ctx.measureText(arcBadgeText).width + 16;
+        const abH = 20;
+
+        // Position transition badge in top area (clears Ta badge to the left and curve below)
+        const minAbX = marginL + 155;
+        const abX = Math.max(minAbX, Math.min(w - marginR - abW - 4, midX - abW / 2));
+        const abY = marginT - 2;
 
         ctx.fillStyle = '#fffbeb';
         ctx.strokeStyle = '#fde68a';
@@ -1131,7 +1140,7 @@
         ctx.fillStyle = '#b45309';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(arcBadgeText, midX, abY + abH / 2);
+        ctx.fillText(arcBadgeText, abX + abW / 2, abY + abH / 2);
       }
 
       // 8. Vertical Drop Lines & Dots
@@ -1162,23 +1171,29 @@
       ctx.arc(xT1, yT1, 5.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // 9. HIGH-QUALITY CALLOUT BADGES (DynamicsChartCanonical 적용)
-      const plotRect = { left: marginL, top: marginT, width: plotW, height: plotH };
-
-      // A. Ta Badge (Static ELF)
+      // 9. HIGH-QUALITY CALLOUT BADGES (CAD Precision Placement)
+      // A. Ta Badge (Static ELF) - Placed securely in top-left headroom
       const taText = `Ta=0.44s (0.505g) [ELF 기준]`;
-      const taW = 145, taH = 22;
-      let posTa = DynamicsChartCanonical.getBestCalloutPlacement(xTa, yTa, taW, taH, plotRect, specCurvePoints);
-      // Force Ta to left side of curve
-      if (posTa.x + taW > xTa + 10) posTa.x = Math.max(marginL + 4, xTa - taW - 14);
+      const taW = 145, taH = 20;
+      const posTa = {
+        x: marginL + 6,
+        y: marginT - 2
+      };
 
-      if (Math.hypot((posTa.x + taW/2) - xTa, (posTa.y + taH/2) - yTa) > 15) {
-        DynamicsChartCanonical.drawLeaderLine(ctx, xTa, yTa, posTa.x, posTa.y, taW, taH, '#dc2626');
-      }
+      // CAD Leader Line: straight from red dot to bottom of Ta badge (never penetrates badge)
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([3, 2]);
+      ctx.beginPath();
+      ctx.moveTo(xTa, yTa);
+      ctx.lineTo(xTa, posTa.y + taH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
       DynamicsChartCanonical.drawAutoBadge(ctx, taText, posTa.x, posTa.y, {
         maxW: 155,
         baseFontSize: 9.0,
-        bg: 'rgba(255, 255, 255, 0.96)',
+        bg: '#ffffff',
         border: '#fca5a5',
         textColor: '#b91c1c',
         height: taH,
@@ -1186,25 +1201,67 @@
         paddingX: 6
       });
 
-      // B. T1 Badge (Dynamic RSA)
+      // B. T1 Badge (Dynamic RSA) - Dynamic adaptive placement without overlapping Ta or curve
       const t1Text = `T1=${currentT1.toFixed(2)}s (${Sa1.toFixed(3)}g) [RSA 모델]`;
-      const t1W = 155, t1H = 22;
-      let posT1 = DynamicsChartCanonical.getBestCalloutPlacement(xT1, yT1, t1W, t1H, plotRect, specCurvePoints);
-      // If T1 > Ta, prefer placing to the right
-      if (currentT1 > Ta && posT1.x < xT1) posT1.x = Math.min(marginL + plotW - t1W - 4, xT1 + 14);
+      const t1W = 142, t1H = 20;
+      let posT1;
+      let t1TargetX, t1TargetY;
 
-      // Avoid collision between Ta badge and T1 badge
-      if (Math.abs(posT1.x - posTa.x) < taW && Math.abs(posT1.y - posTa.y) < taH) {
-        posT1.y = posTa.y + taH + 8;
+      if (currentT1 >= Ta + 0.08) {
+        if (xT1 + 10 + t1W <= w - 6) {
+          // Place to right of green dot (above descending curve)
+          posT1 = {
+            x: xT1 + 10,
+            y: Math.min(h - marginB - t1H - 4, Math.max(marginT + 26, yT1 - t1H / 2))
+          };
+          t1TargetX = posT1.x;
+          t1TargetY = posT1.y + t1H / 2;
+        } else {
+          // Near right edge: place to left and BELOW curve to prevent curve collision
+          posT1 = {
+            x: Math.max(marginL + 6, xT1 - t1W - 10),
+            y: Math.min(h - marginB - t1H - 4, yT1 + 12)
+          };
+          t1TargetX = posT1.x + t1W;
+          t1TargetY = posT1.y + t1H / 2;
+        }
+      } else if (currentT1 <= Ta - 0.08) {
+        // T1 < Ta: place to right of Ta badge
+        posT1 = {
+          x: Math.max(posTa.x + taW + 10, xT1 + 10),
+          y: marginT + 26
+        };
+        t1TargetX = posT1.x;
+        t1TargetY = posT1.y + t1H / 2;
+      } else {
+        // T1 ~ Ta: stack cleanly below Ta badge (both above plateau line)
+        posT1 = {
+          x: posTa.x,
+          y: posTa.y + taH + 3
+        };
+        t1TargetX = posT1.x + t1W;
+        t1TargetY = posT1.y + t1H / 2;
       }
 
-      if (Math.hypot((posT1.x + t1W/2) - xT1, (posT1.y + t1H/2) - yT1) > 15) {
-        DynamicsChartCanonical.drawLeaderLine(ctx, xT1, yT1, posT1.x, posT1.y, t1W, t1H, '#059669');
+      // CAD Leader Line: from green dot to edge/bottom of T1 badge
+      ctx.strokeStyle = '#059669';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([3, 2]);
+      ctx.beginPath();
+      if (xT1 >= posT1.x - 5 && xT1 <= posT1.x + t1W + 5 && yT1 >= posT1.y + t1H) {
+        ctx.moveTo(xT1, yT1);
+        ctx.lineTo(xT1, posT1.y + t1H);
+      } else {
+        ctx.moveTo(xT1, yT1);
+        ctx.lineTo(t1TargetX, t1TargetY);
       }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
       DynamicsChartCanonical.drawAutoBadge(ctx, t1Text, posT1.x, posT1.y, {
-        maxW: 165,
+        maxW: 155,
         baseFontSize: 9.0,
-        bg: 'rgba(255, 255, 255, 0.96)',
+        bg: '#ffffff',
         border: '#6ee7b7',
         textColor: '#047857',
         height: t1H,
