@@ -9,68 +9,85 @@
     --bg-dark: #f8fafc;
     --card-bg: #ffffff;
     --border: #cbd5e1;
+    --border-dark: #0f172a;
     --text-main: #0f172a;
     --text-muted: #64748b;
     --accent-blue: #0284c7;
     --accent-amber: #f59e0b;
     --accent-emerald: #10b981;
     --accent-rose: #f43f5e;
-    --accent-purple: #a855f7;
+    --accent-purple: #8b5cf6;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
   body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
-  header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
+  header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 0.85rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .title-group h1 { font-size: 1.2rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
   .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
-  .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
+  .badge { background: rgba(2, 132, 199, 0.12); color: var(--accent-blue); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; border: 1.5px solid var(--accent-blue); }
 
-  .main-container { flex: 1; display: grid; grid-template-columns: 330px 1fr 310px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
+  .main-container { flex: 1; display: grid; grid-template-columns: 320px 1fr 310px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
   @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
 
-  .panel { background: #ffffff; border: 1.5px solid #0f172a; box-shadow: 0 4px 0 #0f172a; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
-  .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .panel { background: #ffffff; border: 1.5px solid #0f172a; box-shadow: 0 4px 0 #0f172a; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 0.85rem; overflow-y: auto; }
+  .panel-title { font-size: 0.92rem; font-weight: 700; color: var(--accent-blue); border-bottom: 1.5px solid var(--border); padding-bottom: 0.45rem; display: flex; justify-content: space-between; align-items: center; }
 
-  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
-  .control-group label { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
-  select, input[type="range"], input[type="number"] { background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 4px; font-size: 0.85rem; width: 100%; accent-color: var(--accent-blue); }
-
-  .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-  button { background: #0f172a; color: #fff; border: 1.5px solid #0f172a; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
-  button:hover { background: #475569; }
-  button.active { background: #0f172a; color: #ffffff; border-color: var(--accent-blue); font-weight: 700; }
+  .control-group { display: flex; flex-direction: column; gap: 0.35rem; }
+  .control-group label { font-size: 0.78rem; font-weight: 600; color: #334155; display: flex; justify-content: space-between; }
+  select, input[type="range"], input[type="number"] { background: #0f172a; border: 1px solid var(--border); color: #ffffff; padding: 0.4rem; border-radius: 4px; font-size: 0.82rem; width: 100%; accent-color: var(--accent-blue); }
 
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-  .stat-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
-  .stat-card .label { font-size: 0.7rem; color: var(--text-muted); }
-  .stat-card .value { font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
+  .stat-card { background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 0.6rem 0.75rem; border-radius: 6px; }
+  .stat-card .label { font-size: 0.7rem; font-weight: 600; color: #64748b; }
+  .stat-card .value { font-size: 1.18rem; font-weight: 800; color: #0f172a; margin-top: 0.2rem; }
   .stat-card.blue .value { color: var(--accent-blue); }
-  .stat-card.amber .value { color: var(--accent-amber); }
-  .stat-card.emerald .value { color: var(--accent-emerald); }
-  .stat-card.rose .value { color: var(--accent-rose); }
+  .stat-card.amber .value { color: #d97706; }
+  .stat-card.emerald .value { color: #059669; }
+  .stat-card.rose .value { color: #e11d48; }
 
-  .canvas-wrapper { flex: 1; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 400px; }
-  canvas { width: 100%; height: 100%; display: block; }
+  /* Mode Diagnosis Banner */
+  .diagnosis-banner { padding: 0.75rem 1rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.3rem; border: 2px solid; }
+  .diagnosis-banner.warning { background: rgba(244, 63, 94, 0.08); border-color: var(--accent-rose); }
+  .diagnosis-banner.safe { background: rgba(16, 185, 129, 0.08); border-color: var(--accent-emerald); }
 
-  .midas-table { width: 100%; border-collapse: collapse; font-family: 'Consolas', monospace; font-size: 0.72rem; }
-  .midas-table th, .midas-table td { border: 1px solid var(--border); padding: 0.3rem 0.4rem; text-align: right; }
-  .midas-table th { background: #0b1120; color: var(--accent-blue); text-align: center; }
-  .midas-table tr.warning { background: rgba(244, 63, 94, 0.2); color: #ff8080; font-weight: 700; }
+  /* 3D BIM Viewport Container */
+  .building-view { flex: 1; background: #faf8f5; border: 2px solid var(--border-dark); border-radius: 8px; position: relative; overflow: hidden; min-height: 410px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.03); }
+  #threeBimContainer { width: 100%; height: 100%; display: block; }
 
-  .takeaway { background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
-  .callout-amber { background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
+  .bim-hud { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.94); backdrop-filter: blur(4px); padding: 0.35rem 0.65rem; border-radius: 6px; border: 1.5px solid #0f172a; font-size: 0.75rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+  .bim-view-buttons { position: absolute; top: 10px; right: 10px; display: flex; gap: 0.3rem; z-index: 10; }
+  .bim-btn { background: #ffffff; color: #0f172a; border: 1.5px solid #0f172a; padding: 0.25rem 0.55rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+  .bim-btn:hover { background: #0f172a; color: #ffffff; }
+  .bim-btn.active { background: #0284c7; color: #ffffff; border-color: #0284c7; }
+  .bim-hud-controls { position: absolute; bottom: 8px; left: 10px; background: rgba(255,255,255,0.92); backdrop-filter: blur(4px); padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.7rem; color: #475569; font-weight: 600; pointer-events: none; z-index: 10; }
+
+  /* Spectrum Cap Chart */
+  .spectrum-box { background: #ffffff; border: 1.5px solid #0f172a; border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .spectrum-canvas-wrap { width: 100%; height: 140px; position: relative; }
+  #spectrumCanvas { width: 100%; height: 100%; display: block; }
+
+  /* MIDAS Table */
+  .midas-table { width: 100%; border-collapse: collapse; font-family: 'Consolas', monospace; font-size: 0.74rem; background: #ffffff; }
+  .midas-table th, .midas-table td { border: 1px solid var(--border); padding: 0.35rem 0.45rem; text-align: right; }
+  .midas-table th { background: #0f172a; color: #ffffff; text-align: center; font-weight: 700; }
+  .midas-table tr.warning { background: rgba(244, 63, 94, 0.14); color: #b91c1c; font-weight: 800; }
+
+  .takeaway { background: #f8fafc; border: 1.5px solid var(--border); border-left: 4px solid var(--accent-rose); padding: 0.65rem 0.8rem; border-radius: 0 8px 8px 0; color: #1e293b; font-size: 0.75rem; line-height: 1.45; }
+  .callout-amber { background: rgba(245, 158, 11, 0.08); border-left: 3.5px solid var(--accent-amber); padding: 0.65rem 0.8rem; border-radius: 0 6px 6px 0; font-size: 0.75rem; line-height: 1.45; color: #1e293b; }
 </style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-  <script src="assets/dynamics-fx.js" defer></script>
+<link rel="stylesheet" href="assets/dynamics-fx.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body>
 
 <header>
   <div class="title-group">
     <h1><span class="badge">Sim 43</span> 고유주기의 역설 — 약산주기(Ta) vs 전산주기 상한(CuTa) & MIDAS 비틀림 경고</h1>
-    <p>KDS 41 주기상한계수 CuTa로 밑면전단력 과소평가 방지 및 1차 모드 비틀림(RZ=49.5%) 진단</p>
+    <p>KDS 41 주기상한계수 CuTa로 밑면전단력 과소평가 방지 및 3D BIM 1차 모드 비틀림(RZ) 진단</p>
   </div>
-  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.85rem;">← 마스터 포털 복귀</a>
+  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.82rem; font-weight:700;">← 마스터 포털 복귀</a>
 </header>
 
 <div class="main-container">
@@ -99,13 +116,13 @@
     </div>
 
     <div class="control-group">
-      <label><span>MIDAS 컴퓨터 계산주기 Tcom</span> <span id="lblTcom" style="color:var(--accent-amber); font-weight:700;">2.10 s</span></label>
-      <input type="range" id="rngTcom" min="0.3" max="4.0" step="0.05" value="2.10" oninput="updateTcom(this.value)">
+      <label><span>MIDAS 컴퓨터 계산주기 Tcom</span> <span id="lblTcom" style="color:#d97706; font-weight:800;">2.70 s</span></label>
+      <input type="range" id="rngTcom" min="0.3" max="4.0" step="0.05" value="2.70" oninput="updateTcom(this.value)">
     </div>
 
-    <div class="panel-title" style="margin-top:0.5rem;">2. 평면 편심도 (Torsion Test)</div>
+    <div class="panel-title" style="margin-top:0.35rem;">2. 평면 편심도 (Torsion Test)</div>
     <div class="control-group">
-      <label><span>질량중심-강성중심 편심 ey</span> <span id="lblEy">3.5 m (편심배치)</span></label>
+      <label><span>질량중심-강성중심 편심 ey</span> <span id="lblEy" style="color:#e11d48; font-weight:800;">3.5 m (편심배치)</span></label>
       <input type="range" id="rngEy" min="0" max="8.0" step="0.2" value="3.5" oninput="updateEy(this.value)">
     </div>
 
@@ -115,20 +132,61 @@
     </div>
   </div>
 
-  <!-- Center Visualization -->
-  <div class="panel" style="display:flex; flex-direction:column; gap:0.8rem;">
-    <div class="panel-title">
-      <span id="centerTitle">밑면전단력 설계주기 절단(Cap) 및 평면 비틀림 모드형상</span>
-      <span id="torsionBadge" class="badge" style="color:var(--accent-rose); border-color:var(--accent-rose);">1차 모드 비틀림 위험 (RZ=49.5%)</span>
+  <!-- Center Visualization & 3D BIM Viewport -->
+  <div class="panel" style="display:flex; flex-direction:column; gap:0.65rem;">
+    <!-- Mode Diagnosis Banner -->
+    <div id="diagnosisBanner" class="diagnosis-banner warning">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.75rem; font-weight:700; color:#64748b;">MIDAS Gen 1차 모드 해석 진단</span>
+        <span id="torsionBadge" class="badge" style="color:var(--accent-rose); border-color:var(--accent-rose); font-weight:800;">1차 모드 비틀림 위험 (RZ = 49.5%)</span>
+      </div>
+      <div id="diagnosisTitle" style="font-size:1.05rem; font-weight:800; color:var(--accent-rose);">⚠️ 1차 모드 비틀림 지배 (Torsional Mode)</div>
+      <div id="diagnosisSub" style="font-size:0.78rem; font-weight:600; color:#334155; line-height:1.4;">
+        질량중심(CM)과 강성중심(CR)의 편심(ey = 3.5m)으로 건물이 비틀리며 외곽 기둥에 큰 횡변위 집중이 발생합니다.
+      </div>
     </div>
 
-    <div class="canvas-wrapper">
-      <canvas id="viewCanvas"></canvas>
+    <!-- 3D BIM Interactive Building Viewport -->
+    <div class="building-view" id="bimContainer">
+      <div class="bim-hud">
+        <span>🏢 3D BIM 모드형상 해석</span>
+        <span style="color:#94a3b8;">|</span>
+        <span id="bimStoriesBadge" style="color:#0284c7;">15층 (45.0m)</span>
+        <span style="color:#94a3b8;">|</span>
+        <span id="bimModeBadge" style="color:#e11d48; font-weight:800;">Mode 1 (T=2.70s)</span>
+      </div>
+
+      <div class="bim-view-buttons">
+        <button class="bim-btn active" id="btnIso" onclick="setCameraView('iso')">📐 3D 뷰</button>
+        <button class="bim-btn" id="btnPlan" onclick="setCameraView('plan')">🔄 평면도</button>
+        <button class="bim-btn" id="btnElev" onclick="setCameraView('elev')">🏢 입면도</button>
+      </div>
+
+      <div class="bim-hud-controls">
+        🖱️ 좌클릭: 3D 궤도 회전 &middot; 우클릭: 패닝 &middot; 휠: 줌
+      </div>
+
+      <div id="threeBimContainer"></div>
+    </div>
+
+    <!-- Spectrum Cap Analysis Container -->
+    <div class="spectrum-box">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.8rem; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:0.4rem;">
+          <span>📈</span> KDS 41 설계주기 상한(CuTa) 스펙트럼 절단
+        </span>
+        <span id="capStatusBadge" style="font-size:0.72rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:4px; background:rgba(244,63,94,0.12); color:#e11d48; border:1px solid #f43f5e;">
+          CuTa 상한 적용 (과소설계 방지)
+        </span>
+      </div>
+      <div class="spectrum-canvas-wrap">
+        <canvas id="spectrumCanvas"></canvas>
+      </div>
     </div>
 
     <div class="takeaway">
       <strong>MIDAS Gen 1차 모드 비틀림 경고 (슬라이드 25)</strong><br>
-      1차 모드 질량참여율에서 \(RZ\)가 49.5%로 지배적이면, 지진 발생 시 건물이 전체적으로 꽈배기처럼 비틀리며 외곽 모퉁이 기둥이 먼저 파단됩니다. 코어 위치를 조정하여 1·2차 모드가 순수 병진(\(DX, DY\))이 되도록 유도해야 합니다.
+      1차 모드 질량참여율에서 \(RZ\)가 30%를 초과하면(현재 <span id="lblRzFootnote" style="font-weight:800; color:#e11d48;">49.5%</span>), 지진 발생 시 건물이 전체적으로 꽈배기처럼 비틀리며 외곽 모퉁이 기둥이 먼저 파단됩니다. 코어 위치를 조정하여 1·2차 모드가 순수 병진(\(DX, DY\))이 되도록 유도해야 합니다.
     </div>
   </div>
 
@@ -147,16 +205,16 @@
       </div>
       <div class="stat-card rose">
         <div class="label">주기 상한 CuTa</div>
-        <div class="value" id="valCuTa">2.07 s</div>
+        <div class="value" id="valCuTa">2.08 s</div>
       </div>
       <div class="stat-card emerald">
         <div class="label">최종 적용주기 Tdes</div>
-        <div class="value" id="valTdes">2.07 s</div>
+        <div class="value" id="valTdes">2.08 s</div>
       </div>
     </div>
 
-    <div class="panel-title" style="margin-top:0.5rem;">MIDAS Gen 모달 참여율 (슬라이드 25)</div>
-    <div style="background:#ffffff; border:1px solid var(--border); border-radius:6px; overflow:hidden;">
+    <div class="panel-title" style="margin-top:0.35rem;">MIDAS Gen 모달 참여율 (슬라이드 25)</div>
+    <div style="background:#ffffff; border:1.5px solid var(--border); border-radius:6px; overflow:hidden;">
       <table class="midas-table">
         <thead>
           <tr>
@@ -170,7 +228,7 @@
         <tbody>
           <tr id="rowM1" class="warning">
             <td>1</td>
-            <td id="m1T">2.10</td>
+            <td id="m1T">2.70</td>
             <td id="m1DX">2.0</td>
             <td id="m1DY">26.0</td>
             <td id="m1RZ">49.5</td>
@@ -193,57 +251,564 @@
       </table>
     </div>
 
-    <div class="panel-title" style="margin-top:0.5rem;">밑면전단력 방어 효과</div>
+    <div class="panel-title" style="margin-top:0.35rem;">밑면전단력 방어 효과</div>
     <div class="stat-card">
       <div class="label">CuTa 미적용 시 지진력 위험 과소평가율</div>
-      <div class="value" id="valShearDiff" style="color:var(--accent-rose);">- 23.5 %</div>
-      <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.2rem;">
-        CuTa 상한을 적용함으로써 약 <span id="lblSavedKn" style="font-weight:700; color:#fff;">380 kN</span>의 최소 안전 지진력을 추가 확보하여 설계를 보호했습니다.
+      <div class="value" id="valShearDiff" style="color:var(--accent-rose);">- 23.0 %</div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.35rem; line-height:1.4;">
+        CuTa 상한을 적용함으로써 약 <span id="lblSavedKn" style="font-weight:800; color:#0f172a;">380 kN</span>의 최소 안전 지진력을 추가 확보하여 설계를 보호했습니다.
       </div>
     </div>
   </div>
 </div>
 
 <script>
+  // =========================================================================
+  // State Variables
+  // =========================================================================
   let hn = 45.0; // m
   let SD1 = 0.25; // g
-  let Tcom = 2.10; // s
+  let Tcom = 2.70; // s
   let ey = 3.5; // m (eccentricity)
-  let animT = 0;
+  let animTime = 0;
 
-  const canvas = document.getElementById('viewCanvas');
-  const ctx = canvas.getContext('2d');
+  // Three.js State
+  let scene, camera, renderer, controls;
+  const container = document.getElementById('threeBimContainer');
+  let buildingGroup, foundationGroup, annotationGroup;
+  let slabMeshes = [];
+  let columnMeshes = [];
+  let wallMeshes = [];
+  let cmMarkerGroup = null, crMarkerGroup = null;
+  let eccDimensionGroup = null;
+  let torsionRingMesh = null;
+  let cornerCalloutSprite = null;
 
-  function resize() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.parentElement.clientWidth;
-    const h = canvas.parentElement.clientHeight;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
+  let nStories = 15;
+  let baseW = 6.4;
+  let baseD = 5.0;
+  let floorH = 0.95;
+  let currentZCR = 0;
+  let currentView = 'iso';
+
+  // Spectrum Canvas
+  const specCanvas = document.getElementById('spectrumCanvas');
+  const specCtx = specCanvas.getContext('2d');
+
+  // =========================================================================
+  // 1. Helper Textures & Sprites (Gate 1, 3, 7)
+  // =========================================================================
+  function createCalloutSprite(text, color, subText) {
+    const cvs = document.createElement('canvas');
+    cvs.width = 460;
+    cvs.height = 90;
+    const c = cvs.getContext('2d');
+    c.fillStyle = 'rgba(255, 255, 255, 0.96)';
+    c.strokeStyle = '#0f172a';
+    c.lineWidth = 4;
+    c.beginPath();
+    c.roundRect(6, 6, 448, 78, 12);
+    c.fill();
+    c.stroke();
+
+    c.fillStyle = color;
+    c.font = 'bold 24px sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(text, 230, subText ? 32 : 45);
+
+    if (subText) {
+      c.fillStyle = '#334155';
+      c.font = 'bold 16px sans-serif';
+      c.fillText(subText, 230, 60);
+    }
+
+    const tex = new THREE.CanvasTexture(cvs);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.renderOrder = 999;
+    sprite.scale.set(4.6, 0.9, 1);
+    return sprite;
   }
-  window.addEventListener('resize', () => { resize(); draw(); });
 
+  function createMarkerBadge(text, color) {
+    const cvs = document.createElement('canvas');
+    cvs.width = 280;
+    cvs.height = 64;
+    const c = cvs.getContext('2d');
+    c.fillStyle = 'rgba(255, 255, 255, 0.96)';
+    c.strokeStyle = '#0f172a';
+    c.lineWidth = 3;
+    c.beginPath();
+    c.roundRect(4, 4, 272, 56, 10);
+    c.fill();
+    c.stroke();
+
+    c.fillStyle = color;
+    c.font = 'bold 22px sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(text, 140, 32);
+
+    const tex = new THREE.CanvasTexture(cvs);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.renderOrder = 999;
+    sprite.scale.set(2.8, 0.65, 1);
+    return sprite;
+  }
+
+  // =========================================================================
+  // 2. Three.js Initialization & BIM Construction
+  // =========================================================================
+  function initThree() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xfaf8f5);
+    scene.fog = new THREE.Fog(0xfaf8f5, 35, 120);
+
+    const w = container.parentElement.clientWidth || 600;
+    const h = container.parentElement.clientHeight || 410;
+
+    camera = new THREE.PerspectiveCamera(36, w / h, 0.1, 300);
+    camera.position.set(20, 18, 25);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+    renderer.setSize(w, h);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.target.set(0, 7.5, 0);
+    controls.maxPolarAngle = Math.PI / 2 + 0.05;
+    controls.minDistance = 5;
+    controls.maxDistance = 85;
+
+    // Studio Lighting
+    const ambient = new THREE.AmbientLight(0xffffff, 0.92);
+    scene.add(ambient);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    keyLight.position.set(22, 32, 24);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.45);
+    fillLight.position.set(-20, 16, 12);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.30);
+    rimLight.position.set(0, 20, -22);
+    scene.add(rimLight);
+
+    // Ground Plane & Grid
+    const groundGeo = new THREE.PlaneGeometry(80, 80);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85, metalness: 0.05 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const grid = new THREE.GridHelper(60, 60, 0xcbd5e1, 0xe2e8f0);
+    grid.position.y = 0.01;
+    scene.add(grid);
+
+    buildingGroup = new THREE.Group();
+    foundationGroup = new THREE.Group();
+    annotationGroup = new THREE.Group();
+
+    scene.add(foundationGroup);
+    scene.add(buildingGroup);
+    scene.add(annotationGroup);
+
+    rebuildBimBuilding();
+  }
+
+  function getModalFractions(eyVal) {
+    // Calibrated so ey=0 -> RZ=3%, ey=3.5 -> RZ=49.5% (Slide 25 match), ey=8 -> RZ=82%
+    let rz;
+    if (eyVal <= 3.5) {
+      rz = 0.03 + (0.495 - 0.03) * (eyVal / 3.5);
+    } else {
+      rz = 0.495 + (0.82 - 0.495) * ((eyVal - 3.5) / 4.5);
+    }
+    rz = Math.max(0.03, Math.min(0.85, rz));
+
+    const dy = Math.max(0.08, 0.75 - rz * 0.70);
+    const dx = Math.max(0.02, 1.0 - rz - dy);
+    return { rz, dy, dx };
+  }
+
+  function rebuildBimBuilding() {
+    // Clean previous objects
+    while (buildingGroup.children.length > 0) {
+      const obj = buildingGroup.children.pop();
+      if (obj.geometry) obj.geometry.dispose();
+      buildingGroup.remove(obj);
+    }
+    while (foundationGroup.children.length > 0) {
+      const obj = foundationGroup.children.pop();
+      if (obj.geometry) obj.geometry.dispose();
+      foundationGroup.remove(obj);
+    }
+    while (annotationGroup.children.length > 0) {
+      const obj = annotationGroup.children.pop();
+      annotationGroup.remove(obj);
+    }
+
+    slabMeshes = [];
+    columnMeshes = [];
+    wallMeshes = [];
+    cmMarkerGroup = null;
+    crMarkerGroup = null;
+    eccDimensionGroup = null;
+    torsionRingMesh = null;
+    cornerCalloutSprite = null;
+
+    nStories = Math.max(3, Math.min(25, Math.round(hn / 3.0)));
+    const totalH = nStories * floorH;
+    const blackLineMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 }); // Gate 1
+
+    // Center of Rigidity offset based on ey slider (0 ~ 8.0 m)
+    currentZCR = (ey / 8.0) * (baseD / 2 - 0.75);
+
+    // 1. Foundation Slab
+    const fGeo = new THREE.BoxGeometry(baseW + 1.4, 0.35, baseD + 1.4);
+    const fMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.7, metalness: 0.1 });
+    const fMesh = new THREE.Mesh(fGeo, fMat);
+    fMesh.position.set(0, 0.175, 0);
+    fMesh.castShadow = true;
+    fMesh.receiveShadow = true;
+    fMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(fGeo), blackLineMat));
+    foundationGroup.add(fMesh);
+
+    // 2. Floor Slabs & Columns
+    const slabMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.35, metalness: 0.15 }); // Cyan-Blue Slabs
+    const roofSlabMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4, metalness: 0.2 }); // Darker Roof
+    const normalColMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 }); // Slate Column
+    const warningColMat = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.3, metalness: 0.2 }); // Stressed Red Column
+    const coreWallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.45, metalness: 0.1 }); // RC Shear Core
+
+    const { rz: rzFrac } = getModalFractions(ey);
+    const isHighTorsion = (rzFrac > 0.30);
+
+    // Perimeter Column Coordinates (6 columns)
+    const colCoords = [
+      [-baseW / 2 + 0.35, -baseD / 2 + 0.35],
+      [0, -baseD / 2 + 0.35],
+      [baseW / 2 - 0.35, -baseD / 2 + 0.35],
+      [-baseW / 2 + 0.35, baseD / 2 - 0.35],
+      [0, baseD / 2 - 0.35],
+      [baseW / 2 - 0.35, baseD / 2 - 0.35]
+    ];
+
+    for (let s = 1; s <= nStories; s++) {
+      const y = s * floorH;
+      const isRoof = (s === nStories);
+      const curSlabMat = isRoof ? roofSlabMat : slabMat;
+      const slabThick = isRoof ? 0.28 : 0.22;
+
+      // Slab Mesh
+      const sGeo = new THREE.BoxGeometry(baseW, slabThick, baseD);
+      const sMesh = new THREE.Mesh(sGeo, curSlabMat);
+      sMesh.position.set(0, y, 0);
+      sMesh.castShadow = true;
+      sMesh.receiveShadow = true;
+      sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sGeo), blackLineMat));
+      buildingGroup.add(sMesh);
+
+      slabMeshes.push({
+        mesh: sMesh,
+        story: s,
+        baseY: y
+      });
+
+      // Columns
+      colCoords.forEach(([cx, cz]) => {
+        // High stress corner column: Far opposite side from CR
+        const isFarCorner = (cz < 0 && Math.abs(cx) > 2.0);
+        const colMat = (isHighTorsion && isFarCorner) ? warningColMat : normalColMat;
+
+        const cGeo = new THREE.BoxGeometry(0.24, floorH - slabThick, 0.24);
+        const cMesh = new THREE.Mesh(cGeo, colMat);
+        cMesh.position.set(cx, y - floorH / 2, cz);
+        cMesh.castShadow = true;
+        cMesh.receiveShadow = true;
+        cMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(cGeo), blackLineMat));
+        buildingGroup.add(cMesh);
+
+        columnMeshes.push({
+          mesh: cMesh,
+          story: s,
+          baseX: cx,
+          baseZ: cz,
+          baseY: y - floorH / 2,
+          isFarCorner: isFarCorner
+        });
+      });
+
+      // RC Shear Wall Core (Centering at CR: 0, currentZCR)
+      const wallGeo = new THREE.BoxGeometry(0.35, floorH - slabThick, baseD * 0.44);
+      const wallMesh = new THREE.Mesh(wallGeo, coreWallMat);
+      wallMesh.position.set(0, y - floorH / 2, currentZCR);
+      wallMesh.castShadow = true;
+      wallMesh.receiveShadow = true;
+      wallMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(wallGeo), blackLineMat));
+      buildingGroup.add(wallMesh);
+
+      wallMeshes.push({
+        mesh: wallMesh,
+        story: s,
+        baseX: 0,
+        baseZ: currentZCR,
+        baseY: y - floorH / 2
+      });
+    }
+
+    // 3. CM (질량중심) & CR (강성중심) 3D Guide Lines and Markers
+    cmMarkerGroup = new THREE.Group();
+    // CM Vertical Pole
+    const cmPoleGeo = new THREE.CylinderGeometry(0.04, 0.04, totalH + 1.2, 8);
+    const cmPoleMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+    const cmPole = new THREE.Mesh(cmPoleGeo, cmPoleMat);
+    cmPole.position.set(0, (totalH + 1.2) / 2, 0);
+    cmMarkerGroup.add(cmPole);
+
+    // CM Roof Sphere
+    const cmSphGeo = new THREE.SphereGeometry(0.22, 16, 16);
+    const cmSph = new THREE.Mesh(cmSphGeo, cmPoleMat);
+    cmSph.position.set(0, totalH + 0.35, 0);
+    cmMarkerGroup.add(cmSph);
+
+    // CM Sprite Badge
+    const cmBadge = createMarkerBadge("● CM (질량중심)", "#0284c7");
+    cmBadge.position.set(0, totalH + 1.3, 0);
+    cmMarkerGroup.add(cmBadge);
+    annotationGroup.add(cmMarkerGroup);
+
+    // CR Vertical Pole
+    crMarkerGroup = new THREE.Group();
+    const crPoleGeo = new THREE.CylinderGeometry(0.04, 0.04, totalH + 1.2, 8);
+    const crPoleMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+    const crPole = new THREE.Mesh(crPoleGeo, crPoleMat);
+    crPole.position.set(0, (totalH + 1.2) / 2, currentZCR);
+    crMarkerGroup.add(crPole);
+
+    // CR Roof Sphere
+    const crSphGeo = new THREE.SphereGeometry(0.22, 16, 16);
+    const crSph = new THREE.Mesh(crSphGeo, crPoleMat);
+    crSph.position.set(0, totalH + 0.35, currentZCR);
+    crMarkerGroup.add(crSph);
+
+    // CR Sprite Badge
+    const crBadge = createMarkerBadge("● CR (강성중심)", "#f43f5e");
+    crBadge.position.set(0, totalH + 1.3, currentZCR);
+    crMarkerGroup.add(crBadge);
+    annotationGroup.add(crMarkerGroup);
+
+    // 4. Eccentricity Dimension Line (ey) at Roof
+    if (ey > 0.2) {
+      eccDimensionGroup = new THREE.Group();
+      const points = [
+        new THREE.Vector3(0, totalH + 0.35, 0),
+        new THREE.Vector3(0, totalH + 0.35, currentZCR)
+      ];
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+      const lineMat = new THREE.LineDashedMaterial({ color: 0xd97706, dashSize: 0.25, gapSize: 0.15, linewidth: 2 });
+      const line = new THREE.Line(lineGeo, lineMat);
+      line.computeLineDistances();
+      eccDimensionGroup.add(line);
+
+      // Dimension Label
+      const dimBadge = createMarkerBadge(`편심 ey = ${ey.toFixed(1)}m`, "#d97706");
+      dimBadge.position.set(1.6, totalH + 0.7, currentZCR / 2);
+      eccDimensionGroup.add(dimBadge);
+
+      annotationGroup.add(eccDimensionGroup);
+    }
+
+    // 5. Roof Torsion Twisting Ring
+    const tRingGeo = new THREE.TorusGeometry(baseW * 0.42, 0.08, 12, 32, Math.PI * 1.6);
+    const tRingMat = new THREE.MeshBasicMaterial({ color: isHighTorsion ? 0xf43f5e : 0x0284c7 });
+    torsionRingMesh = new THREE.Mesh(tRingGeo, tRingMat);
+    torsionRingMesh.rotation.x = Math.PI / 2;
+    torsionRingMesh.position.set(0, totalH + 0.4, currentZCR);
+    annotationGroup.add(torsionRingMesh);
+
+    // 6. Corner Column Distress Callout Badge
+    if (isHighTorsion) {
+      cornerCalloutSprite = createCalloutSprite("⚠️ 외곽 기둥 비틀림 과대 변위!", "#e11d48", "비틀림 회전으로 모퉁이 기둥에 집중 파단 위험");
+      cornerCalloutSprite.position.set(-baseW / 2 + 0.35, totalH + 1.1, -baseD / 2 + 0.35);
+      annotationGroup.add(cornerCalloutSprite);
+    }
+
+    // Reset Camera & Framing
+    updateCameraTarget();
+
+    // Update HUD
+    document.getElementById('bimStoriesBadge').textContent = `${nStories}층 (${hn.toFixed(1)}m)`;
+    document.getElementById('bimModeBadge').textContent = `Mode 1 (T=${Tcom.toFixed(2)}s)`;
+  }
+
+  function updateCameraTarget() {
+    const totalH = nStories * floorH;
+    const targetY = totalH * 0.48;
+
+    if (currentView === 'iso') {
+      const camDist = Math.max(20, totalH * 1.05 + 12);
+      camera.position.set(camDist * 0.72, targetY + totalH * 0.45 + 5, camDist * 0.88);
+      controls.target.set(0, targetY, 0);
+    } else if (currentView === 'plan') {
+      // Clean top-down plan view zoomed to building footprint
+      const planHeight = Math.max(12, baseW * 1.9);
+      camera.position.set(0, totalH + planHeight, 0.001);
+      controls.target.set(0, totalH, 0);
+    } else if (currentView === 'elev') {
+      const camDist = Math.max(18, totalH * 0.95 + 10);
+      camera.position.set(0, targetY, camDist * 1.25);
+      controls.target.set(0, targetY, 0);
+    }
+    camera.lookAt(controls.target);
+    controls.update();
+  }
+
+  function setCameraView(mode) {
+    currentView = mode;
+    document.querySelectorAll('.bim-btn').forEach(b => b.classList.remove('active'));
+    if (mode === 'iso') document.getElementById('btnIso').classList.add('active');
+    if (mode === 'plan') document.getElementById('btnPlan').classList.add('active');
+    if (mode === 'elev') document.getElementById('btnElev').classList.add('active');
+    updateCameraTarget();
+  }
+
+  // =========================================================================
+  // 3. Dynamic 3D Vibration Physics Solver (Gate 5)
+  // =========================================================================
+  function update3DAnimation(t) {
+    const omega = 2.4;
+    const tau = Math.sin(t * omega);
+
+    const { rz: rzFrac, dy: dyFrac, dx: dxFrac } = getModalFractions(ey);
+    const Z_CR = currentZCR;
+
+    // Slabs: Translation + Rotation around CR
+    slabMeshes.forEach(({ mesh, story }) => {
+      const eta = story / nStories;
+      const dispZ = dyFrac * 0.38 * Math.pow(eta, 1.25) * tau;
+      const dispX = dxFrac * 0.18 * Math.pow(eta, 1.25) * tau;
+      const thetaY = rzFrac * 0.20 * eta * tau;
+
+      // Center of slab is at (0, 0). Relative to CR (0, Z_CR), offset is (0, -Z_CR).
+      const rx = Z_CR * Math.sin(thetaY);
+      const rz = -Z_CR * Math.cos(thetaY);
+
+      mesh.position.x = rx + dispX;
+      mesh.position.z = Z_CR + rz + dispZ;
+      mesh.rotation.y = thetaY;
+    });
+
+    // Columns: Orbit around CR (0, Z_CR)
+    columnMeshes.forEach(({ mesh, story, baseX, baseZ }) => {
+      const eta = (story - 0.5) / nStories;
+      const dispZ = dyFrac * 0.38 * Math.pow(eta, 1.25) * tau;
+      const dispX = dxFrac * 0.18 * Math.pow(eta, 1.25) * tau;
+      const thetaY = rzFrac * 0.20 * eta * tau;
+
+      const dx = baseX;
+      const dz = baseZ - Z_CR;
+
+      const cosT = Math.cos(thetaY);
+      const sinT = Math.sin(thetaY);
+
+      mesh.position.x = (dx * cosT - dz * sinT) + dispX;
+      mesh.position.z = Z_CR + (dx * sinT + dz * cosT) + dispZ;
+      mesh.rotation.y = thetaY;
+    });
+
+    // RC Shear Wall Core: At CR (0, Z_CR)
+    wallMeshes.forEach(({ mesh, story }) => {
+      const eta = (story - 0.5) / nStories;
+      const dispZ = dyFrac * 0.38 * Math.pow(eta, 1.25) * tau;
+      const dispX = dxFrac * 0.18 * Math.pow(eta, 1.25) * tau;
+      const thetaY = rzFrac * 0.20 * eta * tau;
+
+      mesh.position.x = dispX;
+      mesh.position.z = Z_CR + dispZ;
+      mesh.rotation.y = thetaY;
+    });
+
+    // CM & CR Markers move in lockstep with roof
+    const roofDispZ = dyFrac * 0.38 * tau;
+    const roofDispX = dxFrac * 0.18 * tau;
+    const roofThetaY = rzFrac * 0.20 * tau;
+
+    if (cmMarkerGroup) {
+      const rx = Z_CR * Math.sin(roofThetaY);
+      const rz = -Z_CR * Math.cos(roofThetaY);
+      cmMarkerGroup.position.x = rx + roofDispX;
+      cmMarkerGroup.position.z = Z_CR + rz + roofDispZ;
+    }
+
+    if (crMarkerGroup) {
+      crMarkerGroup.position.x = roofDispX;
+      crMarkerGroup.position.z = roofDispZ;
+    }
+
+    if (eccDimensionGroup) {
+      eccDimensionGroup.position.x = roofDispX;
+      eccDimensionGroup.position.z = roofDispZ;
+    }
+
+    if (torsionRingMesh) {
+      torsionRingMesh.position.x = roofDispX;
+      torsionRingMesh.position.z = Z_CR + roofDispZ;
+      torsionRingMesh.rotation.z -= 0.03;
+    }
+
+    if (cornerCalloutSprite) {
+      const dx = -baseW / 2 + 0.35;
+      const dz = -baseD / 2 + 0.35 - Z_CR;
+      const cosT = Math.cos(roofThetaY);
+      const sinT = Math.sin(roofThetaY);
+      cornerCalloutSprite.position.x = (dx * cosT - dz * sinT) + roofDispX;
+      cornerCalloutSprite.position.z = Z_CR + (dx * sinT + dz * cosT) + roofDispZ;
+    }
+  }
+
+  // =========================================================================
+  // 4. KDS 41 Calculations & Rule Logic
+  // =========================================================================
   function updateHn(v) {
     hn = parseFloat(v);
     const nStory = Math.round(hn / 3.0);
     document.getElementById('lblHn').textContent = `${hn.toFixed(1)} m (${nStory}층)`;
+    rebuildBimBuilding();
     recalculate();
   }
+
   function updateSD1(v) {
     SD1 = parseFloat(v);
     document.getElementById('lblSD1').textContent = SD1.toFixed(2) + ' g';
     recalculate();
   }
+
   function updateTcom(v) {
     Tcom = parseFloat(v);
     document.getElementById('lblTcom').textContent = Tcom.toFixed(2) + ' s';
+    document.getElementById('bimModeBadge').textContent = `Mode 1 (T=${Tcom.toFixed(2)}s)`;
     recalculate();
   }
+
   function updateEy(v) {
     ey = parseFloat(v);
-    document.getElementById('lblEy').textContent = ey.toFixed(1) + ' m';
+    document.getElementById('lblEy').textContent = ey.toFixed(1) + ' m' + (ey > 0.1 ? ' (편심배치)' : ' (대칭)');
+    rebuildBimBuilding();
     recalculate();
   }
 
@@ -257,7 +822,6 @@
     return 1.6 + (1.7 - 1.6) * ((0.15 - sd1) / 0.05);
   }
 
-  // Approximate Ta calculation
   function getTa(frameType, height) {
     if (frameType === 'rc_mr') return 0.0466 * Math.pow(height, 0.9);
     if (frameType === 'steel_mr') return 0.0724 * Math.pow(height, 0.8);
@@ -285,206 +849,220 @@
     const Cs_des = 1 / Tdes;
     const diffPct = ((Cs_com - Cs_des) / Cs_des) * 100;
     document.getElementById('valShearDiff').textContent = `${diffPct.toFixed(1)} %`;
-    document.getElementById('lblSavedKn').textContent = `${Math.abs(Math.round(diffPct * 20))} kN`;
+    document.getElementById('lblSavedKn').textContent = `${Math.abs(Math.round(diffPct * 16.5))} kN`;
 
-    // Torsion modal participation calculation from eccentricity ey
-    const rzFrac = Math.min(0.85, 0.05 + (ey / 8.0) * 0.75);
-    const dyFrac = Math.max(0.1, 0.75 - rzFrac * 0.7);
-    const dxFrac = Math.max(0.02, 1.0 - rzFrac - dyFrac);
+    // Cap status badge
+    const capBadge = document.getElementById('capStatusBadge');
+    if (isCapped) {
+      capBadge.textContent = '⚠️ CuTa 상한 적용 (과소설계 방지)';
+      capBadge.style.background = 'rgba(244,63,94,0.12)';
+      capBadge.style.color = '#e11d48';
+      capBadge.style.borderColor = '#f43f5e';
+    } else {
+      capBadge.textContent = '✅ Tcom ≤ CuTa (상한 미초과)';
+      capBadge.style.background = 'rgba(16,185,129,0.12)';
+      capBadge.style.color = '#059669';
+      capBadge.style.borderColor = '#10b981';
+    }
+
+    // Modal participation
+    const { rz: rzFrac, dy: dyFrac, dx: dxFrac } = getModalFractions(ey);
 
     document.getElementById('m1T').textContent = Tcom.toFixed(2);
     document.getElementById('m1DX').textContent = (dxFrac * 100).toFixed(1);
     document.getElementById('m1DY').textContent = (dyFrac * 100).toFixed(1);
     document.getElementById('m1RZ').textContent = (rzFrac * 100).toFixed(1);
+    document.getElementById('lblRzFootnote').textContent = `${(rzFrac * 100).toFixed(1)}%`;
 
-    const badge = document.getElementById('torsionBadge');
+    // Mode Diagnosis Banner
+    const diagBanner = document.getElementById('diagnosisBanner');
+    const diagTitle = document.getElementById('diagnosisTitle');
+    const diagSub = document.getElementById('diagnosisSub');
+    const torsionBadge = document.getElementById('torsionBadge');
     const rowM1 = document.getElementById('rowM1');
-    if (rzFrac > 0.3) {
-      badge.textContent = `1차 모드 비틀림 위험 (RZ = ${(rzFrac * 100).toFixed(1)}%)`;
-      badge.style.color = "var(--accent-rose)";
-      badge.style.borderColor = "var(--accent-rose)";
+
+    if (rzFrac > 0.30) {
+      diagBanner.className = "diagnosis-banner warning";
+      diagTitle.textContent = `⚠️ 1차 모드 비틀림 지배 (Torsional Mode: RZ = ${(rzFrac * 100).toFixed(1)}%)`;
+      diagTitle.style.color = "var(--accent-rose)";
+      diagSub.textContent = `질량중심(CM)과 강성중심(CR)의 편심(ey = ${ey.toFixed(1)}m)으로 인해 1차 모드가 비틀림에 지배되어 외곽 기둥 파단 위험이 급증합니다.`;
+      torsionBadge.textContent = `1차 모드 비틀림 위험 (RZ = ${(rzFrac * 100).toFixed(1)}%)`;
+      torsionBadge.style.color = "var(--accent-rose)";
+      torsionBadge.style.borderColor = "var(--accent-rose)";
       rowM1.className = "warning";
     } else {
-      badge.textContent = `1차 모드 병진 우세 (정상, RZ = ${(rzFrac * 100).toFixed(1)}%)`;
-      badge.style.color = "var(--accent-emerald)";
-      badge.style.borderColor = "var(--accent-emerald)";
+      diagBanner.className = "diagnosis-banner safe";
+      diagTitle.textContent = `✅ 1차 모드 병진 우세 (Clean Translation: DY = ${(dyFrac * 100).toFixed(1)}%)`;
+      diagTitle.style.color = "var(--accent-emerald)";
+      diagSub.textContent = `편심(ey = ${ey.toFixed(1)}m)이 작아 질량중심과 강성중심이 일치하며, 1차 모드가 안전한 횡방향 순수 병진 거동을 유지합니다.`;
+      torsionBadge.textContent = `1차 모드 병진 우세 (정상, RZ = ${(rzFrac * 100).toFixed(1)}%)`;
+      torsionBadge.style.color = "var(--accent-emerald)";
+      torsionBadge.style.borderColor = "var(--accent-emerald)";
       rowM1.className = "";
     }
 
-    draw();
+    drawSpectrum(Ta, CuTa, Tcom);
   }
 
-  function draw() {
+  // =========================================================================
+  // 5. Spectrum Cap Canvas (Gate 4: No clipping, Full Waveform)
+  // =========================================================================
+  function drawSpectrum(Ta, CuTa, Tcom) {
     const dpr = window.devicePixelRatio || 1;
-    const w = canvas.width / dpr, h = canvas.height / dpr;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.scale(dpr, dpr);
+    const w = specCanvas.parentElement.clientWidth;
+    const h = specCanvas.parentElement.clientHeight || 140;
 
-    // Left half: Spectrum Curve & CuTa Cap
-    // Right half: 3D Isometric Building vibrating with torsion
-    const halfW = w / 2;
+    specCanvas.width = Math.round(w * dpr);
+    specCanvas.height = Math.round(h * dpr);
+    specCanvas.style.width = w + 'px';
+    specCanvas.style.height = h + 'px';
 
-    // --- LEFT: SPECTRUM CAP ---
-    const pad = { left: 45, right: 25, top: 35, bottom: 40 };
-    const pw = halfW - pad.left - pad.right;
+    specCtx.setTransform(1, 0, 0, 1, 0, 0);
+    specCtx.clearRect(0, 0, specCanvas.width, specCanvas.height);
+    specCtx.save();
+    specCtx.scale(dpr, dpr);
+
+    const pad = { left: 45, right: 25, top: 22, bottom: 25 };
+    const pw = w - pad.left - pad.right;
     const ph = h - pad.top - pad.bottom;
 
     const maxT = 4.0;
-    const maxCs = 0.5;
+    const maxCs = 0.55;
 
-    function xOf(t) { return pad.left + (t / maxT) * pw; }
-    function yOf(cs) { return pad.top + ph - (cs / maxCs) * ph; }
+    function xOf(t) { return pad.left + (Math.min(maxT, t) / maxT) * pw; }
+    function yOf(cs) { return pad.top + ph - (Math.min(maxCs, cs) / maxCs) * ph; }
 
-    ctx.strokeStyle = "rgba(15, 23, 42, 0.12)";
-    ctx.fillStyle = "var(--text-muted)";
-    ctx.font = "10px sans-serif";
+    // Grid lines & Axis Labels
+    specCtx.strokeStyle = "rgba(15, 23, 42, 0.10)";
+    specCtx.fillStyle = "#64748b";
+    specCtx.font = "bold 9px sans-serif";
 
-    for (let t = 0; t <= maxT; t += 1.0) {
+    for (let t = 0; t <= maxT; t += 0.5) {
       const x = xOf(t);
-      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
-      ctx.fillText(t + 's', x - 6, pad.top + ph + 16);
+      specCtx.beginPath();
+      specCtx.moveTo(x, pad.top);
+      specCtx.lineTo(x, pad.top + ph);
+      specCtx.stroke();
+      specCtx.fillText(t.toFixed(1) + 's', x - 8, pad.top + ph + 14);
     }
-    for (let cs = 0; cs <= maxCs; cs += 0.1) {
+
+    for (let cs = 0; cs <= maxCs; cs += 0.15) {
       const y = yOf(cs);
-      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
-      ctx.fillText(cs.toFixed(1), pad.left - 24, y + 3);
+      specCtx.beginPath();
+      specCtx.moveTo(pad.left, y);
+      specCtx.lineTo(pad.left + pw, y);
+      specCtx.stroke();
+      specCtx.fillText(cs.toFixed(2), pad.left - 28, y + 3);
     }
 
-    // 클리핑: 플롯 영역 안에서만 스펙트럼 곡선/상한 절단 렌더링
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(pad.left, pad.top, pw, ph);
-    ctx.clip();
+    // Clipping Region
+    specCtx.save();
+    specCtx.beginPath();
+    specCtx.rect(pad.left, pad.top, pw, ph);
+    specCtx.clip();
 
-    // Cs curve: Cs = SD1 / (R * T) => assume SD1 / R = 0.08
-    ctx.strokeStyle = "#0284c7";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
+    // Shaded Forbidden Area if Tcom > CuTa
+    const xCuTa = xOf(CuTa);
+    const xTcom = xOf(Tcom);
+
+    if (Tcom > CuTa) {
+      const zoneW = Math.max(2, xTcom - xCuTa);
+      specCtx.fillStyle = "rgba(244, 63, 94, 0.18)";
+      specCtx.fillRect(xCuTa, pad.top, zoneW, ph);
+
+      if (zoneW > 35) {
+        specCtx.fillStyle = "#b91c1c";
+        specCtx.font = "bold 10px sans-serif";
+        specCtx.textAlign = "center";
+        specCtx.fillText("과소설계 차단구역", (xCuTa + xTcom) / 2, pad.top + ph / 2);
+      }
+    }
+
+    // Response Spectrum Curve Cs = (SD1 * 0.45) / T
+    specCtx.strokeStyle = "#0284c7";
+    specCtx.lineWidth = 2.5;
+    specCtx.beginPath();
     for (let t = 0.2; t <= maxT; t += 0.02) {
-      const cs = Math.min(maxCs, (SD1 * 0.4) / t);
+      const cs = Math.min(maxCs, (SD1 * 0.45) / t);
       const x = xOf(t), y = yOf(cs);
-      if (t === 0.2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      if (t === 0.2) specCtx.moveTo(x, y); else specCtx.lineTo(x, y);
     }
-    ctx.stroke();
-    ctx.lineWidth = 1;
+    specCtx.stroke();
 
-    // CuTa vertical cutoff line
+    // Ta Marker
+    const xTa = xOf(Ta);
+    specCtx.strokeStyle = "#0284c7";
+    specCtx.lineWidth = 1.5;
+    specCtx.setLineDash([2, 2]);
+    specCtx.beginPath();
+    specCtx.moveTo(xTa, pad.top);
+    specCtx.lineTo(xTa, pad.top + ph);
+    specCtx.stroke();
+
+    // CuTa Cutoff Line
+    specCtx.strokeStyle = "#e11d48";
+    specCtx.lineWidth = 2;
+    specCtx.setLineDash([4, 3]);
+    specCtx.beginPath();
+    specCtx.moveTo(xCuTa, pad.top);
+    specCtx.lineTo(xCuTa, pad.top + ph);
+    specCtx.stroke();
+    specCtx.setLineDash([]);
+
+    // Tcom Operating Point
+    specCtx.strokeStyle = "#d97706";
+    specCtx.lineWidth = 2;
+    specCtx.beginPath();
+    specCtx.moveTo(xTcom, pad.top);
+    specCtx.lineTo(xTcom, pad.top + ph);
+    specCtx.stroke();
+
+    specCtx.restore(); // Clip restore
+
+    // Text Badges above lines
+    specCtx.fillStyle = "#0284c7";
+    specCtx.font = "bold 9px sans-serif";
+    specCtx.textAlign = "center";
+    specCtx.fillText(`약산 Ta=${Ta.toFixed(2)}s`, xTa, pad.top - 7);
+
+    specCtx.fillStyle = "#e11d48";
+    specCtx.fillText(`상한 CuTa=${CuTa.toFixed(2)}s`, Math.min(pad.left + pw - 30, Math.max(pad.left + 35, xCuTa)), pad.top + 12);
+
+    specCtx.fillStyle = "#d97706";
+    specCtx.fillText(`Tcom=${Tcom.toFixed(2)}s`, Math.min(pad.left + pw - 25, Math.max(pad.left + 30, xTcom)), pad.top + 26);
+
+    specCtx.restore();
+  }
+
+  // =========================================================================
+  // 6. Window Resize & Render Loop
+  // =========================================================================
+  function handleResize() {
+    if (!renderer || !camera) return;
+    const w = container.parentElement.clientWidth || 600;
+    const h = container.parentElement.clientHeight || 410;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+
     const frame = document.getElementById('selFrameType').value;
     const Ta = getTa(frame, hn);
     const Cu = getCu(SD1);
-    const CuTa = Cu * Ta;
-
-    const xCuTa = xOf(CuTa);
-    ctx.strokeStyle = "#f43f5e";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath(); ctx.moveTo(xCuTa, pad.top); ctx.lineTo(xCuTa, pad.top + ph); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.lineWidth = 1;
-
-    // Tcom operating point
-    const xTcom = xOf(Tcom);
-    ctx.strokeStyle = "#f59e0b";
-    ctx.beginPath(); ctx.moveTo(xTcom, pad.top); ctx.lineTo(xTcom, pad.top + ph); ctx.stroke();
-
-    // Shaded forbidden under-design area if Tcom > CuTa
-    if (Tcom > CuTa) {
-      ctx.fillStyle = "rgba(244, 63, 94, 0.15)";
-      ctx.fillRect(xCuTa, pad.top, xTcom - xCuTa, ph);
-      ctx.fillStyle = "#f43f5e";
-      ctx.fillText("과소설계 방지 차단구역", (xCuTa + xTcom) / 2 - 45, pad.top + ph / 2);
-    }
-
-    ctx.restore(); // 클리핑 해제
-
-    ctx.fillStyle = "#f43f5e";
-    ctx.font = "bold 10px sans-serif";
-    ctx.fillText(`상한 CuTa = ${CuTa.toFixed(2)}s`, xCuTa - 35, pad.top + 15);
-
-    ctx.fillStyle = "#f59e0b";
-    ctx.fillText(`Tcom = ${Tcom.toFixed(2)}s`, xTcom - 30, pad.top + 30);
-
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 11px sans-serif";
-    ctx.fillText("스펙트럼 설계주기 상한 절단", pad.left + pw / 2 - 60, pad.top - 12);
-
-    // --- RIGHT: 3D PLAN & TORSION VIBRATION ---
-    const cx = halfW + halfW / 2;
-    const cy = h / 2 + 10;
-    const bW = 110, bD = 80;
-
-    // Vibration angle theta from torsion (rzFrac)
-    const rzFrac = Math.min(0.85, 0.05 + (ey / 8.0) * 0.75);
-    const theta = Math.sin(animT * 3.0) * (rzFrac * 0.35); // radians
-    const transY = Math.sin(animT * 3.0) * ((1 - rzFrac) * 20);
-
-    ctx.save();
-    ctx.translate(cx, cy + transY);
-    ctx.rotate(theta);
-
-    // Building slab footprint
-    ctx.fillStyle = "rgba(30, 41, 59, 0.8)";
-    ctx.strokeStyle = (rzFrac > 0.3) ? "#f43f5e" : "#0284c7";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-bW / 2, -bD / 2, bW, bD);
-    ctx.fillRect(-bW / 2, -bD / 2, bW, bD);
-
-    // Corner columns
-    ctx.fillStyle = "#f59e0b";
-    [[-bW/2, -bD/2], [bW/2, -bD/2], [-bW/2, bD/2], [bW/2, bD/2]].forEach(([x, y]) => {
-      ctx.fillRect(x - 5, y - 5, 10, 10);
-    });
-
-    // Center of Mass (CM) - at (0, 0)
-    ctx.beginPath(); ctx.arc(0, 0, 6, 0, 2 * Math.PI);
-    ctx.fillStyle = "#0284c7"; ctx.fill();
-    ctx.strokeStyle = "#0f172a"; ctx.stroke();
-
-    // Center of Rigidity (CR) - offset by ey
-    const crY = -(ey / 8.0) * (bD / 2 - 15);
-    ctx.beginPath(); ctx.arc(0, crY, 6, 0, 2 * Math.PI);
-    ctx.fillStyle = "#f43f5e"; ctx.fill();
-    ctx.strokeStyle = "#0f172a"; ctx.stroke();
-
-    // Eccentricity line between CM and CR
-    if (ey > 0.1) {
-      ctx.strokeStyle = "#f59e0b";
-      ctx.setLineDash([2, 2]);
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, crY); ctx.stroke();
-      ctx.setLineDash([]);
-    }
-
-    ctx.restore();
-
-    // Center labels
-    ctx.fillStyle = "#0284c7"; ctx.font = "10px sans-serif";
-    ctx.fillText("● 질량중심 CM", halfW + 15, h - 35);
-    ctx.fillStyle = "#f43f5e";
-    ctx.fillText("● 강성중심 CR", halfW + 115, h - 35);
-
-    if (rzFrac > 0.3) {
-      ctx.fillStyle = "#f43f5e";
-      ctx.font = "bold 11px sans-serif";
-      ctx.fillText(`⚠️ 비틀림 회전 발생 (편심 ey=${ey.toFixed(1)}m)`, halfW + 15, 30);
-    } else {
-      ctx.fillStyle = "#10b981";
-      ctx.font = "bold 11px sans-serif";
-      ctx.fillText("✅ 순수 병진 모드 (편심 미미)", halfW + 25, 30);
-    }
-
-    ctx.restore(); // for 3D torsion translate/rotate
-    ctx.restore(); // for dpr scale
+    drawSpectrum(Ta, Cu * Ta, Tcom);
   }
+  window.addEventListener('resize', handleResize);
 
   function animate() {
-    animT += 0.03;
-    draw();
     requestAnimationFrame(animate);
+    animTime += 0.03;
+
+    update3DAnimation(animTime);
+    controls.update();
+    renderer.render(scene, camera);
   }
 
-  resize();
+  // Boot
+  initThree();
   recalculate();
   animate();
 </script>
