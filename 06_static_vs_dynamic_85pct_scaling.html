@@ -33,6 +33,11 @@
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <script src="assets/dynamics-fx.js" defer></script>
+  <!-- Three.js & OrbitControls for 3D BIM Dual Building -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Canonical Chart Engine -->
+  <script src="assets/dynamics-chart-canonical.js"></script>
 </head>
 <body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
@@ -89,7 +94,7 @@
       <div class="lg:col-span-7 space-y-3 flex flex-col justify-between">
         
         <!-- 1. Equivalent Static -->
-        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-xs flex flex-col justify-between flex-1">
+        <div id="card-elf-box" class="p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-xs flex flex-col justify-between flex-1">
           <div>
             <div class="flex justify-between items-center mb-1">
               <span class="text-xs font-bold text-slate-600 uppercase flex items-center gap-1.5">
@@ -110,7 +115,7 @@
         </div>
 
         <!-- 2. Dynamic RSA (Before Scaling) -->
-        <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-200 shadow-xs flex flex-col justify-between flex-1">
+        <div id="card-vt-box" class="p-4 rounded-xl bg-blue-50/60 border border-blue-200 shadow-xs flex flex-col justify-between flex-1">
           <div>
             <div class="flex justify-between items-center mb-1">
               <span class="text-xs font-bold text-blue-700 uppercase flex items-center gap-1.5">
@@ -153,102 +158,122 @@
 
       </div>
 
-      <!-- Right 5 Cols: Vertical Comparison Bar Chart Column -->
+      <!-- Right 5 Cols: 3D BIM Dual Building Comparison & Vertical Bar Chart Column -->
       <div class="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-3">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
           <div>
             <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-              밑면전단력 3단 비교 &middot; 85% 하한선
+              밑면전단력 거동 비교 (3D BIM)
             </span>
-            <span class="text-[11px] text-slate-500 font-medium">정적 vs 동적 vs 최종설계 실시간 수직 막대</span>
+            <span class="text-[11px] text-slate-500 font-medium">정적 캔틸레버 100% vs 동적 진동 62%→85%</span>
           </div>
-          <span id="chart-scale-chip" class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-mono whitespace-nowrap">
-            &times;1.3688 증폭
-          </span>
+          <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-xs font-semibold">
+              <button id="btnView3D" onclick="switchBldgView('3D')" class="px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs">🏢 3D BIM</button>
+              <button id="btnViewBar" onclick="switchBldgView('Bar')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📊 막대</button>
+            </div>
+            <span id="chart-scale-chip" class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-mono whitespace-nowrap">
+              &times;1.3688 증폭
+            </span>
+          </div>
         </div>
 
-        <!-- Vertical Bar Chart Area -->
-        <div class="relative w-full h-[255px] bg-slate-50/80 border border-slate-200 rounded-xl px-4 pt-6 pb-2 flex flex-col justify-between overflow-hidden select-none">
-          
-          <!-- 1. The 3 Vertical Bars Container (Layer: z-10, 막대가 가장 뒤에 오게) -->
-          <div class="relative w-full h-[180px] flex items-end justify-around px-2 z-10">
+        <!-- 3D BIM & Bar Chart Container -->
+        <div class="relative w-full h-[270px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <div id="threeBldgContainer" class="w-full h-full absolute inset-0">
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2.5 py-1.5 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1.5 flex-wrap">
+              <span>🖱️ 3D 회전/줌</span>
+              <span class="text-slate-300">|</span>
+              <span class="font-bold text-slate-800">변위 증폭:</span>
+              <button onclick="setThreeAmp(40)" id="btnAmp40" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(75)" id="btnAmp75" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x (표준)</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x (확대)</button>
+            </div>
+          </div>
+
+          <!-- Vertical Bar Chart Area (Alternative View) -->
+          <div id="barChartContainer" class="w-full h-full absolute inset-0 px-4 pt-6 pb-2 flex flex-col justify-between overflow-hidden select-none bg-slate-50/80" style="display: none;">
             
-            <!-- Bar 1: Vs Static (ELF) -->
-            <div class="flex flex-col items-center w-20 h-full justify-end group relative">
-              <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
-              <div class="z-30 bg-white/95 border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
-                <div class="text-xs font-black text-slate-800 font-mono">1,187.5</div>
-                <div class="text-[10px] font-bold text-slate-400 font-mono">100.0%</div>
-              </div>
-              <!-- Bar Body (z-10) -->
-              <div class="w-14 bg-gradient-to-t from-slate-700 to-slate-600 rounded-t-lg shadow-sm border border-slate-600 transition-all duration-300 hover:brightness-110 z-10" style="height: 156px;"></div>
-            </div>
-
-            <!-- Bar 2: Vt Dynamic (RSA) -->
-            <div class="flex flex-col items-center w-20 h-full justify-end group relative">
-              <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
-              <div id="chart-vt-lbl-box" class="z-30 bg-white/95 border border-blue-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
-                <div id="chart-vt-val" class="text-xs font-black text-blue-700 font-mono">737.1</div>
-                <div id="chart-vt-pct" class="text-[10px] font-bold text-blue-600 font-mono">62.1%</div>
-              </div>
-              <!-- Bar Body with optional gap stripe on top (z-10) -->
-              <div class="w-14 flex flex-col justify-end z-10">
-                <!-- Missing Gap (Striped, only if Vt < 85%) -->
-                <div id="chart-vt-gap" class="w-full striped-pattern border border-dashed border-amber-400 rounded-t-lg flex items-center justify-center text-[9px] font-bold text-amber-800 font-mono transition-all duration-300 z-10" style="height: 36px;">
-                  <span id="chart-vt-gap-txt">+272</span>
+            <!-- 1. The 3 Vertical Bars Container (Layer: z-10, 막대가 가장 뒤에 오게) -->
+            <div class="relative w-full h-[180px] flex items-end justify-around px-2 z-10">
+              
+              <!-- Bar 1: Vs Static (ELF) -->
+              <div class="flex flex-col items-center w-20 h-full justify-end group relative">
+                <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
+                <div class="z-30 bg-white/95 border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
+                  <div class="text-xs font-black text-slate-800 font-mono">1,187.5</div>
+                  <div class="text-[10px] font-bold text-slate-400 font-mono">100.0%</div>
                 </div>
-                <!-- Actual Dynamic Shear Bar -->
-                <div id="chart-vt-bar" class="w-full bg-gradient-to-t from-blue-700 to-blue-500 shadow-sm border border-blue-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 97px;"></div>
+                <!-- Bar Body (z-10) -->
+                <div class="w-14 bg-gradient-to-t from-slate-700 to-slate-600 rounded-t-lg shadow-sm border border-slate-600 transition-all duration-300 hover:brightness-110 z-10" style="height: 156px;"></div>
+              </div>
+
+              <!-- Bar 2: Vt Dynamic (RSA) -->
+              <div class="flex flex-col items-center w-20 h-full justify-end group relative">
+                <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
+                <div id="chart-vt-lbl-box" class="z-30 bg-white/95 border border-blue-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
+                  <div id="chart-vt-val" class="text-xs font-black text-blue-700 font-mono">737.1</div>
+                  <div id="chart-vt-pct" class="text-[10px] font-bold text-blue-600 font-mono">62.1%</div>
+                </div>
+                <!-- Bar Body with optional gap stripe on top (z-10) -->
+                <div class="w-14 flex flex-col justify-end z-10">
+                  <!-- Missing Gap (Striped, only if Vt < 85%) -->
+                  <div id="chart-vt-gap" class="w-full striped-pattern border border-dashed border-amber-400 rounded-t-lg flex items-center justify-center text-[9px] font-bold text-amber-800 font-mono transition-all duration-300 z-10" style="height: 36px;">
+                    <span id="chart-vt-gap-txt">+272</span>
+                  </div>
+                  <!-- Actual Dynamic Shear Bar -->
+                  <div id="chart-vt-bar" class="w-full bg-gradient-to-t from-blue-700 to-blue-500 shadow-sm border border-blue-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 97px;"></div>
+                </div>
+              </div>
+
+              <!-- Bar 3: Vdesign (Final Design) -->
+              <div class="flex flex-col items-center w-20 h-full justify-end group relative">
+                <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
+                <div id="chart-vdes-lbl-box" class="z-30 bg-white/95 border border-emerald-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
+                  <div id="chart-vdes-val" class="text-xs font-black text-emerald-700 font-mono">1,009.4</div>
+                  <div id="chart-vdes-pct" class="text-[10px] font-bold text-emerald-600 font-mono">85.0%</div>
+                </div>
+                <!-- Bar Body (z-10) -->
+                <div id="chart-vdes-bar" class="w-14 bg-gradient-to-t from-emerald-700 to-emerald-500 rounded-t-lg shadow-sm border border-emerald-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 133px;"></div>
+              </div>
+
+            </div>
+
+            <!-- 2. Reference Lines (Layer: z-20, 막대 앞) -->
+            <!-- 100% Vs Line -->
+            <div class="absolute left-0 right-0 border-b border-dashed border-slate-400 pointer-events-none z-20" style="bottom: 188px;">
+              <span class="absolute left-2.5 -top-4 text-[10px] font-mono font-semibold text-slate-500 bg-white/80 px-1 rounded">100% (Vs)</span>
+            </div>
+
+            <!-- 85% Statutory Limit Line (Prominent Red, z-20 line, z-30 badge) -->
+            <div class="absolute left-0 right-0 border-b-2 border-dashed border-red-500 pointer-events-none z-20" style="bottom: 165px;">
+              <div class="absolute right-2 -top-3.5 flex items-center gap-1 bg-white border-2 border-red-500 text-red-700 px-2 py-0.5 rounded-md text-[10px] font-black shadow-md z-30 pointer-events-auto">
+                <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                <span>85% 하한선 (1,009.4 kN)</span>
               </div>
             </div>
 
-            <!-- Bar 3: Vdesign (Final Design) -->
-            <div class="flex flex-col items-center w-20 h-full justify-end group relative">
-              <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
-              <div id="chart-vdes-lbl-box" class="z-30 bg-white/95 border border-emerald-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
-                <div id="chart-vdes-val" class="text-xs font-black text-emerald-700 font-mono">1,009.4</div>
-                <div id="chart-vdes-pct" class="text-[10px] font-bold text-emerald-600 font-mono">85.0%</div>
+            <!-- 0 Baseline (z-20) -->
+            <div class="absolute left-0 right-0 border-b-2 border-slate-300 bottom-[32px] pointer-events-none z-20"></div>
+
+            <!-- 3. Bottom Axis Labels (z-30) -->
+            <div class="w-full flex items-center justify-around text-center pt-1.5 border-t border-slate-200 z-30 relative bg-slate-50/90">
+              <div class="w-20 text-center">
+                <span class="text-[11px] font-bold text-slate-700 block">정적 (ELF)</span>
+                <span class="text-[10px] font-mono text-slate-500 math-var">V<sub>s</sub></span>
               </div>
-              <!-- Bar Body (z-10) -->
-              <div id="chart-vdes-bar" class="w-14 bg-gradient-to-t from-emerald-700 to-emerald-500 rounded-t-lg shadow-sm border border-emerald-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 133px;"></div>
+              <div class="w-20 text-center">
+                <span class="text-[11px] font-bold text-blue-700 block">동적 (RSA)</span>
+                <span class="text-[10px] font-mono text-blue-600 math-var">V<sub>t</sub></span>
+              </div>
+              <div class="w-20 text-center">
+                <span class="text-[11px] font-bold text-emerald-800 block">최종 설계</span>
+                <span class="text-[10px] font-mono text-emerald-700 math-var">V<sub>design</sub></span>
+              </div>
             </div>
 
           </div>
-
-          <!-- 2. Reference Lines (Layer: z-20, 막대 앞) -->
-          <!-- 100% Vs Line -->
-          <div class="absolute left-0 right-0 border-b border-dashed border-slate-400 pointer-events-none z-20" style="bottom: 188px;">
-            <span class="absolute left-2.5 -top-4 text-[10px] font-mono font-semibold text-slate-500 bg-white/80 px-1 rounded">100% (Vs)</span>
-          </div>
-
-          <!-- 85% Statutory Limit Line (Prominent Red, z-20 line, z-30 badge) -->
-          <div class="absolute left-0 right-0 border-b-2 border-dashed border-red-500 pointer-events-none z-20" style="bottom: 165px;">
-            <div class="absolute right-2 -top-3.5 flex items-center gap-1 bg-white border-2 border-red-500 text-red-700 px-2 py-0.5 rounded-md text-[10px] font-black shadow-md z-30 pointer-events-auto">
-              <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-              <span>85% 하한선 (1,009.4 kN)</span>
-            </div>
-          </div>
-
-          <!-- 0 Baseline (z-20) -->
-          <div class="absolute left-0 right-0 border-b-2 border-slate-300 bottom-[32px] pointer-events-none z-20"></div>
-
-          <!-- 3. Bottom Axis Labels (z-30) -->
-          <div class="w-full flex items-center justify-around text-center pt-1.5 border-t border-slate-200 z-30 relative bg-slate-50/90">
-            <div class="w-20 text-center">
-              <span class="text-[11px] font-bold text-slate-700 block">정적 (ELF)</span>
-              <span class="text-[10px] font-mono text-slate-500 math-var">V<sub>s</sub></span>
-            </div>
-            <div class="w-20 text-center">
-              <span class="text-[11px] font-bold text-blue-700 block">동적 (RSA)</span>
-              <span class="text-[10px] font-mono text-blue-600 math-var">V<sub>t</sub></span>
-            </div>
-            <div class="w-20 text-center">
-              <span class="text-[11px] font-bold text-emerald-800 block">최종 설계</span>
-              <span class="text-[10px] font-mono text-emerald-700 math-var">V<sub>design</sub></span>
-            </div>
-          </div>
-
         </div>
 
         <!-- Explanatory Footer -->
@@ -540,6 +565,300 @@
       drawSpectrum();
     }
 
+    // =========================================================================
+    // 3D BIM DUAL BUILDING & VIEW SWITCHER (Three.js)
+    // =========================================================================
+    let activeBldgView = '3D';
+    let threeBldgScene, threeBldgCamera, threeBldgRenderer, threeBldgControls;
+    let staticSlabs = [], staticCols = [];
+    let dynamicSlabs = [], dynamicCols = [];
+    let staticBaseMesh, dynamicBaseMesh;
+    let threeBldgDimGroup;
+    let threeDispAmp = 75.0; // 기본 75배 증폭
+    let simTime = 0;
+
+    function switchBldgView(view) {
+      activeBldgView = view;
+      document.getElementById('btnView3D').className = view === '3D' 
+        ? 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs' 
+        : 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+      document.getElementById('btnViewBar').className = view === 'Bar' 
+        ? 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs' 
+        : 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+      
+      const bldgContainer = document.getElementById('threeBldgContainer');
+      const barContainer = document.getElementById('barChartContainer');
+      if (view === '3D') {
+        bldgContainer.style.display = 'block';
+        barContainer.style.display = 'none';
+        if (!threeBldgRenderer) initThreeBldg();
+        resizeThreeBldg();
+      } else {
+        bldgContainer.style.display = 'none';
+        barContainer.style.display = 'flex';
+      }
+    }
+
+    function setThreeAmp(val) {
+      threeDispAmp = val;
+      [40, 75, 140].forEach(v => {
+        const btn = document.getElementById(`btnAmp${v}`);
+        if (btn) {
+          btn.className = v === val 
+            ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' 
+            : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+        }
+      });
+    }
+
+    function createCADSprite(text, color = '#0f172a', bg = 'rgba(255, 255, 255, 0.94)', border = '#cbd5e1') {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = bg;
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 4;
+      if (ctx.roundRect) ctx.roundRect(8, 8, 496, 112, 16);
+      else ctx.rect(8, 8, 496, 112);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = color;
+      ctx.font = 'bold 42px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 256, 64);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.minFilter = THREE.LinearFilter;
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const sp = new THREE.Sprite(mat);
+      sp.scale.set(4.5, 1.15, 1);
+      return sp;
+    }
+
+    function initThreeBldg() {
+      const container = document.getElementById('threeBldgContainer');
+      const w = container.clientWidth || 300;
+      const h = container.clientHeight || 270;
+
+      threeBldgScene = new THREE.Scene();
+      threeBldgScene.background = new THREE.Color(0xf8fafc);
+
+      threeBldgCamera = new THREE.PerspectiveCamera(38, w / h, 0.5, 500);
+      threeBldgCamera.position.set(0, 18, 36);
+
+      threeBldgRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      threeBldgRenderer.setPixelRatio(window.devicePixelRatio || 1);
+      threeBldgRenderer.setSize(w, h);
+      threeBldgRenderer.shadowMap.enabled = true;
+      container.appendChild(threeBldgRenderer.domElement);
+
+      threeBldgControls = new THREE.OrbitControls(threeBldgCamera, threeBldgRenderer.domElement);
+      threeBldgControls.enableDamping = true;
+      threeBldgControls.dampingFactor = 0.08;
+      threeBldgControls.maxPolarAngle = Math.PI / 2 - 0.02;
+      threeBldgControls.target.set(0, 5.5, 0);
+      threeBldgControls.update();
+
+      // Lighting
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.85);
+      threeBldgScene.add(ambLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+      dirLight.position.set(20, 35, 25);
+      dirLight.castShadow = true;
+      threeBldgScene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.3);
+      fillLight.position.set(-20, 15, -20);
+      threeBldgScene.add(fillLight);
+
+      // Ground Grid
+      const grid = new THREE.GridHelper(44, 22, 0x94a3b8, 0xe2e8f0);
+      grid.position.y = 0;
+      threeBldgScene.add(grid);
+
+      buildThreeBldgModels();
+    }
+
+    function resizeThreeBldg() {
+      if (!threeBldgRenderer || !threeBldgCamera) return;
+      const container = document.getElementById('threeBldgContainer');
+      const w = container.clientWidth || 300;
+      const h = container.clientHeight || 270;
+      threeBldgCamera.aspect = w / h;
+      threeBldgCamera.updateProjectionMatrix();
+      threeBldgRenderer.setSize(w, h);
+    }
+
+    function buildThreeBldgModels() {
+      staticSlabs = []; staticCols = [];
+      dynamicSlabs = []; dynamicCols = [];
+      if (threeBldgDimGroup) threeBldgScene.remove(threeBldgDimGroup);
+      threeBldgDimGroup = new THREE.Group();
+      threeBldgScene.add(threeBldgDimGroup);
+
+      const slabW = 5.6;
+      const slabD = 4.8;
+      const slabH = 0.40;
+      const storyH = 3.2;
+
+      // 1. LEFT BUILDING: 등가정적 (ELF, x = -6.8)
+      const leftX = -6.8;
+      const baseGeom = new THREE.BoxGeometry(slabW * 1.25, 0.7, slabD * 1.25);
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.4 });
+      staticBaseMesh = new THREE.Mesh(baseGeom, baseMat);
+      staticBaseMesh.position.set(leftX, 0.35, 0);
+      staticBaseMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(baseGeom), new THREE.LineBasicMaterial({ color: 0x475569 })));
+      threeBldgScene.add(staticBaseMesh);
+
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 });
+      const slabEdgesMat = new THREE.LineBasicMaterial({ color: 0x334155, linewidth: 1.5 });
+      const colMatStatic = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3 });
+      const colMatDynamic = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 });
+
+      const colOffsetX = slabW / 2 - 0.35;
+      const colOffsetZ = slabD / 2 - 0.35;
+      const colRadius = 0.20;
+
+      for (let s = 1; s <= 3; s++) {
+        const sGroup = new THREE.Group();
+        const slabGeom = new THREE.BoxGeometry(slabW, slabH, slabD);
+        const sMesh = new THREE.Mesh(slabGeom, slabMat);
+        sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(slabGeom), slabEdgesMat));
+        sGroup.add(sMesh);
+
+        const yLevel = 0.7 + s * storyH;
+        sGroup.position.set(leftX, yLevel, 0);
+        sGroup.userData = { originX: leftX, baseY: yLevel, story: s };
+        threeBldgScene.add(sGroup);
+        staticSlabs.push(sGroup);
+
+        const storyCols = [];
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+          const colGeom = new THREE.CylinderGeometry(colRadius, colRadius, storyH - slabH, 12);
+          const col = new THREE.Mesh(colGeom, colMatStatic);
+          const colBaseY = 0.7 + (s - 1) * storyH + (storyH - slabH) / 2;
+          col.position.set(leftX + cx * colOffsetX, colBaseY, cz * colOffsetZ);
+          col.userData = { cx: cx * colOffsetX, cz: cz * colOffsetZ, originX: leftX, story: s };
+          threeBldgScene.add(col);
+          storyCols.push(col);
+        });
+        staticCols.push(storyCols);
+      }
+
+      // Static Building Title Tag
+      const staticTitle = createCADSprite('정적 (ELF 100% Vs)', '#0f172a', 'rgba(255,255,255,0.96)', '#cbd5e1');
+      staticTitle.position.set(leftX, 0.7 + 3 * storyH + 1.8, 0);
+      threeBldgDimGroup.add(staticTitle);
+
+      // 2. RIGHT BUILDING: 동적 (RSA, x = +6.8)
+      const rightX = 6.8;
+      dynamicBaseMesh = new THREE.Mesh(baseGeom, baseMat);
+      dynamicBaseMesh.position.set(rightX, 0.35, 0);
+      dynamicBaseMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(baseGeom), new THREE.LineBasicMaterial({ color: 0x475569 })));
+      threeBldgScene.add(dynamicBaseMesh);
+
+      for (let s = 1; s <= 3; s++) {
+        const sGroup = new THREE.Group();
+        const slabGeom = new THREE.BoxGeometry(slabW, slabH, slabD);
+        const sMesh = new THREE.Mesh(slabGeom, slabMat);
+        sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(slabGeom), slabEdgesMat));
+        sGroup.add(sMesh);
+
+        const yLevel = 0.7 + s * storyH;
+        sGroup.position.set(rightX, yLevel, 0);
+        sGroup.userData = { originX: rightX, baseY: yLevel, story: s };
+        threeBldgScene.add(sGroup);
+        dynamicSlabs.push(sGroup);
+
+        const storyCols = [];
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+          const colGeom = new THREE.CylinderGeometry(colRadius, colRadius, storyH - slabH, 12);
+          const col = new THREE.Mesh(colGeom, colMatDynamic);
+          const colBaseY = 0.7 + (s - 1) * storyH + (storyH - slabH) / 2;
+          col.position.set(rightX + cx * colOffsetX, colBaseY, cz * colOffsetZ);
+          col.userData = { cx: cx * colOffsetX, cz: cz * colOffsetZ, originX: rightX, story: s };
+          threeBldgScene.add(col);
+          storyCols.push(col);
+        });
+        dynamicCols.push(storyCols);
+      }
+
+      // Dynamic Building Title Tag
+      const dynamicTitle = createCADSprite('동적 (RSA 85% 보정)', '#047857', 'rgba(236,253,245,0.96)', '#a7f3d0');
+      dynamicTitle.position.set(rightX, 0.7 + 3 * storyH + 1.8, 0);
+      threeBldgDimGroup.add(dynamicTitle);
+    }
+
+    function updateThreeBldgAnimation() {
+      if (!threeBldgRenderer || activeBldgView !== '3D') return;
+
+      simTime += 0.025;
+
+      // 1. Static Building: 순수 정적 캔틸레버 휨 (흔들림 없음, u(0)=0 고정)
+      const staticTopDrift = 0.035 * threeDispAmp; // 기준 정적 변위 (약 2.6m 상당 시각화)
+      const storyH = 3.2;
+
+      const staticXs = [];
+      for (let s = 1; s <= 3; s++) {
+        const r = s / 3.0;
+        const cant = 1.5 * Math.pow(r, 2) - 0.5 * Math.pow(r, 3);
+        const dx = staticTopDrift * cant;
+        staticXs.push(dx);
+        staticSlabs[s - 1].position.x = staticSlabs[s - 1].userData.originX + dx;
+      }
+
+      const prevStaticXs = [0, staticXs[0], staticXs[1]];
+      for (let s = 0; s < 3; s++) {
+        const drift = staticXs[s] - prevStaticXs[s];
+        const midX = (prevStaticXs[s] + staticXs[s]) / 2;
+        const tiltZ = -Math.atan2(drift, storyH);
+
+        staticCols[s].forEach(col => {
+          col.position.x = col.userData.originX + col.userData.cx + midX;
+          col.rotation.z = tiltZ;
+        });
+      }
+
+      // 2. Dynamic Building: 1차 주기 T1 기반 실시간 지진 진동 및 85% 스케일링
+      const omega1 = (2 * Math.PI) / currentT1;
+      const Sa1 = getSa(currentT1);
+      const dynamicScale = Math.max(0.85, (Sa1 / Sa_Ta) * (0.9172)); // 85% 하한선 반영
+      const dynamicAmp = (staticTopDrift * dynamicScale);
+
+      const groundVibe = 0.15 * Math.sin(simTime * 8.0); // 지반 흔들림
+      const modalQ = Math.sin(simTime * omega1);
+
+      if (dynamicBaseMesh) {
+        dynamicBaseMesh.position.x = 6.8 + groundVibe;
+      }
+
+      const dynXs = [];
+      for (let s = 1; s <= 3; s++) {
+        const phi1_s = (s / 3.0); // 1차 모드형상 선형 근사
+        const dx = groundVibe + dynamicAmp * phi1_s * modalQ;
+        dynXs.push(dx);
+        dynamicSlabs[s - 1].position.x = dynamicSlabs[s - 1].userData.originX + dx;
+      }
+
+      const prevDynXs = [groundVibe, dynXs[0], dynXs[1]];
+      for (let s = 0; s < 3; s++) {
+        const drift = dynXs[s] - prevDynXs[s];
+        const midX = (prevDynXs[s] + dynXs[s]) / 2;
+        const tiltZ = -Math.atan2(drift, storyH);
+
+        dynamicCols[s].forEach(col => {
+          col.position.x = col.userData.originX + col.userData.cx + midX;
+          col.rotation.z = tiltZ;
+        });
+      }
+
+      threeBldgControls.update();
+      threeBldgRenderer.render(threeBldgScene, threeBldgCamera);
+    }
+
     function resize() {
       const dpr = window.devicePixelRatio || 1;
       const r = canvas.parentElement.getBoundingClientRect();
@@ -548,7 +867,10 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       drawSpectrum();
     }
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', () => {
+      resize();
+      resizeThreeBldg();
+    });
 
     // Helper function for crisp rounded rectangles
     function drawRoundRect(c, x, y, width, height, radius, fill, stroke) {
@@ -567,6 +889,9 @@
       if (stroke) c.stroke();
     }
 
+    // =========================================================================
+    // RESPONSE SPECTRUM (DynamicsChartCanonical 적용)
+    // =========================================================================
     function drawSpectrum() {
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.width / dpr;
@@ -583,19 +908,15 @@
       const maxG = 0.65;
       const maxT = 1.4;
 
-      function toX(T) {
-        return marginL + (T / maxT) * plotW;
-      }
-      function toY(Sa) {
-        return (h - marginB) - (Sa / maxG) * plotH;
-      }
+      function toX(T) { return marginL + (T / maxT) * plotW; }
+      function toY(Sa) { return (h - marginB) - (Sa / maxG) * plotH; }
 
       // 1. Grid Lines & Y Ticks
       ctx.lineWidth = 1;
       const yTicks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
       yTicks.forEach(g => {
         const y = toY(g);
-        ctx.strokeStyle = '#e2e8f0';
+        ctx.strokeStyle = '#f1f5f9';
         ctx.setLineDash([3, 3]);
         ctx.beginPath();
         ctx.moveTo(marginL, y);
@@ -603,16 +924,15 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.fillStyle = '#475569';
-        ctx.font = 'bold 11px Pretendard, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 10.5px Pretendard, sans-serif';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.fillText(`${g.toFixed(1)}g`, marginL - 8, y);
       });
 
-      // 0.0g label
-      ctx.fillStyle = '#475569';
-      ctx.font = 'bold 11px Pretendard, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.font = 'bold 10.5px Pretendard, sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       ctx.fillText('0.0g', marginL - 8, h - marginB);
@@ -629,8 +949,8 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.fillStyle = '#475569';
-        ctx.font = 'bold 11px Pretendard, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 10.5px Pretendard, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillText(`${t.toFixed(1)}s`, x, h - marginB + 8);
@@ -638,7 +958,7 @@
       ctx.fillText('0.0s', marginL, h - marginB + 8);
 
       // 3. Axes
-      ctx.strokeStyle = '#94a3b8';
+      ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(marginL, marginT - 15);
@@ -646,33 +966,21 @@
       ctx.lineTo(w - marginR + 15, h - marginB);
       ctx.stroke();
 
-      // Axis Titles (with Italic Math Variables)
-      // Y-axis: Sa (g)
+      // Axis Titles
       ctx.textBaseline = 'bottom';
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#1e293b';
-      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('S', marginL - 48, marginT - 14);
-      const sW = ctx.measureText('S').width;
-      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('a', marginL - 48 + sW, marginT - 11);
-      const aW = ctx.measureText('a').width;
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'italic bold 13px "Cambria Math", serif';
+      ctx.fillText('Sa', marginL - 48, marginT - 14);
       ctx.font = 'bold 11px Pretendard, sans-serif';
       ctx.fillStyle = '#64748b';
-      ctx.fillText('(g)', marginL - 48 + sW + aW + 3, marginT - 14);
+      ctx.fillText('(g)', marginL - 26, marginT - 14);
 
-      // X-axis: 주기 T (s)
       ctx.textBaseline = 'top';
       ctx.textAlign = 'right';
       ctx.font = 'bold 11px Pretendard, sans-serif';
       ctx.fillStyle = '#64748b';
-      ctx.fillText('주기 ', w - marginR + 10, h - marginB + 23);
-      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
-      ctx.fillStyle = '#1e293b';
-      ctx.fillText('T', w - marginR + 20, h - marginB + 22);
-      ctx.font = 'bold 11px Pretendard, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.fillText('(s)', w - marginR + 36, h - marginB + 23);
+      ctx.fillText('주기 T (s)', w - marginR + 25, h - marginB + 23);
 
       // 4. KDS 41 Characteristic Period Marker Ts = 0.40s
       const Ts = S_D1 / S_DS; // 0.40s
@@ -686,20 +994,21 @@
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = '#94a3b8';
-      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
+      ctx.font = 'italic bold 10px "Cambria Math", serif';
       ctx.textAlign = 'center';
       ctx.fillText('Ts = 0.40s', xTs, toY(S_DS) + 14);
 
-      // 5. Area Gradient Fill under Spectrum Curve
-      const grad = ctx.createLinearGradient(0, marginT, 0, h - marginB);
-      grad.addColorStop(0, 'rgba(37, 99, 235, 0.16)');
-      grad.addColorStop(1, 'rgba(37, 99, 235, 0.01)');
-      ctx.fillStyle = grad;
+      // 5. Area Fill under Spectrum Curve (Soft Light Pastel Tint - 어두운 색상 배제)
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.07)';
       ctx.beginPath();
       ctx.moveTo(toX(0), h - marginB);
+      const specCurvePoints = [];
       for (let px = 0; px <= plotW; px += 2) {
         const T = (px / plotW) * maxT;
-        ctx.lineTo(marginL + px, toY(getSa(T)));
+        const x = marginL + px;
+        const y = toY(getSa(T));
+        ctx.lineTo(x, y);
+        specCurvePoints.push({ x, y });
       }
       ctx.lineTo(marginL + plotW, h - marginB);
       ctx.closePath();
@@ -707,7 +1016,7 @@
 
       // 6. Spectrum Curve Stroke
       ctx.strokeStyle = '#2563eb';
-      ctx.lineWidth = 2.8;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       for (let px = 0; px <= plotW; px += 2) {
         const T = (px / plotW) * maxT;
@@ -734,7 +1043,7 @@
       // 7. Dynamic Transition Arc between Ta and T1
       if (Math.abs(xT1 - xTa) > 20) {
         ctx.strokeStyle = '#d97706';
-        ctx.lineWidth = 1.8;
+        ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 3]);
         ctx.beginPath();
         const midX = (xTa + xT1) / 2;
@@ -744,11 +1053,9 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Amber floating badge on transition curve
-        const ratioDrop = ((Sa1 / Sa_Ta) * 100).toFixed(0);
         const diffDrop = ((1 - Sa1 / Sa_Ta) * 100).toFixed(0);
         const arcBadgeText = currentT1 > Ta ? `주기 신장: Sa ${diffDrop}% 절감` : `주기 단축: Sa 증가`;
-        ctx.font = 'bold 10px Pretendard, sans-serif';
+        ctx.font = 'bold 9.5px Pretendard, sans-serif';
         const abW = ctx.measureText(arcBadgeText).width + 14;
         const abH = 18;
         const abX = midX - abW / 2;
@@ -764,7 +1071,7 @@
         ctx.fillText(arcBadgeText, midX, abY + abH / 2);
       }
 
-      // 8. Vertical Drop Lines for Ta and T1
+      // 8. Vertical Drop Lines & Dots
       ctx.strokeStyle = '#f87171';
       ctx.lineWidth = 1.2;
       ctx.setLineDash([3, 3]);
@@ -780,192 +1087,107 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Point Dots
       // Ta Dot
       ctx.fillStyle = '#dc2626';
       ctx.beginPath();
-      ctx.arc(xTa, yTa, 5.5, 0, Math.PI * 2);
+      ctx.arc(xTa, yTa, 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
 
       // T1 Dot
       ctx.fillStyle = '#059669';
       ctx.beginPath();
-      ctx.arc(xT1, yT1, 6.5, 0, Math.PI * 2);
+      ctx.arc(xT1, yT1, 5.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
 
-      // 9. HIGH-QUALITY CALLOUT BADGES (Zero Overlap & Zero Clipping)
-      // A. Ta Callout Badge (Static ELF)
-      const taBadgeW = 150;
-      const taBadgeH = 44;
-      let taBx = xTa - taBadgeW - 10;
-      let taBy = yTa - taBadgeH - 8;
-      // Clamp Ta within canvas
-      if (taBx < marginL + 2) taBx = marginL + 2;
-      if (taBy < marginT - 18) taBy = marginT - 18;
+      // 9. HIGH-QUALITY CALLOUT BADGES (DynamicsChartCanonical 적용)
+      const plotRect = { left: marginL, top: marginT, width: plotW, height: plotH };
 
-      // Leader line from Ta badge to Ta dot
-      ctx.strokeStyle = '#f87171';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(taBx + taBadgeW, taBy + taBadgeH / 2);
-      ctx.lineTo(xTa, yTa);
-      ctx.stroke();
+      // A. Ta Badge (Static ELF)
+      const taText = `Ta=0.44s (0.505g) [ELF 기준]`;
+      const taW = 145, taH = 22;
+      let posTa = DynamicsChartCanonical.getBestCalloutPlacement(xTa, yTa, taW, taH, plotRect, specCurvePoints);
+      // Force Ta to left side of curve
+      if (posTa.x + taW > xTa + 10) posTa.x = Math.max(marginL + 4, xTa - taW - 14);
 
-      // Ta Badge Card
-      ctx.save();
-      ctx.shadowColor = 'rgba(220, 38, 38, 0.15)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 2;
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#fca5a5';
-      ctx.lineWidth = 1.5;
-      drawRoundRect(ctx, taBx, taBy, taBadgeW, taBadgeH, 8, true, true);
-      ctx.restore();
+      if (Math.hypot((posTa.x + taW/2) - xTa, (posTa.y + taH/2) - yTa) > 15) {
+        DynamicsChartCanonical.drawLeaderLine(ctx, xTa, yTa, posTa.x, posTa.y, taW, taH, '#dc2626');
+      }
+      DynamicsChartCanonical.drawAutoBadge(ctx, taText, posTa.x, posTa.y, {
+        maxW: 155,
+        baseFontSize: 9.0,
+        bg: 'rgba(255, 255, 255, 0.96)',
+        border: '#fca5a5',
+        textColor: '#b91c1c',
+        height: taH,
+        radius: 4,
+        paddingX: 6
+      });
 
-      // Ta Content: Line 1 (Ta = 0.44s, Sa = 0.505g)
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      let curX = taBx + 8;
-      const line1Y = taBy + 14;
+      // B. T1 Badge (Dynamic RSA)
+      const t1Text = `T1=${currentT1.toFixed(2)}s (${Sa1.toFixed(3)}g) [RSA 모델]`;
+      const t1W = 155, t1H = 22;
+      let posT1 = DynamicsChartCanonical.getBestCalloutPlacement(xT1, yT1, t1W, t1H, plotRect, specCurvePoints);
+      // If T1 > Ta, prefer placing to the right
+      if (currentT1 > Ta && posT1.x < xT1) posT1.x = Math.min(marginL + plotW - t1W - 4, xT1 + 14);
 
-      ctx.fillStyle = '#dc2626';
-      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('T', curX, line1Y);
-      curX += ctx.measureText('T').width;
-      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('a', curX, line1Y + 3);
-      curX += ctx.measureText('a').width;
-
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 12px Pretendard, sans-serif';
-      ctx.fillText(' = 0.44s', curX, line1Y);
-      curX += ctx.measureText(' = 0.44s').width + 5;
-
-      ctx.fillStyle = '#dc2626';
-      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('S', curX, line1Y);
-      curX += ctx.measureText('S').width;
-      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('a', curX, line1Y + 3);
-      curX += ctx.measureText('a').width;
-
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 12px Pretendard, sans-serif';
-      ctx.fillText(' = 0.505g', curX, line1Y);
-
-      // Line 2: Tag [등가정적 ELF 기준점]
-      const line2Y = taBy + 31;
-      ctx.fillStyle = '#fef2f2';
-      ctx.strokeStyle = '#fecaca';
-      ctx.lineWidth = 1;
-      drawRoundRect(ctx, taBx + 8, line2Y - 8, 106, 17, 4, true, true);
-      ctx.fillStyle = '#b91c1c';
-      ctx.font = 'bold 10px Pretendard, sans-serif';
-      ctx.fillText('등가정적 (ELF) 기준점', taBx + 12, line2Y);
-
-      // B. T1 Callout Badge (Dynamic RSA)
-      const t1BadgeW = 160;
-      const t1BadgeH = 44;
-      let t1Bx, t1By;
-
-      // Smart positioning: if approaching right edge, flip to LEFT
-      if (xT1 + t1BadgeW + 14 > w - 4) {
-        t1Bx = xT1 - t1BadgeW - 12;
-        t1By = yT1 - t1BadgeH - 6;
-      } else if (currentT1 <= Ta) {
-        t1Bx = xT1 + 12;
-        t1By = yT1 - 20;
-      } else {
-        t1Bx = xT1 + 12;
-        t1By = yT1 - 22;
+      // Avoid collision between Ta badge and T1 badge
+      if (Math.abs(posT1.x - posTa.x) < taW && Math.abs(posT1.y - posTa.y) < taH) {
+        posT1.y = posTa.y + taH + 8;
       }
 
-      // Clamping within canvas boundaries
-      if (t1By < marginT - 18) t1By = marginT - 18;
-      if (t1By + t1BadgeH > h - marginB - 2) t1By = h - marginB - t1BadgeH - 2;
-      if (t1Bx < marginL + 2) t1Bx = marginL + 2;
-      if (t1Bx + t1BadgeW > w - 4) t1Bx = w - 4 - t1BadgeW;
-
-      // Check collision between Ta badge and T1 badge
-      const overlapX = (t1Bx < taBx + taBadgeW && t1Bx + t1BadgeW > taBx);
-      const overlapY = (t1By < taBy + taBadgeH && t1By + t1BadgeH > taBy);
-      if (overlapX && overlapY) {
-        if (currentT1 < Ta) {
-          t1By = taBy + taBadgeH + 8;
-        } else {
-          t1Bx = xT1 + 14;
-          t1By = yT1 + 10;
-        }
+      if (Math.hypot((posT1.x + t1W/2) - xT1, (posT1.y + t1H/2) - yT1) > 15) {
+        DynamicsChartCanonical.drawLeaderLine(ctx, xT1, yT1, posT1.x, posT1.y, t1W, t1H, '#059669');
       }
-
-      // Leader line from T1 badge to T1 dot
-      ctx.strokeStyle = '#34d399';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      if (t1Bx > xT1) {
-        ctx.moveTo(t1Bx, t1By + t1BadgeH / 2);
-      } else {
-        ctx.moveTo(t1Bx + t1BadgeW, t1By + t1BadgeH / 2);
-      }
-      ctx.lineTo(xT1, yT1);
-      ctx.stroke();
-
-      // T1 Badge Card
-      ctx.save();
-      ctx.shadowColor = 'rgba(5, 150, 105, 0.15)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 2;
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#6ee7b7';
-      ctx.lineWidth = 1.5;
-      drawRoundRect(ctx, t1Bx, t1By, t1BadgeW, t1BadgeH, 8, true, true);
-      ctx.restore();
-
-      // T1 Content: Line 1 (T1 = ...s, Sa = ...g)
-      curX = t1Bx + 8;
-      const t1Line1Y = t1By + 14;
-
-      ctx.fillStyle = '#059669';
-      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('T', curX, t1Line1Y);
-      curX += ctx.measureText('T').width;
-      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('1', curX, t1Line1Y + 3);
-      curX += ctx.measureText('1').width;
-
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 12px Pretendard, sans-serif';
-      ctx.fillText(` = ${currentT1.toFixed(2)}s`, curX, t1Line1Y);
-      curX += ctx.measureText(` = ${currentT1.toFixed(2)}s`).width + 5;
-
-      ctx.fillStyle = '#059669';
-      ctx.font = 'italic bold 13px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('S', curX, t1Line1Y);
-      curX += ctx.measureText('S').width;
-      ctx.font = 'italic bold 10px "Cambria Math", "Times New Roman", serif';
-      ctx.fillText('a', curX, t1Line1Y + 3);
-      curX += ctx.measureText('a').width;
-
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 12px Pretendard, sans-serif';
-      ctx.fillText(` = ${Sa1.toFixed(3)}g`, curX, t1Line1Y);
-
-      // Line 2: Tag [응답스펙트럼 RSA 모델점]
-      const t1Line2Y = t1By + 31;
-      ctx.fillStyle = '#ecfdf5';
-      ctx.strokeStyle = '#a7f3d0';
-      ctx.lineWidth = 1;
-      drawRoundRect(ctx, t1Bx + 8, line2Y - 8, 122, 17, 4, true, true);
-      ctx.fillStyle = '#047857';
-      ctx.font = 'bold 10px Pretendard, sans-serif';
-      ctx.fillText('응답스펙트럼 (RSA) 모델점', t1Bx + 12, t1Line2Y);
+      DynamicsChartCanonical.drawAutoBadge(ctx, t1Text, posT1.x, posT1.y, {
+        maxW: 165,
+        baseFontSize: 9.0,
+        bg: 'rgba(255, 255, 255, 0.96)',
+        border: '#6ee7b7',
+        textColor: '#047857',
+        height: t1H,
+        radius: 4,
+        paddingX: 6
+      });
     }
+
+    // =========================================================================
+    // MAIN 60FPS LOOP & AWWWARDS ZENTRY TILT
+    // =========================================================================
+    function mainLoop() {
+      updateThreeBldgAnimation();
+      requestAnimationFrame(mainLoop);
+    }
+
+    function initZentryTilt() {
+      ['card-elf-box', 'card-vt-box', 'card-design-box'].forEach(id => {
+        const card = document.getElementById(id);
+        if (!card) return;
+        card.style.transition = 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease';
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * -6;
+          const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * 6;
+          card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        });
+      });
+    }
+
+    setTimeout(() => {
+      initThreeBldg();
+      resize();
+      resizeThreeBldg();
+      initZentryTilt();
+      updateT1(0.648);
+      mainLoop();
+    }, 50);
+  </script>
+</body>
+</html>
 
     setTimeout(() => {
       resize();
