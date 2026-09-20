@@ -13,14 +13,22 @@
       font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
     }
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
   </style>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
   <script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-lg space-y-5">
+  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-xl space-y-5">
     
     <!-- Top Header -->
     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -39,12 +47,15 @@
       </div>
 
       <!-- Controls -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <button onclick="toggleModeView('all')" id="btn-view-all" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold transition shadow-xs">
           전체 모드 합성
         </button>
+        <button onclick="toggleModeView('mode1')" id="btn-view-m1" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition">
+          1차 모드(91.4%) 단독
+        </button>
         <button onclick="toggleModeView('mode3')" id="btn-view-m3" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition">
-          3차 모드(1.1%) 단독
+          3차 모드(1.1%) 채찍 효과
         </button>
       </div>
     </div>
@@ -53,9 +64,9 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
       
       <!-- 1. Left (6 Cols): Rigid Body Participation Decomposition (Figure 9) -->
-      <div class="lg:col-span-6 bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-3">
+      <div class="lg:col-span-6 bg-slate-50/80 border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-3 zentry-card shadow-sm hover:shadow-md">
         <div class="border-b border-slate-200 pb-2 flex justify-between items-center">
-          <span class="text-sm font-bold text-slate-900">1. 강체운동 {1}의 층별 모드 지분 분해 (마스터노트 그림 9)</span>
+          <span class="text-sm font-bold text-slate-900">1. 강체운동 {1}의 층별 모드 지분 분해 (그림 9)</span>
           <span class="text-xs font-mono font-bold text-indigo-700">&sum; &Gamma;<sub>n</sub>&phi;<sub>in</sub> &equiv; 1.000</span>
         </div>
 
@@ -63,69 +74,69 @@
           지반이 통째로 1.0 움직일 때, 각 층의 변위 1.0을 모드별 기여분(&Gamma;<sub>n</sub>&phi;<sub>in</sub>)으로 쪼갠 지분입니다:
         </p>
 
-        <!-- Algebraic Modal Decomposition (Matching Lecture Figure 9) -->
-        <div class="space-y-3 font-mono text-xs my-1">
+        <!-- Algebraic Modal Decomposition Cards -->
+        <div class="space-y-2.5 font-mono text-xs my-1">
           <!-- Roof -->
-          <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+          <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
             <div class="flex justify-between font-bold text-slate-800 text-[11px]">
-              <span>지붕 (Roof):</span>
+              <span>지붕 (Roof & 옥탑바닥):</span>
               <span class="text-indigo-700 font-black">+1.220 + (-0.280) + 0.060 = 1.000</span>
             </div>
             <div class="grid grid-cols-4 gap-1.5 text-center text-[10px]">
-              <div class="p-1.5 rounded bg-slate-100 border border-slate-300 font-bold text-slate-700">
+              <div class="p-1 rounded bg-slate-100 border border-slate-300 font-bold text-slate-700">
                 강체: 1.000
               </div>
-              <div class="p-1.5 rounded bg-emerald-50 border border-emerald-300 font-bold text-emerald-800">
+              <div class="p-1 rounded bg-emerald-50 border border-emerald-300 font-bold text-emerald-800">
                 1모드: +1.220 &rarr;
               </div>
-              <div class="p-1.5 rounded bg-amber-50 border border-amber-300 font-bold text-amber-800">
+              <div class="p-1 rounded bg-amber-50 border border-amber-300 font-bold text-amber-800">
                 2모드: -0.280 &larr; (상쇄)
               </div>
-              <div class="p-1.5 rounded bg-purple-50 border border-purple-300 font-bold text-purple-800">
+              <div class="p-1 rounded bg-purple-50 border border-purple-300 font-bold text-purple-800">
                 3모드: +0.060 &rarr;
               </div>
             </div>
           </div>
 
           <!-- 2F -->
-          <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+          <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
             <div class="flex justify-between font-bold text-slate-800 text-[11px]">
               <span>2층 (2F):</span>
               <span class="text-indigo-700 font-black">+0.979 + 0.155 + (-0.134) = 1.000</span>
             </div>
             <div class="grid grid-cols-4 gap-1.5 text-center text-[10px]">
-              <div class="p-1.5 rounded bg-slate-100 border border-slate-300 font-bold text-slate-700">
+              <div class="p-1 rounded bg-slate-100 border border-slate-300 font-bold text-slate-700">
                 강체: 1.000
               </div>
-              <div class="p-1.5 rounded bg-emerald-50 border border-emerald-300 font-bold text-emerald-800">
+              <div class="p-1 rounded bg-emerald-50 border border-emerald-300 font-bold text-emerald-800">
                 1모드: +0.979 &rarr;
               </div>
-              <div class="p-1.5 rounded bg-blue-50 border border-blue-300 font-bold text-blue-800">
+              <div class="p-1 rounded bg-blue-50 border border-blue-300 font-bold text-blue-800">
                 2모드: +0.155 &rarr;
               </div>
-              <div class="p-1.5 rounded bg-amber-50 border border-amber-300 font-bold text-amber-800">
+              <div class="p-1 rounded bg-amber-50 border border-amber-300 font-bold text-amber-800">
                 3모드: -0.134 &larr; (상쇄)
               </div>
             </div>
           </div>
 
           <!-- 1F -->
-          <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+          <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
             <div class="flex justify-between font-bold text-slate-800 text-[11px]">
               <span>1층 (1F):</span>
               <span class="text-indigo-700 font-black">+0.543 + 0.349 + 0.108 = 1.000</span>
             </div>
             <div class="grid grid-cols-4 gap-1.5 text-center text-[10px]">
-              <div class="p-1.5 rounded bg-slate-100 border border-slate-300 font-bold text-slate-700">
+              <div class="p-1 rounded bg-slate-100 border border-slate-300 font-bold text-slate-700">
                 강체: 1.000
               </div>
-              <div class="p-1.5 rounded bg-emerald-50 border border-emerald-300 font-bold text-emerald-800">
+              <div class="p-1 rounded bg-emerald-50 border border-emerald-300 font-bold text-emerald-800">
                 1모드: +0.543 &rarr;
               </div>
-              <div class="p-1.5 rounded bg-blue-50 border border-blue-300 font-bold text-blue-800">
+              <div class="p-1 rounded bg-blue-50 border border-blue-300 font-bold text-blue-800">
                 2모드: +0.349 &rarr;
               </div>
-              <div class="p-1.5 rounded bg-purple-50 border border-purple-300 font-bold text-purple-800">
+              <div class="p-1 rounded bg-purple-50 border border-purple-300 font-bold text-purple-800">
                 3모드: +0.108 &rarr;
               </div>
             </div>
@@ -135,39 +146,79 @@
         <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-950 leading-relaxed font-sans">
           <strong>💡 강의노트 그림 9의 해설:</strong> 
           지붕층에서는 1모드가 1.220으로 강체보다 더 크게 가려 하지만, 2모드가 반대 방향(-0.280)으로 꺾여 당겨주고 3모드가 0.060을 더해 정확히 <strong>1.000</strong>이 됩니다.
-          각 모드는 다른 방향으로 움직이지만, <strong>합치면 모든 층에서 완벽한 1.0 강체운동이 복원</strong>됩니다!
+          합치면 모든 층에서 완벽한 1.0 강체운동이 복원됩니다!
         </div>
       </div>
 
-      <!-- 2. Right (6 Cols): Penthouse Acceleration Paradox -->
-      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-3">
+      <!-- 2. Right (6 Cols): 3D Penthouse Building + Live Waveform Canvas -->
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-3 shadow-sm">
+        
+        <!-- Header & View Switcher -->
         <div class="border-b border-slate-100 pb-2 flex justify-between items-center">
-          <span class="text-sm font-bold text-slate-900">2. 옥탑 가속도의 역설: 유효질량 1.1%의 반란 (§5.8)</span>
-          <span class="text-xs font-bold px-2 py-0.5 rounded bg-red-100 text-red-700 font-mono">설비 &middot; 비구조요소</span>
+          <div>
+            <span class="text-sm font-bold text-slate-900 block">2. 옥탑 가속도의 역설: 유효질량 1.1%의 반란 (§5.8)</span>
+            <span class="text-[10px] font-mono text-slate-500">3D BIM 옥탑 거동 vs 실시간 가속도 파형</span>
+          </div>
+          <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-xs font-semibold border border-slate-200">
+            <button id="btnView3D" onclick="switchRightView('3D')" class="px-2 py-0.5 rounded text-xs font-bold transition bg-white text-indigo-700 shadow-xs">🏢 3D BIM</button>
+            <button id="btnViewWave" onclick="switchRightView('Wave')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📈 가속도 파형</button>
+          </div>
         </div>
 
         <p class="text-xs text-slate-600 leading-relaxed">
           "밑면전단력은 1모드가 91.4%를 독식하지만, <strong>옥탑 바닥 가속도(ä<sub>roof</sub> &prop; &omega;<sub>n</sub>&sup2;)</strong>는 주파수가 높은 3차 모드가 지배합니다."
         </p>
 
-        <!-- Live Waveform Canvas -->
-        <div class="relative w-full flex-1 min-h-[220px] bg-slate-50 rounded-xl border border-slate-200 p-2">
-          <canvas id="canvasWave" class="w-full h-full block"></canvas>
+        <!-- Visualizer Area -->
+        <div class="relative w-full flex-1 min-h-[260px] rounded-xl border border-slate-200 overflow-hidden bg-white">
+          
+          <!-- 3D BIM Container -->
+          <div id="threeContainer" class="w-full h-full absolute inset-0">
+            <!-- 3D HUD -->
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2.5 py-1.5 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1.5 flex-wrap">
+              <span>🖱️ 3D 회전/줌</span>
+              <span class="text-slate-300">|</span>
+              <span class="font-bold text-slate-800">변위 증폭:</span>
+              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1.5 py-0.5 rounded bg-indigo-600 text-white font-bold shadow-xs">2x (표준)</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x (확대)</button>
+            </div>
+
+            <!-- Penthouse Tag Badge -->
+            <div class="absolute top-2 right-2 text-[10px] font-semibold bg-white/90 backdrop-blur-xs border border-slate-200 p-2 rounded-lg shadow-xs space-y-1">
+              <div class="flex items-center gap-1.5 text-red-600 font-bold">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
+                <span>옥탑 설비 & 앵커 (채찍 고주파)</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-slate-500">
+                <span class="w-3 h-1.5 rounded bg-indigo-600 inline-block"></span>
+                <span>본체 골조 (저주파 변위)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Waveform Canvas Container -->
+          <div id="waveContainer" class="w-full h-full absolute inset-0 bg-slate-50/50 p-2" style="display: none;">
+            <canvas id="canvasWave" class="w-full h-full block"></canvas>
+          </div>
+
         </div>
 
-        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-1 text-slate-700">
+        <!-- Caution & Real Impact Card (Zentry Tilt) -->
+        <div class="p-3 bg-amber-50/90 border border-amber-200 rounded-xl text-xs space-y-1.5 text-slate-700 zentry-card">
           <div class="flex justify-between font-mono font-bold">
             <span class="text-slate-600 font-sans">밑면전단력 기여:</span>
             <span class="text-emerald-700">1모드 91.4% vs 3모드 1.1%</span>
           </div>
           <div class="flex justify-between font-mono font-bold">
             <span class="text-slate-600 font-sans">옥탑 고주파 가속도:</span>
-            <span class="text-purple-700">3차 모드 충격 진폭 지배적</span>
+            <span class="text-purple-700">3차 모드 충격 진폭 지배적 (&prop; &omega;₃&sup2;)</span>
           </div>
-          <span class="text-[11px] text-slate-500 block pt-1 border-t border-amber-100">
-            &rarr; M<sub>n</sub>*는 밑면전단력의 지표일 뿐, 비구조요소 앵커 설계 시 고차모드를 무시하면 탈락 사고 발생!
+          <span class="text-[11px] text-slate-600 block pt-1 border-t border-amber-200">
+            &rarr; 유효질량(M<sub>n</sub>*)은 밑면전단력의 척도일 뿐, 비구조요소 앵커 설계 시 고차모드를 무시하면 탈락 사고가 발생합니다!
           </span>
         </div>
+
       </div>
 
     </div>
@@ -175,81 +226,367 @@
   </div>
 
   <script>
-    let modeView = 'all';
-    const canvas = document.getElementById('canvasWave');
-    const ctx = canvas.getContext('2d');
+    // --- Global State ---
+    let modeView = 'all'; // 'all', 'mode1', 'mode3'
+    let currentRightView = '3D'; // '3D' or 'Wave'
+    let threeAmpScale = 70.0;
     let t = 0;
 
-    function resize() {
+    // --- Waveform Canvas & Canonical Badge ---
+    const canvas = document.getElementById('canvasWave');
+    const ctx = canvas.getContext('2d');
+
+    function resizeWave() {
       const dpr = window.devicePixelRatio || 1;
       const r = canvas.parentElement.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
       canvas.width = (r.width - 16) * dpr;
       canvas.height = (r.height - 16) * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    window.addEventListener('resize', resize);
-    setTimeout(resize, 40);
+    window.addEventListener('resize', () => {
+      resizeWave();
+      if (renderer && camera) {
+        const r = threeContainer.getBoundingClientRect();
+        camera.aspect = r.width / r.height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(r.width, r.height);
+      }
+    });
+
+    function setThreeAmp(scale) {
+      threeAmpScale = scale;
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-indigo-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1.5 py-0.5 rounded bg-indigo-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1.5 py-0.5 rounded bg-indigo-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+    }
+
+    function switchRightView(view) {
+      currentRightView = view;
+      const b3d = document.getElementById('btnView3D');
+      const bw = document.getElementById('btnViewWave');
+      const c3d = document.getElementById('threeContainer');
+      const cw = document.getElementById('waveContainer');
+
+      if (view === '3D') {
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-indigo-700 shadow-xs';
+        bw.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'block';
+        cw.style.display = 'none';
+      } else {
+        bw.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-indigo-700 shadow-xs';
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'none';
+        cw.style.display = 'block';
+        resizeWave();
+      }
+    }
 
     function toggleModeView(v) {
       modeView = v;
       document.getElementById('btn-view-all').className = (v === 'all') ?
         "px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold transition shadow-xs" :
         "px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition";
+      document.getElementById('btn-view-m1').className = (v === 'mode1') ?
+        "px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold transition shadow-xs" :
+        "px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition";
       document.getElementById('btn-view-m3').className = (v === 'mode3') ?
         "px-3.5 py-1.5 rounded-xl bg-purple-600 text-white text-xs font-bold transition shadow-xs" :
         "px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition";
     }
 
-    function animate() {
-      requestAnimationFrame(animate);
-      t += 0.02;
+    // --- 3D BIM Penthouse Setup ---
+    const threeContainer = document.getElementById('threeContainer');
+    let scene, camera, renderer, controls;
+    let bldgGroup, bedrockGroup, penthouseMesh, penthouseEquipment;
+    let bldgSlices = [];
 
-      const dpr = window.devicePixelRatio || 1;
-      const w = canvas.width / dpr;
-      const h = canvas.height / dpr;
-      ctx.clearRect(0, 0, w, h);
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
 
-      // Grid
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, h * 0.5);
-      ctx.lineTo(w, h * 0.5);
-      ctx.stroke();
+      const r = threeContainer.getBoundingClientRect();
+      camera = new THREE.PerspectiveCamera(38, r.width / r.height, 0.1, 1000);
+      camera.position.set(0, 9.5, 24);
 
-      // Waveform of Roof Acceleration
-      ctx.beginPath();
-      ctx.lineWidth = 2.2;
-      ctx.lineCap = 'round';
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(r.width, r.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      threeContainer.appendChild(renderer.domElement);
 
-      for (let x = 0; x < w; x += 2) {
-        const timeVal = t + (x / w) * 4;
-        
-        // omega1 = 9.7, omega3 = 39.3
-        const acc1 = 28 * Math.sin(timeVal * 2.2); // Smooth low frequency
-        const acc3 = 35 * Math.sin(timeVal * 8.8); // Violent high frequency!
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 6.5, 0);
+      controls.maxPolarAngle = Math.PI / 2 + 0.08;
 
-        let yVal = 0;
-        if (modeView === 'all') {
-          ctx.strokeStyle = '#4338ca'; // Indigo combined
-          yVal = h * 0.5 - (acc1 + acc3);
-        } else {
-          ctx.strokeStyle = '#7c3aed'; // Pure 3rd mode
-          yVal = h * 0.5 - acc3;
-        }
+      // Lights
+      const amb = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(amb);
 
-        if (x === 0) ctx.moveTo(x, yVal);
-        else ctx.lineTo(x, yVal);
-      }
-      ctx.stroke();
+      const dir = new THREE.DirectionalLight(0xffffff, 0.75);
+      dir.position.set(15, 25, 18);
+      dir.castShadow = true;
+      scene.add(dir);
 
-      // Title inside canvas
-      ctx.fillStyle = (modeView === 'all') ? '#312e81' : '#6b21a8';
-      ctx.font = 'bold 10px Pretendard, sans-serif';
-      ctx.fillText(modeView === 'all' ? '옥탑 실시간 가속도 ä_roof(t) [복합 고주파 진동]' : '3차 모드 유발 옥탑 고주파 가속도 (ω₃ = 39.3 rad/s)', 12, 20);
+      const fill = new THREE.DirectionalLight(0xe0f2fe, 0.35);
+      fill.position.set(-15, 10, -12);
+      scene.add(fill);
+
+      // Ground subtle grid
+      const grid = new THREE.GridHelper(30, 20, 0xcbd5e1, 0xf1f5f9);
+      grid.position.y = -0.01;
+      scene.add(grid);
+
+      // Bedrock Foundation
+      bedrockGroup = new THREE.Group();
+      const bedGeo = new THREE.BoxGeometry(13, 0.8, 9);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.y = 0.4;
+      bedrock.receiveShadow = true;
+      bedrockGroup.add(bedrock);
+      scene.add(bedrockGroup);
+
+      // Building Group
+      bldgGroup = new THREE.Group();
+      bldgGroup.position.y = 0.8;
+      scene.add(bldgGroup);
+
+      buildPenthouseBuilding();
     }
 
-    requestAnimationFrame(animate);
+    function buildPenthouseBuilding() {
+      // 3 Slabs (1F: 3.5, 2F: 7.0, Roof: 10.5)
+      const slabGeo = new THREE.BoxGeometry(6.5, 0.28, 5);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
+      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.4 });
+
+      for (let i = 1; i <= 3; i++) {
+        const floorGrp = new THREE.Group();
+        floorGrp.position.y = i * 3.5;
+
+        const slab = new THREE.Mesh(slabGeo, slabMat);
+        slab.castShadow = true;
+        slab.receiveShadow = true;
+        floorGrp.add(slab);
+
+        const edgeGeo = new THREE.BoxGeometry(6.6, 0.08, 5.1);
+        const edge = new THREE.Mesh(edgeGeo, slabEdgeMat);
+        floorGrp.add(edge);
+
+        floorGrp.name = `floor_${i}`;
+        bldgGroup.add(floorGrp);
+      }
+
+      // Columns: 4 vertical columns segmented
+      const sliceCount = 20;
+      const totalH = 10.5;
+      const sliceH = totalH / sliceCount;
+      const colPositions = [
+        [-2.7, -1.9],
+        [2.7, -1.9],
+        [-2.7, 1.9],
+        [2.7, 1.9]
+      ];
+
+      bldgSlices = [];
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+
+      for (let pos of colPositions) {
+        for (let i = 0; i < sliceCount; i++) {
+          const sliceGeo = new THREE.BoxGeometry(0.35, sliceH, 0.35);
+          const slice = new THREE.Mesh(sliceGeo, colMat);
+          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
+          slice.castShadow = true;
+          bldgGroup.add(slice);
+          bldgSlices.push({
+            mesh: slice,
+            baseX: pos[0],
+            normZ: (i + 0.5) / sliceCount
+          });
+        }
+      }
+
+      // Penthouse Structure on Roof (y=10.5 to 12.5)
+      const pentGrp = new THREE.Group();
+      pentGrp.position.y = 10.5;
+      pentGrp.name = 'penthouse_group';
+
+      // Penthouse Walls / Frame
+      const pentWallGeo = new THREE.BoxGeometry(2.8, 1.8, 2.4);
+      const pentWallMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.7, transparent: true, opacity: 0.85 });
+      penthouseMesh = new THREE.Mesh(pentWallGeo, pentWallMat);
+      penthouseMesh.position.y = 0.9;
+      penthouseMesh.castShadow = true;
+      pentGrp.add(penthouseMesh);
+
+      // Penthouse Mechanical Equipment (HVAC / Water Tank)
+      const equipGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.9, 16);
+      const equipMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.3, metalness: 0.3 });
+      penthouseEquipment = new THREE.Mesh(equipGeo, equipMat);
+      penthouseEquipment.position.set(0, 2.2, 0);
+      pentGrp.add(penthouseEquipment);
+
+      // Equipment Vibration Warning Beacon
+      const beaconGeo = new THREE.SphereGeometry(0.18, 12, 12);
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+      beacon.position.set(0, 2.8, 0);
+      pentGrp.add(beacon);
+
+      bldgGroup.add(pentGrp);
+    }
+
+    // --- Master Animation Loop ---
+    function animate() {
+      requestAnimationFrame(animate);
+      t += 0.025;
+
+      const ampMultiplier = (threeAmpScale / 70.0);
+
+      // Calculate Modal Responses
+      // omega1 = 2.2, omega3 = 8.8
+      const w1 = 2.2;
+      const w3 = 8.8;
+      
+      const q1 = Math.sin(t * w1) * 0.024 * ampMultiplier;
+      const q3 = Math.sin(t * w3) * 0.006 * ampMultiplier;
+
+      let activeQ1 = (modeView === 'mode3') ? 0 : q1;
+      let activeQ3 = (modeView === 'mode1') ? 0 : q3;
+
+      // Ground Motion
+      const ug = Math.sin(t * w1) * 0.2 * (threeAmpScale / 70.0) * ((modeView === 'mode3') ? 0.2 : 1.0);
+      bedrockGroup.position.x = ug;
+      bldgGroup.position.x = ug;
+
+      // Update Columns
+      bldgSlices.forEach(sl => {
+        const z = sl.normZ;
+        const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+        const phi3 = Math.sin(z * Math.PI * 2.5);
+
+        const drift = (phi1 * activeQ1 * 60.0 + phi3 * activeQ3 * 60.0);
+        sl.mesh.position.x = sl.baseX + drift;
+        sl.mesh.rotation.z = -drift * 0.08;
+      });
+
+      // Update Slabs
+      for (let i = 1; i <= 3; i++) {
+        const fl = bldgGroup.getObjectByName(`floor_${i}`);
+        if (fl) {
+          const z = i / 3.0;
+          const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+          const phi3 = Math.sin(z * Math.PI * 2.5);
+          fl.position.x = (phi1 * activeQ1 * 60.0 + phi3 * activeQ3 * 60.0);
+        }
+      }
+
+      // Update Penthouse (Whip shock)
+      const pentGrp = bldgGroup.getObjectByName('penthouse_group');
+      if (pentGrp) {
+        // Penthouse experiences Roof displacement + intense high-frequency whip
+        const roofPhi1 = 1.0;
+        const roofPhi3 = 0.3;
+        const whip = (modeView === 'mode1') ? 0 : Math.sin(t * w3) * 0.45 * ampMultiplier;
+        pentGrp.position.x = (roofPhi1 * activeQ1 * 60.0 + roofPhi3 * activeQ3 * 60.0) + whip;
+        pentGrp.rotation.z = -whip * 0.15;
+      }
+
+      if (controls) controls.update();
+      if (renderer && camera && currentRightView === '3D') {
+        renderer.render(scene, camera);
+      }
+
+      // Update 2D Waveform Canvas
+      if (currentRightView === 'Wave') {
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.width / dpr;
+        const h = canvas.height / dpr;
+        ctx.clearRect(0, 0, w, h);
+
+        // Baseline
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, h * 0.5);
+        ctx.lineTo(w, h * 0.5);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+
+        const wavePts = [];
+        for (let x = 0; x < w; x += 2) {
+          const timeVal = t + (x / w) * 4;
+          const acc1 = 26 * Math.sin(timeVal * w1); // 1st mode
+          const acc3 = 38 * Math.sin(timeVal * w3); // 3rd mode violent shock
+
+          let yVal = 0;
+          if (modeView === 'all') {
+            ctx.strokeStyle = '#4338ca';
+            yVal = h * 0.5 - (acc1 + acc3);
+          } else if (modeView === 'mode1') {
+            ctx.strokeStyle = '#059669';
+            yVal = h * 0.5 - acc1;
+          } else {
+            ctx.strokeStyle = '#7c3aed';
+            yVal = h * 0.5 - acc3;
+          }
+
+          wavePts.push({ x, y: yVal });
+          if (x === 0) ctx.moveTo(x, yVal);
+          else ctx.lineTo(x, yVal);
+        }
+        ctx.stroke();
+
+        // Canonical Auto-Badge for Waveform
+        const peakPt = wavePts[Math.floor(wavePts.length * 0.7)];
+        const plotRect = { left: 20, top: 10, width: w - 40, height: h - 20 };
+        const boxSize = { w: 160, h: 36 };
+        const placement = DynamicsChartCanonical.getBestCalloutPlacement(peakPt.x, peakPt.y, boxSize.w, boxSize.h, plotRect, wavePts);
+
+        DynamicsChartCanonical.drawLeaderLine(ctx, peakPt.x, peakPt.y, placement.x, placement.y, boxSize.w, boxSize.h, '#4338ca');
+        DynamicsChartCanonical.drawAutoBadge(ctx, modeView === 'all' ? '옥탑 실시간 합성 가속도\n고주파 채찍 파형 지배' : (modeView === 'mode1' ? '1차 모드 완만한 가속도\n밑면전단력 지배' : '3차 모드 고주파 충격\n앵커 탈락 유발'), placement.x, placement.y, {
+          textColor: '#312e81',
+          borderColor: '#c7d2fe',
+          fillColor: 'rgba(238, 242, 255, 0.95)',
+          align: 'left',
+          fontSize: 9.5,
+          fontWeight: 'bold',
+          padding: { x: 7, y: 4 },
+          radius: 5
+        });
+      }
+    }
+
+    // --- Awwwards Pack: Zentry 3D Tilt & Damping on Cards ---
+    function initZentryCards() {
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 4.5;
+          const rotY = (x / (rect.width / 2)) * 4.5;
+          card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+        });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initZentryCards();
+      setTimeout(resizeWave, 60);
+      animate();
+    });
   </script>
 </body>
 </html>

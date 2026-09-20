@@ -4,38 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>모드 중첩의 오케스트라 (Modal Superposition)</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
-    
     body {
-      font-family: 'Inter', -apple-system, sans-serif;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: #f8fafc;
       color: #0f172a;
       overflow-x: hidden;
     }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
-    
-    .panel {
-      background: #ffffff;
-      border: 2px solid #0f172a;
-      box-shadow: 0 4px 0 #0f172a;
-      backdrop-filter: blur(12px);
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
     }
-    
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-    
-    . {
-      background-image: 
-        linear-gradient(rgba(30, 41, 59, 0.5) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(30, 41, 59, 0.5) 1px, transparent 1px);
-      background-size: 20px 20px;
-    }
-    
     /* Custom Range Slider */
     input[type=range] {
       -webkit-appearance: none;
@@ -44,133 +26,135 @@
     input[type=range]::-webkit-slider-runnable-track {
       height: 6px;
       border-radius: 3px;
-      background: #334155;
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
     }
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
       height: 16px;
       width: 16px;
       border-radius: 50%;
-      background: #0284c7;
+      background: #2563eb;
       margin-top: -5px;
       cursor: ew-resize;
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-    }
-    
-    . {
-      text-shadow: 0 0 10px currentColor;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
   </style>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
   <script src="assets/dynamics-fx.js" defer></script>
 </head>
-<body class="min-h-screen p-4 flex flex-col items-center">
+<body class="min-h-screen p-3 md:p-6 flex flex-col items-center">
 
-  <div class="max-w-7xl w-full">
+  <div class="max-w-7xl w-full space-y-5">
     
-    <header class="mb-6 flex justify-between items-end border-b border-slate-200 pb-4">
+    <!-- Top Header -->
+    <header class="flex flex-wrap justify-between items-end border-b border-slate-200 pb-4 gap-4">
       <div>
-        <div class="flex items-center gap-2 mb-2">
-          <span class="px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-400 text-xs font-bold font-mono border border-blue-500/30">TRACK 1</span>
-          <span class="text-slate-600 text-sm font-medium">구조동역학 · 모드해석(Modal Analysis)</span>
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-bold font-mono border border-blue-200">TRACK 1</span>
+          <span class="text-slate-500 text-xs font-semibold">구조동역학 · 모드해석(Modal Analysis)</span>
         </div>
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 ">
+        <h1 class="text-2xl md:text-3xl font-black tracking-tight text-slate-900">
           모드 중첩 오케스트라 (Modal Superposition)
         </h1>
-        <p class="text-slate-600 text-sm mt-2 max-w-3xl leading-relaxed">
+        <p class="text-slate-600 text-xs md:text-sm mt-1.5 max-w-3xl leading-relaxed">
           지진에 흔들리는 건물의 복잡한 거동은 사실 <strong>독립적인 순수 진동(모드)</strong>들의 화음입니다.<br/>
-          모드벡터(공간적 형상)와 고유주기(시간적 스케일링)가 중첩되어 실제 응답이 만들어지는 과정을 확인하세요.
+          모드벡터(공간적 형상)와 고유주기(시간적 스케일링)가 중첩되어 실제 응답이 만들어지는 과정을 3D BIM으로 확인하세요.
         </p>
       </div>
-      <a href="index.html" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-700 text-slate-800 text-sm font-bold transition">
+      <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-300">
         &larr; 마스터 허브
       </a>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
       
-      <!-- Left Panel: 3 Pure Modes -->
-      <div class="lg:col-span-5 flex flex-col gap-4">
+      <!-- Left Panel: 3 Pure Modes (5 Cols) -->
+      <div class="lg:col-span-5 flex flex-col gap-3.5">
         
-        <!-- Mode 1 -->
-        <div class="panel rounded-2xl p-4 flex flex-col min-h-[220px]">
-          <div class="flex justify-between items-center mb-2 border-b border-slate-200 pb-2">
-            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-slate-300 animate-pulse"></span>
+        <!-- Mode 1 Card -->
+        <div class="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col zentry-card shadow-sm hover:shadow-md">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-1.5">
+            <h3 class="text-xs font-bold text-blue-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
               Mode 1 (1차 모드 - 기본 진동)
             </h3>
-            <span class="text-xs font-mono text-slate-600">T₁ = 1.0s</span>
+            <span class="text-[11px] font-mono font-bold text-slate-600">T₁ = 1.0s</span>
           </div>
-          <div class="flex-1 grid grid-cols-2 gap-4">
-            <div class="relative w-full h-full min-h-[140px]  rounded-lg border border-slate-200/50 overflow-hidden">
-              <canvas id="canvas-m1"></canvas>
+          <div class="grid grid-cols-2 gap-3 items-center">
+            <div class="relative w-full h-[120px] bg-slate-50/80 rounded-lg border border-slate-200 overflow-hidden">
+              <canvas id="canvas-m1" class="w-full h-full block"></canvas>
             </div>
-            <div class="flex flex-col justify-center gap-3 pr-2">
-              <div class="text-xs text-slate-800 font-medium">모드 기여도 (PF × Sd)</div>
+            <div class="flex flex-col justify-center gap-2 pr-1">
+              <div class="text-[11px] text-slate-700 font-bold">모드 기여도 (PF × Sd)</div>
               <input type="range" id="slider-m1" min="-2.0" max="2.0" step="0.1" value="1.0" class="w-full">
               <div class="flex justify-between text-[10px] font-mono text-slate-500">
                 <span>-2.0</span>
-                <span id="val-m1" class="text-slate-900 font-bold">1.0</span>
+                <span id="val-m1" class="text-blue-700 font-bold">1.00</span>
                 <span>+2.0</span>
               </div>
-              <p class="text-[10px] text-slate-600 leading-tight">
+              <p class="text-[10px] text-slate-500 leading-tight">
                 건물 전체가 한 방향으로 부드럽게 휩니다. 전체 지진력의 80% 이상을 지배합니다.
               </p>
             </div>
           </div>
         </div>
 
-        <!-- Mode 2 -->
-        <div class="panel rounded-2xl p-4 flex flex-col min-h-[220px]">
-          <div class="flex justify-between items-center mb-2 border-b border-slate-200 pb-2">
-            <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              Mode 2 (2차 모드)
+        <!-- Mode 2 Card -->
+        <div class="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col zentry-card shadow-sm hover:shadow-md">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-1.5">
+            <h3 class="text-xs font-bold text-amber-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              Mode 2 (2차 모드 - 1회 변곡)
             </h3>
-            <span class="text-xs font-mono text-slate-600">T₂ = 0.3s</span>
+            <span class="text-[11px] font-mono font-bold text-slate-600">T₂ = 0.3s</span>
           </div>
-          <div class="flex-1 grid grid-cols-2 gap-4">
-            <div class="relative w-full h-full min-h-[140px]  rounded-lg border border-slate-200/50 overflow-hidden">
-              <canvas id="canvas-m2"></canvas>
+          <div class="grid grid-cols-2 gap-3 items-center">
+            <div class="relative w-full h-[120px] bg-slate-50/80 rounded-lg border border-slate-200 overflow-hidden">
+              <canvas id="canvas-m2" class="w-full h-full block"></canvas>
             </div>
-            <div class="flex flex-col justify-center gap-3 pr-2">
-              <div class="text-xs text-slate-800 font-medium">모드 기여도 (PF × Sd)</div>
+            <div class="flex flex-col justify-center gap-2 pr-1">
+              <div class="text-[11px] text-slate-700 font-bold">모드 기여도 (PF × Sd)</div>
               <input type="range" id="slider-m2" min="-1.5" max="1.5" step="0.1" value="0.4" class="w-full">
               <div class="flex justify-between text-[10px] font-mono text-slate-500">
                 <span>-1.5</span>
-                <span id="val-m2" class="text-amber-400 font-bold">0.4</span>
+                <span id="val-m2" class="text-amber-700 font-bold">0.40</span>
                 <span>+1.5</span>
               </div>
-              <p class="text-[10px] text-slate-600 leading-tight">
+              <p class="text-[10px] text-slate-500 leading-tight">
                 중간층에 변곡점(Inflection)이 생깁니다. 상층부 채찍효과(Whip)를 유발합니다.
               </p>
             </div>
           </div>
         </div>
 
-        <!-- Mode 3 -->
-        <div class="panel rounded-2xl p-4 flex flex-col min-h-[220px]">
-          <div class="flex justify-between items-center mb-2 border-b border-slate-200 pb-2">
-            <h3 class="text-sm font-bold text-purple-400 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
-              Mode 3 (3차 모드)
+        <!-- Mode 3 Card -->
+        <div class="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col zentry-card shadow-sm hover:shadow-md">
+          <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-1.5">
+            <h3 class="text-xs font-bold text-purple-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span>
+              Mode 3 (3차 모드 - 고주파 진동)
             </h3>
-            <span class="text-xs font-mono text-slate-600">T₃ = 0.1s</span>
+            <span class="text-[11px] font-mono font-bold text-slate-600">T₃ = 0.1s</span>
           </div>
-          <div class="flex-1 grid grid-cols-2 gap-4">
-            <div class="relative w-full h-full min-h-[140px]  rounded-lg border border-slate-200/50 overflow-hidden">
-              <canvas id="canvas-m3"></canvas>
+          <div class="grid grid-cols-2 gap-3 items-center">
+            <div class="relative w-full h-[120px] bg-slate-50/80 rounded-lg border border-slate-200 overflow-hidden">
+              <canvas id="canvas-m3" class="w-full h-full block"></canvas>
             </div>
-            <div class="flex flex-col justify-center gap-3 pr-2">
-              <div class="text-xs text-slate-800 font-medium">모드 기여도 (PF × Sd)</div>
+            <div class="flex flex-col justify-center gap-2 pr-1">
+              <div class="text-[11px] text-slate-700 font-bold">모드 기여도 (PF × Sd)</div>
               <input type="range" id="slider-m3" min="-1.0" max="1.0" step="0.1" value="0.15" class="w-full">
               <div class="flex justify-between text-[10px] font-mono text-slate-500">
                 <span>-1.0</span>
-                <span id="val-m3" class="text-purple-400 font-bold">0.15</span>
+                <span id="val-m3" class="text-purple-700 font-bold">0.15</span>
                 <span>+1.0</span>
               </div>
-              <p class="text-[10px] text-slate-600 leading-tight">
+              <p class="text-[10px] text-slate-500 leading-tight">
                 변곡점이 2개 발생하며 매우 빠르게 진동합니다. 밑면전단력에는 기여가 적지만 가속도를 증폭시킵니다.
               </p>
             </div>
@@ -179,47 +163,97 @@
 
       </div>
 
-      <!-- Right Panel: Superposition -->
-      <div class="lg:col-span-7 panel rounded-2xl p-6 flex flex-col min-h-[700px] relative overflow-hidden">
+      <!-- Right Panel: Superposition 3D BIM + 2D View (7 Cols) -->
+      <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between shadow-md relative min-h-[580px]">
         
-        <div class="flex justify-between items-end mb-4 border-b border-slate-200 pb-4">
+        <!-- Controls Top Header -->
+        <div class="flex flex-wrap justify-between items-center mb-3 border-b border-slate-100 pb-3 gap-3">
           <div>
-            <h2 class="text-lg font-black text-slate-900  flex items-center gap-2">
+            <h2 class="text-base font-black text-slate-900 flex items-center gap-2">
               <span>🎶</span>
               실제 거동 (응답 중첩, Superposition)
             </h2>
-            <p class="text-xs text-slate-600 font-mono mt-1">u(t) = Φ₁·Y₁(t) + Φ₂·Y₂(t) + Φ₃·Y₃(t)</p>
+            <p class="text-[11px] text-slate-500 font-mono mt-0.5">u(t) = Φ₁·Y₁(t) + Φ₂·Y₂(t) + Φ₃·Y₃(t)</p>
           </div>
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1.5 bg-slate-100/80 px-2.5 py-1.5 rounded-xl border border-slate-200">
-              <span class="text-xs text-slate-800 font-medium">속도:</span>
-              <button onclick="setSpeed(0.1)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-800 hover:text-slate-900 transition" data-spd="0.1">0.1x</button>
-              <button onclick="setSpeed(0.25)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-600 text-slate-900 transition" data-spd="0.25">0.25x (권장)</button>
-              <button onclick="setSpeed(0.5)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-800 hover:text-slate-900 transition" data-spd="0.5">0.5x</button>
-              <button onclick="setSpeed(1.0)" class="btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-800 hover:text-slate-900 transition" data-spd="1.0">1.0x</button>
+          
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- View Switcher -->
+            <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-xs font-semibold border border-slate-200">
+              <button id="btnSuper3D" onclick="switchSuperView('3D')" class="px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs">🏢 3D BIM</button>
+              <button id="btnSuper2D" onclick="switchSuperView('2D')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📊 2D</button>
             </div>
-            <button id="btn-anim" onclick="toggleAnim()" class="px-5 py-2 bg-slate-900 hover:bg-slate-100 text-slate-900 rounded-xl text-sm font-bold shadow-lg  transition">
+
+            <!-- Speed Controls -->
+            <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-600 font-medium">속도:</span>
+              <button onclick="setSpeed(0.1)" class="btn-spd px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-spd="0.1">0.1x</button>
+              <button onclick="setSpeed(0.25)" class="btn-spd px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-600 text-white shadow-xs" data-spd="0.25">0.25x</button>
+              <button onclick="setSpeed(0.5)" class="btn-spd px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-spd="0.5">0.5x</button>
+            </div>
+
+            <!-- Play/Pause -->
+            <button id="btn-anim" onclick="toggleAnim()" class="px-3.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold shadow-xs transition">
               ⏸ 일시정지
             </button>
           </div>
         </div>
 
-        <div class="relative flex-1 w-full mt-2  rounded-xl border border-slate-200/50 flex flex-col justify-end min-h-[500px]">
-          <canvas id="canvas-super"></canvas>
+        <!-- Superposition Canvas Container -->
+        <div class="relative flex-1 w-full rounded-xl border border-slate-200 overflow-hidden bg-white min-h-[380px]">
+          
+          <!-- 3D BIM Container -->
+          <div id="superThreeContainer" class="w-full h-full absolute inset-0">
+            <!-- 3D HUD -->
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2.5 py-1.5 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1.5 flex-wrap">
+              <span>🖱️ 3D 회전/줌</span>
+              <span class="text-slate-300">|</span>
+              <span class="font-bold text-slate-800">변위 증폭:</span>
+              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x (표준)</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x (확대)</button>
+            </div>
+
+            <!-- Mode Ghost Overlay Badge -->
+            <div class="absolute top-2 right-2 text-[10px] font-semibold bg-white/90 backdrop-blur-xs border border-slate-200 p-2 rounded-lg shadow-xs space-y-1">
+              <div class="flex items-center gap-1.5 text-blue-700">
+                <span class="w-3 h-1.5 rounded bg-blue-500 inline-block"></span>
+                <span>Mode 1 (T₁=1.0s)</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-amber-700">
+                <span class="w-3 h-1.5 rounded bg-amber-500 inline-block"></span>
+                <span>Mode 2 (T₂=0.3s)</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-purple-700">
+                <span class="w-3 h-1.5 rounded bg-purple-500 inline-block"></span>
+                <span>Mode 3 (T₃=0.1s)</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-slate-800 font-bold pt-0.5 border-t border-slate-100">
+                <span class="w-3 h-1.5 rounded bg-slate-900 inline-block"></span>
+                <span>합성 실제 진동 u(t)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2D Superposition Canvas -->
+          <div id="super2DContainer" class="w-full h-full absolute inset-0 bg-white" style="display: none;">
+            <canvas id="canvas-super" class="w-full h-full block"></canvas>
+          </div>
+
         </div>
 
-        <div class="mt-6 bg-slate-50 rounded-xl p-4 border border-slate-200 flex justify-around">
-          <div class="text-center">
-            <div class="text-[10px] text-slate-500 font-mono mb-1">상단 변위 (Roof)</div>
-            <div id="roof-disp" class="text-lg font-black text-slate-900">0.0 mm</div>
+        <!-- Bottom Stat Cards (Zentry Tilt) -->
+        <div class="mt-4 grid grid-cols-3 gap-3">
+          <div class="bg-slate-50/80 rounded-xl p-2.5 border border-slate-200 text-center zentry-card">
+            <div class="text-[10px] text-slate-500 font-mono mb-0.5">상단 변위 (Roof)</div>
+            <div id="roof-disp" class="text-base font-black text-slate-900 font-mono">0.0 mm</div>
           </div>
-          <div class="text-center">
-            <div class="text-[10px] text-slate-500 font-mono mb-1">지배 모드</div>
-            <div class="text-lg font-black text-slate-900">Mode 1</div>
+          <div class="bg-slate-50/80 rounded-xl p-2.5 border border-slate-200 text-center zentry-card">
+            <div class="text-[10px] text-slate-500 font-mono mb-0.5">지배 모드</div>
+            <div class="text-base font-black text-blue-700">Mode 1 (80%+)</div>
           </div>
-          <div class="text-center">
-            <div class="text-[10px] text-slate-500 font-mono mb-1">고주파 노이즈</div>
-            <div class="text-lg font-black text-amber-400">포함됨</div>
+          <div class="bg-slate-50/80 rounded-xl p-2.5 border border-slate-200 text-center zentry-card">
+            <div class="text-[10px] text-slate-500 font-mono mb-0.5">고주파 채찍 효과</div>
+            <div class="text-base font-black text-amber-600">포함됨</div>
           </div>
         </div>
 
@@ -229,31 +263,58 @@
   </div>
 
   <script>
+    // --- Global State ---
     let isAnim = true;
     let time = 0;
     const dt = 0.016; // 60fps
-    let speedScale = 0.25; // 눈에 선명하게 보이는 슬로우 모션 (기본값 0.25x)
+    let speedScale = 0.25; // Slow motion default
+    let threeAmpScale = 70.0;
+    let currentSuperView = '3D';
+
+    const modes = [
+      { id: 'm1', T: 1.0, color: '#2563eb', phi: [0.33, 0.67, 1.0], scale: 35, w: 2*Math.PI/1.0 },
+      { id: 'm2', T: 0.3, color: '#d97706', phi: [-0.67, -0.15, 1.0], scale: 35, w: 2*Math.PI/0.3 },
+      { id: 'm3', T: 0.1, color: '#7c3aed', phi: [1.0, -0.8, 0.3], scale: 35, w: 2*Math.PI/0.1 }
+    ];
 
     function setSpeed(val) {
       speedScale = val;
       document.querySelectorAll('.btn-spd').forEach(b => {
         if (parseFloat(b.dataset.spd) === val) {
-          b.className = 'btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-600 text-slate-900 transition';
+          b.className = 'btn-spd px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-600 text-white shadow-xs';
         } else {
-          b.className = 'btn-spd px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-700 text-slate-800 hover:text-slate-900 transition';
+          b.className = 'btn-spd px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 hover:bg-slate-200';
         }
       });
     }
 
-    // Modal Properties
-    // Phi arrays [floor1, floor2, floor3]
-    const modes = [
-      { id: 'm1', T: 1.0, color: '#0284c7', phi: [0.3, 0.7, 1.0], scale: 40, w: 2*Math.PI/1.0 },
-      { id: 'm2', T: 0.3, color: '#d97706', phi: [-0.7, -0.2, 1.0], scale: 40, w: 2*Math.PI/0.3 },
-      { id: 'm3', T: 0.1, color: '#7c3aed', phi: [1.0, -0.8, 0.3], scale: 40, w: 2*Math.PI/0.1 }
-    ];
+    function setThreeAmp(scale) {
+      threeAmpScale = scale;
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+    }
 
-    // Read Slider states
+    function switchSuperView(view) {
+      currentSuperView = view;
+      const b3d = document.getElementById('btnSuper3D');
+      const b2d = document.getElementById('btnSuper2D');
+      const c3d = document.getElementById('superThreeContainer');
+      const c2d = document.getElementById('super2DContainer');
+
+      if (view === '3D') {
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        b2d.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'block';
+        c2d.style.display = 'none';
+      } else {
+        b2d.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'none';
+        c2d.style.display = 'block';
+      }
+    }
+
     function getAmp(id) {
       return parseFloat(document.getElementById(`slider-${id}`).value);
     }
@@ -267,43 +328,46 @@
 
     function toggleAnim() {
       isAnim = !isAnim;
-      document.getElementById('btn-anim').textContent = isAnim ? '⏸ 일시정지' : '▶ 재생';
-      document.getElementById('btn-anim').className = isAnim 
-        ? 'px-5 py-2 bg-slate-900 hover:bg-slate-100 text-slate-900 rounded-xl text-sm font-bold shadow-lg  transition'
-        : 'px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-900 rounded-xl text-sm font-bold shadow-lg  transition';
+      const btn = document.getElementById('btn-anim');
+      btn.textContent = isAnim ? '⏸ 일시정지' : '▶ 재생';
+      btn.className = isAnim 
+        ? 'px-3.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold shadow-xs transition'
+        : 'px-3.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-xs transition';
     }
 
-    // Setup Canvases
+    // --- 2D Canvases Setup ---
     function setupCanvas(id) {
       const cvs = document.getElementById(id);
       if (!cvs) return null;
       const rect = cvs.parentElement.getBoundingClientRect();
       const pr = window.devicePixelRatio || 1;
-      cvs.width = Math.max(rect.width, 100) * pr;
-      cvs.height = Math.max(rect.height, 100) * pr;
+      if (cvs.width !== rect.width * pr || cvs.height !== rect.height * pr) {
+        cvs.width = Math.max(rect.width, 80) * pr;
+        cvs.height = Math.max(rect.height, 80) * pr;
+      }
       const ctx = cvs.getContext('2d');
-      ctx.scale(pr, pr);
-      return { cvs, ctx, w: cvs.width/pr, h: cvs.height/pr };
+      ctx.setTransform(pr, 0, 0, pr, 0, 0);
+      return { cvs, ctx, w: rect.width, h: rect.height };
     }
 
-    function drawBuilding(ctx, w, h, uArr, color) {
+    function drawBuilding2D(ctx, w, h, uArr, color, isWireframeOnly = false) {
       ctx.clearRect(0, 0, w, h);
       
       const cx = w / 2;
-      const groundY = h - 20;
-      const floorH = (h - 60) / 3;
-      const bldgW = Math.min(w * 0.4, 60);
+      const groundY = h - 16;
+      const floorH = (h - 36) / 3;
+      const bldgW = Math.min(w * 0.38, 48);
 
-      // Draw Ground
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 2;
+      // Ground Line
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(10, groundY);
-      ctx.lineTo(w - 10, groundY);
+      ctx.moveTo(8, groundY);
+      ctx.lineTo(w - 8, groundY);
       ctx.stroke();
 
       // Original wireframe (dashed)
-      ctx.strokeStyle = 'rgba(100, 116, 139, 0.3)';
+      ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       ctx.strokeRect(cx - bldgW/2, groundY - 3 * floorH, bldgW, 3 * floorH);
@@ -318,92 +382,282 @@
         });
       }
 
-      // Draw Columns (Hermite approximation for smooth curve)
+      // Draw Columns
       ctx.strokeStyle = color;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 8;
+      ctx.lineWidth = isWireframeOnly ? 1.5 : 2.5;
       
-      const drawColCurve = (offsetX) => {
+      const drawCol = (offsetX) => {
         ctx.beginPath();
         ctx.moveTo(coords[0].x + offsetX, coords[0].y);
         for(let i=0; i<3; i++) {
           const c0 = coords[i];
           const c1 = coords[i+1];
-          // simple bezier for column bending
           const cpY = (c0.y + c1.y) / 2;
           ctx.bezierCurveTo(c0.x + offsetX, cpY, c1.x + offsetX, cpY, c1.x + offsetX, c1.y);
         }
         ctx.stroke();
       };
       
-      drawColCurve(-bldgW/2);
-      drawColCurve(bldgW/2);
-      
-      ctx.shadowBlur = 0;
+      drawCol(-bldgW/2);
+      drawCol(bldgW/2);
 
       // Draw Floor Masses
       for (let i = 1; i <= 3; i++) {
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = isWireframeOnly ? 'rgba(255, 255, 255, 0.8)' : '#ffffff';
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.rect(coords[i].x - bldgW/2 - 5, coords[i].y - 4, bldgW + 10, 8);
+        ctx.rect(coords[i].x - bldgW/2 - 3, coords[i].y - 3, bldgW + 6, 6);
         ctx.fill();
         ctx.stroke();
       }
     }
 
+    // --- 3D BIM Superposition Setup ---
+    const threeContainer = document.getElementById('superThreeContainer');
+    let scene, camera, renderer, controls;
+    let bldgGroup, bedrockGroup;
+    let bldgColumns = [];
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+
+      const r = threeContainer.getBoundingClientRect();
+      camera = new THREE.PerspectiveCamera(38, r.width / r.height, 0.1, 1000);
+      camera.position.set(0, 8.5, 24);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(r.width, r.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      threeContainer.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 6.0, 0);
+      controls.maxPolarAngle = Math.PI / 2 + 0.08;
+
+      // Lights
+      const amb = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(amb);
+
+      const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+      dir.position.set(15, 25, 18);
+      dir.castShadow = true;
+      scene.add(dir);
+
+      const fill = new THREE.DirectionalLight(0xe0f2fe, 0.35);
+      fill.position.set(-15, 10, -12);
+      scene.add(fill);
+
+      // Ground subtle grid
+      const grid = new THREE.GridHelper(30, 20, 0xcbd5e1, 0xf1f5f9);
+      grid.position.y = -0.01;
+      scene.add(grid);
+
+      // Bedrock Foundation
+      bedrockGroup = new THREE.Group();
+      const bedGeo = new THREE.BoxGeometry(14, 0.8, 10);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.y = 0.4;
+      bedrock.receiveShadow = true;
+      bedrockGroup.add(bedrock);
+
+      for (let x of [-3.5, 3.5]) {
+        for (let z of [-2.5, 2.5]) {
+          const footGeo = new THREE.BoxGeometry(1.6, 0.3, 1.6);
+          const footMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
+          const foot = new THREE.Mesh(footGeo, footMat);
+          foot.position.set(x, 0.95, z);
+          bedrockGroup.add(foot);
+        }
+      }
+      scene.add(bedrockGroup);
+
+      // Building Group
+      bldgGroup = new THREE.Group();
+      bldgGroup.position.y = 0.8;
+      scene.add(bldgGroup);
+
+      // Build 3-Story Frame
+      build3DSuperBuilding();
+    }
+
+    function build3DSuperBuilding() {
+      const slabGeo = new THREE.BoxGeometry(7, 0.3, 5);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
+      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.4 });
+
+      for (let i = 1; i <= 3; i++) {
+        const floorGrp = new THREE.Group();
+        floorGrp.position.y = i * 4;
+
+        const slab = new THREE.Mesh(slabGeo, slabMat);
+        slab.castShadow = true;
+        slab.receiveShadow = true;
+        floorGrp.add(slab);
+
+        const edgeGeo = new THREE.BoxGeometry(7.1, 0.08, 5.1);
+        const edge = new THREE.Mesh(edgeGeo, slabEdgeMat);
+        floorGrp.add(edge);
+
+        floorGrp.name = `floor_${i}`;
+        bldgGroup.add(floorGrp);
+      }
+
+      // 4 Columns segmented into 24 vertical slices
+      const sliceCount = 24;
+      const sliceH = 12.0 / sliceCount;
+      const colPositions = [
+        [-3.0, -2.0],
+        [3.0, -2.0],
+        [-3.0, 2.0],
+        [3.0, 2.0]
+      ];
+
+      bldgColumns = [];
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
+
+      for (let pos of colPositions) {
+        const colSlices = [];
+        for (let i = 0; i < sliceCount; i++) {
+          const sliceGeo = new THREE.BoxGeometry(0.4, sliceH, 0.4);
+          const slice = new THREE.Mesh(sliceGeo, colMat);
+          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
+          slice.castShadow = true;
+          bldgGroup.add(slice);
+          colSlices.push({
+            mesh: slice,
+            baseX: pos[0],
+            normZ: (i + 0.5) / sliceCount
+          });
+        }
+        bldgColumns.push(colSlices);
+      }
+    }
+
+    // --- Master Render Loop ---
     function render() {
       if (isAnim) time += dt * speedScale;
 
       let superU = [0, 0, 0];
 
-      // Draw each mode
+      // Draw each pure mode on 2D canvases
       for (const m of modes) {
         const c = setupCanvas(`canvas-${m.id}`);
         if (!c) continue;
 
         const amp = getAmp(m.id);
-        const y_t = amp * Math.cos(m.w * time); // Mode oscillation
-        
+        const y_t = amp * Math.cos(m.w * time);
         const uArr = m.phi.map(p => p * y_t * m.scale);
-        
-        // Add to superposition (real amplitude scale)
+
         for (let i = 0; i < 3; i++) {
-          superU[i] += m.phi[i] * y_t * 60; // 60 is display multiplier for main canvas
+          superU[i] += m.phi[i] * y_t;
         }
 
-        drawBuilding(c.ctx, c.w, c.h, uArr, m.color);
+        drawBuilding2D(c.ctx, c.w, c.h, uArr, m.color);
       }
 
-      // Draw Superposition
+      // Update 2D Superposition Canvas
       const sc = setupCanvas('canvas-super');
-      if (sc) {
-        drawBuilding(sc.ctx, sc.w, sc.h, superU, '#0f172a');
-        
-        // Ghostly outlines of individual modes behind superposition
-        sc.ctx.globalAlpha = 0.2;
-        for (const m of modes) {
-          const amp = getAmp(m.id);
-          const y_t = amp * Math.cos(m.w * time);
-          const ghostU = m.phi.map(p => p * y_t * 60);
-          drawBuilding(sc.ctx, sc.w, sc.h, ghostU, m.color);
-        }
-        sc.ctx.globalAlpha = 1.0;
+      if (sc && currentSuperView === '2D') {
+        const superU2D = superU.map(u => u * 35);
+        drawBuilding2D(sc.ctx, sc.w, sc.h, superU2D, '#0f172a');
+      }
 
-        document.getElementById('roof-disp').textContent = (superU[2] / 60 * 100).toFixed(1) + ' mm';
+      // Update 3D BIM Superposition
+      if (renderer && camera && currentSuperView === '3D') {
+        controls.update();
+
+        const ampMultiplier = (threeAmpScale / 70.0) * 1.5;
+
+        // Ground Motion Coupling
+        const ug = Math.sin(time * modes[0].w) * 0.15 * (threeAmpScale / 70.0);
+        bedrockGroup.position.x = ug;
+        bldgGroup.position.x = ug;
+
+        // Columns deflection
+        bldgColumns.forEach(col => {
+          col.forEach(sl => {
+            const z = sl.normZ;
+            // Mode shape values
+            const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+            const phi2 = Math.sin(z * Math.PI * 1.5);
+            const phi3 = Math.sin(z * Math.PI * 2.5);
+
+            const y1 = getAmp('m1') * Math.cos(modes[0].w * time);
+            const y2 = getAmp('m2') * Math.cos(modes[1].w * time);
+            const y3 = getAmp('m3') * Math.cos(modes[2].w * time);
+
+            const totalDrift = (phi1 * y1 * 0.7 + phi2 * y2 * 0.4 + phi3 * y3 * 0.2) * ampMultiplier;
+            sl.mesh.position.x = sl.baseX + totalDrift;
+            sl.mesh.rotation.z = -totalDrift * 0.08;
+          });
+        });
+
+        // Floor Slabs deflection
+        for (let i = 1; i <= 3; i++) {
+          const fl = bldgGroup.getObjectByName(`floor_${i}`);
+          if (fl) {
+            const z = i / 3.0;
+            const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+            const phi2 = Math.sin(z * Math.PI * 1.5);
+            const phi3 = Math.sin(z * Math.PI * 2.5);
+
+            const y1 = getAmp('m1') * Math.cos(modes[0].w * time);
+            const y2 = getAmp('m2') * Math.cos(modes[1].w * time);
+            const y3 = getAmp('m3') * Math.cos(modes[2].w * time);
+
+            fl.position.x = (phi1 * y1 * 0.7 + phi2 * y2 * 0.4 + phi3 * y3 * 0.2) * ampMultiplier;
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      // Update Roof displacement readout
+      const roofDispEl = document.getElementById('roof-disp');
+      if (roofDispEl) {
+        roofDispEl.textContent = (superU[2] * 25.0).toFixed(1) + ' mm';
       }
 
       requestAnimationFrame(render);
     }
 
-    // Start loop
-    render();
-    
-    // Handle Resizes
+    // --- Awwwards Pack: Zentry 3D Tilt & Damping on Cards ---
+    function initZentryCards() {
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 5.0;
+          const rotY = (x / (rect.width / 2)) * 5.0;
+          card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+        });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initZentryCards();
+      render();
+    });
+
     window.addEventListener('resize', () => {
-      // Re-setup handled in render loop dynamically
+      if (renderer && camera) {
+        const r = threeContainer.getBoundingClientRect();
+        camera.aspect = r.width / r.height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(r.width, r.height);
+      }
     });
   </script>
 </body>

@@ -17,23 +17,31 @@
       background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
       background-size: 16px 16px;
     }
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
   </style>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
   <script src="assets/dynamics-fx.js" defer></script>
 </head>
-<body class="p-4 md:p-8 flex flex-col items-center justify-center min-h-screen">
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-6 shadow-lg">
+  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-xl space-y-5">
     
     <!-- Top Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
       <div>
         <div class="flex items-center gap-3">
           <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
             포락선(Envelope)의 2개 층위와 가상의 안전 그물망
           </h1>
-          <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
             실무 설계 종결 원리
           </span>
         </div>
@@ -43,7 +51,7 @@
       </div>
 
       <!-- Tier Selection Buttons -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <button id="btn-tier1" onclick="setTier(1)" class="px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold transition shadow-sm">
           1차: 모달 포락선 (SRSS/CQC)
         </button>
@@ -57,36 +65,81 @@
     </div>
 
     <!-- Main Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-5 items-stretch">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
       
-      <!-- 1. Bending Moment Diagram / Column Envelope Canvas (7 Cols) -->
-      <div class="lg:col-span-7 bg-slate-50/60 border border-slate-200 rounded-xl p-5 flex flex-col justify-between light-grid relative min-h-[440px]">
-        <div class="flex justify-between items-center border-b border-slate-200 pb-2">
-          <span id="canvas-title" class="text-sm font-bold text-slate-900">1차 모달 포락선: 모드별 BMD와 SRSS 합성선</span>
-          <span class="text-xs font-mono text-slate-500">기둥 휨모멘트 분포 (kN&middot;m)</span>
+      <!-- Left Column: Visualizer Area (7 Cols) -->
+      <div class="lg:col-span-7 bg-slate-50/70 border border-slate-200 rounded-xl p-4 flex flex-col justify-between relative min-h-[500px]">
+        
+        <!-- Canvas / 3D Header -->
+        <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-2">
+          <div>
+            <span id="canvas-title" class="text-sm font-bold text-slate-900 block">1차 모달 포락선: 모드별 BMD와 SRSS 합성선</span>
+            <span id="canvas-subtitle" class="text-[11px] font-mono text-slate-500">3D BIM 기둥 포락선 리본 vs 2D 휨모멘트 분포</span>
+          </div>
+          
+          <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-xs font-semibold">
+              <button id="btnView3D" onclick="switchView('3D')" class="px-2.5 py-1 rounded-md text-xs font-bold transition bg-white text-blue-700 shadow-xs">🏢 3D BIM</button>
+              <button id="btnView2D" onclick="switchView('2D')" class="px-2.5 py-1 rounded-md text-xs font-bold transition text-slate-600 hover:text-slate-900">📊 2D 다이어그램</button>
+            </div>
+          </div>
         </div>
 
-        <div class="relative flex-1 w-full my-2 min-h-[300px]">
-          <canvas id="bmdCanvas" class="w-full h-full block"></canvas>
+        <!-- Visualizer Containers -->
+        <div class="relative flex-1 w-full min-h-[360px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          
+          <!-- 3D BIM Container -->
+          <div id="threeContainer" class="w-full h-full absolute inset-0">
+            <!-- 3D HUD: Displacement Scale Switcher -->
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2.5 py-1.5 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1.5 flex-wrap">
+              <span>🖱️ 3D 회전/줌</span>
+              <span class="text-slate-300">|</span>
+              <span class="font-bold text-slate-800">변위 증폭:</span>
+              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x (표준)</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x (확대)</button>
+              <span class="text-slate-300">|</span>
+              <button onclick="toggleThreeAnim()" id="btnThreePlay" class="px-2 py-0.5 rounded bg-slate-800 text-white font-bold">⏸ 정지</button>
+            </div>
+
+            <!-- Legend Badge in 3D -->
+            <div id="threeLegend" class="absolute top-2 right-2 text-[10px] font-semibold bg-white/90 backdrop-blur-xs border border-slate-200 p-2 rounded-lg shadow-xs space-y-1">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-1.5 rounded bg-red-500 inline-block"></span>
+                <span id="legend-env-name" class="text-slate-700">SRSS 모달 포락선 리본</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-slate-500">
+                <span class="w-3 h-1.5 rounded bg-blue-500 inline-block"></span>
+                <span>실시간 진동 거동 형상</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2D Canonical Diagram Container -->
+          <div id="chart2DContainer" class="w-full h-full absolute inset-0 bg-white" style="display: none;">
+            <canvas id="bmdCanvas" class="w-full h-full block"></canvas>
+          </div>
+
         </div>
 
-        <div class="p-3 bg-white rounded-lg border border-slate-200 text-xs flex justify-between items-center font-medium">
+        <!-- Question & Insight Footer -->
+        <div class="mt-3 p-3 bg-white rounded-lg border border-slate-200 text-xs flex flex-wrap justify-between items-center font-medium gap-2">
           <span class="text-slate-600">핵심 관찰 질문:</span>
           <span id="question-text" class="text-blue-700 font-bold">"이 포락선 모양대로 건물이 휘어지는 순간이 실존할까요?" &rarr; 답: 영원히 없음</span>
         </div>
       </div>
 
-      <!-- 2. Two-Tier Table and Engineering Caution (5 Cols) -->
+      <!-- Right Column: Two-Tier Table and Engineering Caution (5 Cols) -->
       <div class="lg:col-span-5 flex flex-col justify-between gap-4">
         
-        <!-- Two Tiers Comparison Table -->
-        <div class="bg-white border border-slate-200 rounded-xl p-4 text-xs">
+        <!-- Two Tiers Comparison Table Card (Zentry Tilt) -->
+        <div class="bg-white border border-slate-200 rounded-xl p-4 text-xs zentry-card shadow-sm hover:shadow-md">
           <span class="font-bold text-slate-900 text-sm block border-b border-slate-100 pb-2 mb-3">
             포락선 2개 층위의 구조적 차이
           </span>
 
           <div class="space-y-3">
-            <div class="p-3 rounded-lg bg-blue-50/50 border border-blue-200">
+            <div id="card-tier1" class="p-3 rounded-lg bg-blue-50/70 border border-blue-200 transition-all">
               <span class="font-bold text-blue-800 block mb-1">1차: 모달 포락선 (지진 단일 사건)</span>
               <p class="text-slate-600 text-[11px] leading-relaxed">
                 모드별 최대치 R<sub>i</sub>를 SRSS &radic;(&sum; R<sub>i</sub>&sup2;) 또는 CQC로 합성.<br>
@@ -94,20 +147,20 @@
               </p>
             </div>
 
-            <div class="p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+            <div id="card-tier2" class="p-3 rounded-lg bg-emerald-50/70 border border-emerald-200 transition-all">
               <span class="font-bold text-emerald-800 block mb-1">2차: 하중조합 포락선 (건물 수명 전체)</span>
               <p class="text-slate-600 text-[11px] leading-relaxed">
-                1.2D + 1.0L + 1.3E 등 수십 개 하중조합 결과 중 <strong>max / min 최외곽</strong>만을 감싼 테두리(cENV).<br>
+                1.2D + 1.0L + 1.0E 등 수십 개 하중조합 결과 중 <strong>max / min 최외곽</strong>만을 감싼 테두리(cENV).<br>
                 통계 합성이 아닌 <strong>단순 최대 &middot; 최소값 추출</strong>입니다.
               </p>
             </div>
           </div>
         </div>
 
-        <!-- Caution on P-M Interaction -->
-        <div class="p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 flex flex-col justify-between flex-1">
+        <!-- Caution on P-M Interaction Card (Zentry Tilt) -->
+        <div id="card-caution" class="p-4 rounded-xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 flex flex-col justify-between flex-1 zentry-card shadow-sm hover:shadow-md">
           <div>
-            <span class="font-bold text-amber-800 text-sm block mb-1.5 flex items-center gap-1.5">
+            <span class="font-bold text-amber-900 text-sm block mb-1.5 flex items-center gap-1.5">
               <span>⚠️ 실무 함정: 기둥 P-M 상관도 검토</span>
             </span>
             <p class="text-slate-700 leading-relaxed text-[11px]">
@@ -117,7 +170,7 @@
             </p>
           </div>
           <div class="mt-2.5 pt-2 border-t border-amber-200 font-medium text-[11px] text-amber-900">
-            &rarr; 기둥 P-M 상관도는 Envelope(cENV)가 아닌 <strong>개별 LC</strong>로 확인해야 합니다.
+            &rarr; 기둥 P-M 상관도는 Envelope(cENV)가 아닌 <strong>동시 발생 개별 LC(Concurrent LC)</strong>로 확인해야 합니다.
           </div>
         </div>
 
@@ -126,7 +179,7 @@
     </div>
 
     <!-- Practical Summary -->
-    <div class="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed">
+    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed">
       <strong>실무 종결 비유:</strong> 흙 묻은 신발로 방 안을 마구 돌아다닌 뒤, 바닥에 찍힌 수많은 발자국의 최외곽 테두리만 펜으로 이은 것이 Envelope입니다.
       어떻게 움직였는지는 몰라도, 절대 이 테두리 밖으로는 나가지 않았다는 안전성을 보장하므로 철근 배근 설계의 종결 기준이 됩니다.
     </div>
@@ -134,18 +187,69 @@
   </div>
 
   <script>
+    // --- Global State ---
     let currentTier = 1;
+    let currentView = '3D'; // '3D' or '2D'
+    let threeAmpScale = 70.0;
+    let isThreeAnim = true;
+    let animTime = 0;
+
+    // --- 2D Canvas & Canonical Chart ---
     const canvas = document.getElementById('bmdCanvas');
     const ctx = canvas.getContext('2d');
 
-    function resize() {
+    function resize2D() {
       const r = canvas.parentElement.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
       canvas.width = r.width * window.devicePixelRatio;
       canvas.height = r.height * window.devicePixelRatio;
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-      draw();
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      draw2D();
     }
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', () => {
+      resize2D();
+      if (renderer && camera) {
+        const r = threeContainer.getBoundingClientRect();
+        camera.aspect = r.width / r.height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(r.width, r.height);
+      }
+    });
+
+    function switchView(view) {
+      currentView = view;
+      const b3d = document.getElementById('btnView3D');
+      const b2d = document.getElementById('btnView2D');
+      const c3d = document.getElementById('threeContainer');
+      const c2d = document.getElementById('chart2DContainer');
+
+      if (view === '3D') {
+        b3d.className = 'px-2.5 py-1 rounded-md text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        b2d.className = 'px-2.5 py-1 rounded-md text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'block';
+        c2d.style.display = 'none';
+      } else {
+        b2d.className = 'px-2.5 py-1 rounded-md text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        b3d.className = 'px-2.5 py-1 rounded-md text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'none';
+        c2d.style.display = 'block';
+        resize2D();
+      }
+    }
+
+    function setThreeAmp(scale) {
+      threeAmpScale = scale;
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+    }
+
+    function toggleThreeAnim() {
+      isThreeAnim = !isThreeAnim;
+      const btn = document.getElementById('btnThreePlay');
+      btn.textContent = isThreeAnim ? '⏸ 정지' : '▶ 재생';
+      btn.className = isThreeAnim ? 'px-2 py-0.5 rounded bg-slate-800 text-white font-bold' : 'px-2 py-0.5 rounded bg-emerald-600 text-white font-bold';
+    }
 
     function setTier(tier) {
       currentTier = tier;
@@ -153,77 +257,89 @@
         'px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold transition shadow-sm' : 
         'px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition';
       document.getElementById('btn-tier2').className = tier === 2 ? 
-        'px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold transition shadow-sm' : 
+        'px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold transition shadow-sm' : 
         'px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition';
       document.getElementById('btn-tier3').className = tier === 3 ? 
         'px-3.5 py-2 rounded-xl bg-red-600 text-white text-xs font-bold transition shadow-sm' : 
         'px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition';
 
+      const legEnv = document.getElementById('legend-env-name');
+
       if (tier === 1) {
         document.getElementById('canvas-title').innerText = '1차 모달 포락선: 모드별 BMD와 SRSS 합성선';
+        document.getElementById('canvas-subtitle').innerText = '3D BIM 모달 진동 및 SRSS 부호소실 외곽선';
         document.getElementById('question-text').innerText = '"이 포락선 모양대로 건물이 휘어지는 순간이 실존할까요?" → 답: 영원히 없음';
+        if (legEnv) legEnv.innerText = 'SRSS 모달 포락선 리본 (가상 외곽선)';
       } else if (tier === 2) {
         document.getElementById('canvas-title').innerText = '2차 하중조합 포락선: LC1~LC3 및 최외곽 cENV 포락선';
+        document.getElementById('canvas-subtitle').innerText = '3D BIM 정적 캔틸레버 하중조합 Envelope';
         document.getElementById('question-text').innerText = '수명 기간 중 어떤 시나리오가 와도 이 테두리 안에서 안전함을 보장함';
+        if (legEnv) legEnv.innerText = 'cENV 하중조합 최외곽선';
       } else {
         document.getElementById('canvas-title').innerText = '3차: P-M 상관도 부호 소실 함정 — 동시성이 깨진 가상의 점';
+        document.getElementById('canvas-subtitle').innerText = '3D 축하중-모멘트 궤적 vs 허상 좌표 (P_max, M_max)';
         document.getElementById('question-text').innerText = 'P_max와 M_max는 다른 시점에 발생하므로 (P_max, M_max)는 실제 궤적에 없는 허상점입니다.';
+        if (legEnv) legEnv.innerText = '동적 거동 궤적 vs 허상점';
       }
-      draw();
+      
+      updateThreeSceneForTier();
+      if (currentView === '2D') draw2D();
     }
 
-    function draw() {
+    // --- 2D Drawing with Canonical Engine ---
+    function draw2D() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
       ctx.clearRect(0, 0, w, h);
 
-      const cx = w * 0.45;
+      const cx = w * 0.42;
       const topY = 40;
       const botY = h - 40;
       const totalH = botY - topY;
       const storyH = totalH / 3;
 
-      // Central Column Line
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(cx, topY);
-      ctx.lineTo(cx, botY);
-      ctx.stroke();
-
-      // Floor markers
-      for (let i = 0; i <= 3; i++) {
-        const y = botY - i * storyH;
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 1;
+      if (currentTier === 1) {
+        // Central Column Line
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(cx - 15, y);
-        ctx.lineTo(cx + 15, y);
+        ctx.moveTo(cx, topY);
+        ctx.lineTo(cx, botY);
         ctx.stroke();
 
-        ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 10px Pretendard, sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(i === 0 ? '기초' : `${i}F`, cx - 22, y + 3);
-      }
+        // Floor markers
+        for (let i = 0; i <= 3; i++) {
+          const y = botY - i * storyH;
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(cx - 15, y);
+          ctx.lineTo(cx + 15, y);
+          ctx.stroke();
 
-      if (currentTier === 1) {
-        // Modal BMDs
+          ctx.fillStyle = '#64748b';
+          ctx.font = 'bold 10px Pretendard, sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillText(i === 0 ? '기초' : `${i}F`, cx - 22, y + 3);
+        }
+
         // Mode 1: Smooth cantilever-like moment
-        ctx.strokeStyle = 'rgba(5, 150, 105, 0.4)';
+        ctx.strokeStyle = 'rgba(5, 150, 105, 0.6)';
         ctx.lineWidth = 2;
-        ctx.setLineDash([3, 3]);
+        ctx.setLineDash([4, 3]);
         ctx.beginPath();
+        const ptsM1 = [];
         for (let y = topY; y <= botY; y += 4) {
           const s = (y - topY) / totalH;
           const m1 = 120 * s * s;
+          ptsM1.push({ x: cx + m1, y });
           if (y === topY) ctx.moveTo(cx + m1, y);
           else ctx.lineTo(cx + m1, y);
         }
         ctx.stroke();
 
         // Mode 2: Inflexion point
-        ctx.strokeStyle = 'rgba(37, 99, 235, 0.4)';
+        ctx.strokeStyle = 'rgba(37, 99, 235, 0.6)';
         ctx.beginPath();
         for (let y = topY; y <= botY; y += 4) {
           const s = (y - topY) / totalH;
@@ -234,7 +350,7 @@
         ctx.stroke();
 
         // Mode 3: Double inflexion
-        ctx.strokeStyle = 'rgba(147, 51, 234, 0.4)';
+        ctx.strokeStyle = 'rgba(147, 51, 234, 0.6)';
         ctx.beginPath();
         for (let y = topY; y <= botY; y += 4) {
           const s = (y - topY) / totalH;
@@ -249,37 +365,80 @@
         ctx.strokeStyle = '#dc2626';
         ctx.lineWidth = 3;
         ctx.beginPath();
+        const srssCurve = [];
         for (let y = topY; y <= botY; y += 4) {
           const s = (y - topY) / totalH;
           const m1 = 120 * s * s;
           const m2 = 60 * Math.sin(s * Math.PI * 1.5);
           const m3 = 25 * Math.sin(s * Math.PI * 2.5);
           const srss = Math.sqrt(m1*m1 + m2*m2 + m3*m3);
+          srssCurve.push({ x: cx + srss, y });
           if (y === topY) ctx.moveTo(cx + srss, y);
           else ctx.lineTo(cx + srss, y);
         }
         ctx.stroke();
 
+        // Use Canonical Engine for Collision-Free Badges
+        const maxPt = srssCurve[srssCurve.length - 1]; // Base maximum
+        const plotRect = { left: 40, top: 30, width: w - 80, height: h - 60 };
+        const boxSize = { w: 140, h: 42 };
+        const placement = DynamicsChartCanonical.getBestCalloutPlacement(maxPt.x, maxPt.y, boxSize.w, boxSize.h, plotRect, srssCurve);
+
+        DynamicsChartCanonical.drawLeaderLine(ctx, maxPt.x, maxPt.y, placement.x, placement.y, boxSize.w, boxSize.h, '#dc2626');
+        DynamicsChartCanonical.drawAutoBadge(ctx, '최대 포락 휨모멘트\nM_srss = 136.5 kN·m', placement.x, placement.y, {
+          textColor: '#991b1b',
+          borderColor: '#fca5a5',
+          fillColor: 'rgba(254, 242, 242, 0.95)',
+          align: 'left',
+          fontSize: 10,
+          fontWeight: 'bold',
+          padding: { x: 8, y: 5 },
+          radius: 6
+        });
+
         // Legends
+        const legX = w - 150;
         ctx.font = 'bold 11px Pretendard, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#059669'; ctx.fillText('1모드 BMD', cx + 140, topY + 50);
-        ctx.fillStyle = '#2563eb'; ctx.fillText('2모드 BMD', cx + 140, topY + 70);
-        ctx.fillStyle = '#7c3aed'; ctx.fillText('3모드 BMD', cx + 140, topY + 90);
-        ctx.fillStyle = '#dc2626'; ctx.fillText('모달 포락선 (SRSS)', cx + 140, topY + 115);
+        ctx.fillStyle = '#059669'; ctx.fillText('● 1모드 BMD', legX, topY + 40);
+        ctx.fillStyle = '#2563eb'; ctx.fillText('● 2모드 BMD', legX, topY + 65);
+        ctx.fillStyle = '#7c3aed'; ctx.fillText('● 3모드 BMD', legX, topY + 90);
+        ctx.fillStyle = '#dc2626'; ctx.fillText('━ 모달 포락선 (SRSS)', legX, topY + 115);
 
       } else if (currentTier === 2) {
-        // Tier 2: Load Combinations
+        // Central Column Line
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, topY);
+        ctx.lineTo(cx, botY);
+        ctx.stroke();
+
+        for (let i = 0; i <= 3; i++) {
+          const y = botY - i * storyH;
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(cx - 15, y);
+          ctx.lineTo(cx + 15, y);
+          ctx.stroke();
+
+          ctx.fillStyle = '#64748b';
+          ctx.font = 'bold 10px Pretendard, sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillText(i === 0 ? '기초' : `${i}F`, cx - 22, y + 3);
+        }
+
         const lcs = [
           { color: '#64748b', name: 'LC1 (1.4D)', fn: s => 50 * s },
-          { color: '#0284c7', name: 'LC2 (1.2D+1.6L)', fn: s => 80 * s },
+          { color: '#0284c7', name: 'LC2 (1.2D+1.6L)', fn: s => 85 * s },
           { color: '#d97706', name: 'LC3 (1.2D+1.0L+1.0E)', fn: s => 135 * (s*s + 0.1*Math.sin(s*Math.PI*2)) }
         ];
 
         lcs.forEach(lc => {
           ctx.strokeStyle = lc.color;
           ctx.lineWidth = 1.5;
-          ctx.setLineDash([2, 2]);
+          ctx.setLineDash([3, 3]);
           ctx.beginPath();
           for (let y = topY; y <= botY; y += 4) {
             const s = (y - topY) / totalH;
@@ -295,26 +454,47 @@
         ctx.strokeStyle = '#059669';
         ctx.lineWidth = 3;
         ctx.beginPath();
+        const cenvCurve = [];
         for (let y = topY; y <= botY; y += 4) {
           const s = (y - topY) / totalH;
           const maxM = Math.max(lcs[0].fn(s), lcs[1].fn(s), lcs[2].fn(s));
+          cenvCurve.push({ x: cx + maxM, y });
           if (y === topY) ctx.moveTo(cx + maxM, y);
           else ctx.lineTo(cx + maxM, y);
         }
         ctx.stroke();
 
+        const basePt = cenvCurve[cenvCurve.length - 1];
+        const plotRect = { left: 40, top: 30, width: w - 80, height: h - 60 };
+        const boxSize = { w: 140, h: 42 };
+        const placement = DynamicsChartCanonical.getBestCalloutPlacement(basePt.x, basePt.y, boxSize.w, boxSize.h, plotRect, cenvCurve);
+
+        DynamicsChartCanonical.drawLeaderLine(ctx, basePt.x, basePt.y, placement.x, placement.y, boxSize.w, boxSize.h, '#059669');
+        DynamicsChartCanonical.drawAutoBadge(ctx, '최대 하중조합 포락선\nMax cENV = 135.0 kN·m', placement.x, placement.y, {
+          textColor: '#065f46',
+          borderColor: '#6ee7b7',
+          fillColor: 'rgba(236, 253, 245, 0.95)',
+          align: 'left',
+          fontSize: 10,
+          fontWeight: 'bold',
+          padding: { x: 8, y: 5 },
+          radius: 6
+        });
+
+        const legX = w - 170;
         ctx.font = 'bold 11px Pretendard, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#64748b'; ctx.fillText('LC1: 1.4D', cx + 140, topY + 50);
-        ctx.fillStyle = '#0284c7'; ctx.fillText('LC2: 1.2D+1.6L', cx + 140, topY + 70);
-        ctx.fillStyle = '#d97706'; ctx.fillText('LC3: 1.2D+1.0L+1.0E', cx + 140, topY + 90);
-        ctx.fillStyle = '#059669'; ctx.fillText('최종 하중조합 포락선 (cENV)', cx + 140, topY + 115);
-      } else {
-        // Tier 3: P-M Correlation Diagram and Sign Loss Trap
-        const pmOx = w * 0.45;
-        const pmOy = h * 0.55;
+        ctx.fillStyle = '#64748b'; ctx.fillText('● LC1: 1.4D', legX, topY + 40);
+        ctx.fillStyle = '#0284c7'; ctx.fillText('● LC2: 1.2D+1.6L', legX, topY + 65);
+        ctx.fillStyle = '#d97706'; ctx.fillText('● LC3: 1.2D+1.0L+1.0E', legX, topY + 90);
+        ctx.fillStyle = '#059669'; ctx.fillText('━ 하중조합 포락선 (cENV)', legX, topY + 115);
 
-        // Draw P-M Axes
+      } else {
+        // Tier 3: P-M Correlation Diagram & Sign Loss Trap
+        const pmOx = w * 0.42;
+        const pmOy = h * 0.52;
+
+        // P-M Axes
         ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -336,21 +516,20 @@
         ctx.quadraticCurveTo(pmOx + 60, pmOy + 80, pmOx, pmOy + 90); // Pure tension
         ctx.stroke();
 
-        // Real Dynamic Trajectory Ellipse of (P(t), M(t)) - SAFE inside!
-        ctx.fillStyle = 'rgba(5, 150, 105, 0.15)';
+        // Real Dynamic Trajectory Ellipse of (P(t), M(t)) - SAFE inside
+        ctx.fillStyle = 'rgba(5, 150, 105, 0.12)';
         ctx.strokeStyle = '#059669';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        // Slanted ellipse
         ctx.ellipse(pmOx + 35, pmOy - 20, 60, 25, Math.PI / 5, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = '#059669';
         ctx.font = 'bold 10px Pretendard, sans-serif';
-        ctx.fillText('실제 지진 동적 거동 궤적 (P(t), M(t)) [안전]', pmOx + 40, pmOy - 55);
+        ctx.fillText('실제 지진 동적 거동 궤적 (P(t), M(t)) [안전]', pmOx + 35, pmOy - 55);
 
-        // Envelope's Phantom Point (P_max, M_max) - Falling OUTSIDE or near boundary!
+        // Envelope's Phantom Point (P_max, M_max)
         const pMax = pmOy - 65;
         const mMax = pmOx + 95;
 
@@ -368,16 +547,382 @@
         ctx.fillStyle = '#dc2626';
         ctx.beginPath(); ctx.arc(mMax, pMax, 6, 0, Math.PI * 2); ctx.fill();
 
-        ctx.font = 'bold 11px Pretendard, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText('🚨 포락선 가상점 (P_max, M_max)', mMax + 10, pMax - 5);
-        ctx.fillStyle = '#b91c1c';
-        ctx.font = '9px Pretendard, sans-serif';
-        ctx.fillText('동시 발생 불가! 부호소실로 인한 허상 과설계', mMax + 10, pMax + 10);
+        // Clean Callout Placement with Leader Line
+        const plotRect = { left: 40, top: 30, width: w - 80, height: h - 60 };
+        const boxSize = { w: 170, h: 48 };
+        const placement = DynamicsChartCanonical.getBestCalloutPlacement(mMax, pMax, boxSize.w, boxSize.h, plotRect, [
+          { x: pmOx + 35, y: pmOy - 20 },
+          { x: mMax, y: pMax }
+        ]);
+
+        DynamicsChartCanonical.drawLeaderLine(ctx, mMax, pMax, placement.x, placement.y, boxSize.w, boxSize.h, '#dc2626');
+        DynamicsChartCanonical.drawAutoBadge(ctx, '🚨 포락선 가상점 (P_max, M_max)\n동시 발생 불가! 부호소실 허상', placement.x, placement.y, {
+          textColor: '#991b1b',
+          borderColor: '#fca5a5',
+          fillColor: 'rgba(254, 242, 242, 0.95)',
+          align: 'left',
+          fontSize: 10,
+          fontWeight: 'bold',
+          padding: { x: 8, y: 5 },
+          radius: 6
+        });
       }
     }
 
-    setTimeout(resize, 50);
+    // --- 3D BIM Three.js Scene Setup ---
+    const threeContainer = document.getElementById('threeContainer');
+    let scene, camera, renderer, controls;
+    let bldgGroup, bedrockGroup, ribbonMesh, phantomMarker;
+    let columnSlices = [];
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+
+      const r = threeContainer.getBoundingClientRect();
+      camera = new THREE.PerspectiveCamera(38, r.width / r.height, 0.1, 1000);
+      camera.position.set(0, 8.5, 26);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(r.width, r.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      threeContainer.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 6.0, 0);
+      controls.maxPolarAngle = Math.PI / 2 + 0.08;
+
+      // Lights
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(ambLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+      dirLight.position.set(15, 25, 18);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 1024;
+      dirLight.shadow.mapSize.height = 1024;
+      scene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.35);
+      fillLight.position.set(-15, 10, -12);
+      scene.add(fillLight);
+
+      // Ground subtle grid
+      const grid = new THREE.GridHelper(30, 20, 0xcbd5e1, 0xf1f5f9);
+      grid.position.y = -0.01;
+      scene.add(grid);
+
+      // Bedrock Foundation
+      bedrockGroup = new THREE.Group();
+      const bedGeo = new THREE.BoxGeometry(14, 0.8, 10);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.y = 0.4;
+      bedrock.receiveShadow = true;
+      bedrockGroup.add(bedrock);
+
+      // Foundation anchor footings
+      for (let x of [-3.5, 3.5]) {
+        for (let z of [-2.5, 2.5]) {
+          const footGeo = new THREE.BoxGeometry(1.6, 0.3, 1.6);
+          const footMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
+          const foot = new THREE.Mesh(footGeo, footMat);
+          foot.position.set(x, 0.95, z);
+          bedrockGroup.add(foot);
+        }
+      }
+      scene.add(bedrockGroup);
+
+      // Building Group
+      bldgGroup = new THREE.Group();
+      bldgGroup.position.y = 0.8; // On top of bedrock
+      scene.add(bldgGroup);
+
+      // Construct 3-Story Frame & Central Column
+      build3DStructure();
+      buildEnvelopeRibbon();
+      buildPhantomMarker();
+
+      updateThreeSceneForTier();
+      animateThree();
+    }
+
+    function build3DStructure() {
+      // Slabs at 1F (y=4), 2F (y=8), 3F/Roof (y=12)
+      const slabGeo = new THREE.BoxGeometry(8, 0.3, 6);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.6 });
+      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.5 });
+
+      for (let i = 1; i <= 3; i++) {
+        const floorGrp = new THREE.Group();
+        floorGrp.position.y = i * 4;
+
+        const slab = new THREE.Mesh(slabGeo, slabMat);
+        slab.castShadow = true;
+        slab.receiveShadow = true;
+        floorGrp.add(slab);
+
+        // Edge trim
+        const edgeGeo = new THREE.BoxGeometry(8.1, 0.08, 6.1);
+        const edge = new THREE.Mesh(edgeGeo, slabEdgeMat);
+        floorGrp.add(edge);
+
+        floorGrp.name = `floor_${i}`;
+        bldgGroup.add(floorGrp);
+      }
+
+      // Central Column: Segmented into 24 vertical slices for smooth bending
+      const sliceCount = 24;
+      columnSlices = [];
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4, metalness: 0.1 });
+      const sliceH = 12.0 / sliceCount;
+
+      for (let i = 0; i < sliceCount; i++) {
+        const sliceGeo = new THREE.BoxGeometry(0.7, sliceH, 0.7);
+        const sliceMesh = new THREE.Mesh(sliceGeo, colMat);
+        sliceMesh.position.y = (i + 0.5) * sliceH;
+        sliceMesh.castShadow = true;
+        bldgGroup.add(sliceMesh);
+        columnSlices.push({
+          mesh: sliceMesh,
+          baseY: (i + 0.5) * sliceH,
+          normZ: (i + 0.5) / sliceCount // 0 at base to 1 at roof
+        });
+      }
+    }
+
+    function buildEnvelopeRibbon() {
+      // A translucent 3D extruded ribbon representing the envelope boundary
+      const ribbonGeo = new THREE.PlaneGeometry(1, 12, 1, 24);
+      const ribbonMat = new THREE.MeshStandardMaterial({
+        color: 0xdc2626,
+        transparent: true,
+        opacity: 0.35,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      ribbonMesh = new THREE.Mesh(ribbonGeo, ribbonMat);
+      ribbonMesh.position.set(0, 6, 0);
+      bldgGroup.add(ribbonMesh);
+    }
+
+    function buildPhantomMarker() {
+      // 3D Caution Marker for Tier 3 (P_max, M_max)
+      phantomMarker = new THREE.Group();
+      
+      const pinGeo = new THREE.SphereGeometry(0.35, 16, 16);
+      const pinMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
+      const pinMesh = new THREE.Mesh(pinGeo, pinMat);
+      phantomMarker.add(pinMesh);
+
+      // Warning ring
+      const ringGeo = new THREE.RingGeometry(0.45, 0.6, 24);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = Math.PI / 2;
+      phantomMarker.add(ringMesh);
+
+      phantomMarker.position.set(2.8, 6.0, 0);
+      phantomMarker.visible = false;
+      bldgGroup.add(phantomMarker);
+    }
+
+    function updateThreeSceneForTier() {
+      if (!ribbonMesh) return;
+      if (currentTier === 1) {
+        ribbonMesh.visible = true;
+        ribbonMesh.material.color.setHex(0xdc2626); // Red SRSS
+        ribbonMesh.material.opacity = 0.35;
+        if (phantomMarker) phantomMarker.visible = false;
+      } else if (currentTier === 2) {
+        ribbonMesh.visible = true;
+        ribbonMesh.material.color.setHex(0x059669); // Green cENV
+        ribbonMesh.material.opacity = 0.4;
+        if (phantomMarker) phantomMarker.visible = false;
+      } else {
+        ribbonMesh.visible = false;
+        if (phantomMarker) phantomMarker.visible = true;
+      }
+    }
+
+    function animateThree() {
+      requestAnimationFrame(animateThree);
+      controls.update();
+
+      if (isThreeAnim) {
+        animTime += 0.025;
+      }
+
+      const ampFactor = (threeAmpScale / 70.0);
+
+      if (currentTier === 1) {
+        // Tier 1: Modal Superposition vibration & dynamic ground shaking
+        const w1 = 2.0;
+        const w2 = 5.5;
+        const w3 = 12.0;
+
+        const q1 = Math.sin(animTime * w1) * 0.022 * ampFactor;
+        const q2 = Math.sin(animTime * w2) * 0.008 * ampFactor;
+        const q3 = Math.sin(animTime * w3) * 0.003 * ampFactor;
+
+        // Ground Motion (Coupled Bedrock Shaking)
+        const ug = Math.sin(animTime * w1) * 0.25 * (threeAmpScale / 70.0);
+        bedrockGroup.position.x = ug;
+        bldgGroup.position.x = ug;
+
+        // Update column slices & floor slabs
+        columnSlices.forEach(sl => {
+          const z = sl.normZ;
+          // Mode 1: 1.5 z^2 - 0.5 z^3
+          const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+          // Mode 2: Inflexion point
+          const phi2 = Math.sin(z * Math.PI * 1.5);
+          // Mode 3: Double inflexion
+          const phi3 = Math.sin(z * Math.PI * 2.5);
+
+          const driftX = (phi1 * q1 + phi2 * q2 + phi3 * q3) * 75.0;
+          sl.mesh.position.x = driftX;
+          sl.mesh.rotation.z = -driftX * 0.08;
+        });
+
+        // Update Floor Slabs
+        for (let i = 1; i <= 3; i++) {
+          const fl = bldgGroup.getObjectByName(`floor_${i}`);
+          if (fl) {
+            const z = i / 3.0;
+            const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+            const phi2 = Math.sin(z * Math.PI * 1.5);
+            const phi3 = Math.sin(z * Math.PI * 2.5);
+            fl.position.x = (phi1 * q1 + phi2 * q2 + phi3 * q3) * 75.0;
+          }
+        }
+
+        // Update 3D SRSS Ribbon Geometry
+        const pos = ribbonMesh.geometry.attributes.position;
+        for (let j = 0; j <= 24; j++) {
+          const z = j / 24.0;
+          const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+          const phi2 = Math.sin(z * Math.PI * 1.5);
+          const phi3 = Math.sin(z * Math.PI * 2.5);
+
+          // SRSS envelope width
+          const m1 = 1.2 * phi1;
+          const m2 = 0.6 * Math.abs(phi2);
+          const m3 = 0.25 * Math.abs(phi3);
+          const envW = Math.sqrt(m1*m1 + m2*m2 + m3*m3) * 1.2 * ampFactor;
+
+          const idxLeft = j * 2;
+          const idxRight = j * 2 + 1;
+
+          pos.setX(idxLeft, -envW);
+          pos.setX(idxRight, envW);
+        }
+        pos.needsUpdate = true;
+
+      } else if (currentTier === 2) {
+        // Tier 2: Static Load Combinations (Authentic Structural Physics - Pure Cantilever, NO Shaking!)
+        bedrockGroup.position.x = 0;
+        bldgGroup.position.x = 0;
+
+        // Static Cantilever Deflection for LC3 (dominant)
+        const staticDriftMax = 1.35 * ampFactor;
+
+        columnSlices.forEach(sl => {
+          const z = sl.normZ;
+          const psi = 1.5 * z * z - 0.5 * z * z * z; // Authentic static cantilever
+          const dx = psi * staticDriftMax;
+          sl.mesh.position.x = dx;
+          sl.mesh.rotation.z = -dx * 0.08;
+        });
+
+        for (let i = 1; i <= 3; i++) {
+          const fl = bldgGroup.getObjectByName(`floor_${i}`);
+          if (fl) {
+            const z = i / 3.0;
+            const psi = 1.5 * z * z - 0.5 * z * z * z;
+            fl.position.x = psi * staticDriftMax;
+          }
+        }
+
+        // cENV Outer Ribbon
+        const pos = ribbonMesh.geometry.attributes.position;
+        for (let j = 0; j <= 24; j++) {
+          const z = j / 24.0;
+          const psi = 1.5 * z * z - 0.5 * z * z * z;
+          const envW = psi * staticDriftMax * 1.25;
+
+          const idxLeft = j * 2;
+          const idxRight = j * 2 + 1;
+
+          pos.setX(idxLeft, 0); // From central column to max cENV
+          pos.setX(idxRight, envW);
+        }
+        pos.needsUpdate = true;
+
+      } else {
+        // Tier 3: P-M Dynamic Trajectory & Phantom Point
+        bedrockGroup.position.x = 0;
+        bldgGroup.position.x = 0;
+
+        // Real dynamic orbit in (P, M) translated into 3D column motion
+        const orbitAngle = animTime * 1.8;
+        const dynM = (Math.cos(orbitAngle) * 0.9 + 0.3) * ampFactor;
+        const dynP = (Math.sin(orbitAngle) * 0.4 + 1.0);
+
+        columnSlices.forEach(sl => {
+          const z = sl.normZ;
+          const psi = 1.5 * z * z - 0.5 * z * z * z;
+          sl.mesh.position.x = psi * dynM;
+          sl.mesh.scale.set(1, dynP, 1);
+        });
+
+        for (let i = 1; i <= 3; i++) {
+          const fl = bldgGroup.getObjectByName(`floor_${i}`);
+          if (fl) {
+            const z = i / 3.0;
+            const psi = 1.5 * z * z - 0.5 * z * z * z;
+            fl.position.x = psi * dynM;
+          }
+        }
+
+        // Pulsing Phantom Marker (P_max, M_max)
+        if (phantomMarker) {
+          const pulse = 1.0 + 0.15 * Math.sin(animTime * 6.0);
+          phantomMarker.scale.set(pulse, pulse, pulse);
+          phantomMarker.position.set(2.2 * ampFactor, 6.0, 0);
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // --- Awwwards Pack: Zentry 3D Tilt & Damping on Cards ---
+    function initZentryCards() {
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 6.0;
+          const rotY = (x / (rect.width / 2)) * 6.0;
+          card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+        });
+      });
+    }
+
+    // --- Init on DOM Ready ---
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initZentryCards();
+      setTimeout(resize2D, 60);
+    });
   </script>
 </body>
 </html>
