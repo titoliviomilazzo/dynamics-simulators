@@ -24,10 +24,6 @@
       transform-style: preserve-3d;
       will-change: transform;
     }
-    .iter-table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 0.72rem; }
-    .iter-table th, .iter-table td { border: 1px solid #e2e8f0; padding: 0.35rem 0.45rem; text-align: center; }
-    .iter-table th { background: #f1f5f9; color: #1e293b; font-weight: 700; }
-    .iter-table tr.current { background: rgba(37, 99, 235, 0.08); font-weight: 700; color: #1d4ed8; }
   </style>
 </head>
 <body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
@@ -39,14 +35,14 @@
       <div>
         <div class="flex items-center gap-3">
           <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
-            SIM 44 · PBD
+            SIM 44 · PBD 성능기반설계
           </span>
           <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-            비선형 능력스펙트럼법(CSM) &middot; 성능점(Performance Point) 수렴 랩
+            비선형 능력스펙트럼법(CSM) &middot; 성능점(Performance Point) 단계별 수렴 랩
           </h1>
         </div>
-        <p class="text-xs md:text-sm text-slate-600 mt-1">
-          ATC-40 / FEMA 440: 푸시오버 능력곡선 &harr; 주기 신장(Teq) &middot; 등가감쇠(&beta;eq) 요구스펙트럼 수렴 & 3D BIM 골조
+        <p class="text-xs md:text-sm text-slate-600 mt-1 font-medium">
+          ATC-40 / FEMA 440: 푸시오버 능력곡선 &harr; 주기 신장(\(T_{eq}\)) &middot; 등가감쇠(\(\beta_{eq}\)) 5단계 수렴 절차 & 3D BIM 골조
         </p>
       </div>
       <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition shadow-xs">
@@ -54,10 +50,52 @@
       </a>
     </header>
 
+    <!-- CSM 5-Step Progress Stepper Navigation Bar -->
+    <div class="bg-slate-50/90 border border-slate-200 rounded-2xl p-3.5 space-y-2.5 zentry-card shadow-2xs">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-black uppercase text-slate-700 tracking-wider">CSM 5단계 수렴 절차:</span>
+          <span id="stepPhaseBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-300 font-mono">
+            1/5단계: 초기 탄성 교점
+          </span>
+        </div>
+
+        <!-- Stepper Action Buttons -->
+        <div class="flex items-center gap-1.5">
+          <button onclick="prevStep()" id="btnPrevStep" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold transition shadow-xs">
+            ◀ 이전 단계
+          </button>
+          <button onclick="nextStep()" id="btnNextStep" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs">
+            다음 단계 ▶
+          </button>
+          <button onclick="toggleAuto()" id="btnAuto" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">
+            ▶ 자동 수렴
+          </button>
+          <button onclick="resetIteration()" class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-600 text-xs font-semibold transition">
+            ↺ 리셋
+          </button>
+        </div>
+      </div>
+
+      <!-- Step Indicators (5 Pills) -->
+      <div class="grid grid-cols-5 gap-1.5 text-center text-[11px] font-mono font-bold">
+        <div id="pill-step-1" class="py-1.5 px-1 rounded-lg bg-blue-600 text-white shadow-xs">1. 초기 탄성 교점</div>
+        <div id="pill-step-2" class="py-1.5 px-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200">2. 연성도 & 소산면적</div>
+        <div id="pill-step-3" class="py-1.5 px-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200">3. 등가감쇠 βeq 산정</div>
+        <div id="pill-step-4" class="py-1.5 px-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200">4. 요구곡선 축소&재교차</div>
+        <div id="pill-step-5" class="py-1.5 px-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200">5. 성능점 수렴 확정</div>
+      </div>
+
+      <!-- Pedagogical Step Explanation Banner -->
+      <div id="stepExplanation" class="p-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 leading-relaxed font-sans shadow-2xs">
+        <strong>💡 1단계 해설:</strong> 5% 기본 감쇠비의 탄성 지진 요구스펙트럼(Demand)과 구조물의 비선형 능력곡선(Capacity)이 만나는 초기 시행 변위 \(d_1\)과 가속도 \(a_1\)을 산정합니다.
+      </div>
+    </div>
+
     <!-- Main 3-Column Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
       
-      <!-- Left Panel: Settings (3.5 Cols) -->
+      <!-- Left Panel: Parameters (3.5 Cols) -->
       <div class="lg:col-span-3 space-y-4">
         
         <!-- Capacity Parameters Card (Zentry Tilt) -->
@@ -113,17 +151,6 @@
               <option value="0.33">Type C: 심한 핀칭 및 강도 저하 (&kappa; = 0.33)</option>
             </select>
           </div>
-
-          <!-- Convergence Control Buttons -->
-          <div class="pt-2 border-t border-slate-200 space-y-1.5">
-            <div class="grid grid-cols-2 gap-1.5">
-              <button id="btnStep" onclick="stepIteration()" class="py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs">다음 단계 (Step)</button>
-              <button id="btnAuto" onclick="toggleAuto()" class="py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">자동 수렴 (Auto)</button>
-            </div>
-            <button onclick="resetIteration()" class="w-full py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold">
-              수렴 루프 리셋 (Reset)
-            </button>
-          </div>
         </div>
 
         <!-- Takeaway Card -->
@@ -135,13 +162,18 @@
       </div>
 
       <!-- Center Panel: ADRS Space (5.5 Cols) -->
-      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm min-h-[540px]">
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm min-h-[560px]">
         <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
-          <span class="text-xs md:text-sm font-bold text-slate-900">ADRS 평면 상의 능력곡선 vs 감쇠 요구스펙트럼 수렴</span>
-          <span id="convergeBadge" class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono">반복 1단계</span>
+          <div>
+            <span class="text-xs md:text-sm font-bold text-slate-900 block">ADRS 평면 상의 능력곡선 vs 감쇠 요구스펙트럼 수렴</span>
+            <span class="text-[10px] text-slate-500 font-mono">가로: 스펙트럴 변위 Sd (cm) &middot; 세로: 유사가속도 Sa (g)</span>
+          </div>
+          <span id="convergeBadge" class="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 font-mono">
+            1단계 진행 중
+          </span>
         </div>
 
-        <div class="relative flex-1 w-full min-h-[400px] bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden">
+        <div class="relative flex-1 w-full min-h-[420px] bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden">
           <canvas id="adrsCanvas" class="w-full h-full block"></canvas>
         </div>
 
@@ -181,18 +213,18 @@
           </div>
         </div>
 
-        <!-- 3D BIM Pushover Building Viewport -->
+        <!-- 3D BIM Pushover Building Viewport (Enhanced Height & Contrast) -->
         <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 space-y-2 shadow-2xs">
           <div class="flex justify-between items-center border-b border-slate-200 pb-1.5">
             <span class="text-xs font-bold text-slate-900">3D BIM 푸시오버 변형</span>
             <div class="flex items-center gap-1 text-[10px] font-mono">
-              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
-              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs">2x</button>
-              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
+              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs">2x</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
             </div>
           </div>
 
-          <div class="relative w-full h-[160px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <div class="relative w-full h-[200px] rounded-xl overflow-hidden border border-slate-300 bg-slate-100">
             <div id="threePushoverContainer" class="w-full h-full absolute inset-0"></div>
           </div>
 
@@ -233,8 +265,9 @@
     let kappa = 0.67;
     let threeAmpScale = 70.0;
 
+    // CSM 5-Step Stepper State
+    let csmStep = 1; // 1 to 5
     let iterHistory = [];
-    let currentStep = 0;
     let isAuto = false;
     let autoTimer = null;
 
@@ -245,9 +278,9 @@
 
     function setThreeAmp(scale) {
       threeAmpScale = scale;
-      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
-      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
-      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
     }
 
     function updateT0(v) { T0 = parseFloat(v); document.getElementById('lblT0').textContent = T0.toFixed(2) + ' s'; resetIteration(); }
@@ -294,69 +327,42 @@
       return 0.05 + kappa * beta0;
     }
 
-    function resetIteration() {
-      if (autoTimer) clearInterval(autoTimer);
-      isAuto = false;
-      document.getElementById('btnAuto').textContent = '자동 수렴 (Auto)';
-      iterHistory = [];
-      currentStep = 0;
+    // Step Explanations Text
+    const stepExplanations = [
+      "",
+      "<strong>💡 1단계 (초기 탄성 교점):</strong> 5% 기본 감쇠비의 탄성 지진 요구스펙트럼(Demand)과 구조물의 비선형 능력곡선(Capacity)이 만나는 초기 시행 변위 d₁과 가속도 a₁을 산정합니다.",
+      "<strong>💡 2단계 (연성도 & 소산면적):</strong> 시행 변위 d_i에서의 요구 연성도 μ = d_i / d_y를 구하고, 소성 힌지가 형성되며 소산하는 이력 루프 에너지 면적(음영)을 계산합니다.",
+      "<strong>💡 3단계 (등가감쇠비 βeq 산정):</strong> 소산 에너지 면적으로부터 구조물 고유감쇠(5%)에 이력감쇠를 더한 등가감쇠비 βeq = 5% + κ·β₀를 산정하고 감쇠 축소계수를 계산합니다.",
+      "<strong>💡 4단계 (요구스펙트럼 축소 & 재교차):</strong> 증가된 감쇠비(βeq)에 의해 낮아진 감쇠 요구스펙트럼을 작도하고, 능력곡선과의 새로운 교점 d_{i+1}을 추적합니다.",
+      "<strong>💡 5단계 (수렴 판정 & 성능점 확정):</strong> 연속된 두 교점의 차이 |d_{i+1} - d_i| ≤ 0.05cm 검증으로 수렴을 확인하고, 최종 성능점(Sdp, Sap)과 FEMA 356 안전 등급을 확정합니다!"
+    ];
 
-      // Seed with initial displacement
-      const sdy = getSdy();
-      const sd0 = sdy * 2.2;
-      const sa0 = capacitySa(sd0);
-      const beta0 = calcBetaEq(sd0, sa0);
-      iterHistory.push({ sd: sd0, sa: sa0, beta: beta0, err: sd0 });
-
-      updateUI();
-      drawADRSCanonical();
-    }
-
-    function stepIteration() {
-      const last = iterHistory[iterHistory.length - 1];
-      const sdi = last.sd;
-      const sai = last.sa;
-      const betaI = last.beta;
-
-      // Demand at current beta
-      const saDemand = demandSa(sdi, betaI);
-      // Find intersection with capacity
-      const nextSd = sdi * 0.65 + (sdi * (saDemand / sai)) * 0.35;
-      const nextSa = capacitySa(nextSd);
-      const nextBeta = calcBetaEq(nextSd, nextSa);
-      const err = Math.abs(nextSd - sdi);
-
-      iterHistory.push({ sd: nextSd, sa: nextSa, beta: nextBeta, err });
-      currentStep++;
-
-      updateUI();
-      drawADRSCanonical();
-
-      if (err < 0.08 && isAuto) {
-        toggleAuto();
+    function updateStepUI() {
+      // Update pills
+      for (let i = 1; i <= 5; i++) {
+        const pill = document.getElementById(`pill-step-${i}`);
+        if (i === csmStep) {
+          pill.className = 'py-1.5 px-1 rounded-lg bg-blue-600 text-white font-bold shadow-xs';
+        } else if (i < csmStep) {
+          pill.className = 'py-1.5 px-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold';
+        } else {
+          pill.className = 'py-1.5 px-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200';
+        }
       }
-    }
 
-    function toggleAuto() {
-      isAuto = !isAuto;
-      const btn = document.getElementById('btnAuto');
-      if (isAuto) {
-        btn.textContent = '정지 (Stop)';
-        autoTimer = setInterval(stepIteration, 450);
-      } else {
-        btn.textContent = '자동 수렴 (Auto)';
-        if (autoTimer) clearInterval(autoTimer);
-      }
-    }
+      document.getElementById('stepPhaseBadge').textContent = `${csmStep}/5단계: ${
+        ['', '초기 탄성 교점', '연성도 & 소산면적', '등가감쇠 βeq 산정', '요구곡선 축소 & 재교차', '성능점 수렴 확정'][csmStep]
+      }`;
+      document.getElementById('stepExplanation').innerHTML = stepExplanations[csmStep];
 
-    function updateUI() {
-      const cur = iterHistory[iterHistory.length - 1];
+      // Update Telemetry & FEMA Verdict
+      const cur = iterHistory[Math.min(iterHistory.length - 1, csmStep - 1)];
       const sdy = getSdy();
       const mu = cur.sd / sdy;
 
       document.getElementById('valSdp').textContent = cur.sd.toFixed(2) + ' cm';
       document.getElementById('valSap').textContent = cur.sa.toFixed(3) + ' g';
-      
+
       const omegaEq = Math.sqrt((cur.sa * g) / Math.max(0.1, cur.sd));
       const Teq = (2 * Math.PI) / omegaEq;
       document.getElementById('valTeq').textContent = Teq.toFixed(2) + ' s';
@@ -365,12 +371,12 @@
       document.getElementById('bldg-drift-info').textContent = `Sdp = ${cur.sd.toFixed(2)} cm (μ = ${mu.toFixed(2)})`;
 
       const badge = document.getElementById('convergeBadge');
-      if (cur.err < 0.08) {
-        badge.textContent = `수렴 완료 (오차 ${cur.err.toFixed(2)}cm)`;
+      if (csmStep === 5) {
+        badge.textContent = `수렴 완료 (성능점 확정)`;
         badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono';
       } else {
-        badge.textContent = `반복 ${currentStep + 1}단계 진행 중`;
-        badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono';
+        badge.textContent = `${csmStep}단계 진행 중`;
+        badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 font-mono';
       }
 
       const verdict = document.getElementById('femaVerdict');
@@ -383,6 +389,89 @@
       } else {
         verdict.textContent = '⚠️ 붕괴방지 (CP: Collapse Prevention) 근접';
         verdict.className = 'text-xs font-black text-center p-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-800';
+      }
+    }
+
+    function computeCSMHistory() {
+      iterHistory = [];
+      const sdy = getSdy();
+
+      // Step 1: Initial trial intersection with 5% elastic demand
+      let sdTrial = sdy * 2.5;
+      let saTrial = capacitySa(sdTrial);
+      let betaTrial = 0.05;
+      iterHistory.push({ sd: sdTrial, sa: saTrial, beta: betaTrial, err: sdTrial });
+
+      // Step 2: Ductility & beta calculation
+      betaTrial = calcBetaEq(sdTrial, saTrial);
+      iterHistory.push({ sd: sdTrial, sa: saTrial, beta: betaTrial, err: sdTrial });
+
+      // Step 3: Damped demand spectrum
+      iterHistory.push({ sd: sdTrial, sa: saTrial, beta: betaTrial, err: sdTrial });
+
+      // Step 4: Next intersection
+      const saDemand = demandSa(sdTrial, betaTrial);
+      const nextSd = sdTrial * 0.70 + (sdTrial * (saDemand / saTrial)) * 0.30;
+      const nextSa = capacitySa(nextSd);
+      const nextBeta = calcBetaEq(nextSd, nextSa);
+      const err = Math.abs(nextSd - sdTrial);
+      iterHistory.push({ sd: nextSd, sa: nextSa, beta: nextBeta, err });
+
+      // Step 5: Converged Performance Point
+      let convSd = nextSd;
+      for (let k = 0; k < 6; k++) {
+        const b = calcBetaEq(convSd, capacitySa(convSd));
+        const dem = demandSa(convSd, b);
+        convSd = convSd * 0.6 + (convSd * (dem / capacitySa(convSd))) * 0.4;
+      }
+      const convSa = capacitySa(convSd);
+      const convBeta = calcBetaEq(convSd, convSa);
+      iterHistory.push({ sd: convSd, sa: convSa, beta: convBeta, err: 0.02 });
+    }
+
+    function resetIteration() {
+      if (autoTimer) clearInterval(autoTimer);
+      isAuto = false;
+      document.getElementById('btnAuto').textContent = '▶ 자동 수렴';
+      csmStep = 1;
+      computeCSMHistory();
+      updateStepUI();
+      drawADRSCanonical();
+    }
+
+    function nextStep() {
+      if (csmStep < 5) {
+        csmStep++;
+      } else {
+        csmStep = 1;
+      }
+      updateStepUI();
+      drawADRSCanonical();
+    }
+
+    function prevStep() {
+      if (csmStep > 1) {
+        csmStep--;
+        updateStepUI();
+        drawADRSCanonical();
+      }
+    }
+
+    function toggleAuto() {
+      isAuto = !isAuto;
+      const btn = document.getElementById('btnAuto');
+      if (isAuto) {
+        btn.textContent = '⏸ 정지 (Stop)';
+        autoTimer = setInterval(() => {
+          if (csmStep < 5) {
+            nextStep();
+          } else {
+            toggleAuto();
+          }
+        }, 1200);
+      } else {
+        btn.textContent = '▶ 자동 수렴';
+        if (autoTimer) clearInterval(autoTimer);
       }
     }
 
@@ -405,13 +494,14 @@
       }
     });
 
+    // --- Master ADRS Canvas Drawing with 5-Step Visual Feedback ---
     function drawADRSCanonical() {
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       ctx.clearRect(0, 0, w, h);
 
-      const margin = { left: 55, right: 35, top: 35, bottom: 45 };
+      const margin = { left: 60, right: 35, top: 35, bottom: 45 };
       const pw = w - margin.left - margin.right;
       const ph = h - margin.top - margin.bottom;
 
@@ -421,7 +511,7 @@
       const xToPx = sd => margin.left + (sd / maxSd) * pw;
       const yToPx = sa => margin.top + ph - (sa / maxSa) * ph;
 
-      // Soft Grid
+      // 1. Soft Grid
       ctx.strokeStyle = '#f1f5f9';
       ctx.lineWidth = 1;
       for (let s = 2; s <= maxSd; s += 2) {
@@ -433,14 +523,52 @@
         ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + pw, y); ctx.stroke();
       }
 
-      // Border
-      ctx.strokeStyle = '#cbd5e1';
+      // Radial rays of constant period T
+      const radT = [0.5, 0.8, 1.2, 1.8];
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      radT.forEach(pVal => {
+        const wP = (2 * Math.PI) / pVal;
+        const slope = (wP * wP) / g;
+        const endSd = Math.min(maxSd, maxSa / slope);
+        const endSa = slope * endSd;
+        ctx.beginPath();
+        ctx.moveTo(xToPx(0), yToPx(0));
+        ctx.lineTo(xToPx(endSd), yToPx(endSa));
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '8.5px monospace';
+        ctx.fillText(`T=${pVal}s`, xToPx(endSd) + 2, yToPx(endSa) - 2);
+      });
+
+      // 2. Border & Ticks
+      ctx.strokeStyle = '#94a3b8';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(margin.left, margin.top, pw, ph);
 
-      // 1. Capacity Curve (Emerald)
+      ctx.fillStyle = '#64748b';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      for (let s = 2; s <= maxSd; s += 2) {
+        ctx.fillText(`${s}`, xToPx(s), margin.top + ph + 16);
+      }
+      ctx.fillText('스펙트럴 변위 Sd (cm) →', margin.left + pw / 2, margin.top + ph + 32);
+
+      ctx.textAlign = 'right';
+      for (let a = 0.2; a <= maxSa; a += 0.2) {
+        ctx.fillText(`${a.toFixed(1)}`, margin.left - 8, yToPx(a) + 3);
+      }
+      ctx.save();
+      ctx.translate(margin.left - 32, margin.top + ph / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = 'center';
+      ctx.fillText('유사가속도 Sa (g) →', 0, 0);
+      ctx.restore();
+
+      // 3. Pushover Capacity Curve (Emerald)
       ctx.strokeStyle = '#059669';
-      ctx.lineWidth = 3.0;
+      ctx.lineWidth = 3.2;
       ctx.beginPath();
       const capPts = [];
       for (let s = 0; s <= maxSd; s += 0.2) {
@@ -453,37 +581,108 @@
       }
       ctx.stroke();
 
-      // 2. Current Demand Spectrum (Rose)
-      const cur = iterHistory[iterHistory.length - 1];
-      ctx.strokeStyle = '#f43f5e';
-      ctx.lineWidth = 2.4;
+      // 4. Elastic 5% Demand Curve (Always visible as reference)
+      ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([4, 3]);
       ctx.beginPath();
       for (let s = 0.5; s <= maxSd; s += 0.3) {
-        const a = demandSa(s, cur.beta);
+        const a = demandSa(s, 0.05);
         const x = xToPx(s);
         const y = yToPx(a);
         if (s === 0.5) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
       ctx.stroke();
+      ctx.setLineDash([]);
 
-      // 3. Performance Point Dot
-      const pX = xToPx(cur.sd);
-      const pY = yToPx(cur.sa);
+      ctx.fillStyle = '#f43f5e';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText('5% 탄성 요구곡선', xToPx(13.5), yToPx(demandSa(13.5, 0.05)) - 6);
 
-      ctx.fillStyle = '#2563eb';
-      ctx.beginPath(); ctx.arc(pX, pY, 6, 0, Math.PI * 2); ctx.fill();
+      // 5. Active Step Visuals
+      const curData = iterHistory[csmStep - 1];
+      const curSd = curData.sd;
+      const curSa = curData.sa;
+      const curBeta = curData.beta;
+      const sdy = getSdy();
 
-      // Canonical Badge with Leader Line
+      // STEP 2: Shade Hysteretic Energy dissipation area
+      if (csmStep >= 2) {
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+        ctx.beginPath();
+        ctx.moveTo(xToPx(0), yToPx(0));
+        ctx.lineTo(xToPx(sdy), yToPx(Say));
+        ctx.lineTo(xToPx(curSd), yToPx(curSa));
+        ctx.lineTo(xToPx(curSd), yToPx(0));
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(xToPx(sdy), margin.top); ctx.lineTo(xToPx(sdy), margin.top + ph);
+        ctx.moveTo(xToPx(curSd), margin.top); ctx.lineTo(xToPx(curSd), margin.top + ph);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#059669';
+        ctx.font = '8.5px monospace';
+        ctx.fillText(`항복 Sdy=${sdy.toFixed(1)}cm`, xToPx(sdy), margin.top + 14);
+      }
+
+      // STEP 3 & 4: Draw Damped Demand Spectrum
+      if (csmStep >= 3) {
+        ctx.strokeStyle = '#e11d48';
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        for (let s = 0.5; s <= maxSd; s += 0.3) {
+          const a = demandSa(s, curBeta);
+          const x = xToPx(s);
+          const y = yToPx(a);
+          if (s === 0.5) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        ctx.fillStyle = '#be123c';
+        ctx.font = 'bold 9px monospace';
+        ctx.fillText(`감쇠 요구곡선 (βeq=${(curBeta*100).toFixed(1)}%)`, xToPx(13.0), yToPx(demandSa(13.0, curBeta)) - 6);
+      }
+
+      // Draw Step Points & Canonical Leader Badges
+      const pX = xToPx(curSd);
+      const pY = yToPx(curSa);
+
+      ctx.fillStyle = (csmStep === 5) ? '#2563eb' : '#d97706';
+      ctx.beginPath(); ctx.arc(pX, pY, 6.5, 0, Math.PI * 2); ctx.fill();
+
+      // Canonical Callout Placement
       const plotRect = { left: margin.left, top: margin.top, width: pw, height: ph };
-      const boxSize = { w: 165, h: 42 };
+      const boxSize = { w: 175, h: 46 };
       const placement = DynamicsChartCanonical.getBestCalloutPlacement(pX, pY, boxSize.w, boxSize.h, plotRect, capPts);
 
-      DynamicsChartCanonical.drawLeaderLine(ctx, pX, pY, placement.x, placement.y, boxSize.w, boxSize.h, '#2563eb');
-      DynamicsChartCanonical.drawAutoBadge(ctx, `성능점: Sdp = ${cur.sd.toFixed(2)} cm\nSap = ${cur.sa.toFixed(3)} g | βeq = ${(cur.beta*100).toFixed(1)}%`, placement.x, placement.y, {
-        textColor: '#1e40af',
-        borderColor: '#93c5fd',
-        fillColor: 'rgba(239, 246, 255, 0.95)',
+      const stepTitles = [
+        "",
+        `[1단계] 초기 탄성 교점\nd₁ = ${curSd.toFixed(2)} cm | a₁ = ${curSa.toFixed(3)} g`,
+        `[2단계] 연성도 & 소산면적\nμ = ${(curSd/sdy).toFixed(2)} | 이력감쇠 계산 중`,
+        `[3단계] 등가감쇠비 산정\nβeq = ${(curBeta*100).toFixed(1)}% (스펙트럼 축소)`,
+        `[4단계] 요구곡선 축소 & 재교차\n새로운 교점 d = ${curSd.toFixed(2)} cm 추적`,
+        `[5단계] 최종 성능점(PP) 수렴!\nSdp = ${curSd.toFixed(2)} cm | Sap = ${curSa.toFixed(3)} g`
+      ];
+
+      const badgeColors = (csmStep === 5) ? {
+        textColor: '#1e40af', borderColor: '#93c5fd', fillColor: 'rgba(239, 246, 255, 0.95)', stroke: '#2563eb'
+      } : {
+        textColor: '#92400e', borderColor: '#fcd34d', fillColor: 'rgba(254, 252, 232, 0.95)', stroke: '#d97706'
+      };
+
+      DynamicsChartCanonical.drawLeaderLine(ctx, pX, pY, placement.x, placement.y, boxSize.w, boxSize.h, badgeColors.stroke);
+      DynamicsChartCanonical.drawAutoBadge(ctx, stepTitles[csmStep], placement.x, placement.y, {
+        textColor: badgeColors.textColor,
+        borderColor: badgeColors.borderColor,
+        fillColor: badgeColors.fillColor,
         align: 'left',
         fontSize: 9.5,
         fontWeight: 'bold',
@@ -504,7 +703,7 @@
 
       const r = threePushoverContainer.getBoundingClientRect();
       camera = new THREE.PerspectiveCamera(36, r.width / r.height, 0.1, 1000);
-      camera.position.set(0, 6.5, 18);
+      camera.position.set(0, 7.0, 20);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(r.width, r.height);
@@ -515,21 +714,21 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.target.set(0, 4.0, 0);
+      controls.target.set(0, 4.5, 0);
       controls.maxPolarAngle = Math.PI / 2 + 0.08;
 
       // Lights
       const amb = new THREE.AmbientLight(0xffffff, 0.85);
       scene.add(amb);
 
-      const dir = new THREE.DirectionalLight(0xffffff, 0.75);
-      dir.position.set(10, 20, 15);
+      const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+      dir.position.set(10, 22, 15);
       dir.castShadow = true;
       scene.add(dir);
 
       // Bedrock
       bedrockGroup = new THREE.Group();
-      const bedGeo = new THREE.BoxGeometry(10, 0.6, 7);
+      const bedGeo = new THREE.BoxGeometry(11, 0.6, 8);
       const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
       bedrock.position.y = 0.3;
@@ -538,7 +737,6 @@
 
       const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
       bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x475569 })));
-
       scene.add(bedrockGroup);
 
       // Building Group
@@ -551,75 +749,77 @@
 
     function buildPushoverBuilding() {
       const slabGeo = new THREE.BoxGeometry(6.5, 0.3, 5);
-      const slabMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
-      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+      const slabEdgeGeo = new THREE.EdgesGeometry(slabGeo);
 
       for (let i = 1; i <= 3; i++) {
-        const floorGrp = new THREE.Group();
-        floorGrp.position.y = i * 3.5;
-
         const slab = new THREE.Mesh(slabGeo, slabMat);
+        slab.position.y = i * 2.8;
         slab.castShadow = true;
-        floorGrp.add(slab);
-
-        const edge = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.08, 5.1), slabEdgeMat);
-        floorGrp.add(edge);
-
-        floorGrp.name = `floor_${i}`;
-        bldgGroup.add(floorGrp);
+        slab.receiveShadow = true;
+        slab.add(new THREE.LineSegments(slabEdgeGeo, new THREE.LineBasicMaterial({ color: 0x334155 })));
+        bldgGroup.add(slab);
       }
 
-      // Columns
+      // 4 Columns segmented into 18 slices for smooth double-curvature
       const sliceCount = 18;
-      const totalH = 10.5;
+      const totalH = 8.4;
       const sliceH = totalH / sliceCount;
       const colPositions = [
-        [-2.6, -1.9], [2.6, -1.9],
-        [-2.6, 1.9], [2.6, 1.9]
+        [-2.8, -2.1], [2.8, -2.1],
+        [-2.8, 2.1], [2.8, 2.1]
       ];
 
       bldgSlices = [];
-      const colMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 });
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.4 });
 
       for (let pos of colPositions) {
+        // Footing pad
+        const footGeo = new THREE.BoxGeometry(1.2, 0.25, 1.2);
+        const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x64748b }));
+        foot.position.set(pos[0], 0.12, pos[1]);
+        bldgGroup.add(foot);
+
         for (let i = 0; i < sliceCount; i++) {
-          const sliceGeo = new THREE.BoxGeometry(0.35, sliceH, 0.35);
+          const sliceGeo = new THREE.BoxGeometry(0.38, sliceH, 0.38);
           const slice = new THREE.Mesh(sliceGeo, colMat);
           slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
           slice.castShadow = true;
           bldgGroup.add(slice);
-          bldgSlices.push({ mesh: slice, baseX: pos[0], normZ: (i + 0.5) / sliceCount });
+          bldgSlices.push({ mesh: slice, baseX: pos[0], normY: (i + 0.5) / sliceCount });
         }
       }
     }
 
     function animate() {
       requestAnimationFrame(animate);
-      if (controls) controls.update();
 
-      if (renderer && camera) {
-        const cur = iterHistory[iterHistory.length - 1];
-        const ampMultiplier = (threeAmpScale / 70.0);
-        // Authentic static pushover deflection: psi(z) = 1.5 z^2 - 0.5 z^3
-        const maxDrift = (cur.sd / 8.0) * 1.5 * ampMultiplier;
+      // Pushover Static Lateral Deformation synced with active step displacement
+      const curData = iterHistory[csmStep - 1];
+      const targetSd = curData ? curData.sd : 5.82;
+      const ampMultiplier = (threeAmpScale / 70.0);
+      const topDrift = (targetSd / 12.0) * 2.0 * ampMultiplier;
 
-        bldgSlices.forEach(sl => {
-          const z = sl.normZ;
-          const psi = 1.5 * z * z - 0.5 * z * z * z;
-          const drift = psi * maxDrift;
-          sl.mesh.position.x = sl.baseX + drift;
-          sl.mesh.rotation.z = -drift * 0.08;
-        });
+      bldgSlices.forEach(sl => {
+        const s = sl.normY;
+        const h = 3 * s * s - 2 * s * s * s;
+        sl.mesh.position.x = sl.baseX + topDrift * h;
+      });
 
-        for (let i = 1; i <= 3; i++) {
-          const fl = bldgGroup.getObjectByName(`floor_${i}`);
-          if (fl) {
-            const z = i / 3.0;
-            const psi = 1.5 * z * z - 0.5 * z * z * z;
-            fl.position.x = psi * maxDrift;
-          }
+      // Update slab positions
+      let slabIdx = 0;
+      bldgGroup.children.forEach(child => {
+        if (child.geometry && child.geometry.type === 'BoxGeometry' && child.geometry.parameters.width === 6.5) {
+          slabIdx++;
+          const s = (slabIdx * 2.8) / 8.4;
+          const h = 3 * s * s - 2 * s * s * s;
+          child.position.x = topDrift * h;
         }
+      });
 
+      if (controls) controls.update();
+      if (renderer && camera) {
         renderer.render(scene, camera);
       }
     }
@@ -645,10 +845,8 @@
     window.addEventListener('DOMContentLoaded', () => {
       initThree();
       initZentryCards();
-      setTimeout(() => {
-        resizeADRS();
-        resetIteration();
-      }, 50);
+      resetIteration();
+      setTimeout(resizeADRS, 50);
       animate();
     });
   </script>

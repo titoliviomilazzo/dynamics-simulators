@@ -28,25 +28,25 @@
 </head>
 <body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
+  <div class="w-full max-w-7xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
     
     <!-- Top Header -->
     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
       <div>
         <div class="flex items-center gap-3">
-          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-            Newmark-Veletsos(1960) 등변위 규칙과 반응수정계수(R)의 실체
-          </h1>
-          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
-            강의노트 §8.2 &middot; 블록 F 핵심 반전
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+            SIM 37 · 비선형 내진설계
           </span>
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            Newmark-Veletsos(1960) 등변위 규칙 &middot; 반응수정계수(R)의 실체
+          </h1>
         </div>
         <p class="text-sm text-slate-600 mt-1 font-medium">
-          "중장주기 구조에서는 항복하더라도 최대변위 u<sub>max</sub>가 탄성과 거의 같습니다. 요구 강도만 1/R로 깎아냅니다."
+          "중장주기 구조(\(T > T_c\))에서는 항복하더라도 최대변위 \(u_{\max}\)가 탄성과 거의 같습니다. 요구 강도만 \(1/R\)로 깎아냅니다."
         </p>
       </div>
 
-      <!-- Controls -->
+      <!-- Header Controls -->
       <div class="flex items-center gap-2">
         <button onclick="toggleLoop()" id="btn-toggle-loop" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
           <span id="play-icon">⏸</span>
@@ -55,95 +55,149 @@
         <button onclick="resetLoop()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition">
           초기화
         </button>
+        <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition shadow-xs">
+          &larr; 마스터 대시보드
+        </a>
       </div>
     </div>
 
-    <!-- Main Comparison: Elastic vs Ductile (R=5) -->
+    <!-- Interactive Parameter Control Strip -->
+    <div class="bg-slate-50/90 border border-slate-200 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center zentry-card shadow-2xs">
+      
+      <!-- R-Factor Slider (4 Cols) -->
+      <div class="md:col-span-4 space-y-1.5">
+        <div class="flex justify-between items-center text-xs">
+          <span class="font-bold text-slate-700">반응수정계수 (R)</span>
+          <span id="lblR" class="font-mono font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">R = 5 (특수모멘트골조)</span>
+        </div>
+        <input type="range" id="rngR" min="1" max="8" step="1" value="5" oninput="updateR(this.value)" class="w-full accent-emerald-600 cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+          <span>R=1 (탄성)</span>
+          <span>R=3 (보통)</span>
+          <span>R=5 (중간/특수)</span>
+          <span>R=8 (고연성)</span>
+        </div>
+      </div>
+
+      <!-- Natural Period Tn Slider (4 Cols) -->
+      <div class="md:col-span-4 space-y-1.5">
+        <div class="flex justify-between items-center text-xs">
+          <span class="font-bold text-slate-700">구조물 고유주기 (Tn)</span>
+          <span id="lblTn" class="font-mono font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Tn = 1.00 s</span>
+        </div>
+        <input type="range" id="rngTn" min="0.2" max="2.5" step="0.05" value="1.00" oninput="updateTn(this.value)" class="w-full accent-blue-600 cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+          <span>0.2s (단주기)</span>
+          <span class="text-amber-600 font-bold">Tc &approx; 0.5s (경계)</span>
+          <span>2.5s (장주기)</span>
+        </div>
+      </div>
+
+      <!-- Rule Indicator & Badge (4 Cols) -->
+      <div class="md:col-span-4 bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+        <div class="flex justify-between items-center">
+          <span class="text-[11px] font-bold text-slate-500">뉴마크 지배 규칙:</span>
+          <span id="ruleBadge" class="text-xs font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+            등변위 규칙 (u_inelastic &approx; u_elastic)
+          </span>
+        </div>
+        <div class="text-[11px] text-slate-600 font-mono" id="ruleDesc">
+          Tn &ge; Tc: 항복 후에도 최대 횡변위가 탄성과 일치합니다!
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Main Comparison Grid: 3D Frame vs F-u Hysteresis Loop -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
       
-      <!-- 1. Left (6 Cols): Structural Displacement Comparison -->
-      <div class="lg:col-span-6 bg-slate-50/70 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between relative min-h-[440px]">
+      <!-- 1. Left (6 Cols): 3D BIM Structural Displacement Comparison -->
+      <div class="lg:col-span-6 bg-slate-50/70 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between relative min-h-[460px]">
         <div class="border-b border-slate-200 pb-2 flex justify-between items-center">
           <div>
-            <span class="text-sm font-bold text-slate-900 block">1. 탄성 골조(R=1) vs 연성 골조(R=5) 지진 변위 일치</span>
-            <span class="text-[11px] font-mono font-bold text-blue-700">u<sub>max,inelastic</sub> &approx; u<sub>max,elastic</sub> (등변위)</span>
+            <span class="text-sm font-bold text-slate-900 block">1. 3D BIM 골조: 탄성(R=1) vs 연성(R=5) 지진 변형 비교</span>
+            <span class="text-[11px] font-mono font-bold text-blue-700" id="subDispRule">고정단(u=0, &theta;=0) 전단 휨 변형 &middot; 소성 힌지 발광</span>
           </div>
           <div class="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-xs font-semibold">
             <button id="btnFrame3D" onclick="switchFrameView('3D')" class="px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs">🏢 3D BIM</button>
-            <button id="btnFrame2D" onclick="switchFrameView('2D')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📊 2D</button>
+            <button id="btnFrame2D" onclick="switchFrameView('2D')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📊 2D 단면</button>
           </div>
         </div>
 
         <!-- 3D / 2D Viewport -->
-        <div class="relative w-full flex-1 my-2 min-h-[280px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+        <div class="relative w-full flex-1 my-2 min-h-[300px] rounded-xl overflow-hidden border border-slate-300 bg-slate-100">
           
           <!-- 3D Container -->
           <div id="threeFrameContainer" class="w-full h-full absolute inset-0">
-            <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2 py-1 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1 flex-wrap">
-              <span>🖱️ 3D 회전</span>
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2.5 py-1 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1.5 flex-wrap">
+              <span>🖱️ 3D 회전/줌</span>
               <span class="text-slate-300">|</span>
-              <span class="font-bold text-slate-800">변위:</span>
+              <span class="font-bold text-slate-800">변위 증폭:</span>
               <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
               <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x</button>
               <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
             </div>
 
             <!-- Legend Overlay -->
-            <div class="absolute top-2 right-2 text-[10px] font-semibold bg-white/90 backdrop-blur-xs border border-slate-200 p-2 rounded-lg shadow-xs space-y-1">
+            <div class="absolute top-2 right-2 text-[10px] font-semibold bg-white/95 backdrop-blur-xs border border-slate-200 p-2.5 rounded-lg shadow-xs space-y-1.5">
               <div class="flex items-center gap-1.5 text-slate-700">
                 <span class="w-3 h-1.5 rounded bg-slate-700 inline-block"></span>
-                <span>탄성 (R=1, Ve = 3,686 kN)</span>
+                <span>탄성(R=1, 육중한 800mm 기둥)</span>
               </div>
               <div class="flex items-center gap-1.5 text-emerald-700">
                 <span class="w-3 h-1.5 rounded bg-emerald-600 inline-block"></span>
-                <span>연성 (R=5, Vy = 737 kN)</span>
+                <span id="legDuctile">연성(R=5, 슬림한 350mm 기둥)</span>
               </div>
               <div class="flex items-center gap-1.5 text-red-600 font-bold">
                 <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-                <span>소성 힌지(Plastic Hinge) 소산</span>
+                <span>기둥 상/하단 소성 힌지 항복</span>
               </div>
             </div>
           </div>
 
           <!-- 2D Canvas Container -->
-          <div id="frame2DContainer" class="w-full h-full absolute inset-0 bg-white" style="display: none;">
+          <div id="frame2DContainer" class="w-full h-full absolute inset-0 bg-slate-100" style="display: none;">
             <canvas id="canvasFrames" class="w-full h-full block"></canvas>
           </div>
 
         </div>
 
         <!-- Telemetry Card (Zentry Tilt) -->
-        <div class="p-3 bg-white border border-slate-200 rounded-xl text-xs space-y-1 font-mono zentry-card shadow-2xs">
+        <div class="p-3 bg-white border border-slate-200 rounded-xl text-xs space-y-1.5 font-mono zentry-card shadow-2xs">
           <div class="flex justify-between">
             <span class="text-slate-500 font-sans">탄성 요구 밑면력 V<sub>e</sub> (R=1):</span>
-            <span class="font-bold text-slate-800">3,686 kN (감당 불가)</span>
+            <span class="font-bold text-slate-800" id="valVe">3,686 kN (감당 불가)</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-slate-500 font-sans">설계 항복 강도 V<sub>y</sub> (R=5):</span>
-            <span class="font-bold text-emerald-700">737 kN (1/5로 경감)</span>
+            <span class="text-slate-500 font-sans" id="lblVyDesc">설계 항복 강도 V<sub>y</sub> (R=5):</span>
+            <span class="font-bold text-emerald-700" id="valVy">737 kN (1/5로 경감!)</span>
           </div>
-          <div class="flex justify-between border-t border-slate-100 pt-1 text-slate-700">
-            <span class="font-sans font-bold">최대 횡변위 u<sub>max</sub>:</span>
-            <span class="font-bold text-blue-700">탄성 4.8 cm &approx; 연성 4.8 cm (등변위!)</span>
+          <div class="flex justify-between border-t border-slate-100 pt-1 text-slate-700 font-bold">
+            <span class="font-sans">최대 횡변위 u<sub>max</sub>:</span>
+            <span class="text-blue-700" id="valUmaxComparison">탄성 4.8 cm &approx; 연성 4.8 cm (등변위!)</span>
           </div>
         </div>
       </div>
 
-      <!-- 2. Right (6 Cols): F-u Hysteresis Loop & Energy Dissipation -->
+      <!-- 2. Right (6 Cols): F-u Hysteresis Loop & Dissipated Energy Canvas -->
       <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-3 shadow-sm">
         <div class="border-b border-slate-100 pb-2 flex justify-between items-center">
-          <span class="text-sm font-bold text-slate-900">2. 힘-변위(F-u) 이력 루프와 소산 에너지 면적</span>
+          <div>
+            <span class="text-sm font-bold text-slate-900 block">2. 힘-변위(F-u) 이력 루프 & 소산 에너지 면적</span>
+            <span class="text-[11px] font-mono text-slate-500">공학적 수치 눈금축 (kN &middot; cm) &middot; 실시간 에너지 면적</span>
+          </div>
           <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">&oint; F du 소산</span>
         </div>
 
-        <div class="relative w-full flex-1 min-h-[280px] bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden">
+        <div class="relative w-full flex-1 min-h-[300px] bg-slate-50/60 rounded-xl border border-slate-200 overflow-hidden">
           <canvas id="canvasHysteresis" class="w-full h-full block"></canvas>
         </div>
 
+        <!-- Engineering Explanation Card -->
         <div class="p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 leading-relaxed font-sans zentry-card shadow-2xs">
           <strong>💡 공학사에서 가장 경제적인 트릭:</strong><br>
-          탄성으로 지진을 버티려면 기둥과 기초를 5배 키워야 하지만(경제성 파탄), 
-          부재에 연성(Ductility)을 부여하면 <strong>항복 루프 안의 면적만큼 지진 에너지를 열로 날려버려</strong> 1/5 크기의 기둥으로도 붕괴 없이 안전하게 살아남습니다.
+          탄성으로 지진을 버티려면 기둥과 기초를 <span id="txtRMultiplier" class="font-bold text-emerald-900">5배</span> 키워야 하지만(경제성 파탄), 
+          부재에 연성(Ductility)을 부여하면 <strong>항복 루프 안의 면적만큼 지진 에너지를 열로 날려버려</strong> <span id="txtRReduction" class="font-bold text-emerald-900">1/5</span> 크기의 기둥으로도 붕괴 없이 안전하게 살아남습니다.
         </div>
       </div>
 
@@ -155,6 +209,8 @@
     // --- Global State ---
     let isRunning = true;
     let t = 0;
+    let R = 5;
+    let Tn = 1.0;
     let threeAmpScale = 70.0;
     let currentFrameView = '3D';
 
@@ -163,11 +219,65 @@
     const canvasH = document.getElementById('canvasHysteresis');
     const ctxH = canvasH.getContext('2d');
 
-    // Kinematic hysteresis state for R=5
-    const uMax = 90;       // Canvas pixels for 4.8 cm
-    const fElastic = 95;   // Canvas pixels for 3,686 kN
-    const uy = 18;         // Yield disp (uMax / 5) = 0.96 cm
-    const fy = 20;         // Yield force (fElastic / 5) = 737 kN
+    // Physical baseline constants
+    const Ve_base = 3686; // kN
+    const uMax_base = 4.8; // cm
+
+    function updateR(val) {
+      R = parseInt(val);
+      document.getElementById('lblR').textContent = `R = ${R} (${getRName(R)})`;
+      document.getElementById('legDuctile').textContent = `연성(R=${R}, 슬림한 ${(0.8/Math.sqrt(R)*1000).toFixed(0)}mm 기둥)`;
+      document.getElementById('txtRMultiplier').textContent = `${R}배`;
+      document.getElementById('txtRReduction').textContent = `1/${R}`;
+      updateMetrics();
+      rebuildDuctileBuilding();
+    }
+
+    function updateTn(val) {
+      Tn = parseFloat(val);
+      document.getElementById('lblTn').textContent = `Tn = ${Tn.toFixed(2)} s`;
+      updateMetrics();
+    }
+
+    function getRName(r) {
+      if (r === 1) return '탄성 비감쇠';
+      if (r === 2) return '보통철근콘크리트 골조';
+      if (r === 3) return '중간모멘트골조';
+      if (r === 5) return '특수모멘트골조';
+      return '고연성 특수골조';
+    }
+
+    function updateMetrics() {
+      const Tc = 0.5; // Boundary period
+      const isEqualDisp = Tn >= Tc;
+
+      const badge = document.getElementById('ruleBadge');
+      const desc = document.getElementById('ruleDesc');
+      const sub = document.getElementById('subDispRule');
+
+      let uMaxInelastic = uMax_base;
+      if (isEqualDisp) {
+        uMaxInelastic = uMax_base;
+        badge.textContent = `등변위 규칙 (u_inelastic = u_elastic)`;
+        badge.className = 'text-xs font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300';
+        desc.innerHTML = `<strong>Tn &ge; Tc (중장주기):</strong> 항복하더라도 최대 횡변위가 탄성과 일치합니다 (u<sub>max</sub> = ${uMax_base.toFixed(1)} cm)!`;
+        sub.textContent = `등변위 규칙 성립: 탄성 4.8cm = 연성 4.8cm`;
+      } else {
+        // Equal Energy Rule: u_inelastic = sqrt(2R-1)/R * u_elastic or (R^2+1)/(2R)
+        const mu = (R * R + 1) / (2 * R);
+        uMaxInelastic = uMax_base * (mu / R);
+        badge.textContent = `등에너지 규칙 (u_inelastic > u_elastic)`;
+        badge.className = 'text-xs font-black px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300';
+        desc.innerHTML = `<strong>Tn &lt; Tc (단주기):</strong> 등에너지 보존으로 연성 변위가 탄성보다 커집니다 (u<sub>max</sub> = ${uMaxInelastic.toFixed(1)} cm)!`;
+        sub.textContent = `등에너지 규칙: 연성 변위가 ${uMaxInelastic.toFixed(1)}cm로 증폭`;
+      }
+
+      const Vy = Ve_base / R;
+      document.getElementById('valVe').textContent = `${Ve_base.toLocaleString()} kN (감당 불가)`;
+      document.getElementById('lblVyDesc').textContent = `설계 항복 강도 Vy (R=${R}):`;
+      document.getElementById('valVy').textContent = `${Math.round(Vy).toLocaleString()} kN (1/${R}로 경감!)`;
+      document.getElementById('valUmaxComparison').textContent = `탄성 ${uMax_base.toFixed(1)} cm vs 연성 ${uMaxInelastic.toFixed(1)} cm`;
+    }
 
     function setThreeAmp(scale) {
       threeAmpScale = scale;
@@ -228,21 +338,12 @@
       t = 0;
     }
 
-    function getHysteresisForce(uVal, uVel) {
-      if (uVel >= 0) {
-        const fLoading = -fy + (fy / uy) * (uVal - (-uMax + 2 * uy));
-        return Math.min(fy, Math.max(-fy, fLoading));
-      } else {
-        const fUnloading = fy - (fy / uy) * ((uMax - 2 * uy) - uVal);
-        return Math.max(-fy, Math.min(fy, fUnloading));
-      }
-    }
-
-    // --- 3D BIM Dual Building Setup ---
+    // --- 3D BIM Dual Building Setup with Authentic Shear Frame Deformation ---
     const threeFrameContainer = document.getElementById('threeFrameContainer');
     let scene, camera, renderer, controls;
     let bldgGroup, bedrockGroup;
     let elasticBldg, ductileBldg;
+    let elasticColSlices = [], ductileColSlices = [];
     let ductileHinges = [];
 
     function initThree() {
@@ -251,7 +352,7 @@
 
       const r = threeFrameContainer.getBoundingClientRect();
       camera = new THREE.PerspectiveCamera(38, r.width / r.height, 0.1, 1000);
-      camera.position.set(0, 6.5, 22);
+      camera.position.set(0, 8.5, 25);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(r.width, r.height);
@@ -262,25 +363,30 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.target.set(0, 4.5, 0);
+      controls.target.set(0, 5.0, 0);
       controls.maxPolarAngle = Math.PI / 2 + 0.08;
 
       // Lights
       const amb = new THREE.AmbientLight(0xffffff, 0.85);
       scene.add(amb);
 
-      const dir = new THREE.DirectionalLight(0xffffff, 0.75);
-      dir.position.set(12, 22, 16);
+      const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+      dir.position.set(15, 25, 18);
       dir.castShadow = true;
       scene.add(dir);
 
       const fill = new THREE.DirectionalLight(0xe0f2fe, 0.35);
-      fill.position.set(-12, 10, -10);
+      fill.position.set(-15, 10, -12);
       scene.add(fill);
 
-      // Bedrock
+      // Subtle ground grid
+      const grid = new THREE.GridHelper(32, 20, 0x94a3b8, 0xcbd5e1);
+      grid.position.y = -0.01;
+      scene.add(grid);
+
+      // Bedrock Foundation
       bedrockGroup = new THREE.Group();
-      const bedGeo = new THREE.BoxGeometry(16, 0.6, 9);
+      const bedGeo = new THREE.BoxGeometry(22, 0.6, 10);
       const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
       bedrock.position.y = 0.3;
@@ -289,7 +395,6 @@
 
       const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
       bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x475569 })));
-
       scene.add(bedrockGroup);
 
       // Building Group
@@ -301,59 +406,125 @@
     }
 
     function buildDualBuildings() {
-      // 1. Left Building: Elastic (R=1, Massive Columns)
+      // 1. Left Building: Elastic (R=1, Massive 800mm Columns, 4 Corners)
       elasticBldg = new THREE.Group();
-      elasticBldg.position.x = -4.5;
+      elasticBldg.position.x = -5.8;
 
-      const elSlabGeo = new THREE.BoxGeometry(5.2, 0.5, 4.5);
-      const elSlabMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+      // Slab
+      const elSlabGeo = new THREE.BoxGeometry(6.5, 0.5, 5.2);
+      const elSlabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
       const elRoof = new THREE.Mesh(elSlabGeo, elSlabMat);
-      elRoof.position.y = 6.25;
+      elRoof.position.y = 7.25;
       elRoof.castShadow = true;
       elasticBldg.add(elRoof);
 
-      // Massive Columns (0.9m x 0.9m)
-      const elColGeo = new THREE.BoxGeometry(0.85, 6.0, 0.85);
-      const elColMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.4 });
-      for (let x of [-1.8, 1.8]) {
-        const col = new THREE.Mesh(elColGeo, elColMat);
-        col.position.set(x, 3.0, 0);
-        col.castShadow = true;
-        elasticBldg.add(col);
+      const elEdgeGeo = new THREE.EdgesGeometry(elSlabGeo);
+      elRoof.add(new THREE.LineSegments(elEdgeGeo, new THREE.LineBasicMaterial({ color: 0x334155 })));
+
+      // 4 Massive Columns (0.8m x 0.8m) segmented into 16 slices for authentic shear bending
+      const sliceCount = 16;
+      const totalH = 7.0;
+      const sliceH = totalH / sliceCount;
+      const colPositions = [
+        [-2.3, -1.8], [2.3, -1.8],
+        [-2.3, 1.8], [2.3, 1.8]
+      ];
+
+      elasticColSlices = [];
+      const elColMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+
+      for (let pos of colPositions) {
+        // Foundation Footing Pad
+        const footGeo = new THREE.BoxGeometry(1.4, 0.3, 1.4);
+        const footMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+        const foot = new THREE.Mesh(footGeo, footMat);
+        foot.position.set(pos[0], 0.15, pos[1]);
+        elasticBldg.add(foot);
+
+        for (let i = 0; i < sliceCount; i++) {
+          const sliceGeo = new THREE.BoxGeometry(0.75, sliceH, 0.75);
+          const slice = new THREE.Mesh(sliceGeo, elColMat);
+          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
+          slice.castShadow = true;
+          elasticBldg.add(slice);
+          elasticColSlices.push({
+            mesh: slice,
+            baseX: pos[0],
+            normY: (i + 0.5) / sliceCount
+          });
+        }
       }
       bldgGroup.add(elasticBldg);
 
       // 2. Right Building: Ductile (R=5, Slender Columns + Plastic Hinges)
-      ductileBldg = new THREE.Group();
-      ductileBldg.position.x = 4.5;
+      rebuildDuctileBuilding();
+    }
 
-      const ducSlabGeo = new THREE.BoxGeometry(5.2, 0.5, 4.5);
-      const ducSlabMat = new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.5 });
+    function rebuildDuctileBuilding() {
+      if (ductileBldg) {
+        bldgGroup.remove(ductileBldg);
+      }
+
+      ductileBldg = new THREE.Group();
+      ductileBldg.position.x = 5.8;
+
+      // Slab
+      const ducSlabGeo = new THREE.BoxGeometry(6.5, 0.5, 5.2);
+      const ducSlabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
       const ducRoof = new THREE.Mesh(ducSlabGeo, ducSlabMat);
-      ducRoof.position.y = 6.25;
+      ducRoof.position.y = 7.25;
       ducRoof.castShadow = true;
       ductileBldg.add(ducRoof);
 
-      // Slender Columns (0.4m x 0.4m)
-      const ducColGeo = new THREE.BoxGeometry(0.42, 6.0, 0.42);
+      const ducEdgeGeo = new THREE.EdgesGeometry(ducSlabGeo);
+      ducRoof.add(new THREE.LineSegments(ducEdgeGeo, new THREE.LineBasicMaterial({ color: 0x059669 })));
+
+      // Column dimension shrinks with sqrt(R) for authentic physical realism
+      const colWidth = Math.max(0.30, 0.75 / Math.sqrt(R));
+      const sliceCount = 16;
+      const totalH = 7.0;
+      const sliceH = totalH / sliceCount;
+      const colPositions = [
+        [-2.3, -1.8], [2.3, -1.8],
+        [-2.3, 1.8], [2.3, 1.8]
+      ];
+
+      ductileColSlices = [];
+      ductileHinges = [];
       const ducColMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.4 });
-      for (let x of [-1.8, 1.8]) {
-        const col = new THREE.Mesh(ducColGeo, ducColMat);
-        col.position.set(x, 3.0, 0);
-        col.castShadow = true;
-        ductileBldg.add(col);
+
+      for (let pos of colPositions) {
+        // Foundation Footing Pad
+        const footGeo = new THREE.BoxGeometry(1.0, 0.3, 1.0);
+        const footMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+        const foot = new THREE.Mesh(footGeo, footMat);
+        foot.position.set(pos[0], 0.15, pos[1]);
+        ductileBldg.add(foot);
+
+        for (let i = 0; i < sliceCount; i++) {
+          const sliceGeo = new THREE.BoxGeometry(colWidth, sliceH, colWidth);
+          const slice = new THREE.Mesh(sliceGeo, ducColMat);
+          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
+          slice.castShadow = true;
+          ductileBldg.add(slice);
+          ductileColSlices.push({
+            mesh: slice,
+            baseX: pos[0],
+            normY: (i + 0.5) / sliceCount
+          });
+        }
 
         // Plastic Hinge markers at top and base
-        const hingeGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16);
-        const hingeMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: 0x991b1b, emissiveIntensity: 0.5 });
-        
+        const hingeGeo = new THREE.CylinderGeometry(colWidth * 0.75, colWidth * 0.75, 0.45, 16);
+        const hingeMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: 0x991b1b, emissiveIntensity: 0.4 });
+
         const topHinge = new THREE.Mesh(hingeGeo, hingeMat);
-        topHinge.position.set(x, 5.7, 0);
+        topHinge.position.set(pos[0], totalH - 0.25, pos[1]);
         ductileBldg.add(topHinge);
         ductileHinges.push(topHinge);
 
         const botHinge = new THREE.Mesh(hingeGeo, hingeMat);
-        botHinge.position.set(x, 0.3, 0);
+        botHinge.position.set(pos[0], 0.35, pos[1]);
         ductileBldg.add(botHinge);
         ductileHinges.push(botHinge);
       }
@@ -361,14 +532,71 @@
     }
 
     // --- 2D Drawing ---
-    function drawColumn2D(c, x0, y0, x1, y1, col, lw = 3.5) {
+    function drawFrames2D(currU_el, currU_duc) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvasF.width / dpr;
+      const h = canvasF.height / dpr;
+      ctxF.clearRect(0, 0, w, h);
+
+      const baseY = h - 45;
+      const topY = 65;
+      const bay = Math.min(110, w * 0.23);
+      const halfBay = bay / 2;
+
+      // Left: Elastic Frame (cx = w * 0.28)
+      const cxEl = w * 0.28;
+      const roofXEl = cxEl + currU_el;
+
+      ctxF.strokeStyle = '#94a3b8';
+      ctxF.lineWidth = 3;
+      ctxF.beginPath(); ctxF.moveTo(cxEl - halfBay - 20, baseY); ctxF.lineTo(cxEl + halfBay + 20, baseY); ctxF.stroke();
+
+      drawColumn2DCubic(ctxF, cxEl - halfBay, baseY, roofXEl - halfBay, topY, '#334155', 8);
+      drawColumn2DCubic(ctxF, cxEl + halfBay, baseY, roofXEl + halfBay, topY, '#334155', 8);
+
+      ctxF.fillStyle = '#334155';
+      ctxF.fillRect(roofXEl - halfBay - 10, topY - 12, bay + 20, 18);
+      ctxF.fillStyle = '#fff';
+      ctxF.font = 'bold 10px monospace';
+      ctxF.textAlign = 'center';
+      ctxF.fillText('탄성 (R=1)', roofXEl, topY + 2);
+
+      // Right: Ductile Frame (cx = w * 0.72)
+      const cxDuc = w * 0.72;
+      const roofXDuc = cxDuc + currU_duc;
+
+      ctxF.strokeStyle = '#94a3b8';
+      ctxF.lineWidth = 3;
+      ctxF.beginPath(); ctxF.moveTo(cxDuc - halfBay - 20, baseY); ctxF.lineTo(cxDuc + halfBay + 20, baseY); ctxF.stroke();
+
+      drawColumn2DCubic(ctxF, cxDuc - halfBay, baseY, roofXDuc - halfBay, topY, '#059669', 4);
+      drawColumn2DCubic(ctxF, cxDuc + halfBay, baseY, roofXDuc + halfBay, topY, '#059669', 4);
+
+      // Plastic Hinges
+      ctxF.fillStyle = '#dc2626';
+      for (let x of [roofXDuc - halfBay, roofXDuc + halfBay]) {
+        ctxF.beginPath(); ctxF.arc(x, topY + 6, 5, 0, Math.PI * 2); ctxF.fill();
+      }
+      for (let x of [cxDuc - halfBay, cxDuc + halfBay]) {
+        ctxF.beginPath(); ctxF.arc(x, baseY - 6, 5, 0, Math.PI * 2); ctxF.fill();
+      }
+
+      ctxF.fillStyle = '#059669';
+      ctxF.fillRect(roofXDuc - halfBay - 10, topY - 12, bay + 20, 18);
+      ctxF.fillStyle = '#fff';
+      ctxF.font = 'bold 10px monospace';
+      ctxF.textAlign = 'center';
+      ctxF.fillText(`연성 (R=${R})`, roofXDuc, topY + 2);
+    }
+
+    function drawColumn2DCubic(c, x0, y0, x1, y1, col, lw) {
       c.strokeStyle = col;
       c.lineWidth = lw;
       c.lineCap = 'round';
       c.beginPath();
-      for (let i = 0; i <= 20; i++) {
-        const s = i / 20;
-        const h = 3 * s * s - 2 * s * s * s;
+      for (let i = 0; i <= 24; i++) {
+        const s = i / 24;
+        const h = 3 * s * s - 2 * s * s * s; // Cubic Hermite shear deformation
         const curX = x0 + (x1 - x0) * h;
         const curY = y0 + (y1 - y0) * s;
         if (i === 0) c.moveTo(curX, curY);
@@ -377,161 +605,170 @@
       c.stroke();
     }
 
-    function drawFrames2D(currU) {
-      const dpr = window.devicePixelRatio || 1;
-      const w = canvasF.width / dpr;
-      const h = canvasF.height / dpr;
-      ctxF.clearRect(0, 0, w, h);
-
-      const baseY = h - 35;
-      const topY = 60;
-      const bay = Math.min(100, w * 0.22);
-      const halfBay = bay / 2;
-
-      // Left: Elastic Frame (cx = w * 0.3)
-      const cxEl = w * 0.28;
-      const roofXEl = cxEl + currU;
-
-      ctxF.strokeStyle = '#cbd5e1';
-      ctxF.lineWidth = 2;
-      ctxF.beginPath(); ctxF.moveTo(cxEl - halfBay - 15, baseY); ctxF.lineTo(cxEl + halfBay + 15, baseY); ctxF.stroke();
-
-      drawColumn2D(ctxF, cxEl - halfBay, baseY, roofXEl - halfBay, topY, '#334155', 6);
-      drawColumn2D(ctxF, cxEl + halfBay, baseY, roofXEl + halfBay, topY, '#334155', 6);
-
-      ctxF.fillStyle = '#334155';
-      ctxF.fillRect(roofXEl - halfBay - 10, topY - 10, bay + 20, 16);
-      ctxF.fillStyle = '#fff';
-      ctxF.font = 'bold 9px monospace';
-      ctxF.textAlign = 'center';
-      ctxF.fillText('탄성 (R=1)', roofXEl, topY + 2);
-
-      // Right: Ductile Frame (cx = w * 0.72)
-      const cxDuc = w * 0.72;
-      const roofXDuc = cxDuc + currU; // EQUAL DISPLACEMENT!
-
-      ctxF.strokeStyle = '#cbd5e1';
-      ctxF.lineWidth = 2;
-      ctxF.beginPath(); ctxF.moveTo(cxDuc - halfBay - 15, baseY); ctxF.lineTo(cxDuc + halfBay + 15, baseY); ctxF.stroke();
-
-      drawColumn2D(ctxF, cxDuc - halfBay, baseY, roofXDuc - halfBay, topY, '#059669', 3.5);
-      drawColumn2D(ctxF, cxDuc + halfBay, baseY, roofXDuc + halfBay, topY, '#059669', 3.5);
-
-      // Plastic Hinges
-      ctxF.fillStyle = '#dc2626';
-      for (let x of [roofXDuc - halfBay, roofXDuc + halfBay]) {
-        ctxF.beginPath(); ctxF.arc(x, topY + 4, 4, 0, Math.PI * 2); ctxF.fill();
-      }
-      for (let x of [cxDuc - halfBay, cxDuc + halfBay]) {
-        ctxF.beginPath(); ctxF.arc(x, baseY - 4, 4, 0, Math.PI * 2); ctxF.fill();
-      }
-
-      ctxF.fillStyle = '#059669';
-      ctxF.fillRect(roofXDuc - halfBay - 10, topY - 10, bay + 20, 16);
-      ctxF.fillStyle = '#fff';
-      ctxF.font = 'bold 9px monospace';
-      ctxF.textAlign = 'center';
-      ctxF.fillText('연성 (R=5)', roofXDuc, topY + 2);
-    }
-
-    function drawHysteresisCanonical(currU, currVel) {
+    // --- Engineering F-u Hysteresis Canvas Drawing ---
+    function drawHysteresisCanonical(uEl_cm, uDuc_cm, vel) {
       const dpr = window.devicePixelRatio || 1;
       const w = canvasH.width / dpr;
       const h = canvasH.height / dpr;
       ctxH.clearRect(0, 0, w, h);
 
-      const cx = w * 0.5;
-      const cy = h * 0.5;
+      const margin = { left: 60, right: 35, top: 35, bottom: 45 };
+      const pw = w - margin.left - margin.right;
+      const ph = h - margin.top - margin.bottom;
 
-      // Axes
-      ctxH.strokeStyle = '#cbd5e1';
+      // Coordinate mappings: u from -6.5 cm to +6.5 cm, F from -4500 kN to +4500 kN
+      const uMaxAxis = 6.5;
+      const fMaxAxis = 4500;
+
+      const uToPx = uVal => margin.left + pw / 2 + (uVal / uMaxAxis) * (pw / 2);
+      const fToPx = fVal => margin.top + ph / 2 - (fVal / fMaxAxis) * (ph / 2);
+
+      const cx = margin.left + pw / 2;
+      const cy = margin.top + ph / 2;
+
+      // 1. Soft Engineering Grid
+      ctxH.strokeStyle = '#f1f5f9';
       ctxH.lineWidth = 1;
+      for (let u = -6; u <= 6; u += 2) {
+        const x = uToPx(u);
+        ctxH.beginPath(); ctxH.moveTo(x, margin.top); ctxH.lineTo(x, margin.top + ph); ctxH.stroke();
+      }
+      for (let f = -4000; f <= 4000; f += 2000) {
+        const y = fToPx(f);
+        ctxH.beginPath(); ctxH.moveTo(margin.left, y); ctxH.lineTo(margin.left + pw, y); ctxH.stroke();
+      }
+
+      // 2. Axes Lines
+      ctxH.strokeStyle = '#94a3b8';
+      ctxH.lineWidth = 1.2;
       ctxH.beginPath();
-      ctxH.moveTo(20, cy); ctxH.lineTo(w - 20, cy);
-      ctxH.moveTo(cx, 15); ctxH.lineTo(cx, h - 15);
+      ctxH.moveTo(margin.left, cy); ctxH.lineTo(margin.left + pw, cy);
+      ctxH.moveTo(cx, margin.top); ctxH.lineTo(cx, margin.top + ph);
       ctxH.stroke();
 
+      // Axis Ticks & Numbers
       ctxH.fillStyle = '#64748b';
-      ctxH.font = 'bold 9px monospace';
-      ctxH.fillText('+u (변위)', w - 45, cy - 6);
-      ctxH.fillText('+F (밑면력)', cx + 6, 25);
+      ctxH.font = '9px monospace';
+      ctxH.textAlign = 'center';
+      for (let u = -6; u <= 6; u += 2) {
+        if (u === 0) continue;
+        const x = uToPx(u);
+        ctxH.fillText(`${u}`, x, cy + 14);
+      }
+      ctxH.textAlign = 'right';
+      for (let f = -4000; f <= 4000; f += 2000) {
+        if (f === 0) continue;
+        const y = fToPx(f);
+        ctxH.fillText(`${f}`, cx - 6, y + 3);
+      }
 
-      // Elastic Slope (Steep triangle, Ve = 3686 kN)
-      ctxH.strokeStyle = '#94a3b8';
-      ctxH.lineWidth = 1.5;
-      ctxH.setLineDash([3, 3]);
+      // Axis Labels
+      ctxH.fillStyle = '#475569';
+      ctxH.font = 'bold 10px Pretendard, sans-serif';
+      ctxH.textAlign = 'right';
+      ctxH.fillText('횡변위 u (cm) →', margin.left + pw, cy - 8);
+      ctxH.textAlign = 'left';
+      ctxH.fillText('↑ 밑면전단력 F (kN)', cx + 8, margin.top + 10);
+
+      // 3. Elastic Backbone Line (Ve = 3686 kN, u = 4.8 cm)
+      const uEl_max = uMax_base;
+      const xEl_pos = uToPx(uEl_max), yEl_pos = fToPx(Ve_base);
+      const xEl_neg = uToPx(-uEl_max), yEl_neg = fToPx(-Ve_base);
+
+      // Elastic Strain Energy Triangle (Translucent Blue)
+      ctxH.fillStyle = 'rgba(59, 130, 246, 0.08)';
       ctxH.beginPath();
-      ctxH.moveTo(cx - uMax, cy + fElastic);
-      ctxH.lineTo(cx + uMax, cy - fElastic);
+      ctxH.moveTo(cx, cy);
+      ctxH.lineTo(xEl_pos, cy);
+      ctxH.lineTo(xEl_pos, yEl_pos);
+      ctxH.closePath();
+      ctxH.fill();
+
+      ctxH.strokeStyle = '#64748b';
+      ctxH.lineWidth = 1.8;
+      ctxH.setLineDash([4, 3]);
+      ctxH.beginPath();
+      ctxH.moveTo(xEl_neg, yEl_neg);
+      ctxH.lineTo(xEl_pos, yEl_pos);
       ctxH.stroke();
       ctxH.setLineDash([]);
 
-      ctxH.fillStyle = '#64748b';
-      ctxH.font = 'bold 9px monospace';
-      ctxH.fillText('탄성선 (R=1, Ve = 3,686 kN)', cx + 25, cy - fElastic + 10);
+      // 4. Ductile Bilinear Hysteresis Loop
+      const Vy = Ve_base / R;
+      const uy = uEl_max / R;
+      const uDuc_max = (Tn >= 0.5) ? uMax_base : (uMax_base * (R * R + 1) / (2 * R * R));
 
-      // Elasto-plastic Hysteresis Loop Background (R=5, Vy = 737 kN)
-      ctxH.fillStyle = 'rgba(5, 150, 105, 0.12)';
+      const xDuc_y_pos = uToPx(uy), yDuc_y_pos = fToPx(Vy);
+      const xDuc_m_pos = uToPx(uDuc_max), yDuc_m_pos = fToPx(Vy);
+      const xDuc_y_neg = uToPx(-uy), yDuc_y_neg = fToPx(-Vy);
+      const xDuc_m_neg = uToPx(-uDuc_max), yDuc_m_neg = fToPx(-Vy);
+
+      // Hysteresis loop quadrilateral
+      // Unloading from +uDuc_max down by 2*Vy over 2*uy
+      const xUnload_bot = uToPx(uDuc_max - 2 * uy);
+      const xReload_top = uToPx(-uDuc_max + 2 * uy);
+
+      // Shaded Dissipated Energy Area (Translucent Emerald)
+      ctxH.fillStyle = 'rgba(16, 185, 129, 0.16)';
       ctxH.strokeStyle = '#059669';
-      ctxH.lineWidth = 2.5;
-
+      ctxH.lineWidth = 2.4;
       ctxH.beginPath();
-      ctxH.moveTo(cx - uMax, cy + fy);
-      ctxH.lineTo(cx - uMax + 2 * uy, cy - fy);
-      ctxH.lineTo(cx + uMax, cy - fy);
-      ctxH.lineTo(cx + uMax - 2 * uy, cy + fy);
+      ctxH.moveTo(xDuc_m_neg, yDuc_m_neg);
+      ctxH.lineTo(xReload_top, yDuc_y_pos);
+      ctxH.lineTo(xDuc_m_pos, yDuc_y_pos);
+      ctxH.lineTo(xUnload_bot, yDuc_m_neg);
       ctxH.closePath();
       ctxH.fill();
       ctxH.stroke();
 
-      // Equal displacement vertical guide line at uMax
+      // 5. Equal Displacement Vertical Alignment Line
       ctxH.strokeStyle = '#2563eb';
-      ctxH.lineWidth = 1.2;
-      ctxH.setLineDash([2, 2]);
+      ctxH.lineWidth = 1.4;
+      ctxH.setLineDash([3, 3]);
       ctxH.beginPath();
-      ctxH.moveTo(cx + uMax, 25);
-      ctxH.lineTo(cx + uMax, h - 25);
-      ctxH.moveTo(cx - uMax, 25);
-      ctxH.lineTo(cx - uMax, h - 25);
+      ctxH.moveTo(xEl_pos, margin.top);
+      ctxH.lineTo(xEl_pos, margin.top + ph);
       ctxH.stroke();
       ctxH.setLineDash([]);
 
-      ctxH.fillStyle = '#2563eb';
-      ctxH.font = 'bold 10px Pretendard, sans-serif';
+      // Equal displacement annotation badge
+      ctxH.fillStyle = '#1e40af';
+      ctxH.font = 'bold 9.5px Pretendard, sans-serif';
       ctxH.textAlign = 'center';
-      ctxH.fillText('등변위 ±umax = 4.8 cm', cx + uMax, h - 8);
+      ctxH.fillText(`등변위 정렬선 u = ${uMax_base.toFixed(1)}cm`, xEl_pos, margin.top + ph - 8);
 
-      // Tracer Dots
-      // 1. Elastic Dot (Grey)
-      const fElNow = (currU / uMax) * fElastic;
-      const elPx = cx + currU;
-      const elPy = cy - fElNow;
+      // 6. Current Dynamic Tracer Points
+      // Elastic Point
+      const fEl_now = (uEl_cm / uEl_max) * Ve_base;
+      const ptElX = uToPx(uEl_cm), ptElY = fToPx(fEl_now);
 
-      ctxH.fillStyle = '#475569';
-      ctxH.beginPath();
-      ctxH.arc(elPx, elPy, 5, 0, Math.PI * 2);
-      ctxH.fill();
+      ctxH.fillStyle = '#334155';
+      ctxH.beginPath(); ctxH.arc(ptElX, ptElY, 5.5, 0, Math.PI * 2); ctxH.fill();
 
-      // 2. Ductile Yielding Dot (Emerald)
-      const fDucNow = getHysteresisForce(currU, currVel);
-      const ducPx = cx + currU;
-      const ducPy = cy - fDucNow;
+      // Ductile Yielding Point
+      let fDuc_now = 0;
+      if (vel >= 0) {
+        fDuc_now = -Vy + (Vy / uy) * (uDuc_cm - (-uDuc_max + 2 * uy));
+        fDuc_now = Math.min(Vy, Math.max(-Vy, fDuc_now));
+      } else {
+        fDuc_now = Vy - (Vy / uy) * ((uDuc_max - 2 * uy) - uDuc_cm);
+        fDuc_now = Math.max(-Vy, Math.min(Vy, fDuc_now));
+      }
+      const ptDucX = uToPx(uDuc_cm), ptDucY = fToPx(fDuc_now);
 
       ctxH.fillStyle = '#059669';
-      ctxH.beginPath();
-      ctxH.arc(ducPx, ducPy, 6, 0, Math.PI * 2);
-      ctxH.fill();
+      ctxH.beginPath(); ctxH.arc(ptDucX, ptDucY, 6.5, 0, Math.PI * 2); ctxH.fill();
 
-      // Collision-free Auto-badge for Hysteresis
-      const plotRect = { left: 20, top: 15, width: w - 40, height: h - 30 };
-      const boxSize = { w: 140, h: 36 };
-      const placement = DynamicsChartCanonical.getBestCalloutPlacement(ducPx, ducPy, boxSize.w, boxSize.h, plotRect, [
-        { x: elPx, y: elPy },
-        { x: ducPx, y: ducPy }
+      // Dynamic Collision-free Auto-badge
+      const plotRect = { left: margin.left, top: margin.top, width: pw, height: ph };
+      const boxSize = { w: 155, h: 42 };
+      const placement = DynamicsChartCanonical.getBestCalloutPlacement(ptDucX, ptDucY, boxSize.w, boxSize.h, plotRect, [
+        { x: ptElX, y: ptElY },
+        { x: ptDucX, y: ptDucY }
       ]);
 
-      DynamicsChartCanonical.drawLeaderLine(ctxH, ducPx, ducPy, placement.x, placement.y, boxSize.w, boxSize.h, '#059669');
-      DynamicsChartCanonical.drawAutoBadge(ctxH, '항복 에너지 소산 루프\nVy = 737 kN (1/R 경감)', placement.x, placement.y, {
+      DynamicsChartCanonical.drawLeaderLine(ctxH, ptDucX, ptDucY, placement.x, placement.y, boxSize.w, boxSize.h, '#059669');
+      DynamicsChartCanonical.drawAutoBadge(ctxH, `항복 소산 루프 (R=${R})\nVy = ${Math.round(Vy)} kN | u = ${uDuc_cm.toFixed(1)}cm`, placement.x, placement.y, {
         textColor: '#065f46',
         borderColor: '#6ee7b7',
         fillColor: 'rgba(236, 253, 245, 0.95)',
@@ -543,34 +780,46 @@
       });
     }
 
-    // --- Master Loop ---
+    // --- Master Animation Loop ---
     function animate() {
       requestAnimationFrame(animate);
-      if (isRunning) t += 0.035;
+      if (isRunning) t += 0.032;
 
-      const currU = Math.sin(t) * uMax;
-      const currVel = Math.cos(t) * uMax;
+      const Tc = 0.5;
+      const uDuc_max = (Tn >= Tc) ? uMax_base : (uMax_base * (R * R + 1) / (2 * R * R));
+
+      const currU_el = Math.sin(t) * uMax_base;
+      const currU_duc = Math.sin(t) * uDuc_max;
+      const currVel = Math.cos(t);
 
       if (currentFrameView === '2D') {
-        drawFrames2D(currU);
+        drawFrames2D(currU_el * 15, currU_duc * 15);
       } else if (renderer && camera) {
         controls.update();
         const ampMultiplier = (threeAmpScale / 70.0);
-        const drift3D = (currU / uMax) * 1.5 * ampMultiplier;
+        const topDriftEl = (currU_el / uMax_base) * 1.8 * ampMultiplier;
+        const topDriftDuc = (currU_duc / uMax_base) * 1.8 * ampMultiplier;
 
-        // Both buildings experience THE EXACT SAME displacement (Equal Displacement Rule!)
+        // Authentic double-curvature shear flexure for Elastic columns
+        elasticColSlices.forEach(item => {
+          const h = 3 * item.normY * item.normY - 2 * item.normY * item.normY * item.normY;
+          item.mesh.position.x = item.baseX + topDriftEl * h;
+        });
         if (elasticBldg) {
-          elasticBldg.position.x = -4.5 + drift3D;
-          elasticBldg.rotation.z = -drift3D * 0.04;
+          elasticBldg.children[0].position.x = topDriftEl; // Roof slab translates horizontally
         }
 
+        // Authentic double-curvature shear flexure for Ductile columns
+        ductileColSlices.forEach(item => {
+          const h = 3 * item.normY * item.normY - 2 * item.normY * item.normY * item.normY;
+          item.mesh.position.x = item.baseX + topDriftDuc * h;
+        });
         if (ductileBldg) {
-          ductileBldg.position.x = 4.5 + drift3D;
-          ductileBldg.rotation.z = -drift3D * 0.04;
+          ductileBldg.children[0].position.x = topDriftDuc; // Roof slab translates horizontally
 
-          // Pulse plastic hinges when yielding
-          const isYielding = Math.abs(currU) > uy;
-          const hingeGlow = isYielding ? 1.5 : 0.2;
+          // Plastic hinges glow intensely when yielding
+          const isYielding = Math.abs(currU_duc) > (uMax_base / R);
+          const hingeGlow = isYielding ? 1.8 : 0.3;
           ductileHinges.forEach(h => {
             h.material.emissiveIntensity = hingeGlow;
           });
@@ -579,10 +828,10 @@
         renderer.render(scene, camera);
       }
 
-      drawHysteresisCanonical(currU, currVel);
+      drawHysteresisCanonical(currU_el, currU_duc, currVel);
     }
 
-    // --- Awwwards Pack: Zentry 3D Tilt & Damping on Cards ---
+    // --- Awwwards Pack: Zentry 3D Tilt ---
     function initZentryCards() {
       const cards = document.querySelectorAll('.zentry-card');
       cards.forEach(card => {
@@ -590,8 +839,8 @@
           const rect = card.getBoundingClientRect();
           const x = e.clientX - rect.left - rect.width / 2;
           const y = e.clientY - rect.top - rect.height / 2;
-          const rotX = -(y / (rect.height / 2)) * 4.5;
-          const rotY = (x / (rect.width / 2)) * 4.5;
+          const rotX = -(y / (rect.height / 2)) * 4.0;
+          const rotY = (x / (rect.width / 2)) * 4.0;
           card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
         });
         card.addEventListener('mouseleave', () => {
@@ -603,6 +852,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       initThree();
       initZentryCards();
+      updateMetrics();
       setTimeout(resizeCanvases, 50);
       animate();
     });

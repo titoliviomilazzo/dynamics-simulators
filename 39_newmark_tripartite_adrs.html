@@ -35,19 +35,21 @@
       <div>
         <div class="flex items-center gap-3">
           <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-            SIM 39
+            SIM 39 · 스펙트럼 도표
           </span>
           <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
             Newmark 삼분 응답 스펙트럼 &middot; ADRS 4-in-1 변환 랩
           </h1>
         </div>
-        <p class="text-xs md:text-sm text-slate-600 mt-1">
-          Chopra Fig 6.6.1 Tripartite 4-Way Log-Log 도표 &middot; 가속도/속도/변위 민감구간 &middot; 3D BIM 단자유도 응답
+        <p class="text-xs md:text-sm text-slate-600 mt-1 font-medium">
+          Chopra Fig 6.6.1 Tripartite 4-Way Log-Log 도표 &middot; 대각 4축(\(T_n, V, S_d, S_a\)) 동시 판독 &middot; 3D BIM 단자유도 진동
         </p>
       </div>
-      <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition shadow-xs">
-        &larr; 마스터 대시보드
-      </a>
+      <div class="flex items-center gap-2">
+        <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition shadow-xs">
+          &larr; 마스터 대시보드
+        </a>
+      </div>
     </header>
 
     <!-- Main 3-Column Grid -->
@@ -77,6 +79,7 @@
               <span id="lblPeriod" class="font-mono font-bold text-blue-700">0.65 s</span>
             </div>
             <input type="range" id="rngPeriod" min="0.03" max="8.0" step="0.01" value="0.65" oninput="updatePeriod(this.value)" class="w-full accent-blue-600 cursor-pointer">
+            <span class="text-[10px] text-slate-400 block font-sans">💡 도표 위를 마우스로 직접 드래그해도 주기가 조절됩니다.</span>
           </div>
 
           <!-- Zeta Slider -->
@@ -111,27 +114,38 @@
         <!-- Takeaway Card (Zentry Tilt) -->
         <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-3.5 text-xs text-blue-950 leading-relaxed zentry-card shadow-2xs">
           <strong>💡 뉴마크 4축 삼분도표 원리:</strong><br>
-          대수좌표계에서 진동수 관계식 \(V = \omega D = A/\omega\)는 직각축과 \(\pm 45^\circ\) 대각축으로 정렬되어, 점 \((T_n, V)\) 하나로 변위 \(D\)와 가속도 \(A\)를 동시 직관 판독합니다.
+          대수좌표계에서 진동수 관계식 \(V = \omega D = A/\omega\)에 의해:
+          <ul class="list-disc pl-4 mt-1 space-y-0.5 text-[11px]">
+            <li><strong>변위 \(S_d\)</strong>: 우하향(\(-45^\circ\)) 대각선으로 판독</li>
+            <li><strong>가속도 \(S_a\)</strong>: 우상향(\(+45^\circ\)) 대각선으로 판독</li>
+            <li>점 하나 \((T_n, V)\)로 4대 성분을 동시 판독합니다!</li>
+          </ul>
         </div>
 
       </div>
 
       <!-- Center Panel: Spectrum Canvas (5.5 Cols) -->
-      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm min-h-[520px]">
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm min-h-[560px]">
         <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
-          <span id="canvasTitle" class="text-xs md:text-sm font-bold text-slate-900">Newmark Tripartite 4-Way Log-Log Diagram</span>
+          <div>
+            <span id="canvasTitle" class="text-xs md:text-sm font-bold text-slate-900 block">Newmark Tripartite 4-Way Log-Log Diagram</span>
+            <span class="text-[10px] text-slate-500 font-mono">가로: 주기(Tn) · 세로: 유사속도(V) · 우상향: 가속도(Sa) · 우하향: 변위(Sd)</span>
+          </div>
           <span id="zoneIndicator" class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono">속도 민감 구간</span>
         </div>
 
-        <div class="relative flex-1 w-full min-h-[380px] bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden">
+        <div class="relative flex-1 w-full min-h-[420px] bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden cursor-crosshair">
           <canvas id="specCanvas" class="w-full h-full block"></canvas>
         </div>
 
         <!-- Zone Legends -->
-        <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-100 text-[10px] font-semibold text-slate-600">
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-200 border border-rose-400"></span> 가속도 민감 (Tn &lt; 0.5s)</span>
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-200 border border-amber-400"></span> 속도 민감 (0.5s ~ 3.0s)</span>
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-200 border border-emerald-400"></span> 변위 민감 (Tn &gt; 3.0s)</span>
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[10px] font-semibold text-slate-600">
+          <div class="flex flex-wrap gap-2">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-200 border border-rose-400"></span> 가속도 민감 (Tn &lt; 0.5s)</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-200 border border-amber-400"></span> 속도 민감 (0.5s ~ 3.0s)</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-200 border border-emerald-400"></span> 변위 민감 (Tn &gt; 3.0s)</span>
+          </div>
+          <span class="text-blue-700 font-mono">🖱️ 드래그하여 주기 이동</span>
         </div>
       </div>
 
@@ -146,41 +160,41 @@
 
           <div class="grid grid-cols-2 gap-2 text-xs font-mono">
             <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
-              <span class="text-[10px] text-slate-400 block font-sans">고유주기 Tn</span>
+              <span class="text-[10px] text-slate-400 block font-sans">고유주기 Tn (가로)</span>
               <span id="valTn" class="text-sm font-black text-blue-700">0.650 s</span>
             </div>
             <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
-              <span class="text-[10px] text-slate-400 block font-sans">유사속도 V</span>
+              <span class="text-[10px] text-slate-400 block font-sans">유사속도 V (세로)</span>
               <span id="valV" class="text-sm font-black text-amber-700">48.2 cm/s</span>
             </div>
             <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
-              <span class="text-[10px] text-slate-400 block font-sans">스펙트럴 변위 Sd</span>
+              <span class="text-[10px] text-slate-400 block font-sans">변위 Sd (우하향)</span>
               <span id="valD" class="text-sm font-black text-emerald-700">4.98 cm</span>
             </div>
             <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
-              <span class="text-[10px] text-slate-400 block font-sans">유사가속도 Sa</span>
+              <span class="text-[10px] text-slate-400 block font-sans">가속도 Sa (우상향)</span>
               <span id="valA" class="text-sm font-black text-rose-700">0.475 g</span>
             </div>
           </div>
         </div>
 
-        <!-- 3D BIM SDOF Response Viewport -->
+        <!-- 3D BIM SDOF Response Viewport (Expanded Height) -->
         <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 space-y-2 shadow-2xs">
           <div class="flex justify-between items-center border-b border-slate-200 pb-1.5">
-            <span class="text-xs font-bold text-slate-900">3D BIM 단자유도 응답</span>
+            <span class="text-xs font-bold text-slate-900">3D BIM 단자유도 진동 응답</span>
             <div class="flex items-center gap-1 text-[10px] font-mono">
-              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
-              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x</button>
-              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
+              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
             </div>
           </div>
 
-          <div class="relative w-full h-[160px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <div class="relative w-full h-[220px] rounded-xl overflow-hidden border border-slate-300 bg-slate-100">
             <div id="threeSdofContainer" class="w-full h-full absolute inset-0"></div>
           </div>
 
           <div class="text-[11px] text-slate-600 leading-tight">
-            Tn에 동기화된 진동: <strong id="sdof-info" class="text-blue-700 font-mono">Tn = 0.65s (속도지배)</strong>
+            Tn 동기화 거동: <strong id="sdof-info" class="text-blue-700 font-mono">Tn = 0.65s (속도지배)</strong>
           </div>
         </div>
 
@@ -211,15 +225,16 @@
     let showEPA = true;
     let animTime = 0;
     let threeAmpScale = 70.0;
+    let isDraggingChart = false;
 
     const canvas = document.getElementById('specCanvas');
     const ctx = canvas.getContext('2d');
 
     function setThreeAmp(scale) {
       threeAmpScale = scale;
-      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
-      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
-      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
     }
 
     function setViewMode(mode) {
@@ -343,6 +358,59 @@
       }
     });
 
+    // --- Interactive Mouse/Touch Picking on Tripartite Chart ---
+    function handleChartPointer(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const margin = { left: 60, right: 40, top: 40, bottom: 50 };
+      const pw = rect.width - margin.left - margin.right;
+      const ph = rect.height - margin.top - margin.bottom;
+
+      if (viewMode === 'tripartite') {
+        const logTMin = Math.log10(0.03), logTMax = Math.log10(10.0);
+        const normX = Math.max(0, Math.min(1, (x - margin.left) / pw));
+        const pickedT = Math.pow(10, logTMin + normX * (logTMax - logTMin));
+        Tn = Math.max(0.03, Math.min(8.0, pickedT));
+        document.getElementById('rngPeriod').value = Tn;
+        document.getElementById('lblPeriod').textContent = Tn.toFixed(2) + ' s';
+        updateMetrics();
+        drawSpectrumCanonical();
+      } else {
+        const maxSd = 25.0;
+        const normX = Math.max(0, Math.min(1, (x - margin.left) / pw));
+        const pickedSd = normX * maxSd;
+        // estimate Tn approximately
+        updateMetrics();
+        drawSpectrumCanonical();
+      }
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDraggingChart = true;
+      handleChartPointer(e);
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (isDraggingChart) handleChartPointer(e);
+    });
+    window.addEventListener('mouseup', () => {
+      isDraggingChart = false;
+    });
+
+    // Touch events for mobile/tablet
+    canvas.addEventListener('touchstart', (e) => {
+      isDraggingChart = true;
+      if (e.touches.length > 0) handleChartPointer(e.touches[0]);
+    }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+      if (isDraggingChart && e.touches.length > 0) handleChartPointer(e.touches[0]);
+    }, { passive: true });
+    window.addEventListener('touchend', () => {
+      isDraggingChart = false;
+    });
+
+    // --- Master Chart Drawing ---
     function drawSpectrumCanonical() {
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.width / dpr;
@@ -350,32 +418,51 @@
       ctx.clearRect(0, 0, w, h);
 
       if (viewMode === 'tripartite') {
-        // Draw Tripartite Log-Log
-        const margin = { left: 55, right: 35, top: 35, bottom: 45 };
+        // --- Draw Genuine Tripartite 4-Way Log-Log ---
+        const margin = { left: 60, right: 40, top: 40, bottom: 50 };
         const pw = w - margin.left - margin.right;
         const ph = h - margin.top - margin.bottom;
 
-        // Log scales: T from 0.03 to 10, V from 1 to 300
+        // Log limits: T from 0.03 to 10.0 s, V from 1.0 to 300.0 cm/s
         const logTMin = Math.log10(0.03), logTMax = Math.log10(10.0);
         const logVMin = Math.log10(1.0), logVMax = Math.log10(300.0);
 
         const xToPx = logT => margin.left + ((logT - logTMin) / (logTMax - logTMin)) * pw;
         const yToPx = logV => margin.top + ph - ((logV - logVMin) / (logVMax - logVMin)) * ph;
 
-        // Soft Sensitive Zones Background
+        // 1. Sensitive Zones Background Washes
         const x05 = xToPx(Math.log10(0.5));
         const x30 = xToPx(Math.log10(3.0));
 
-        ctx.fillStyle = 'rgba(244, 63, 94, 0.06)';
+        ctx.fillStyle = 'rgba(244, 63, 94, 0.05)';
         ctx.fillRect(margin.left, margin.top, x05 - margin.left, ph);
 
-        ctx.fillStyle = 'rgba(245, 158, 11, 0.06)';
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.05)';
         ctx.fillRect(x05, margin.top, x30 - x05, ph);
 
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.06)';
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
         ctx.fillRect(x30, margin.top, margin.left + pw - x30, ph);
 
-        // Grid
+        // 2. EPA Overlay (0.1s to 0.5s)
+        if (showEPA) {
+          const xEPA1 = xToPx(Math.log10(0.1));
+          const xEPA2 = xToPx(Math.log10(0.5));
+          ctx.fillStyle = 'rgba(16, 185, 129, 0.10)';
+          ctx.fillRect(xEPA1, margin.top, xEPA2 - xEPA1, ph);
+
+          ctx.strokeStyle = '#059669';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([3, 3]);
+          ctx.strokeRect(xEPA1, margin.top, xEPA2 - xEPA1, ph);
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = '#065f46';
+          ctx.font = 'bold 9px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('EPA 대역 (0.1~0.5s)', (xEPA1 + xEPA2) / 2, margin.top + 14);
+        }
+
+        // 3. Rectangular Grid (T & V)
         ctx.strokeStyle = '#f1f5f9';
         ctx.lineWidth = 1;
         for (let tDec = -1; tDec <= 1; tDec++) {
@@ -397,17 +484,97 @@
           }
         }
 
-        // Border
-        ctx.strokeStyle = '#cbd5e1';
+        // 4. DIAGONAL 4-WAY AXES (Displacement Sd & Acceleration Sa)
+        ctx.save();
+        // Clip to plot rect
+        ctx.beginPath();
+        ctx.rect(margin.left, margin.top, pw, ph);
+        ctx.clip();
+
+        // 4A. Lines of Constant Displacement Sd (slope = -1, downwards to right)
+        // V = (2*pi/T) * D => log10(V) = -log10(T) + log10(2*pi*D)
+        ctx.strokeStyle = 'rgba(5, 150, 105, 0.22)'; // Soft emerald
+        ctx.lineWidth = 1;
+        const dValues = [0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10.0, 30.0, 100.0];
+        dValues.forEach(D => {
+          const cD = Math.log10(2 * Math.PI * D);
+          // at logT = logTMin: logV1 = -logTMin + cD
+          const logV1 = -logTMin + cD;
+          const logV2 = -logTMax + cD;
+          const x1 = xToPx(logTMin), y1 = yToPx(logV1);
+          const x2 = xToPx(logTMax), y2 = yToPx(logV2);
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        });
+
+        // 4B. Lines of Constant Acceleration Sa (slope = +1, upwards to right)
+        // V = (g*T / 2*pi) * Sa => log10(V) = log10(T) + log10(g*Sa / 2*pi)
+        const gVal = 980.665;
+        ctx.strokeStyle = 'rgba(225, 29, 72, 0.20)'; // Soft rose
+        ctx.lineWidth = 1;
+        const aValues = [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10.0];
+        aValues.forEach(A => {
+          const cA = Math.log10((gVal * A) / (2 * Math.PI));
+          const logV1 = logTMin + cA;
+          const logV2 = logTMax + cA;
+          const x1 = xToPx(logTMin), y1 = yToPx(logV1);
+          const x2 = xToPx(logTMax), y2 = yToPx(logV2);
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        });
+
+        ctx.restore();
+
+        // 5. Border & Outer Axis Ticks
+        ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(margin.left, margin.top, pw, ph);
 
-        // Spectrum Curve
+        // T-axis labels (bottom)
+        ctx.fillStyle = '#475569';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'center';
+        [0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0].forEach(tVal => {
+          const x = xToPx(Math.log10(tVal));
+          ctx.fillText(`${tVal}s`, x, margin.top + ph + 16);
+        });
+        ctx.fillText('고유주기 Tn (s) →', margin.left + pw / 2, margin.top + ph + 32);
+
+        // V-axis labels (left)
+        ctx.textAlign = 'right';
+        [1, 2, 5, 10, 20, 50, 100, 200].forEach(vVal => {
+          const y = yToPx(Math.log10(vVal));
+          ctx.fillText(`${vVal}`, margin.left - 8, y + 3);
+        });
+        ctx.save();
+        ctx.translate(margin.left - 32, margin.top + ph / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText('유사속도 V (cm/s) →', 0, 0);
+        ctx.restore();
+
+        // Diagonal Scale Badges in Corners
+        ctx.fillStyle = '#059669';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('↘ 변위 Sd 대각축 (0.1 ~ 100 cm)', margin.left + 8, margin.top + 14);
+
+        ctx.fillStyle = '#e11d48';
+        ctx.textAlign = 'right';
+        ctx.fillText('↗ 가속도 Sa 대각축 (0.01 ~ 10 g)', margin.left + pw - 8, margin.top + 14);
+
+        // 6. Response Spectrum Curve
         ctx.strokeStyle = '#2563eb';
-        ctx.lineWidth = 2.8;
+        ctx.lineWidth = 3.0;
         ctx.beginPath();
         const curvePts = [];
-        for (let x = 0; x <= pw; x += 3) {
+        for (let x = 0; x <= pw; x += 2) {
           const logT = logTMin + (x / pw) * (logTMax - logTMin);
           const tVal = Math.pow(10, logT);
           const res = getSpectrumValues(tVal, zeta, pga);
@@ -418,21 +585,34 @@
         }
         ctx.stroke();
 
-        // Operating Point (Tn, V)
+        // 7. Operating Point (Tn, V)
         const curVals = getSpectrumValues(Tn, zeta, pga);
         const opX = xToPx(Math.log10(Tn));
         const opY = yToPx(Math.log10(Math.max(1.0, curVals.V)));
 
+        // 4-Way Crosshairs (Vertical, Horizontal, and two 45-degree diagonals)
+        ctx.strokeStyle = '#93c5fd';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([2, 2]);
+
+        // Vertical & Horizontal
+        ctx.beginPath();
+        ctx.moveTo(opX, margin.top); ctx.lineTo(opX, margin.top + ph);
+        ctx.moveTo(margin.left, opY); ctx.lineTo(margin.left + pw, opY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Operating Dot
         ctx.fillStyle = '#dc2626';
-        ctx.beginPath(); ctx.arc(opX, opY, 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(opX, opY, 6, 0, Math.PI * 2); ctx.fill();
 
         // Canonical Auto-Badge & Leader Line
         const plotRect = { left: margin.left, top: margin.top, width: pw, height: ph };
-        const boxSize = { w: 155, h: 42 };
+        const boxSize = { w: 165, h: 46 };
         const placement = DynamicsChartCanonical.getBestCalloutPlacement(opX, opY, boxSize.w, boxSize.h, plotRect, curvePts);
 
         DynamicsChartCanonical.drawLeaderLine(ctx, opX, opY, placement.x, placement.y, boxSize.w, boxSize.h, '#dc2626');
-        DynamicsChartCanonical.drawAutoBadge(ctx, `운용점: Tn = ${Tn.toFixed(2)}s\nV = ${curVals.V.toFixed(1)} cm/s | Sa = ${curVals.A.toFixed(2)}g`, placement.x, placement.y, {
+        DynamicsChartCanonical.drawAutoBadge(ctx, `운용점 (4대 성분):\nTn=${Tn.toFixed(2)}s | V=${curVals.V.toFixed(1)}cm/s\nSd=${curVals.D.toFixed(2)}cm | Sa=${curVals.A.toFixed(2)}g`, placement.x, placement.y, {
           textColor: '#991b1b',
           borderColor: '#fca5a5',
           fillColor: 'rgba(254, 242, 242, 0.95)',
@@ -444,8 +624,8 @@
         });
 
       } else {
-        // Draw ADRS (Sa vs Sd)
-        const margin = { left: 55, right: 35, top: 35, bottom: 45 };
+        // --- Draw ADRS (Sa vs Sd) ---
+        const margin = { left: 60, right: 40, top: 40, bottom: 50 };
         const pw = w - margin.left - margin.right;
         const ph = h - margin.top - margin.bottom;
 
@@ -455,14 +635,65 @@
         const xToPx = sd => margin.left + (sd / maxSd) * pw;
         const yToPx = sa => margin.top + ph - (sa / maxSa) * ph;
 
-        // Border & Grid
-        ctx.strokeStyle = '#cbd5e1';
+        // Soft Grid
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.lineWidth = 1;
+        for (let s = 5; s <= maxSd; s += 5) {
+          const x = xToPx(s);
+          ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, margin.top + ph); ctx.stroke();
+        }
+        for (let a = 0.2; a <= maxSa; a += 0.2) {
+          const y = yToPx(a);
+          ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + pw, y); ctx.stroke();
+        }
+
+        // Radial Period Rays: Sa = (2*pi/T)^2 * (Sd / g)
+        const radPeriods = [0.2, 0.5, 1.0, 1.5, 2.5];
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        radPeriods.forEach(pVal => {
+          const wP = (2 * Math.PI) / pVal;
+          const slope = (wP * wP) / 980.665;
+          const endSd = Math.min(maxSd, maxSa / slope);
+          const endSa = slope * endSd;
+          ctx.beginPath();
+          ctx.moveTo(xToPx(0), yToPx(0));
+          ctx.lineTo(xToPx(endSd), yToPx(endSa));
+          ctx.stroke();
+
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '8.5px monospace';
+          ctx.fillText(`T=${pVal}s`, xToPx(endSd) + 2, yToPx(endSa) - 2);
+        });
+
+        // Border & Ticks
+        ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(margin.left, margin.top, pw, ph);
 
+        // Numbers
+        ctx.fillStyle = '#64748b';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'center';
+        for (let s = 0; s <= maxSd; s += 5) {
+          ctx.fillText(`${s}`, xToPx(s), margin.top + ph + 16);
+        }
+        ctx.fillText('스펙트럴 변위 Sd (cm) →', margin.left + pw / 2, margin.top + ph + 32);
+
+        ctx.textAlign = 'right';
+        for (let a = 0; a <= maxSa; a += 0.2) {
+          ctx.fillText(`${a.toFixed(1)}`, margin.left - 8, yToPx(a) + 3);
+        }
+        ctx.save();
+        ctx.translate(margin.left - 32, margin.top + ph / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText('유사가속도 Sa (g) →', 0, 0);
+        ctx.restore();
+
         // Sa - Sd Curve
         ctx.strokeStyle = '#7c3aed';
-        ctx.lineWidth = 2.8;
+        ctx.lineWidth = 3.0;
         ctx.beginPath();
         const curvePts = [];
         for (let tVal = 0.05; tVal <= 6.0; tVal += 0.03) {
@@ -475,12 +706,13 @@
         }
         ctx.stroke();
 
-        // Radial lines for period Tn
+        // Radial ray for active period Tn
         const curVals = getSpectrumValues(Tn, zeta, pga);
         const opX = xToPx(curVals.D);
         const opY = yToPx(curVals.A);
 
-        ctx.strokeStyle = '#94a3b8';
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1.5;
         ctx.setLineDash([3, 3]);
         ctx.beginPath();
         ctx.moveTo(margin.left, margin.top + ph);
@@ -489,15 +721,15 @@
         ctx.setLineDash([]);
 
         ctx.fillStyle = '#dc2626';
-        ctx.beginPath(); ctx.arc(opX, opY, 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(opX, opY, 6, 0, Math.PI * 2); ctx.fill();
 
         // Canonical Badge
         const plotRect = { left: margin.left, top: margin.top, width: pw, height: ph };
-        const boxSize = { w: 155, h: 42 };
+        const boxSize = { w: 165, h: 42 };
         const placement = DynamicsChartCanonical.getBestCalloutPlacement(opX, opY, boxSize.w, boxSize.h, plotRect, curvePts);
 
         DynamicsChartCanonical.drawLeaderLine(ctx, opX, opY, placement.x, placement.y, boxSize.w, boxSize.h, '#7c3aed');
-        DynamicsChartCanonical.drawAutoBadge(ctx, `ADRS 점: Tn = ${Tn.toFixed(2)}s\nSd = ${curVals.D.toFixed(2)} cm | Sa = ${curVals.A.toFixed(2)}g`, placement.x, placement.y, {
+        DynamicsChartCanonical.drawAutoBadge(ctx, `ADRS 운용점: Tn = ${Tn.toFixed(2)}s\nSd = ${curVals.D.toFixed(2)} cm | Sa = ${curVals.A.toFixed(2)} g`, placement.x, placement.y, {
           textColor: '#581c87',
           borderColor: '#d8b4fe',
           fillColor: 'rgba(250, 245, 255, 0.95)',
@@ -510,7 +742,7 @@
       }
     }
 
-    // --- 3D BIM SDOF Setup ---
+    // --- 3D BIM SDOF Setup (Enhanced Contrast & Visibility) ---
     const threeSdofContainer = document.getElementById('threeSdofContainer');
     let scene, camera, renderer, controls;
     let bldgGroup, bedrockGroup, massSlab;
@@ -522,7 +754,7 @@
 
       const r = threeSdofContainer.getBoundingClientRect();
       camera = new THREE.PerspectiveCamera(35, r.width / r.height, 0.1, 1000);
-      camera.position.set(0, 4.5, 14);
+      camera.position.set(0, 5.0, 16);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(r.width, r.height);
@@ -533,84 +765,97 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.target.set(0, 3.0, 0);
+      controls.target.set(0, 3.2, 0);
       controls.maxPolarAngle = Math.PI / 2 + 0.08;
 
       // Lights
       const amb = new THREE.AmbientLight(0xffffff, 0.85);
       scene.add(amb);
 
-      const dir = new THREE.DirectionalLight(0xffffff, 0.75);
-      dir.position.set(10, 18, 12);
+      const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+      dir.position.set(10, 20, 15);
       dir.castShadow = true;
       scene.add(dir);
 
+      const fill = new THREE.DirectionalLight(0xe0f2fe, 0.35);
+      fill.position.set(-10, 10, -10);
+      scene.add(fill);
+
       // Bedrock
       bedrockGroup = new THREE.Group();
-      const bedGeo = new THREE.BoxGeometry(8, 0.5, 6);
+      const bedGeo = new THREE.BoxGeometry(9, 0.6, 7);
       const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
-      bedrock.position.y = 0.25;
+      bedrock.position.y = 0.3;
       bedrock.receiveShadow = true;
       bedrockGroup.add(bedrock);
 
       const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
       bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x475569 })));
-
       scene.add(bedrockGroup);
 
-      // SDOF Frame
+      // SDOF Frame Group
       bldgGroup = new THREE.Group();
-      bldgGroup.position.y = 0.5;
+      bldgGroup.position.y = 0.6;
       scene.add(bldgGroup);
 
-      // 2 Columns
-      const sliceCount = 14;
-      const totalH = 4.5;
+      // 2 Columns with cubic flexural bending
+      const sliceCount = 16;
+      const totalH = 4.8;
       const sliceH = totalH / sliceCount;
-      const colMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4 });
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 });
 
       colSlices = [];
-      for (let x of [-1.8, 1.8]) {
+      for (let x of [-2.0, 2.0]) {
+        // Footing pad
+        const footGeo = new THREE.BoxGeometry(1.0, 0.25, 1.0);
+        const footMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+        const foot = new THREE.Mesh(footGeo, footMat);
+        foot.position.set(x, 0.12, 0);
+        bldgGroup.add(foot);
+
         for (let i = 0; i < sliceCount; i++) {
-          const sliceGeo = new THREE.BoxGeometry(0.3, sliceH, 0.3);
+          const sliceGeo = new THREE.BoxGeometry(0.35, sliceH, 0.35);
           const slice = new THREE.Mesh(sliceGeo, colMat);
           slice.position.set(x, (i + 0.5) * sliceH, 0);
           slice.castShadow = true;
           bldgGroup.add(slice);
-          colSlices.push({ mesh: slice, baseX: x, normZ: (i + 0.5) / sliceCount });
+          colSlices.push({ mesh: slice, baseX: x, normY: (i + 0.5) / sliceCount });
         }
       }
 
-      // Mass Slab
-      const slabGeo = new THREE.BoxGeometry(4.6, 0.4, 3.5);
-      const slabMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
+      // Mass Slab (Floor Mass m)
+      const slabGeo = new THREE.BoxGeometry(5.2, 0.45, 3.8);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
       massSlab = new THREE.Mesh(slabGeo, slabMat);
-      massSlab.position.set(0, 4.7, 0);
+      massSlab.position.set(0, totalH + 0.22, 0);
       massSlab.castShadow = true;
+
+      const slabEdgeGeo = new THREE.EdgesGeometry(slabGeo);
+      massSlab.add(new THREE.LineSegments(slabEdgeGeo, new THREE.LineBasicMaterial({ color: 0x1e293b })));
       bldgGroup.add(massSlab);
     }
 
     function animate() {
       requestAnimationFrame(animate);
-      animTime += 0.03;
+      animTime += 0.032;
 
       // SDOF vibration at natural frequency wn = 2*pi / Tn
       const wn = (2 * Math.PI) / Math.max(0.05, Tn);
       const curVals = getSpectrumValues(Tn, zeta, pga);
       const ampMultiplier = (threeAmpScale / 70.0);
-      const drift3D = Math.sin(animTime * wn) * (curVals.D / 12.0) * ampMultiplier;
+      const drift3D = Math.sin(animTime * wn) * (curVals.D / 8.0) * ampMultiplier;
 
-      // Ground Shaking
+      // Ground Shaking coupled with frequency
       const ug = Math.sin(animTime * wn) * 0.12 * ampMultiplier;
       bedrockGroup.position.x = ug;
       bldgGroup.position.x = ug;
 
+      // Double curvature flexure
       colSlices.forEach(sl => {
-        const s = sl.normZ;
+        const s = sl.normY;
         const h = 3 * s * s - 2 * s * s * s;
         sl.mesh.position.x = sl.baseX + drift3D * h;
-        sl.mesh.rotation.z = -drift3D * 0.1 * (6 * s - 6 * s * s);
       });
 
       if (massSlab) {
