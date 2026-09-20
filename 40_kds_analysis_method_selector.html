@@ -28,33 +28,48 @@
   @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
 
   .panel { background: #ffffff; border: 1.5px solid #0f172a; box-shadow: 0 4px 0 #0f172a; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
-  .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .panel-title { font-size: 0.95rem; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
 
   .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
-  .control-group label { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
-  select, input[type="number"], input[type="range"] { background: #f8fafc; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 4px; font-size: 0.85rem; width: 100%; }
-  .checkbox-list { display: flex; flex-direction: column; gap: 0.4rem; background: rgba(15, 23, 42, 0.5); padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border); }
-  .checkbox-item { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.78rem; color: var(--text-main); cursor: pointer; }
-  .checkbox-item input { margin-top: 0.2rem; accent-color: var(--accent-rose); }
+  .control-group label { font-size: 0.82rem; font-weight: 600; color: #334155; display: flex; justify-content: space-between; align-items: center; }
+  .control-group label span:last-child { font-weight: 700; color: #0284c7; }
+  select, input[type="number"] { background: #ffffff; border: 1.5px solid #94a3b8; color: #0f172a; padding: 0.45rem 0.6rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; width: 100%; transition: border-color 0.15s, box-shadow 0.15s; }
+  select:focus, input[type="number"]:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2); }
+  select option { background: #ffffff; color: #0f172a; }
+  input[type="range"] { accent-color: #0284c7; cursor: pointer; }
+  
+  .checkbox-list { display: flex; flex-direction: column; gap: 0.5rem; background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1.5px solid #cbd5e1; }
+  .checkbox-item { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.82rem; color: #0f172a; cursor: pointer; padding: 0.35rem 0.5rem; border-radius: 6px; transition: background 0.15s; }
+  .checkbox-item:hover { background: #f1f5f9; }
+  .checkbox-item input { margin-top: 0.2rem; accent-color: var(--accent-rose); width: 16px; height: 16px; }
+  .checkbox-item strong { color: #0f172a; font-weight: 700; }
+  .checkbox-item small { color: #64748b; font-size: 0.75rem; line-height: 1.35; display: block; margin-top: 0.1rem; }
 
   .decision-box { padding: 1.2rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.6rem; border: 2px solid; text-align: center; }
   .decision-box.static-ok { background: rgba(16, 185, 129, 0.1); border-color: var(--accent-emerald); }
   .decision-box.dynamic-req { background: rgba(244, 63, 94, 0.12); border-color: var(--accent-rose); }
   .decision-title { font-size: 1.25rem; font-weight: 800; }
-  .decision-sub { font-size: 0.8rem; line-height: 1.4; }
+  .decision-sub { font-size: 0.85rem; line-height: 1.45; font-weight: 600; color: #1e293b; }
 
-  .sdc-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 800; font-size: 1.1rem; }
-  .sdc-A { background: rgba(56, 189, 248, 0.2); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
-  .sdc-B { background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald); border: 1px solid var(--accent-emerald); }
-  .sdc-C { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
-  .sdc-D { background: rgba(244, 63, 94, 0.2); color: var(--accent-rose); border: 1px solid var(--accent-rose); }
+  .sdc-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 6px; font-weight: 800; font-size: 1rem; }
+  .sdc-A { background: rgba(56, 189, 248, 0.15); color: #0284c7; border: 1.5px solid #0284c7; }
+  .sdc-B { background: rgba(16, 185, 129, 0.15); color: #059669; border: 1.5px solid #059669; }
+  .sdc-C { background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1.5px solid #d97706; }
+  .sdc-D { background: rgba(244, 63, 94, 0.15); color: #e11d48; border: 1.5px solid #e11d48; }
 
-  .code-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-  .code-table th, .code-table td { border: 1px solid var(--border); padding: 0.4rem 0.5rem; text-align: left; }
-  .code-table th { background: #f1f5f9; color: #0f172a; color: var(--accent-blue); }
-  .code-table tr.highlight { background: rgba(245, 158, 11, 0.15); font-weight: 700; color: #fff; }
+  .code-table-container { background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1.5px solid #cbd5e1; }
+  .code-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; background: #ffffff; }
+  .code-table th, .code-table td { border: 1px solid #cbd5e1; padding: 0.45rem 0.6rem; text-align: left; }
+  .code-table th { background: #f1f5f9; color: #0f172a; font-weight: 700; }
+  .code-table td { color: #1e293b; font-weight: 500; }
+  .code-table tr.highlight td { background: #fef3c7; font-weight: 700; color: #92400e; border-color: #fcd34d; }
+  .code-table tr.row-req td { background: #ffe4e6; color: #9f1239; font-weight: 700; border-color: #fecdd3; }
+  .code-table tr.row-ok td { background: #ecfdf5; color: #065f46; font-weight: 700; border-color: #a7f3d0; }
 
-  .building-view { flex: 1; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 380px; }
+  .takeaway { background: #f8fafc; border: 1.5px solid #cbd5e1; border-left: 4px solid var(--accent-rose); padding: 0.75rem 0.9rem; border-radius: 0 8px 8px 0; color: #1e293b; font-size: 0.78rem; line-height: 1.45; }
+  .takeaway strong { color: #0f172a; }
+
+  .building-view { flex: 1; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; position: relative; overflow: hidden; min-height: 380px; }
   canvas { width: 100%; height: 100%; display: block; }
 </style>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
@@ -160,9 +175,9 @@
     </div>
 
     <!-- Code Rule Reference Table -->
-    <div style="background:rgba(15,23,42,0.6); padding:0.6rem; border-radius:6px; border:1px solid var(--border);">
-      <div style="font-size:0.8rem; font-weight:700; color:var(--accent-blue); margin-bottom:0.4rem;">
-        KDS 41 17 00 [표 7.1-1] 내진설계범주 'D'에 대한 해석방법 규준
+    <div class="code-table-container">
+      <div style="font-size:0.82rem; font-weight:700; color:#0f172a; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.4rem;">
+        <span>📋</span> KDS 41 17 00 [표 7.1-1] 내진설계범주별 해석방법 규준
       </div>
       <table class="code-table">
         <thead>
@@ -183,28 +198,28 @@
   <div class="panel">
     <div class="panel-title">설계 가속도 계수 산출 근거</div>
 
-    <div style="display:flex; flex-direction:column; gap:0.5rem;">
-      <div style="background:#ffffff; padding:0.6rem; border-radius:6px; border:1px solid var(--border);">
-        <div style="font-size:0.75rem; color:var(--text-muted);">단주기 설계스펙트럼 가속도 SDS</div>
-        <div style="font-size:1.1rem; font-weight:800; color:var(--accent-blue);" id="valSDS">0.550 g</div>
-        <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.2rem;">SDS = 2/3 × 2.5 × S × Fa</div>
+    <div style="display:flex; flex-direction:column; gap:0.6rem;">
+      <div style="background:#f8fafc; padding:0.75rem; border-radius:8px; border:1.5px solid #cbd5e1;">
+        <div style="font-size:0.78rem; font-weight:600; color:#475569;">단주기 설계스펙트럼 가속도 SDS</div>
+        <div style="font-size:1.25rem; font-weight:800; color:#0284c7; margin:0.2rem 0;" id="valSDS">0.550 g</div>
+        <div style="font-size:0.72rem; color:#64748b; font-family:monospace;">SDS = 2/3 × 2.5 × S × Fa</div>
       </div>
 
-      <div style="background:#ffffff; padding:0.6rem; border-radius:6px; border:1px solid var(--border);">
-        <div style="font-size:0.75rem; color:var(--text-muted);">1초주기 설계스펙트럼 가속도 SD1</div>
-        <div style="font-size:1.1rem; font-weight:800; color:var(--accent-amber);" id="valSD1">0.220 g</div>
-        <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.2rem;">SD1 = 2/3 × S × Fv</div>
+      <div style="background:#f8fafc; padding:0.75rem; border-radius:8px; border:1.5px solid #cbd5e1;">
+        <div style="font-size:0.78rem; font-weight:600; color:#475569;">1초주기 설계스펙트럼 가속도 SD1</div>
+        <div style="font-size:1.25rem; font-weight:800; color:#d97706; margin:0.2rem 0;" id="valSD1">0.220 g</div>
+        <div style="font-size:0.72rem; color:#64748b; font-family:monospace;">SD1 = 2/3 × S × Fv</div>
       </div>
     </div>
 
     <div class="panel-title" style="margin-top:0.5rem;">엔지니어링 핵심 교훈 (슬라이드 2~6)</div>
 
-    <div class="takeaway" style="font-size:0.75rem; line-height:1.4;">
+    <div class="takeaway" style="font-size:0.78rem; line-height:1.5;">
       <strong>⚠️ 필로티 연약층(Soft Story)의 함정</strong><br>
       건물 높이가 15m에 불과한 4~5층 소형 건물이라도, 1층에 필로티(V-1)가 있는 순간 <strong>SDC D에서 등가정적해석이 원천 금지</strong>되며 반드시 동적해석(모드스펙트럼/시간이력)을 수행해야 합니다.
     </div>
 
-    <div class="takeaway" style="font-size:0.75rem; line-height:1.4; border-left-color:var(--accent-amber);">
+    <div class="takeaway" style="font-size:0.78rem; line-height:1.5; border-left-color:var(--accent-amber);">
       <strong>정형 vs 비정형의 경계</strong><br>
       SDC C에서는 70m/21층 미만 정형, 20m/6층 미만 비정형까지 등가정적이 허용되지만, SDC D에서는 주요 비정형(V-1,2,3, H-1)이 하나라도 감지되면 즉시 동적해석으로 강제 전환됩니다.
     </div>
@@ -374,20 +389,20 @@
   function updateTable(sdc, isStaticOk) {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = `
-      <tr class="${(!isStaticOk ? 'highlight' : '')}">
-        <td>4. 평면 또는 수직 비정형성을 가지는 기타 구조물, 또는 높이 70m 초과 정형구조물</td>
-        <td>동적해석법 필수</td>
-        <td>${!isStaticOk ? '🔴 해당 (의무)' : '-'}</td>
+      <tr class="${(!isStaticOk ? 'row-req' : '')}">
+        <td><strong>4.</strong> 평면 또는 수직 비정형성을 가지는 구조물, 또는 높이 70m 초과 정형구조물</td>
+        <td style="font-weight:700; color:${!isStaticOk ? '#be123c' : '#64748b'};">동적해석법 필수</td>
+        <td>${!isStaticOk ? '<strong style="color:#be123c;">🔴 해당 (동적의무)</strong>' : '<span style="color:#94a3b8;">-</span>'}</td>
       </tr>
-      <tr class="${(isStaticOk ? 'highlight' : '')}">
-        <td>2. 높이 70m 미만의 정형구조물</td>
-        <td>등가정적 또는 동적해석법</td>
-        <td>${isStaticOk ? '🟢 해당 (허용)' : '-'}</td>
+      <tr class="${(isStaticOk ? 'row-ok' : '')}">
+        <td><strong>2.</strong> 높이 70m 미만의 정형구조물</td>
+        <td style="font-weight:700; color:${isStaticOk ? '#047857' : '#64748b'};">등가정적 또는 동적해석법</td>
+        <td>${isStaticOk ? '<strong style="color:#047857;">🟢 해당 (정적허용)</strong>' : '<span style="color:#94a3b8;">-</span>'}</td>
       </tr>
       <tr>
-        <td>1. 3층 이하 경량골조 / 2층 이하 유연격막</td>
-        <td>등가정적 또는 동적해석법</td>
-        <td>-</td>
+        <td><strong>1.</strong> 3층 이하 경량골조 / 2층 이하 유연격막</td>
+        <td style="color:#64748b;">등가정적 또는 동적해석법</td>
+        <td><span style="color:#94a3b8;">-</span></td>
       </tr>
     `;
   }
@@ -399,17 +414,20 @@
     ctx.save();
     ctx.scale(dpr, dpr);
 
-    const btmY = h - 30;
-    const topY = 40;
+    const btmY = h - 35;
+    const topY = 45;
     const totalAvailH = btmY - topY;
     const storyH = Math.min(22, totalAvailH / nStories);
 
-    const midX = w / 2;
+    const midX = w / 2 - 20;
     const bldgW = 140;
 
-    // Ground
-    ctx.fillStyle = "#334155";
-    ctx.fillRect(midX - 100, btmY, 200, 6);
+    // Ground line & foundation
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(midX - 110, btmY, 220, 4);
+    ctx.fillStyle = "#64748b";
+    ctx.font = "bold 10px monospace";
+    ctx.fillText("▼ GL ±0.00", midX - 110, btmY + 16);
 
     for (let s = 0; s < nStories; s++) {
       const curY = btmY - (s + 1) * storyH;
@@ -418,46 +436,46 @@
 
       // Setback simulation (top 40% floors shrink)
       if (setback && s >= Math.floor(nStories * 0.6)) {
-        curW = bldgW * 0.6;
+        curW = bldgW * 0.65;
         curLeft = midX - curW / 2;
       }
 
-      // Fill color
-      ctx.fillStyle = "rgba(30, 41, 59, 0.7)";
+      // Default floor color
+      ctx.fillStyle = "#334155";
       if (soft && s === 0) {
         // Soft story (story 1)
-        ctx.fillStyle = "rgba(244, 63, 94, 0.4)";
+        ctx.fillStyle = "#ffe4e6";
       } else if (mass && s === Math.floor(nStories / 2)) {
         // Heavy mechanical floor
-        ctx.fillStyle = "rgba(245, 158, 11, 0.4)";
+        ctx.fillStyle = "#fef3c7";
       }
       ctx.fillRect(curLeft, curY, curW, storyH);
 
-      // Floor slab line
-      ctx.strokeStyle = "#475569";
-      ctx.lineWidth = 1;
+      // Floor slab outline
+      ctx.strokeStyle = "#0f172a";
+      ctx.lineWidth = 1.2;
       ctx.strokeRect(curLeft, curY, curW, storyH);
 
       // Soft story columns
       if (soft && s === 0) {
-        ctx.strokeStyle = "#f43f5e";
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#e11d48";
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(curLeft + 15, curY); ctx.lineTo(curLeft + 15, curY + storyH);
         ctx.moveTo(curLeft + curW - 15, curY); ctx.lineTo(curLeft + curW - 15, curY + storyH);
         ctx.stroke();
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.2;
 
-        ctx.fillStyle = "#f43f5e";
-        ctx.font = "bold 10px sans-serif";
-        ctx.fillText("V-1 Soft Story", curLeft + curW + 10, curY + storyH / 2 + 3);
+        ctx.fillStyle = "#be123c";
+        ctx.font = "bold 11px sans-serif";
+        ctx.fillText("⚠️ V-1 Soft Story (필로티)", curLeft + curW + 12, curY + storyH / 2 + 4);
       }
 
       // Mass label
       if (mass && s === Math.floor(nStories / 2)) {
-        ctx.fillStyle = "#f59e0b";
-        ctx.font = "bold 10px sans-serif";
-        ctx.fillText("V-2 Heavy Mass (+150%)", curLeft + curW + 10, curY + storyH / 2 + 3);
+        ctx.fillStyle = "#b45309";
+        ctx.font = "bold 11px sans-serif";
+        ctx.fillText("⚠️ V-2 Heavy Mass (+150%)", curLeft + curW + 12, curY + storyH / 2 + 4);
       }
     }
 
@@ -465,21 +483,27 @@
     if (setback) {
       const sbY = btmY - (Math.floor(nStories * 0.6) + 1) * storyH;
       ctx.fillStyle = "#0284c7";
-      ctx.font = "bold 10px sans-serif";
-      ctx.fillText("V-3 Setback (-40% 폭)", midX + bldgW / 2 + 10, sbY);
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText("📐 V-3 Setback (-35% 축소)", midX + bldgW / 2 + 12, sbY + 12);
     }
 
     // Torsion rotation mark
     if (torsion) {
-      ctx.strokeStyle = "#a855f7";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#7c3aed";
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(midX, topY - 15, 20, 0.2 * Math.PI, 1.8 * Math.PI);
+      ctx.arc(midX, topY - 18, 18, 0.2 * Math.PI, 1.8 * Math.PI);
       ctx.stroke();
-      ctx.fillStyle = "#a855f7";
-      ctx.font = "bold 11px sans-serif";
-      ctx.fillText("H-1 비틀림 연성 (RZ)", midX - 50, topY - 20);
+      ctx.fillStyle = "#6d28d9";
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillText("🔄 H-1 평면 비틀림 비정형 (RZ)", midX - 70, topY - 24);
     }
+
+    // Story height indicators
+    ctx.fillStyle = "#475569";
+    ctx.font = "bold 10px monospace";
+    ctx.fillText(`${nStories}F (${bldgHeight.toFixed(1)}m)`, midX - bldgW / 2 - 60, topY + 10);
+    ctx.fillText("1F", midX - bldgW / 2 - 24, btmY - 5);
 
     ctx.restore();
   }
