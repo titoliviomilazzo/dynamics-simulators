@@ -100,12 +100,15 @@
             <input type="range" id="rngPGA" min="0.1" max="0.8" step="0.02" value="0.357" oninput="updatePGA(this.value)" class="w-full accent-amber-500 cursor-pointer">
           </div>
 
-          <!-- EPA Toggle -->
-          <div class="pt-1 border-t border-slate-200 flex items-center justify-between">
-            <button id="btnEPAToggle" onclick="toggleEPA()" class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold transition">
-              ✓ EPA 대역 (0.1~0.5s)
+          <!-- EPA & Raw Spectrum Toggles -->
+          <div class="pt-1 border-t border-slate-200 flex flex-wrap items-center justify-between gap-1.5">
+            <button id="btnRawToggle" onclick="toggleRawSpectrum()" class="px-2.5 py-1.5 rounded-lg bg-sky-100 border border-sky-400 text-sky-900 text-xs font-bold transition">
+              ✓ 실제 지진 (지그재그)
             </button>
-            <button onclick="resetValues()" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold">
+            <button id="btnEPAToggle" onclick="toggleEPA()" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold transition">
+              ✓ EPA 대역
+            </button>
+            <button onclick="resetValues()" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold">
               초기화
             </button>
           </div>
@@ -138,12 +141,14 @@
           <canvas id="specCanvas" class="w-full h-full block"></canvas>
         </div>
 
-        <!-- Zone Legends -->
+        <!-- Zone Legends & Curves -->
         <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[10px] font-semibold text-slate-600">
-          <div class="flex flex-wrap gap-2">
-            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-200 border border-rose-400"></span> 가속도 민감 (Tn &lt; 0.5s)</span>
-            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-200 border border-amber-400"></span> 속도 민감 (0.5s ~ 3.0s)</span>
-            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-200 border border-emerald-400"></span> 변위 민감 (Tn &gt; 3.0s)</span>
+          <div class="flex flex-wrap gap-2.5">
+            <span class="flex items-center gap-1 font-mono text-blue-700 font-bold"><span class="w-3 h-0.5 bg-blue-600 inline-block"></span> 뉴마크-홀 설계 포락선</span>
+            <span class="flex items-center gap-1 font-mono text-sky-700"><span class="w-3 h-0.5 bg-sky-400 inline-block"></span> 실제 지진 (El Centro)</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-200 border border-rose-400"></span> 가속도 민감</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-200 border border-amber-400"></span> 속도 민감</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-200 border border-emerald-400"></span> 변위 민감</span>
           </div>
           <span class="text-blue-700 font-mono">🖱️ 드래그하여 주기 이동</span>
         </div>
@@ -223,6 +228,7 @@
     let zeta = 0.05;
     let pga = 0.357;
     let showEPA = true;
+    let showRawSpectrum = true;
     let animTime = 0;
     let threeAmpScale = 70.0;
     let isDraggingChart = false;
@@ -271,46 +277,114 @@
     function toggleEPA() {
       showEPA = !showEPA;
       document.getElementById('btnEPAToggle').className = showEPA 
-        ? "px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold transition"
-        : "px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-500 text-xs font-semibold";
+        ? "px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold transition"
+        : "px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-300 text-slate-500 text-xs font-semibold";
+      drawSpectrumCanonical();
+    }
+
+    function toggleRawSpectrum() {
+      showRawSpectrum = !showRawSpectrum;
+      const btn = document.getElementById('btnRawToggle');
+      if (btn) {
+        btn.className = showRawSpectrum
+          ? "px-2.5 py-1.5 rounded-lg bg-sky-100 border border-sky-400 text-sky-900 text-xs font-bold transition"
+          : "px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-500 text-xs font-semibold";
+      }
       drawSpectrumCanonical();
     }
 
     function resetValues() {
-      Tn = 0.65; zeta = 0.05; pga = 0.357; showEPA = true;
+      Tn = 0.65; zeta = 0.05; pga = 0.357; showEPA = true; showRawSpectrum = true;
       document.getElementById('rngPeriod').value = 0.65;
       document.getElementById('rngZeta').value = 5;
       document.getElementById('rngPGA').value = 0.357;
       document.getElementById('lblPeriod').textContent = '0.65 s';
       document.getElementById('lblZeta').textContent = '5 %';
       document.getElementById('lblPGA').textContent = '0.357 g';
+      const btnRaw = document.getElementById('btnRawToggle');
+      if (btnRaw) btnRaw.className = "px-2.5 py-1.5 rounded-lg bg-sky-100 border border-sky-400 text-sky-900 text-xs font-bold transition";
+      const btnEPA = document.getElementById('btnEPAToggle');
+      if (btnEPA) btnEPA.className = "px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold transition";
       updateMetrics();
       drawSpectrumCanonical();
     }
 
+    // Authentic Newmark-Hall Continuous Idealized Design Spectrum (Chopra Ch.6)
     function getSpectrumValues(T, z, p) {
       const g = 980.665;
       const bA = (3.21 - 0.68 * Math.log(z * 100));
       const bV = (2.31 - 0.41 * Math.log(z * 100));
       const bD = (1.82 - 0.27 * Math.log(z * 100));
 
-      const pgv = p * 48.0;
-      const pgd = p * 36.0;
+      // Peak Ground Motion (1g: 122 cm/s, 91.44 cm)
+      const a_g0 = p * g;     // cm/s^2
+      const v_g0 = p * 122.0; // cm/s
+      const d_g0 = p * 91.44; // cm
+
+      // Amplified Plateaus
+      const A_max = bA * a_g0;
+      const V_max = bV * v_g0;
+      const D_max = bD * d_g0;
+
+      // Authentic Corner Periods: Exact Intersections! (No discontinuous cliff drops/jumps)
+      const Ta = 0.033; // 30 Hz
+      const Tb = 0.125; // 8 Hz
+      const Tc = 2 * Math.PI * (V_max / A_max); // Accel-Velocity intersection (~0.61s)
+      const Td = 2 * Math.PI * (D_max / V_max); // Velocity-Displacement intersection (~3.96s)
 
       let V = 0;
-      if (T < 0.125) {
-        V = (p * g * T / (2 * Math.PI)) * Math.pow(bA, T / 0.125);
-      } else if (T < 0.5) {
-        V = (p * g * T / (2 * Math.PI)) * bA;
-      } else if (T < 3.0) {
-        V = pgv * bV;
+      let A = 0;
+      let D = 0;
+
+      if (T <= Ta) {
+        // Rigid boundary: Sa = PGA
+        A = a_g0;
+        V = (A * T) / (2 * Math.PI);
+        D = (V * T) / (2 * Math.PI);
+      } else if (T <= Tb) {
+        // Log-linear transition ramp
+        const r = Math.log10(T / Ta) / Math.log10(Tb / Ta);
+        A = a_g0 * Math.pow(A_max / a_g0, r);
+        V = (A * T) / (2 * Math.PI);
+        D = (V * T) / (2 * Math.PI);
+      } else if (T <= Tc) {
+        // Constant Acceleration Plateau (slope +1 on Tripartite)
+        A = A_max;
+        V = (A * T) / (2 * Math.PI);
+        D = (V * T) / (2 * Math.PI);
+      } else if (T <= Td) {
+        // Constant Velocity Plateau (horizontal, slope 0 on Tripartite)
+        V = V_max;
+        A = (V * 2 * Math.PI) / T;
+        D = (V * T) / (2 * Math.PI);
       } else {
-        V = (pgd * bD) * (2 * Math.PI / T);
+        // Constant Displacement Plateau (slope -1 on Tripartite)
+        D = D_max;
+        V = (2 * Math.PI * D) / T;
+        A = (2 * Math.PI / T) * (2 * Math.PI / T) * D;
       }
 
+      return { D, V, A: A / g, Tc, Td, A_max: A_max / g, V_max, D_max };
+    }
+
+    // Realistic Jagged Response Spectrum of Real Earthquake (El Centro 1940)
+    function getRawSpectrumValues(T, z, p) {
+      const smooth = getSpectrumValues(T, z, p);
+      const logT = Math.log10(T);
+      // Realistic spectral peaks and valleys from actual earthquake records
+      const ripple = 
+        0.26 * Math.sin(2 * Math.PI * (logT - Math.log10(0.28)) * 4.2) +
+        0.18 * Math.sin(2 * Math.PI * (logT - Math.log10(0.55)) * 6.5) +
+        0.14 * Math.cos(2 * Math.PI * (logT - Math.log10(1.2)) * 8.0) +
+        0.08 * Math.sin(2 * Math.PI * logT * 14.0);
+
+      const dampScale = Math.sqrt(0.05 / Math.max(0.01, z));
+      const factor = Math.max(0.40, 1.0 + ripple * dampScale * 0.65);
+
+      const V = smooth.V * factor;
       const D = V * T / (2 * Math.PI);
-      const A = (V * 2 * Math.PI / T) / g;
-      return { D, V, A };
+      const A = (V * 2 * Math.PI / T) / 980.665;
+      return { D, V, A, Tc: smooth.Tc, Td: smooth.Td };
     }
 
     function updateMetrics() {
@@ -320,20 +394,20 @@
       document.getElementById('valD').textContent = vals.D.toFixed(2) + ' cm';
       document.getElementById('valA').textContent = vals.A.toFixed(3) + ' g';
       document.getElementById('valPGA').textContent = pga.toFixed(3) + ' g';
-      document.getElementById('valEPA').textContent = (pga * 0.83).toFixed(3) + ' g';
+      document.getElementById('valEPA').textContent = (vals.A_max * 0.82).toFixed(3) + ' g';
 
       const zoneInd = document.getElementById('zoneIndicator');
       const sdofInfo = document.getElementById('sdof-info');
-      if (Tn < 0.5) {
-        zoneInd.textContent = '가속도 민감 구간';
+      if (Tn <= vals.Tc) {
+        zoneInd.textContent = '가속도 민감 구간 (Tn ≤ ' + vals.Tc.toFixed(2) + 's)';
         zoneInd.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 font-mono';
         sdofInfo.textContent = `Tn = ${Tn.toFixed(2)}s (가속도 지배)`;
-      } else if (Tn < 3.0) {
-        zoneInd.textContent = '속도 민감 구간';
+      } else if (Tn <= vals.Td) {
+        zoneInd.textContent = '속도 민감 구간 (' + vals.Tc.toFixed(2) + 's ~ ' + vals.Td.toFixed(2) + 's)';
         zoneInd.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono';
         sdofInfo.textContent = `Tn = ${Tn.toFixed(2)}s (속도 지배)`;
       } else {
-        zoneInd.textContent = '변위 민감 구간';
+        zoneInd.textContent = '변위 민감 구간 (Tn > ' + vals.Td.toFixed(2) + 's)';
         zoneInd.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono';
         sdofInfo.textContent = `Tn = ${Tn.toFixed(2)}s (대변위 지배)`;
       }
@@ -430,18 +504,22 @@
         const xToPx = logT => margin.left + ((logT - logTMin) / (logTMax - logTMin)) * pw;
         const yToPx = logV => margin.top + ph - ((logV - logVMin) / (logVMax - logVMin)) * ph;
 
-        // 1. Sensitive Zones Background Washes
-        const x05 = xToPx(Math.log10(0.5));
-        const x30 = xToPx(Math.log10(3.0));
+        // 1. Sensitive Zones Background Washes (Aligned with exact corner periods Tc & Td)
+        const specParams = getSpectrumValues(1.0, zeta, pga);
+        const xTc = xToPx(Math.log10(specParams.Tc));
+        const xTd = xToPx(Math.log10(specParams.Td));
 
+        // Acceleration Zone: margin.left to xTc
         ctx.fillStyle = 'rgba(244, 63, 94, 0.05)';
-        ctx.fillRect(margin.left, margin.top, x05 - margin.left, ph);
+        ctx.fillRect(margin.left, margin.top, xTc - margin.left, ph);
 
+        // Velocity Zone: xTc to xTd
         ctx.fillStyle = 'rgba(245, 158, 11, 0.05)';
-        ctx.fillRect(x05, margin.top, x30 - x05, ph);
+        ctx.fillRect(xTc, margin.top, xTd - xTc, ph);
 
+        // Displacement Zone: xTd to right
         ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
-        ctx.fillRect(x30, margin.top, margin.left + pw - x30, ph);
+        ctx.fillRect(xTd, margin.top, margin.left + pw - xTd, ph);
 
         // 2. EPA Overlay (0.1s to 0.5s)
         if (showEPA) {
@@ -569,9 +647,25 @@
         ctx.textAlign = 'right';
         ctx.fillText('↗ 가속도 Sa 대각축 (0.01 ~ 10 g)', margin.left + pw - 8, margin.top + 14);
 
-        // 6. Response Spectrum Curve
+        // 6A. Raw Jagged Earthquake Response Spectrum (El Centro 1940)
+        if (showRawSpectrum) {
+          ctx.strokeStyle = 'rgba(2, 132, 199, 0.45)';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          for (let x = 0; x <= pw; x += 1.5) {
+            const logT = logTMin + (x / pw) * (logTMax - logTMin);
+            const tVal = Math.pow(10, logT);
+            const res = getRawSpectrumValues(tVal, zeta, pga);
+            const y = yToPx(Math.log10(Math.max(1.0, res.V)));
+            if (x === 0) ctx.moveTo(margin.left + x, y);
+            else ctx.lineTo(margin.left + x, y);
+          }
+          ctx.stroke();
+        }
+
+        // 6B. Smooth Newmark-Hall Idealized Design Spectrum
         ctx.strokeStyle = '#2563eb';
-        ctx.lineWidth = 3.0;
+        ctx.lineWidth = 3.2;
         ctx.beginPath();
         const curvePts = [];
         for (let x = 0; x <= pw; x += 2) {
