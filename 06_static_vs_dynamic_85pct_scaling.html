@@ -352,7 +352,7 @@
         </div>
 
         <!-- Canvas Container with generous height -->
-        <div class="relative flex-1 w-full my-1 min-h-[300px]">
+        <div class="relative flex-1 w-full my-1 min-h-[320px]">
           <canvas id="specCanvas" class="w-full h-full block"></canvas>
         </div>
 
@@ -961,13 +961,14 @@
       ctx.clearRect(0, 0, w, h);
 
       // Plot Margins
+      // Plot Margins - ample headroom to ensure labels never overlap the graph
       const marginL = 55;
       const marginR = 35;
-      const marginT = 40;
+      const marginT = 68;
       const marginB = 38;
       const plotW = w - marginL - marginR;
       const plotH = h - marginT - marginB;
-      const maxG = 0.70;
+      const maxG = 0.85; // Scaled down curve to enlarge clearance above spectrum
       const maxT = 1.4;
 
       function toX(T) { return marginL + (T / maxT) * plotW; }
@@ -975,7 +976,7 @@
 
       // 1. Grid Lines & Y Ticks
       ctx.lineWidth = 1;
-      const yTicks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
+      const yTicks = [0.2, 0.4, 0.6, 0.8];
       yTicks.forEach(g => {
         const y = toY(g);
         ctx.strokeStyle = '#f1f5f9';
@@ -1033,10 +1034,10 @@
       ctx.textAlign = 'left';
       ctx.fillStyle = '#0f172a';
       ctx.font = 'italic bold 13px "Cambria Math", serif';
-      ctx.fillText('Sa', marginL - 48, marginT - 14);
+      ctx.fillText('Sa', marginL - 48, marginT - 18);
       ctx.font = 'bold 11px Pretendard, sans-serif';
       ctx.fillStyle = '#64748b';
-      ctx.fillText('(g)', marginL - 26, marginT - 14);
+      ctx.fillText('(g)', marginL - 26, marginT - 18);
 
       ctx.textBaseline = 'top';
       ctx.textAlign = 'right';
@@ -1131,7 +1132,7 @@
         // Position transition badge in top area (clears Ta badge to the left and curve below)
         const minAbX = marginL + 155;
         const abX = Math.max(minAbX, Math.min(w - marginR - abW - 4, midX - abW / 2));
-        const abY = marginT - 2;
+        const abY = 16;
 
         ctx.fillStyle = '#fffbeb';
         ctx.strokeStyle = '#fde68a';
@@ -1177,7 +1178,7 @@
       const taW = 145, taH = 20;
       const posTa = {
         x: marginL + 6,
-        y: marginT - 2
+        y: 16
       };
 
       // CAD Leader Line: straight from red dot to bottom of Ta badge (never penetrates badge)
@@ -1212,7 +1213,7 @@
           // Place to right of green dot (above descending curve)
           posT1 = {
             x: xT1 + 10,
-            y: Math.min(h - marginB - t1H - 4, Math.max(marginT + 26, yT1 - t1H / 2))
+            y: Math.min(h - marginB - t1H - 4, Math.max(marginT + 12, yT1 - t1H / 2))
           };
           t1TargetX = posT1.x;
           t1TargetY = posT1.y + t1H / 2;
@@ -1229,7 +1230,7 @@
         // T1 < Ta: place to right of Ta badge
         posT1 = {
           x: Math.max(posTa.x + taW + 10, xT1 + 10),
-          y: marginT + 26
+          y: marginT - 20
         };
         t1TargetX = posT1.x;
         t1TargetY = posT1.y + t1H / 2;
@@ -1237,7 +1238,7 @@
         // T1 ~ Ta: stack cleanly below Ta badge (both above plateau line)
         posT1 = {
           x: posTa.x,
-          y: posTa.y + taH + 3
+          y: posTa.y + taH + 4
         };
         t1TargetX = posT1.x + t1W;
         t1TargetY = posT1.y + t1H / 2;
