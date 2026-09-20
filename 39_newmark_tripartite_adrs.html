@@ -132,7 +132,7 @@
         <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
           <div>
             <span id="canvasTitle" class="text-xs md:text-sm font-bold text-slate-900 block">Newmark Tripartite 4-Way Log-Log Diagram</span>
-            <span class="text-[10px] text-slate-500 font-mono">가로: 주기(Tn) · 세로: 유사속도(V) · 우상향: 가속도(Sa) · 우하향: 변위(Sd)</span>
+            <span id="canvasSubtitle" class="text-[10px] text-slate-500 font-mono">가로: 주기(Tn) · 세로: 유사속도(V) · 우상향: 가속도(Sa) · 우하향: 변위(Sd)</span>
           </div>
           <span id="zoneIndicator" class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono">속도 민감 구간</span>
         </div>
@@ -236,6 +236,13 @@
     const canvas = document.getElementById('specCanvas');
     const ctx = canvas.getContext('2d');
 
+    function getNiceMax(val, options) {
+      for (let opt of options) {
+        if (opt >= val) return opt;
+      }
+      return options[options.length - 1];
+    }
+
     function setThreeAmp(scale) {
       threeAmpScale = scale;
       document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
@@ -250,6 +257,12 @@
       document.getElementById('canvasTitle').textContent = mode === 'tripartite' 
         ? "Newmark Tripartite 4-Way Log-Log Diagram" 
         : "ADRS (Acceleration-Displacement Response Spectrum)";
+      const subtitle = document.getElementById('canvasSubtitle');
+      if (subtitle) {
+        subtitle.textContent = mode === 'tripartite'
+          ? "가로: 주기(Tn) · 세로: 유사속도(V) · 우상향: 가속도(Sa) · 우하향: 변위(Sd)"
+          : "가로: 변위(Sd) · 세로: 가속도(Sa) · 원점 방사선: 고유주기(Tn) · ATC-40/FEMA 440 CSM 기반";
+      }
       drawSpectrumCanonical();
     }
 
@@ -432,7 +445,7 @@
       }
     });
 
-    // --- Interactive Mouse/Touch Picking on Tripartite Chart ---
+    // --- Interactive Mouse/Touch Picking on Tripartite & ADRS Chart ---
     function handleChartPointer(e) {
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -452,10 +465,18 @@
         updateMetrics();
         drawSpectrumCanonical();
       } else {
-        const maxSd = 25.0;
+        const curSpec = getSpectrumValues(1.0, zeta, pga);
+        const maxSa = getNiceMax(curSpec.A_max * 1.25, [0.4, 0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5, 3.0]);
+        const maxSd = getNiceMax(curSpec.D_max * 1.25, [15, 20, 25, 30, 40, 50, 60, 80, 100, 150]);
         const normX = Math.max(0, Math.min(1, (x - margin.left) / pw));
-        const pickedSd = normX * maxSd;
-        // estimate Tn approximately
+        const normY = Math.max(0, Math.min(1, 1 - (y - margin.top) / ph));
+        const pickedSd = Math.max(0.05, normX * maxSd);
+        const pickedSa = Math.max(0.005, normY * maxSa);
+        // Radial period ray through (pickedSd, pickedSa): Tn = 2*pi * sqrt(Sd / (Sa * g))
+        const pickedT = 2 * Math.PI * Math.sqrt(pickedSd / (pickedSa * 980.665));
+        Tn = Math.max(0.03, Math.min(8.0, pickedT));
+        document.getElementById('rngPeriod').value = Tn;
+        document.getElementById('lblPeriod').textContent = Tn.toFixed(2) + ' s';
         updateMetrics();
         drawSpectrumCanonical();
       }
@@ -718,38 +739,54 @@
         });
 
       } else {
-        // --- Draw ADRS (Sa vs Sd) ---
+        // --- Draw Genuine ADRS (Sa vs Sd) ---
         const margin = { left: 60, right: 40, top: 40, bottom: 50 };
         const pw = w - margin.left - margin.right;
         const ph = h - margin.top - margin.bottom;
 
-        const maxSd = 25.0; // cm
-        const maxSa = 1.2;  // g
+        const curSpec = getSpectrumValues(1.0, zeta, pga);
+        const maxSa = getNiceMax(curSpec.A_max * 1.25, [0.4, 0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5, 3.0]);
+        const maxSd = getNiceMax(curSpec.D_max * 1.25, [15, 20, 25, 30, 40, 50, 60, 80, 100, 150]);
 
         const xToPx = sd => margin.left + (sd / maxSd) * pw;
         const yToPx = sa => margin.top + ph - (sa / maxSa) * ph;
 
-        // Soft Grid
+        const Tc = curSpec.Tc;
+        const Td = curSpec.Td;
+
+        // 1. Soft Grid Lines & Ticks
         ctx.strokeStyle = '#f1f5f9';
         ctx.lineWidth = 1;
-        for (let s = 5; s <= maxSd; s += 5) {
+        const sdStep = maxSd <= 30 ? 5 : (maxSd <= 80 ? 10 : 20);
+        for (let s = sdStep; s <= maxSd; s += sdStep) {
           const x = xToPx(s);
           ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, margin.top + ph); ctx.stroke();
         }
-        for (let a = 0.2; a <= maxSa; a += 0.2) {
+        const saStep = maxSa <= 0.6 ? 0.1 : (maxSa <= 1.5 ? 0.2 : 0.5);
+        for (let a = saStep; a <= maxSa + 0.001; a += saStep) {
           const y = yToPx(a);
           ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + pw, y); ctx.stroke();
         }
 
-        // Radial Period Rays: Sa = (2*pi/T)^2 * (Sd / g)
-        const radPeriods = [0.2, 0.5, 1.0, 1.5, 2.5];
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.lineWidth = 1;
+        // 2. Clip all plot elements to plot bounds
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(margin.left, margin.top, pw, ph);
+        ctx.clip();
+
+        // 3. Radial Period Rays (Lines of Constant Period T)
+        const radPeriods = [0.1, 0.2, 0.5, 1.0, 2.0, 3.0, 5.0];
         radPeriods.forEach(pVal => {
           const wP = (2 * Math.PI) / pVal;
-          const slope = (wP * wP) / 980.665;
-          const endSd = Math.min(maxSd, maxSa / slope);
-          const endSa = slope * endSd;
+          const slope = (wP * wP) / 980.665; // Sa / Sd in g/cm
+          let endSd = maxSd;
+          let endSa = slope * maxSd;
+          if (endSa > maxSa) {
+            endSa = maxSa;
+            endSd = maxSa / slope;
+          }
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+          ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(xToPx(0), yToPx(0));
           ctx.lineTo(xToPx(endSd), yToPx(endSa));
@@ -757,25 +794,94 @@
 
           ctx.fillStyle = '#94a3b8';
           ctx.font = '8.5px monospace';
-          ctx.fillText(`T=${pVal}s`, xToPx(endSd) + 2, yToPx(endSa) - 2);
+          if (endSa === maxSa) {
+            ctx.textAlign = 'center';
+            ctx.fillText(`T=${pVal}s`, xToPx(endSd), yToPx(endSa) + 12);
+          } else {
+            ctx.textAlign = 'right';
+            ctx.fillText(`T=${pVal}s`, xToPx(endSd) - 4, yToPx(endSa) - 4);
+          }
         });
 
-        // Border & Ticks
+        // 4. Highlight Corner Periods Tc & Td (Zone Boundaries)
+        [ { t: Tc, label: `Tc=${Tc.toFixed(2)}s (가속도-속도 경계)`, color: '#f43f5e' },
+          { t: Td, label: `Td=${Td.toFixed(2)}s (속도-변위 경계)`, color: '#10b981' }
+        ].forEach(b => {
+          const wP = (2 * Math.PI) / b.t;
+          const slope = (wP * wP) / 980.665;
+          let endSd = maxSd;
+          let endSa = slope * maxSd;
+          if (endSa > maxSa) {
+            endSa = maxSa;
+            endSd = maxSa / slope;
+          }
+          ctx.strokeStyle = b.color;
+          ctx.lineWidth = 1.4;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(xToPx(0), yToPx(0));
+          ctx.lineTo(xToPx(endSd), yToPx(endSa));
+          ctx.stroke();
+          ctx.setLineDash([]);
+        });
+
+        // 5A. Raw Jagged Earthquake Response Spectrum (El Centro 1940 in ADRS)
+        if (showRawSpectrum) {
+          ctx.strokeStyle = 'rgba(2, 132, 199, 0.45)';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          let first = true;
+          for (let t = 0.03; t <= 8.0; t += 0.02) {
+            const raw = getRawSpectrumValues(t, zeta, pga);
+            const x = xToPx(raw.D);
+            const y = yToPx(raw.A);
+            if (first) { ctx.moveTo(x, y); first = false; }
+            else { ctx.lineTo(x, y); }
+          }
+          ctx.stroke();
+        }
+
+        // 5B. Smooth Newmark-Hall Design Spectrum in ADRS
+        ctx.strokeStyle = '#7c3aed';
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        const curvePts = [];
+        
+        // Exact anchor at T = 0: (Sd = 0, Sa = PGA)
+        const pgaY = yToPx(pga);
+        const pgaX = xToPx(0);
+        ctx.moveTo(pgaX, pgaY);
+        curvePts.push({ x: pgaX, y: pgaY });
+
+        // Dense sampling along period
+        for (let t = 0.01; t <= 8.0; t += (t < 0.2 ? 0.005 : (t < 1.0 ? 0.02 : 0.05))) {
+          const res = getSpectrumValues(t, zeta, pga);
+          const x = xToPx(res.D);
+          const y = yToPx(res.A);
+          curvePts.push({ x, y });
+          ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        ctx.restore(); // end clip
+
+        // 6. Border & Outer Axis Ticks
         ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(margin.left, margin.top, pw, ph);
 
-        // Numbers
+        // Sd axis labels (bottom)
         ctx.fillStyle = '#64748b';
         ctx.font = '9px monospace';
         ctx.textAlign = 'center';
-        for (let s = 0; s <= maxSd; s += 5) {
+        for (let s = 0; s <= maxSd; s += sdStep) {
           ctx.fillText(`${s}`, xToPx(s), margin.top + ph + 16);
         }
         ctx.fillText('스펙트럴 변위 Sd (cm) →', margin.left + pw / 2, margin.top + ph + 32);
 
+        // Sa axis labels (left)
         ctx.textAlign = 'right';
-        for (let a = 0; a <= maxSa; a += 0.2) {
+        for (let a = 0; a <= maxSa + 0.001; a += saStep) {
           ctx.fillText(`${a.toFixed(1)}`, margin.left - 8, yToPx(a) + 3);
         }
         ctx.save();
@@ -785,50 +891,57 @@
         ctx.fillText('유사가속도 Sa (g) →', 0, 0);
         ctx.restore();
 
-        // Sa - Sd Curve
-        ctx.strokeStyle = '#7c3aed';
-        ctx.lineWidth = 3.0;
-        ctx.beginPath();
-        const curvePts = [];
-        for (let tVal = 0.05; tVal <= 6.0; tVal += 0.03) {
-          const res = getSpectrumValues(tVal, zeta, pga);
-          const x = xToPx(res.D);
-          const y = yToPx(res.A);
-          curvePts.push({ x, y });
-          if (tVal === 0.05) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-
-        // Radial ray for active period Tn
+        // 7. Active Operating Point & Radial Ray
         const curVals = getSpectrumValues(Tn, zeta, pga);
         const opX = xToPx(curVals.D);
         const opY = yToPx(curVals.A);
+
+        // Radial ray through operating point
+        const opSlope = (curVals.A / curVals.D);
+        let rayEndSd = maxSd;
+        let rayEndSa = opSlope * maxSd;
+        if (rayEndSa > maxSa) {
+          rayEndSa = maxSa;
+          rayEndSd = maxSa / opSlope;
+        }
 
         ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([3, 3]);
         ctx.beginPath();
         ctx.moveTo(margin.left, margin.top + ph);
-        ctx.lineTo(opX, opY);
+        ctx.lineTo(xToPx(rayEndSd), yToPx(rayEndSa));
         ctx.stroke();
         ctx.setLineDash([]);
 
+        // Axis Guides
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(opX, margin.top + ph); ctx.lineTo(opX, opY);
+        ctx.moveTo(margin.left, opY); ctx.lineTo(opX, opY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Operating Point Dot
         ctx.fillStyle = '#dc2626';
         ctx.beginPath(); ctx.arc(opX, opY, 6, 0, Math.PI * 2); ctx.fill();
 
-        // Canonical Badge
+        // 8. Canonical Badge
         const plotRect = { left: margin.left, top: margin.top, width: pw, height: ph };
-        const boxSize = { w: 165, h: 42 };
+        const boxSize = { w: 175, h: 48 };
         const placement = DynamicsChartCanonical.getBestCalloutPlacement(opX, opY, boxSize.w, boxSize.h, plotRect, curvePts);
 
+        let zoneText = Tn <= Tc ? '가속도 민감 구간 (수평 평탄부)' : (Tn <= Td ? '속도 민감 구간 (쌍곡선 감쇠)' : '변위 민감 구간 (수직 강하부)');
+
         DynamicsChartCanonical.drawLeaderLine(ctx, opX, opY, placement.x, placement.y, boxSize.w, boxSize.h, '#7c3aed');
-        DynamicsChartCanonical.drawAutoBadge(ctx, `ADRS 운용점: Tn = ${Tn.toFixed(2)}s\nSd = ${curVals.D.toFixed(2)} cm | Sa = ${curVals.A.toFixed(2)} g`, placement.x, placement.y, {
+        DynamicsChartCanonical.drawAutoBadge(ctx, `ADRS 운용점: Tn = ${Tn.toFixed(2)}s\nSd = ${curVals.D.toFixed(2)} cm | Sa = ${curVals.A.toFixed(2)} g\n${zoneText}`, placement.x, placement.y, {
           textColor: '#581c87',
           borderColor: '#d8b4fe',
-          fillColor: 'rgba(250, 245, 255, 0.95)',
+          fillColor: 'rgba(250, 245, 255, 0.96)',
           align: 'left',
-          fontSize: 9.5,
+          fontSize: 9.2,
           fontWeight: 'bold',
           padding: { x: 7, y: 4 },
           radius: 5
