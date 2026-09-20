@@ -264,8 +264,11 @@
   // Three.js Instances
   let scene, camera, renderer, controls;
   let buildingGroup, foundationGroup, annotationGroup;
-  let slabMeshes = [], columnMeshes = [];
+  let slabMeshes = [], columnMeshes = [], wallMeshes = [], transferMeshes = [];
   let torsionRingMesh = null;
+  let softTagMesh = null, massTagMesh = null, sbTagMesh = null, discTagMesh = null, torTagMesh = null;
+  let baseW = 5.6, baseD = 4.6, floorH = 1.0;
+  let mechFloor = 7, setbackStart = 9;
 
   const container = document.getElementById('threeBimContainer');
 
@@ -403,11 +406,18 @@
     }
     slabMeshes = [];
     columnMeshes = [];
+    wallMeshes = [];
+    transferMeshes = [];
     torsionRingMesh = null;
+    softTagMesh = null;
+    massTagMesh = null;
+    sbTagMesh = null;
+    discTagMesh = null;
+    torTagMesh = null;
 
-    const baseW = 5.6;
-    const baseD = 4.6;
-    const floorH = 1.0;
+    baseW = 5.6;
+    baseD = 4.6;
+    floorH = 1.0;
     const totalH = nStories * floorH;
     const blackLineMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 }); // Gate 1
 
@@ -432,8 +442,8 @@
     const standardColMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
     const softColMat = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.3 }); // Red Piloti Columns
 
-    const mechFloor = Math.max(2, Math.floor(nStories / 2));
-    const setbackStart = Math.floor(nStories * 0.6);
+    mechFloor = Math.max(2, Math.floor(nStories / 2));
+    setbackStart = Math.floor(nStories * 0.6);
 
     for (let s = 1; s <= nStories; s++) {
       let curW = baseW;
@@ -511,43 +521,70 @@
 
       // [V-4] In-plane Shear Wall Discontinuity: Discontinuous Shear Core above 2F
       if (isDiscontinuity && s > 2) {
-        const wallGeo = new THREE.BoxGeometry(0.18, floorH - slabThick, curD * 0.45);
-        const wallMesh = new THREE.Mesh(wallGeo, new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.5 }));
+        const wallGeo = new THREE.BoxGeometry(0.24, floorH - slabThick, curD * 0.48);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.45, metalness: 0.1 });
+        const wallMesh = new THREE.Mesh(wallGeo, wallMat);
         wallMesh.position.set(0, y - floorH / 2, 0);
+        wallMesh.castShadow = true;
+        wallMesh.receiveShadow = true;
         wallMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(wallGeo), blackLineMat));
         buildingGroup.add(wallMesh);
+
+        wallMeshes.push({
+          mesh: wallMesh,
+          story: s,
+          baseX: 0,
+          baseY: y - floorH / 2
+        });
+      }
+
+      // [V-4] Transfer Girder on Floor 2 supporting upper shear walls
+      if (isDiscontinuity && s === 2) {
+        const girderGeo = new THREE.BoxGeometry(0.52, 0.42, curD * 0.54);
+        const girderMat = new THREE.MeshStandardMaterial({ color: 0xdb2777, roughness: 0.35, metalness: 0.2 });
+        const girderMesh = new THREE.Mesh(girderGeo, girderMat);
+        girderMesh.position.set(0, y - 0.21, 0);
+        girderMesh.castShadow = true;
+        girderMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(girderGeo), blackLineMat));
+        buildingGroup.add(girderMesh);
+
+        transferMeshes.push({
+          mesh: girderMesh,
+          story: 2,
+          baseX: 0
+        });
       }
     }
 
     // 3. 3D Callout Annotations for Active Irregularities
     if (isSoft) {
-      const softTag = createCalloutSprite("⚠️ V-1 필로티 연약층 (Soft Story)", "#e11d48");
-      softTag.position.set(baseW / 2 + 2.8, 0.7, baseD / 2);
-      annotationGroup.add(softTag);
+      softTagMesh = createCalloutSprite("⚠️ V-1 필로티 연약층 (Soft Story)", "#e11d48");
+      softTagMesh.position.set(baseW / 2 + 2.8, 0.7, baseD / 2);
+      annotationGroup.add(softTagMesh);
     }
 
     if (isMass) {
-      const massTag = createCalloutSprite("⚠️ V-2 기계실 중량 비정형 (+150%)", "#d97706");
-      massTag.position.set(baseW / 2 + 2.8, mechFloor * floorH, baseD / 2);
-      annotationGroup.add(massTag);
+      massTagMesh = createCalloutSprite("⚠️ V-2 기계실 중량 비정형 (+150%)", "#d97706");
+      massTagMesh.position.set(baseW / 2 + 2.8, mechFloor * floorH, baseD / 2);
+      annotationGroup.add(massTagMesh);
     }
 
     if (isSetback) {
-      const sbTag = createCalloutSprite("📐 V-3 기하학적 셋백 (-38% 폭)", "#0284c7");
-      sbTag.position.set(baseW / 2 + 2.8, setbackStart * floorH, baseD / 2);
-      annotationGroup.add(sbTag);
+      sbTagMesh = createCalloutSprite("📐 V-3 기하학적 셋백 (-38% 폭)", "#0284c7");
+      sbTagMesh.position.set(baseW / 2 + 2.8, setbackStart * floorH, baseD / 2);
+      annotationGroup.add(sbTagMesh);
     }
 
     if (isDiscontinuity) {
-      const discTag = createCalloutSprite("⚠️ V-4 전단벽 불연속 / 전이보", "#db2777");
-      discTag.position.set(baseW / 2 + 2.8, 2 * floorH + 0.3, baseD / 2);
-      annotationGroup.add(discTag);
+      discTagMesh = createCalloutSprite("⚠️ V-4 전단벽 불연속 / 전이보", "#db2777");
+      discTagMesh.position.set(baseW / 2 + 2.8, 2 * floorH + 0.3, baseD / 2);
+      annotationGroup.add(discTagMesh);
     }
 
     if (isTorsion) {
-      const torTag = createCalloutSprite("🔄 H-1 평면 비틀림 비정형 (RZ)", "#7c3aed");
-      torTag.position.set(0, totalH + 1.6, 0);
-      annotationGroup.add(torTag);
+      torTagMesh = createCalloutSprite("🔄 H-1 평면 비틀림 비정형 (RZ)", "#7c3aed");
+      torTagMesh.position.set(0, totalH + 1.6, 0);
+      annotationGroup.add(torTagMesh);
 
       // Rotating Torsion Ring on Roof
       const tRingGeo = new THREE.TorusGeometry(baseW * 0.45, 0.08, 12, 32, Math.PI * 1.6);
@@ -577,14 +614,12 @@
     const omega = 2.2;
     const baseSway = Math.sin(t * omega);
 
+    // Slabs sway
     slabMeshes.forEach(({ mesh, baseY, story }) => {
-      // Normal cantilever 1st mode sway
       let dispX = 0.28 * Math.pow(story / nStories, 1.25) * baseSway;
 
-      // Soft story amplifies 1st floor shear displacement
       if (isSoft) {
-        if (story === 1) dispX += 0.22 * baseSway;
-        else dispX += 0.22 * baseSway;
+        dispX += 0.22 * baseSway;
       }
 
       mesh.position.x = dispX;
@@ -598,8 +633,40 @@
     });
 
     // Column translations
-    columnMeshes.forEach(({ mesh, story, isPiloti, baseX }) => {
+    columnMeshes.forEach(({ mesh, story, isPiloti, baseX, baseZ }) => {
       let dispX = 0.28 * Math.pow((story - 0.5) / nStories, 1.25) * baseSway;
+      if (isSoft) dispX += 0.22 * baseSway;
+
+      if (isTorsion) {
+        const theta = 0.06 * ((story - 0.5) / nStories) * Math.sin(t * omega * 1.3);
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        mesh.position.x = (baseX * cosT - baseZ * sinT) + dispX;
+        mesh.position.z = (baseX * sinT + baseZ * cosT);
+        mesh.rotation.y = theta;
+      } else {
+        mesh.position.x = baseX + dispX;
+        mesh.position.z = baseZ;
+        mesh.rotation.y = 0;
+      }
+    });
+
+    // Discontinuous Shear Walls: Moving in lockstep with the building!
+    wallMeshes.forEach(({ mesh, story, baseX }) => {
+      let dispX = 0.28 * Math.pow((story - 0.5) / nStories, 1.25) * baseSway;
+      if (isSoft) dispX += 0.22 * baseSway;
+      mesh.position.x = baseX + dispX;
+
+      if (isTorsion) {
+        mesh.rotation.y = 0.06 * ((story - 0.5) / nStories) * Math.sin(t * omega * 1.3);
+      } else {
+        mesh.rotation.y = 0;
+      }
+    });
+
+    // Transfer Girder on Floor 2: Moving in lockstep with Floor 2!
+    transferMeshes.forEach(({ mesh, story, baseX }) => {
+      let dispX = 0.28 * Math.pow(story / nStories, 1.25) * baseSway;
       if (isSoft) dispX += 0.22 * baseSway;
       mesh.position.x = baseX + dispX;
 
@@ -610,7 +677,30 @@
       }
     });
 
+    // Annotations follow the swaying building
+    if (softTagMesh) {
+      let disp = (isSoft ? 0.22 : 0) * baseSway;
+      softTagMesh.position.x = baseW / 2 + 2.8 + disp;
+    }
+    if (massTagMesh) {
+      let disp = 0.28 * Math.pow(mechFloor / nStories, 1.25) * baseSway + (isSoft ? 0.22 * baseSway : 0);
+      massTagMesh.position.x = baseW / 2 + 2.8 + disp;
+    }
+    if (sbTagMesh) {
+      let disp = 0.28 * Math.pow(setbackStart / nStories, 1.25) * baseSway + (isSoft ? 0.22 * baseSway : 0);
+      sbTagMesh.position.x = baseW / 2 + 2.8 + disp;
+    }
+    if (discTagMesh) {
+      let disp = 0.28 * Math.pow(2 / nStories, 1.25) * baseSway + (isSoft ? 0.22 * baseSway : 0);
+      discTagMesh.position.x = baseW / 2 + 2.8 + disp;
+    }
+    if (torTagMesh) {
+      let disp = 0.28 * baseSway + (isSoft ? 0.22 * baseSway : 0);
+      torTagMesh.position.x = disp;
+    }
     if (torsionRingMesh) {
+      let disp = 0.28 * baseSway + (isSoft ? 0.22 * baseSway : 0);
+      torsionRingMesh.position.x = disp;
       torsionRingMesh.rotation.z -= 0.03;
     }
   }
