@@ -8,7 +8,7 @@
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     body {
-      background-color: #f8fafc;
+      background-color: #faf8f5;
       color: #0f172a;
       font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
@@ -317,9 +317,9 @@
             </div>
 
             <!-- SDOF Viewport -->
-            <div class="relative w-full h-[260px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+            <div class="relative w-full h-[260px] rounded-xl overflow-hidden border border-slate-200 bg-[#faf8f5]">
               <!-- 3D BIM Container -->
-              <div id="threeSdofContainer" class="w-full h-full absolute inset-0">
+              <div id="threeSdofContainer" class="w-full h-full absolute inset-0 bg-[#faf8f5]">
                 <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2 py-1 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1 flex-wrap">
                   <span>🖱️ 3D</span>
                   <span class="text-slate-300">|</span>
@@ -331,7 +331,7 @@
               </div>
 
               <!-- 2D Canvas Container -->
-              <div id="sdof2DContainer" class="w-full h-full absolute inset-0 bg-white" style="display: none;">
+              <div id="sdof2DContainer" class="w-full h-full absolute inset-0 bg-[#faf8f5]" style="display: none;">
                 <canvas id="sdofCanvas" class="w-full h-full block rounded-lg"></canvas>
               </div>
             </div>
@@ -1016,7 +1016,10 @@
       const rect = sdofCanvas.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
-      sdofCtx.clearRect(0, 0, w, h);
+      
+      // Warm off-white background (미색)
+      sdofCtx.fillStyle = '#faf8f5';
+      sdofCtx.fillRect(0, 0, w, h);
 
       // 1. Dynamic visual displacement scaling (smoothly normalized, ZERO collision with damper)
       const maxVisualStroke = 60.0; // max excursion in pixels
@@ -1042,12 +1045,12 @@
       const springY = massY + 22;
       const damperY = massY + 50;
 
-      // 2. Concrete Foundation & Hatching
-      sdofCtx.fillStyle = '#f8fafc';
+      // 2. Concrete Foundation & Hatching (Bright light gray foundation)
+      sdofCtx.fillStyle = '#f1f5f9';
       sdofCtx.fillRect(0, groundY, w, h - groundY);
 
       // Top concrete line
-      sdofCtx.strokeStyle = '#94a3b8';
+      sdofCtx.strokeStyle = '#cbd5e1';
       sdofCtx.lineWidth = 1.5;
       sdofCtx.beginPath();
       sdofCtx.moveTo(0, groundY);
@@ -1055,7 +1058,7 @@
       sdofCtx.stroke();
 
       // Engineering Hatching
-      sdofCtx.strokeStyle = '#cbd5e1';
+      sdofCtx.strokeStyle = '#e2e8f0';
       sdofCtx.lineWidth = 1;
       for (let x = 10; x < w; x += 16) {
         sdofCtx.beginPath();
@@ -1064,27 +1067,27 @@
         sdofCtx.stroke();
       }
 
-      // 3. Precision Stainless Linear Guideway (LM Rail)
+      // 3. Precision Stainless Linear Guideway (LM Rail - Bright Chrome)
       const railTop = groundY - 8;
       const railH = 8;
       const railGrad = sdofCtx.createLinearGradient(0, railTop, 0, groundY);
-      railGrad.addColorStop(0, '#94a3b8');
+      railGrad.addColorStop(0, '#ffffff');
       railGrad.addColorStop(0.3, '#f1f5f9');
-      railGrad.addColorStop(0.7, '#cbd5e1');
-      railGrad.addColorStop(1, '#64748b');
+      railGrad.addColorStop(0.7, '#e2e8f0');
+      railGrad.addColorStop(1, '#cbd5e1');
       sdofCtx.fillStyle = railGrad;
       sdofCtx.fillRect(wallX + 15, railTop, w - wallX - 35, railH);
-      sdofCtx.strokeStyle = '#475569';
+      sdofCtx.strokeStyle = '#94a3b8';
       sdofCtx.lineWidth = 1;
       sdofCtx.strokeRect(wallX + 15, railTop, w - wallX - 35, railH);
 
-      // Rail End Bumper Stops
-      sdofCtx.fillStyle = '#dc2626';
+      // Rail End Bumper Stops (Bright safety coral red)
+      sdofCtx.fillStyle = '#f87171';
       sdofCtx.fillRect(wallX + 15, railTop - 6, 8, 14);
       sdofCtx.fillRect(w - 28, railTop - 6, 8, 14);
 
       // 4. Equilibrium Neutral Guideline & Ruler Scale
-      sdofCtx.strokeStyle = '#94a3b8';
+      sdofCtx.strokeStyle = '#cbd5e1';
       sdofCtx.lineWidth = 1.5;
       sdofCtx.setLineDash([4, 4]);
       sdofCtx.beginPath();
@@ -1094,7 +1097,7 @@
       sdofCtx.setLineDash([]);
 
       // Triangle pointer at equilibrium
-      sdofCtx.fillStyle = '#64748b';
+      sdofCtx.fillStyle = '#94a3b8';
       sdofCtx.beginPath();
       sdofCtx.moveTo(X_eq, 12);
       sdofCtx.lineTo(X_eq - 4, 6);
@@ -1106,38 +1109,37 @@
       sdofCtx.textAlign = 'center';
       sdofCtx.fillText('0 (평형점)', X_eq, groundY + 28);
 
-      // 5. Left Reaction Pier / Fixed Anchor Wall
+      // 5. Left Reaction Pier / Fixed Anchor Wall (Bright Light Concrete)
       const wallW = 32;
       const wallGrad = sdofCtx.createLinearGradient(wallX - wallW, 0, wallX, 0);
-      wallGrad.addColorStop(0, '#475569');
-      wallGrad.addColorStop(0.4, '#94a3b8');
-      wallGrad.addColorStop(0.8, '#cbd5e1');
-      wallGrad.addColorStop(1, '#64748b');
+      wallGrad.addColorStop(0, '#e2e8f0');
+      wallGrad.addColorStop(0.5, '#f1f5f9');
+      wallGrad.addColorStop(1, '#e2e8f0');
       sdofCtx.fillStyle = wallGrad;
       sdofCtx.fillRect(wallX - wallW, 16, wallW, groundY - 16);
-      sdofCtx.strokeStyle = '#334155';
+      sdofCtx.strokeStyle = '#94a3b8';
       sdofCtx.lineWidth = 2;
       sdofCtx.strokeRect(wallX - wallW, 16, wallW, groundY - 16);
 
-      // Wall anchor steel plates with bolt rivets
+      // Wall anchor steel plates with bolt rivets (Bright Satin Steel)
       function drawAnchorPlate(yCenter) {
-        sdofCtx.fillStyle = '#1e293b';
+        sdofCtx.fillStyle = '#e2e8f0';
         sdofCtx.fillRect(wallX - 6, yCenter - 14, 8, 28);
-        sdofCtx.fillStyle = '#f8fafc';
+        sdofCtx.fillStyle = '#ffffff';
         sdofCtx.beginPath();
         sdofCtx.arc(wallX - 2, yCenter - 8, 2, 0, Math.PI * 2);
         sdofCtx.arc(wallX - 2, yCenter + 8, 2, 0, Math.PI * 2);
         sdofCtx.fill();
         // Clevis mounting bracket
-        sdofCtx.fillStyle = '#334155';
-        sdofCtx.strokeStyle = '#1e293b';
+        sdofCtx.fillStyle = '#f1f5f9';
+        sdofCtx.strokeStyle = '#94a3b8';
         sdofCtx.lineWidth = 1.5;
         sdofCtx.beginPath();
         sdofCtx.roundRect(wallX + 2, yCenter - 9, 12, 18, 3);
         sdofCtx.fill();
         sdofCtx.stroke();
         // Pivot pin
-        sdofCtx.fillStyle = '#e2e8f0';
+        sdofCtx.fillStyle = '#ffffff';
         sdofCtx.beginPath();
         sdofCtx.arc(wallX + 8, yCenter, 3.5, 0, Math.PI * 2);
         sdofCtx.fill();
@@ -1147,15 +1149,15 @@
 
       // Cart mounting brackets
       function drawCartBracket(yCenter) {
-        sdofCtx.fillStyle = '#334155';
-        sdofCtx.strokeStyle = '#1e293b';
+        sdofCtx.fillStyle = '#f1f5f9';
+        sdofCtx.strokeStyle = '#94a3b8';
         sdofCtx.lineWidth = 1.5;
         sdofCtx.beginPath();
         sdofCtx.roundRect(cartLeft - 14, yCenter - 9, 14, 18, 3);
         sdofCtx.fill();
         sdofCtx.stroke();
         // Pivot pin
-        sdofCtx.fillStyle = '#e2e8f0';
+        sdofCtx.fillStyle = '#ffffff';
         sdofCtx.beginPath();
         sdofCtx.arc(cartLeft - 7, yCenter, 3.5, 0, Math.PI * 2);
         sdofCtx.fill();
@@ -1163,7 +1165,7 @@
       drawCartBracket(springY);
       drawCartBracket(damperY);
 
-      // 6. HIGH-END 3D HELICAL COIL SPRING (상단 정밀 기계 스프링)
+      // 6. HIGH-END 3D HELICAL COIL SPRING (Bright Metallic Sky Blue)
       const springStartX = wallX + 14;
       const springEndX = cartLeft - 14;
       const springSpan = springEndX - springStartX;
@@ -1172,7 +1174,7 @@
       const pitch = (springSpan - 20) / numTurns;
 
       // End straight leads
-      sdofCtx.strokeStyle = '#2563eb';
+      sdofCtx.strokeStyle = '#38bdf8';
       sdofCtx.lineWidth = 3.5;
       sdofCtx.lineCap = 'round';
       sdofCtx.beginPath();
@@ -1180,8 +1182,8 @@
       sdofCtx.lineTo(springStartX + 10, springY);
       sdofCtx.stroke();
 
-      // Pass 1: Back coils (down-slant, dark shadow)
-      sdofCtx.strokeStyle = '#1d4ed8';
+      // Pass 1: Back coils (down-slant)
+      sdofCtx.strokeStyle = '#2563eb';
       sdofCtx.lineWidth = 3.2;
       sdofCtx.beginPath();
       for (let i = 0; i < numTurns; i++) {
@@ -1194,10 +1196,10 @@
 
       // Pass 2: Front coils (up-slant with reflective gradient highlight)
       const springGrad = sdofCtx.createLinearGradient(0, springY - coilR, 0, springY + coilR);
-      springGrad.addColorStop(0, '#93c5fd');
-      springGrad.addColorStop(0.3, '#3b82f6');
+      springGrad.addColorStop(0, '#bae6fd');
+      springGrad.addColorStop(0.3, '#38bdf8');
       springGrad.addColorStop(0.7, '#2563eb');
-      springGrad.addColorStop(1, '#1e40af');
+      springGrad.addColorStop(1, '#1d4ed8');
       sdofCtx.strokeStyle = springGrad;
       sdofCtx.lineWidth = 3.8;
       sdofCtx.lineCap = 'round';
@@ -1211,7 +1213,7 @@
       sdofCtx.stroke();
 
       // Right lead-in
-      sdofCtx.strokeStyle = '#2563eb';
+      sdofCtx.strokeStyle = '#38bdf8';
       sdofCtx.lineWidth = 3.5;
       sdofCtx.beginPath();
       sdofCtx.moveTo(springStartX + 10 + numTurns * pitch, springY);
@@ -1219,12 +1221,12 @@
       sdofCtx.stroke();
 
       // Spring CAD label
-      sdofCtx.fillStyle = '#1d4ed8';
+      sdofCtx.fillStyle = '#0284c7';
       sdofCtx.font = 'bold 10px Pretendard';
       sdofCtx.textAlign = 'center';
       sdofCtx.fillText('정밀 나선 스프링 (강성 k)', (springStartX + springEndX) / 2, springY - 17);
 
-      // 7. HIGH-END VISCOUS DAMPER (하단 점성감쇠기)
+      // 7. HIGH-END VISCOUS DAMPER (Bright Champagne / Anodized Aluminum)
       const cylStartX = wallX + 14;
       const cylLen = 115;
       const cylEndX = cylStartX + cylLen;
@@ -1241,58 +1243,57 @@
       const rodStartX = pistonHeadX;
       const rodEndX = cartLeft - 14;
       const rodGrad = sdofCtx.createLinearGradient(0, rodY - rodRadius, 0, rodY + rodRadius);
-      rodGrad.addColorStop(0, '#94a3b8');
-      rodGrad.addColorStop(0.3, '#ffffff');
+      rodGrad.addColorStop(0, '#ffffff');
+      rodGrad.addColorStop(0.3, '#f8fafc');
       rodGrad.addColorStop(0.7, '#cbd5e1');
-      rodGrad.addColorStop(1, '#475569');
+      rodGrad.addColorStop(1, '#94a3b8');
       sdofCtx.fillStyle = rodGrad;
       sdofCtx.fillRect(rodStartX, rodY - rodRadius, rodEndX - rodStartX, rodRadius * 2);
-      sdofCtx.strokeStyle = '#334155';
+      sdofCtx.strokeStyle = '#94a3b8';
       sdofCtx.lineWidth = 1;
       sdofCtx.strokeRect(rodStartX, rodY - rodRadius, rodEndX - rodStartX, rodRadius * 2);
 
-      // Cylinder Barrel Outer Housing
+      // Cylinder Barrel Outer Housing (Bright Champagne Aluminum)
       const cylGrad = sdofCtx.createLinearGradient(0, damperY - cylH/2, 0, damperY + cylH/2);
-      cylGrad.addColorStop(0, '#1e293b');
-      cylGrad.addColorStop(0.2, '#64748b');
-      cylGrad.addColorStop(0.5, '#334155');
-      cylGrad.addColorStop(0.8, '#1e293b');
-      cylGrad.addColorStop(1, '#0f172a');
+      cylGrad.addColorStop(0, '#ffffff');
+      cylGrad.addColorStop(0.3, '#f1f5f9');
+      cylGrad.addColorStop(0.7, '#e2e8f0');
+      cylGrad.addColorStop(1, '#cbd5e1');
       sdofCtx.fillStyle = cylGrad;
       sdofCtx.beginPath();
       sdofCtx.roundRect(cylStartX, damperY - cylH/2, cylLen, cylH, 4);
       sdofCtx.fill();
-      sdofCtx.strokeStyle = '#0f172a';
+      sdofCtx.strokeStyle = '#94a3b8';
       sdofCtx.lineWidth = 1.5;
       sdofCtx.stroke();
 
-      // Cylinder transparent oil inspection window
+      // Cylinder transparent oil inspection window (Bright Amber Fluid)
       const winX = cylStartX + 16;
       const winW = cylLen - 32;
       const winH = cylH - 6;
-      sdofCtx.fillStyle = 'rgba(217, 119, 6, 0.35)'; // amber fluid oil
+      sdofCtx.fillStyle = 'rgba(251, 191, 36, 0.45)'; // bright amber fluid oil
       sdofCtx.fillRect(winX, damperY - winH/2, winW, winH);
-      sdofCtx.strokeStyle = '#78350f';
+      sdofCtx.strokeStyle = '#d97706';
       sdofCtx.lineWidth = 1;
       sdofCtx.strokeRect(winX, damperY - winH/2, winW, winH);
 
-      // Piston Head (inside cylinder window)
+      // Piston Head (inside cylinder window - Bright Bronze)
       const pHeadW = 12;
       const pHeadH = winH - 2;
-      sdofCtx.fillStyle = '#475569';
-      sdofCtx.strokeStyle = '#1e293b';
+      sdofCtx.fillStyle = '#d97706';
+      sdofCtx.strokeStyle = '#b45309';
       sdofCtx.lineWidth = 1;
       sdofCtx.fillRect(pistonHeadX - pHeadW/2, damperY - pHeadH/2, pHeadW, pHeadH);
       sdofCtx.strokeRect(pistonHeadX - pHeadW/2, damperY - pHeadH/2, pHeadW, pHeadH);
       // Orifice ports on piston
-      sdofCtx.fillStyle = '#f59e0b';
+      sdofCtx.fillStyle = '#fef3c7';
       sdofCtx.fillRect(pistonHeadX - 2, damperY - pHeadH/2 + 2, 4, 3);
       sdofCtx.fillRect(pistonHeadX - 2, damperY + pHeadH/2 - 5, 4, 3);
 
-      // Front Gland Wiper Seal Ring (machined bronze)
-      sdofCtx.fillStyle = '#d97706';
+      // Front Gland Wiper Seal Ring (machined bright gold)
+      sdofCtx.fillStyle = '#f59e0b';
       sdofCtx.fillRect(cylEndX - 6, damperY - cylH/2, 6, cylH);
-      sdofCtx.strokeStyle = '#92400e';
+      sdofCtx.strokeStyle = '#d97706';
       sdofCtx.lineWidth = 1;
       sdofCtx.strokeRect(cylEndX - 6, damperY - cylH/2, 6, cylH);
 
@@ -1302,23 +1303,23 @@
       sdofCtx.textAlign = 'center';
       sdofCtx.fillText('점성감쇠기 (Viscous Damper, 감쇠 c)', (cylStartX + cylEndX) / 2, damperY + 22);
 
-      // 8. HIGH-END MASS TEST RIG CART (질량체 본체)
+      // 8. HIGH-END MASS TEST RIG CART (Bright Vibrant Cerulean Blue & White)
       const cartGrad = sdofCtx.createLinearGradient(cartLeft, massY, cartRight, massY + massH);
-      cartGrad.addColorStop(0, '#0f172a');
-      cartGrad.addColorStop(0.5, '#1e1b4b');
-      cartGrad.addColorStop(1, '#020617');
+      cartGrad.addColorStop(0, '#60a5fa');
+      cartGrad.addColorStop(0.5, '#3b82f6');
+      cartGrad.addColorStop(1, '#2563eb');
       sdofCtx.fillStyle = cartGrad;
       sdofCtx.beginPath();
       sdofCtx.roundRect(cartLeft, massY, massW, massH, 8);
       sdofCtx.fill();
-      sdofCtx.strokeStyle = '#38bdf8';
+      sdofCtx.strokeStyle = '#1d4ed8';
       sdofCtx.lineWidth = 2;
       sdofCtx.stroke();
 
-      // Top steel counterweight block
-      sdofCtx.fillStyle = '#334155';
+      // Top white counterweight slab
+      sdofCtx.fillStyle = '#f8fafc';
       sdofCtx.fillRect(cartLeft + 8, massY + 4, massW - 16, 12);
-      sdofCtx.strokeStyle = '#1e293b';
+      sdofCtx.strokeStyle = '#cbd5e1';
       sdofCtx.strokeRect(cartLeft + 8, massY + 4, massW - 16, 12);
       // Hex bolts on top
       sdofCtx.fillStyle = '#94a3b8';
@@ -1329,7 +1330,7 @@
       }
 
       // Center Nameplate
-      sdofCtx.fillStyle = '#f59e0b';
+      sdofCtx.fillStyle = '#fef3c7';
       sdofCtx.font = 'bold 9px monospace';
       sdofCtx.textAlign = 'center';
       sdofCtx.fillText('SDOF RIG CART', massCenterX, massY + 29);
@@ -1339,37 +1340,37 @@
       sdofCtx.fillText('m = 1.0 ton', massCenterX, massY + 44);
 
       // Digital LED Displacement Display (High-tech HUD inside cart)
-      sdofCtx.fillStyle = '#020617';
+      sdofCtx.fillStyle = '#ffffff';
       sdofCtx.beginPath();
       sdofCtx.roundRect(massCenterX - 45, massY + 49, 90, 16, 3);
       sdofCtx.fill();
-      sdofCtx.strokeStyle = '#1e293b';
+      sdofCtx.strokeStyle = '#93c5fd';
       sdofCtx.lineWidth = 1;
       sdofCtx.stroke();
 
-      sdofCtx.fillStyle = '#38bdf8';
+      sdofCtx.fillStyle = '#0284c7';
       sdofCtx.font = 'bold 10px monospace';
       sdofCtx.textAlign = 'center';
       sdofCtx.fillText(`u = ${currU >= 0 ? '+' : ''}${currU.toFixed(2)} m`, massCenterX, massY + 61);
 
-      // 9. Precision Roller Bearings (LM Carriage Wheels)
+      // 9. Precision Roller Bearings (LM Carriage Wheels - Mirror Chrome)
       const wheelR = 8.5;
       const wheelY = railTop - wheelR + 1;
       const wheelX1 = massCenterX - 35;
       const wheelX2 = massCenterX + 35;
 
       function drawBearingWheel(wx) {
-        // Wheel rim
-        sdofCtx.fillStyle = '#1e293b';
+        // Wheel rim (Chrome)
+        sdofCtx.fillStyle = '#ffffff';
         sdofCtx.beginPath();
         sdofCtx.arc(wx, wheelY, wheelR, 0, Math.PI * 2);
         sdofCtx.fill();
-        sdofCtx.strokeStyle = '#64748b';
+        sdofCtx.strokeStyle = '#94a3b8';
         sdofCtx.lineWidth = 1.5;
         sdofCtx.stroke();
 
         // Chrome axle hub
-        sdofCtx.fillStyle = '#cbd5e1';
+        sdofCtx.fillStyle = '#e2e8f0';
         sdofCtx.beginPath();
         sdofCtx.arc(wx, wheelY, 4, 0, Math.PI * 2);
         sdofCtx.fill();
@@ -1378,7 +1379,7 @@
         sdofCtx.save();
         sdofCtx.translate(wx, wheelY);
         sdofCtx.rotate(wheelRotationAngle);
-        sdofCtx.strokeStyle = '#94a3b8';
+        sdofCtx.strokeStyle = '#64748b';
         sdofCtx.lineWidth = 1.2;
         sdofCtx.beginPath();
         sdofCtx.moveTo(-6, 0); sdofCtx.lineTo(6, 0);
@@ -2004,11 +2005,11 @@
     function initThreeSdof() {
       if (!threeSdofContainer) return;
       threeScene = new THREE.Scene();
-      threeScene.background = new THREE.Color(0xf8fafc);
+      threeScene.background = new THREE.Color(0xfaf8f5); // Warm off-white (미색)
 
       const r = threeSdofContainer.getBoundingClientRect();
       threeCamera = new THREE.PerspectiveCamera(34, r.width / r.height, 0.1, 1000);
-      threeCamera.position.set(2.4, 5.0, 12.8);
+      threeCamera.position.set(2.8, 5.0, 12.8);
 
       threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
       threeRenderer.setSize(r.width, r.height);
@@ -2020,47 +2021,52 @@
       threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
       threeControls.enableDamping = true;
       threeControls.dampingFactor = 0.05;
-      threeControls.target.set(0.2, 1.4, 0);
+      threeControls.target.set(0.6, 1.4, 0);
       threeControls.maxPolarAngle = Math.PI / 2 + 0.04;
       threeControls.minDistance = 5;
       threeControls.maxDistance = 25;
 
-      // Studio Lighting
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.85);
+      // Studio Lighting (Multi-point bright architectural illumination)
+      const ambLight = new THREE.AmbientLight(0xffffff, 1.25);
       threeScene.add(ambLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.95);
-      dirLight.position.set(12, 20, 14);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.05);
+      dirLight.position.set(10, 18, 12);
       dirLight.castShadow = true;
       dirLight.shadow.mapSize.width = 2048;
       dirLight.shadow.mapSize.height = 2048;
       dirLight.shadow.camera.near = 0.5;
       dirLight.shadow.camera.far = 40;
-      dirLight.shadow.camera.left = -10;
-      dirLight.shadow.camera.right = 10;
-      dirLight.shadow.camera.top = 10;
-      dirLight.shadow.camera.bottom = -10;
-      dirLight.shadow.bias = -0.0005;
+      dirLight.shadow.camera.left = -12;
+      dirLight.shadow.camera.right = 12;
+      dirLight.shadow.camera.top = 12;
+      dirLight.shadow.camera.bottom = -12;
+      dirLight.shadow.bias = 0.0005; // Positive bias eliminates self-shadowing acne
       threeScene.add(dirLight);
 
+      // Front-Left Fill Light ensures reaction wall and damper are radiantly bright
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.85);
+      fillLight.position.set(-12, 14, 10);
+      threeScene.add(fillLight);
+
       const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.45);
-      rimLight.position.set(-10, 8, -10);
+      rimLight.position.set(0, 10, -12);
       threeScene.add(rimLight);
 
-      // 1. Bedrock Plinth (Machined Granite Surface Plate)
+      // 1. Bedrock Plinth (Bright Machined Granite Surface Plate)
       const bedGeo = new THREE.BoxGeometry(13.4, 0.45, 6.4);
-      const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.75, metalness: 0.2 });
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45, metalness: 0.10 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
       bedrock.position.set(0.5, 0.225, 0);
       bedrock.receiveShadow = true;
       threeScene.add(bedrock);
 
       const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
-      bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x475569 })));
+      bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0xcbd5e1 })));
 
-      // 4 Leveling Mount Pads at corners
+      // 4 Leveling Mount Pads at corners (Bright Satin Stainless)
       const padGeo = new THREE.CylinderGeometry(0.35, 0.45, 0.25, 16);
-      const padMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+      const padMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
       for (let px of [-5.8, 6.8]) {
         for (let pz of [-2.8, 2.8]) {
           const pad = new THREE.Mesh(padGeo, padMat);
@@ -2071,25 +2077,25 @@
         }
       }
 
-      // 2. Left Reaction Buttress Wall
+      // 2. Left Reaction Buttress Wall (Bright Pure Architectural Concrete)
       const wallGeo = new THREE.BoxGeometry(1.4, 3.4, 4.4);
-      const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.45, metalness: 0.35 });
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35, metalness: 0.05 });
       const wall = new THREE.Mesh(wallGeo, wallMat);
       wall.position.set(-4.9, 1.925, 0);
       wall.castShadow = true;
       wall.receiveShadow = true;
       threeScene.add(wall);
 
-      // Steel Anchor Faceplate on Wall
+      // Steel Anchor Faceplate on Wall (Bright Satin Steel)
       const faceplateGeo = new THREE.BoxGeometry(0.12, 3.0, 3.8);
-      const faceplateMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.85, roughness: 0.2 });
+      const faceplateMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
       const faceplate = new THREE.Mesh(faceplateGeo, faceplateMat);
       faceplate.position.set(-4.14, 1.925, 0);
       threeScene.add(faceplate);
 
-      // Wall Anchor Bolts
+      // Wall Anchor Bolts (Polished Chrome)
       const boltGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.18, 12);
-      const boltMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.95, roughness: 0.1 });
+      const boltMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
       boltGeo.rotateZ(Math.PI / 2);
       for (let by of [0.8, 1.5, 2.2, 2.9]) {
         for (let bz of [-1.6, 1.6]) {
@@ -2120,10 +2126,10 @@
       threeScene.add(createClevisBracket(-4.08, 1.55, -0.85)); // Wall Spring Clevis
       threeScene.add(createClevisBracket(-4.08, 1.55, 0.85));  // Wall Damper Clevis
 
-      // 3. Precision Stainless Linear Guideway (LM Rails)
+      // 3. Precision Stainless Linear Guideway (LM Rails - Mirror Chrome)
       for (let z of [-1.2, 1.2]) {
         const railGeo = new THREE.BoxGeometry(9.6, 0.12, 0.20);
-        const railMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.92, roughness: 0.15 });
+        const railMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.15 });
         const rail = new THREE.Mesh(railGeo, railMat);
         rail.position.set(0.5, 0.51, z);
         rail.receiveShadow = true;
@@ -2136,7 +2142,7 @@
         }
 
         const bumperGeo = new THREE.BoxGeometry(0.25, 0.35, 0.28);
-        const bumperMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4 });
+        const bumperMat = new THREE.MeshStandardMaterial({ color: 0xf87171, roughness: 0.3 });
         const bumperL = new THREE.Mesh(bumperGeo, bumperMat);
         bumperL.position.set(-4.1, 0.65, z);
         threeScene.add(bumperL);
@@ -2145,13 +2151,13 @@
         threeScene.add(bumperR);
       }
 
-      // 4. HIGH-END SDOF MASS RIG CART
+      // 4. HIGH-END SDOF MASS RIG CART (Bright Palette & Realistic Proportions)
       threeCartGroup = new THREE.Group();
-      threeCartGroup.position.set(0.6, 0, 0); // equilibrium position
+      threeCartGroup.position.set(1.30, 0, 0); // Safe equilibrium position
 
-      // Chassis Base Plate (Machined aluminum)
+      // Chassis Base Plate (Bright Machined Aluminum)
       const chassisGeo = new THREE.BoxGeometry(2.4, 0.18, 2.9);
-      const chassisMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.82, roughness: 0.22 });
+      const chassisMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.25, roughness: 0.3 });
       const chassis = new THREE.Mesh(chassisGeo, chassisMat);
       chassis.position.set(0, 0.66, 0);
       chassis.castShadow = true;
@@ -2159,7 +2165,7 @@
 
       // LM Carriage Pillow Blocks under chassis
       const pillowGeo = new THREE.BoxGeometry(0.48, 0.16, 0.32);
-      const pillowMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.25 });
+      const pillowMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
       for (let px of [-0.75, 0.75]) {
         for (let pz of [-1.2, 1.2]) {
           const pb = new THREE.Mesh(pillowGeo, pillowMat);
@@ -2168,12 +2174,12 @@
         }
       }
 
-      // 4 Flanged Wheels (Rolling along LM rails)
+      // 4 Flanged Wheels (Polished Chrome)
       threeWheelMeshes = [];
       const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.10, 24);
       wheelGeo.rotateX(Math.PI / 2);
-      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9, roughness: 0.18 });
-      const hubMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.98, roughness: 0.05 });
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.35, roughness: 0.15 });
+      const hubMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
       for (let wx of [-0.75, 0.75]) {
         for (let wz of [-1.2, 1.2]) {
           const wGroup = new THREE.Group();
@@ -2187,7 +2193,7 @@
           wGroup.add(hub);
 
           const spokeGeo = new THREE.BoxGeometry(0.30, 0.02, 0.11);
-          const spoke = new THREE.Mesh(spokeGeo, new THREE.MeshBasicMaterial({ color: 0x334155 }));
+          const spoke = new THREE.Mesh(spokeGeo, new THREE.MeshBasicMaterial({ color: 0x94a3b8 }));
           wGroup.add(spoke);
 
           threeCartGroup.add(wGroup);
@@ -2195,17 +2201,17 @@
         }
       }
 
-      // Main Inertia Mass Block (Machined deep cobalt/sapphire blue)
+      // Main Inertia Mass Block (Bright Vibrant Cerulean Blue)
       const massGeo = new THREE.BoxGeometry(2.1, 1.35, 2.4);
-      const massMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.65, roughness: 0.25 });
+      const massMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.25, roughness: 0.3 });
       const massBody = new THREE.Mesh(massGeo, massMat);
       massBody.position.set(0, 1.425, 0);
       massBody.castShadow = true;
       threeCartGroup.add(massBody);
 
-      // Stacked Counterweight Slabs on Top
+      // Stacked Counterweight Slabs on Top (Bright Polished White/Silver)
       const slabGeo = new THREE.BoxGeometry(1.8, 0.14, 2.0);
-      const slabMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.25 });
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.15, roughness: 0.25 });
       const slab1 = new THREE.Mesh(slabGeo, slabMat);
       slab1.position.set(0, 2.17, 0);
       slab1.castShadow = true;
@@ -2244,92 +2250,92 @@
       threeCartGroup.add(createCartClevis(-1.05, 1.55, -0.85)); // Spring clevis on cart
       threeCartGroup.add(createCartClevis(-1.05, 1.55, 0.85));  // Damper clevis on cart
 
-      // Side HUD / CAD Nameplate on cart face facing camera
+      // Side HUD / CAD Nameplate on cart face facing camera (Bright White)
       const plateGeo = new THREE.BoxGeometry(1.6, 0.5, 0.04);
-      const plateMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.2 });
+      const plateMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.25, roughness: 0.3 });
       const nameplate = new THREE.Mesh(plateGeo, plateMat);
       nameplate.position.set(0, 1.45, 1.22);
       threeCartGroup.add(nameplate);
 
-      // Digital LED bezel
+      // Digital LED bezel (Bright Electric Cyan)
       const ledGeo = new THREE.BoxGeometry(1.4, 0.18, 0.05);
-      const ledMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+      const ledMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
       const ledBezel = new THREE.Mesh(ledGeo, ledMat);
       ledBezel.position.set(0, 1.35, 1.23);
       threeCartGroup.add(ledBezel);
 
       threeScene.add(threeCartGroup);
 
-      // 5. TRUE 3D HELICAL COIL SPRING (정밀 나선형 코일 스프링)
+      // 5. TRUE 3D HELICAL COIL SPRING (Bright Metallic Sky Blue)
       const springStart = new THREE.Vector3(-3.8, 1.55, -0.85);
-      const springEnd = new THREE.Vector3(-0.7, 1.55, -0.85);
+      const springEnd = new THREE.Vector3(0.0, 1.55, -0.85);
       const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.28, 10);
       const springGeo = new THREE.TubeGeometry(springCurve, 120, 0.045, 10, false);
       const springMat = new THREE.MeshStandardMaterial({
-        color: 0x2563eb,
-        metalness: 0.88,
-        roughness: 0.18,
+        color: 0x38bdf8,
+        metalness: 0.3,
+        roughness: 0.2,
       });
       threeSpringMesh = new THREE.Mesh(springGeo, springMat);
       threeSpringMesh.castShadow = true;
       threeScene.add(threeSpringMesh);
 
-      // 6. INDUSTRIAL HYDRAULIC DAMPER (유압 점성감쇠기)
-      // Damper Outer Barrel (Mounted to Wall)
-      const cylLen = 2.4;
+      // 6. INDUSTRIAL HYDRAULIC DAMPER (Bright Anodized Aluminum + Amber Reservoir)
+      // Damper Outer Barrel (Mounted to Wall: from X = -3.80 to X = -2.10, length 1.70m)
+      const cylLen = 1.70;
       const cylGeo = new THREE.CylinderGeometry(0.18, 0.18, cylLen, 24);
       cylGeo.rotateZ(Math.PI / 2);
-      const cylMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.25 });
+      const cylMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.25, roughness: 0.3 });
       threeDamperCyl = new THREE.Mesh(cylGeo, cylMat);
-      threeDamperCyl.position.set(-2.6, 1.55, 0.85);
+      threeDamperCyl.position.set(-2.95, 1.55, 0.85);
       threeDamperCyl.castShadow = true;
       threeScene.add(threeDamperCyl);
 
-      // Amber Oil Sight Glass Reservoir Window
-      const glassGeo = new THREE.CylinderGeometry(0.175, 0.175, 1.2, 24);
+      // Amber Oil Sight Glass Reservoir Window (Golden Amber)
+      const glassGeo = new THREE.CylinderGeometry(0.175, 0.175, 1.1, 24);
       glassGeo.rotateZ(Math.PI / 2);
       const glassMat = new THREE.MeshStandardMaterial({
-        color: 0xf59e0b,
-        metalness: 0.1,
-        roughness: 0.1,
+        color: 0xfbbf24,
+        metalness: 0.05,
+        roughness: 0.05,
         transparent: true,
-        opacity: 0.55
+        opacity: 0.60
       });
       const damperGlass = new THREE.Mesh(glassGeo, glassMat);
-      damperGlass.position.set(-2.6, 1.55, 0.85);
+      damperGlass.position.set(-2.95, 1.55, 0.85);
       threeScene.add(damperGlass);
 
-      // Front Bronze Gland Wiper Seal Nut
-      const wiperGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.16, 24);
+      // Front Gold Gland Wiper Seal Nut (wiper front at X = -1.96m)
+      const wiperGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.14, 24);
       wiperGeo.rotateZ(Math.PI / 2);
-      const wiperMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9, roughness: 0.25 });
+      const wiperMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.4, roughness: 0.25 });
       const wiper = new THREE.Mesh(wiperGeo, wiperMat);
-      wiper.position.set(-1.4, 1.55, 0.85);
+      wiper.position.set(-2.03, 1.55, 0.85);
       threeScene.add(wiper);
 
       // Damper Chrome Piston Rod & Internal Piston Head
       const rodLen = 3.6;
       const rodGeo = new THREE.CylinderGeometry(0.075, 0.075, rodLen, 24);
       rodGeo.rotateZ(Math.PI / 2);
-      const rodMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.98, roughness: 0.05 });
+      const rodMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
       threeDamperRod = new THREE.Mesh(rodGeo, rodMat);
-      threeDamperRod.position.set(-1.1, 1.55, 0.85);
+      threeDamperRod.position.set(-1.47, 1.55, 0.85);
       threeDamperRod.castShadow = true;
       threeScene.add(threeDamperRod);
 
-      // Internal Piston Head (Visible through amber glass)
+      // Internal Piston Head (Visible through amber glass - Bright Bronze)
       const pHeadGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.14, 20);
       pHeadGeo.rotateZ(Math.PI / 2);
-      const pHeadMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.2 });
+      const pHeadMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.4, roughness: 0.25 });
       threeDamperPistonHead = new THREE.Mesh(pHeadGeo, pHeadMat);
-      threeDamperPistonHead.position.set(-2.6, 1.55, 0.85);
+      threeDamperPistonHead.position.set(-2.95, 1.55, 0.85);
       threeScene.add(threeDamperPistonHead);
 
       // 7. Dynamic 3D Excitation Force Vector Arrow
       threeForceArrowGroup = new THREE.Group();
       const fShaftGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.0, 16);
       fShaftGeo.rotateZ(Math.PI / 2);
-      const fMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.5, roughness: 0.2 });
+      const fMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.3, roughness: 0.2 });
       threeForceArrowMesh = new THREE.Mesh(fShaftGeo, fMat);
       threeForceArrowGroup.add(threeForceArrowMesh);
 
@@ -2339,7 +2345,7 @@
       threeForceArrowHead.position.set(0.5, 0, 0);
       threeForceArrowGroup.add(threeForceArrowHead);
 
-      threeForceArrowGroup.position.set(2.0, 1.45, 0);
+      threeForceArrowGroup.position.set(2.7, 1.45, 0);
       threeScene.add(threeForceArrowGroup);
     }
 
@@ -2347,13 +2353,22 @@
       if (!threeRenderer || !threeCamera) return;
       threeControls.update();
 
-      // Dynamic visual stroke: smooth hyperbolic tangent mapping ensures buttery motion at all frequencies
-      const maxStroke = 2.4; // max safe physical excursion in 3D scene (m)
+      // Safe kinematic stroke: Cart front NEVER reaches or penetrates damper barrel!
+      // Damper wiper front is at X = -1.96. Cart front clevis is at cartCenterX - 1.30.
+      // Left stroke limit of 1.35 guarantees cartCenterX >= -0.05, clevis >= -1.35 (clearance >= 0.61m from damper wiper!)
+      const maxLeft = 1.35; // Maximum leftward stroke limit (m)
+      const maxRight = 2.20; // Maximum rightward stroke limit (m)
       const ampMultiplier = (threeAmpScale / 70.0);
-      const rawShift = (uVal / Math.max(0.1, ust)) * 0.55 * ampMultiplier;
-      const smoothShift = maxStroke * Math.tanh(rawShift / maxStroke);
+      const rawShift = (uVal / Math.max(0.1, ust)) * 0.48 * ampMultiplier;
 
-      const cartCenterX = 0.6 + smoothShift;
+      let stroke = 0;
+      if (rawShift >= 0) {
+        stroke = maxRight * Math.tanh(rawShift / maxRight);
+      } else {
+        stroke = -maxLeft * Math.tanh(Math.abs(rawShift) / maxLeft);
+      }
+
+      const cartCenterX = 1.30 + stroke;
 
       // 1. Move Cart and apply subtle suspension inertia pitch
       if (threeCartGroup) {
@@ -2384,10 +2399,10 @@
       // 4. Dynamic Hydraulic Damper Piston Rod & Internal Head
       if (threeDamperRod && threeDamperPistonHead) {
         const cartClevisX = cartCenterX - 1.30;
-        const pHeadX = -2.6 + smoothShift * 0.45;
+        const pHeadX = -2.95 + stroke * 0.38; // Piston stays smoothly inside cylinder [-3.80, -2.10]
         threeDamperPistonHead.position.x = pHeadX;
 
-        const rodLength = Math.max(0.5, cartClevisX - pHeadX);
+        const rodLength = Math.max(0.4, cartClevisX - pHeadX);
         const rodMidX = (pHeadX + cartClevisX) / 2;
         threeDamperRod.position.x = rodMidX;
         threeDamperRod.scale.set(rodLength / 3.6, 1, 1);
