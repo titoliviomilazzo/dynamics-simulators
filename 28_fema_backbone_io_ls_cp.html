@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>28. FEMA 힌지 백본 & 단면 200배 줌인 손상역학 완전통합 시뮬레이터</title>
+<title>28. FEMA 힌지 백본 & 3D BIM 골조 소성힌지 및 단면 200배 줌인 손상역학 시뮬레이터</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <style>
   :root {
     --bg-main: #f8fafc;
     --bg-card: #ffffff;
     --border-color: #e2e8f0;
+    --border-dark: #0f172a;
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #94a3b8;
@@ -33,7 +34,7 @@
   }
   .app-container {
     width: 100%;
-    max-width: 1520px;
+    max-width: 1540px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -77,14 +78,16 @@
     transition: all 0.15s;
   }
   .nav-badge:hover { background: #e2e8f0; }
+
   .grid-layout {
     display: grid;
-    grid-template-columns: 370px 1fr;
+    grid-template-columns: 360px 1fr;
     gap: 12px;
   }
-  @media (max-width: 1120px) {
+  @media (max-width: 1160px) {
     .grid-layout { grid-template-columns: 1fr; }
   }
+
   .panel {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -147,16 +150,9 @@
     background: #e2e8f0;
     border-radius: 4px;
     outline: none;
-    -webkit-appearance: none;
+    accent-color: var(--accent-indigo);
   }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--accent-indigo);
-    cursor: pointer;
-  }
+
   .btn-group { display: flex; gap: 6px; margin-top: 6px; }
   .action-btn {
     flex: 1;
@@ -181,6 +177,7 @@
     border-color: var(--accent-indigo);
   }
   .action-btn.primary:hover { background: #4338ca; }
+
   .metrics-card {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
@@ -207,11 +204,13 @@
     display: inline-block;
     text-align: center;
   }
+
   .right-container {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
+
   .canvas-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -220,12 +219,15 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     display: flex;
     flex-direction: column;
+    position: relative;
   }
   .canvas-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 6px;
   }
   .canvas-title {
     font-size: 12px;
@@ -243,6 +245,7 @@
   }
   .legend-item { display: flex; align-items: center; gap: 4px; }
   .legend-color { width: 8px; height: 8px; border-radius: 2px; }
+
   canvas {
     width: 100%;
     display: block;
@@ -250,17 +253,86 @@
     border-radius: 6px;
     border: 1px solid #f1f5f9;
   }
-  .triple-bottom-grid {
+
+  /* 2x2 Hero Layout */
+  .hero-dual-grid {
     display: grid;
-    grid-template-columns: 280px 1fr 280px;
+    grid-template-columns: 1fr 1.05fr;
     gap: 10px;
   }
-  @media (max-width: 1380px) {
-    .triple-bottom-grid { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 1280px) {
+    .hero-dual-grid { grid-template-columns: 1fr; }
   }
-  @media (max-width: 860px) {
-    .triple-bottom-grid { grid-template-columns: 1fr; }
+
+  /* 3D BIM Viewport Container */
+  .bim-viewport-box {
+    width: 100%;
+    height: 275px;
+    background: #faf8f5;
+    border: 1.5px solid var(--border-dark);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
   }
+  #threeBimContainer {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .bim-hud-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(4px);
+    padding: 3px 7px;
+    border-radius: 5px;
+    border: 1px solid #0f172a;
+    font-size: 10px;
+    font-weight: 700;
+    color: #0f172a;
+    z-index: 10;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .bim-view-buttons {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+  }
+  .bim-btn {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #0f172a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .bim-btn:hover { background: #0f172a; color: #ffffff; }
+  .bim-btn.active { background: #4f46e5; color: #ffffff; border-color: #4f46e5; }
+  .bim-hud-controls {
+    position: absolute;
+    bottom: 6px;
+    left: 8px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(4px);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    font-size: 9.5px;
+    color: #475569;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* HUD Box */
   .hud-box {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
@@ -313,16 +385,15 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    .zentry-card {
-      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
-      transform-style: preserve-3d;
-      will-change: transform;
-    }
-  </style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-  <script src="assets/dynamics-chart-canonical.js"></script>
-  <script src="assets/dynamics-fx.js" defer></script>
+  }
+</style>
+<link rel="stylesheet" href="assets/dynamics-fx.css">
+<!-- Three.js & OrbitControls for 3D BIM -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="assets/dynamics-chart-canonical.js"></script>
+<script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body>
 <div class="app-container">
@@ -331,9 +402,9 @@
   <header>
     <div class="header-left">
       <h1>
-        <span>28. FEMA 힌지 백본 & 기둥 밑둥 단면 200배 줌인 손상역학 완전통합</span>
+        <span>28. FEMA 힌지 백본 & 3D BIM 골조 소성힌지 및 단면 200배 줌인 손상역학 완전통합</span>
       </h1>
-      <p>거시적(Macro) A~E 백본 꺾임선과 미시적(Micro) 기둥 단면의 4대 파괴(미세균열 → 피복탈락 → 띠철근파단 → 주철근 S자 좌굴)가 단일 화면에서 100% 정보 보존으로 실시간 동기화됩니다.</p>
+      <p>거시적(Macro) A~E 백본 꺾임선, 3D BIM 골조 소성힌지(Plastic Hinge) 진전 거동, 그리고 미시적(Micro) 기둥 밑둥 파괴가 단일 화면에서 100% 실시간 동기화됩니다.</p>
     </div>
     <a href="index.html" class="nav-badge">
       <span>← 마스터 대시보드</span>
@@ -441,56 +512,75 @@
       </div>
     </div>
 
-    <!-- RIGHT CONTAINER (MAIN VISUALIZATION) -->
+    <!-- RIGHT CONTAINER (MAIN VISUALIZATION: 2x2 DUAL HERO GRID) -->
     <div class="right-container">
 
-      <!-- TOP: FEMA BACKBONE CANVAS -->
-      <div class="canvas-card">
-        <div class="canvas-header">
-          <div class="canvas-title">
-            <span>📈 FEMA 356 / ASCE 41-17 일반화 백본 곡선 (Q/Qy vs θ/θy)</span>
-          </div>
-          <div class="canvas-legend">
-            <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>백본 곡선</span></div>
-            <div class="legend-item"><div class="legend-color" style="background:#059669"></div><span>IO</span></div>
-            <div class="legend-item"><div class="legend-color" style="background:#d97706"></div><span>LS</span></div>
-            <div class="legend-item"><div class="legend-color" style="background:#ea580c"></div><span>CP</span></div>
-            <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>소성 일(Wp)</span></div>
-          </div>
-        </div>
-        <canvas id="backboneCanvas" height="220"></canvas>
-      </div>
+      <!-- TOP ROW: FEMA BACKBONE CURVE (LEFT) + 3D BIM BUILDING FRAME (RIGHT) -->
+      <div class="hero-dual-grid">
 
-      <!-- BOTTOM: TRIPLE VIEW (MACRO FRAME + MICRO DUAL DAMAGE + HUD) -->
-      <div class="triple-bottom-grid">
-
-        <!-- 1. MACRO FRAME CANVAS (3차 휨곡률 & 골조 횡변위) -->
+        <!-- 1. FEMA BACKBONE CANVAS -->
         <div class="canvas-card">
           <div class="canvas-header">
             <div class="canvas-title">
-              <span>🏢 골조 거시 거동 (Macro)</span>
+              <span>📈 FEMA 356 / ASCE 41-17 일반화 백본 곡선 (Q/Qy vs θ/θy)</span>
             </div>
-            <span style="font-size:10px;color:var(--text-muted)">반곡점 3차 휨곡률</span>
+            <div class="canvas-legend">
+              <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>백본</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#059669"></div><span>IO</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#d97706"></div><span>LS</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#ea580c"></div><span>CP</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>Wp</span></div>
+            </div>
           </div>
-          <canvas id="frameCanvas" height="215"></canvas>
+          <canvas id="backboneCanvas" height="275"></canvas>
         </div>
 
-        <!-- 2. MICRO HINGE DAMAGE DUAL CANVAS (단면 200배 + 입면 S자 좌굴) -->
+        <!-- 2. 3D BIM BUILDING FRAME & PLASTIC HINGES (THREE.JS) -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>🏢 3D BIM 골조 & 소성힌지(Plastic Hinge) 진전 거동</span>
+            </div>
+            <div class="bim-view-buttons">
+              <button class="bim-btn active" id="btnBimIso" onclick="setBimCameraView('iso')">📐 3D 뷰</button>
+              <button class="bim-btn" id="btnBimElev" onclick="setBimCameraView('elev')">🏢 정면도</button>
+              <button class="bim-btn" id="btnBimZoom" onclick="setBimCameraView('zoom')">🔬 힌지 확대</button>
+            </div>
+          </div>
+          <div class="bim-viewport-box">
+            <div class="bim-hud-badge">
+              <span>🏢 3D BIM 푸시오버 해석</span>
+              <span style="color:#cbd5e1;">|</span>
+              <span id="bimHingeStatus" style="color:#059669;">IO 즉시거주</span>
+            </div>
+            <div class="bim-hud-controls">
+              🖱️ 3D 오르빗: 좌클릭 회전 &middot; 휠 줌 &middot; 우클릭 이동
+            </div>
+            <div id="threeBimContainer"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM ROW: MICRO DUAL DAMAGE (LEFT) + DESTINY HUD (RIGHT) -->
+      <div class="hero-dual-grid" style="grid-template-columns: 1.15fr 1fr;">
+
+        <!-- 3. MICRO HINGE DAMAGE DUAL CANVAS (단면 200배 + 입면 S자 좌굴) -->
         <div class="canvas-card">
           <div class="canvas-header">
             <div class="canvas-title">
               <span>🔬 기둥 밑둥 200배 줌인: 단면 파괴 & 입면 S자 좌굴 (Micro)</span>
             </div>
-            <span style="font-size:10px;color:var(--text-muted)">가로 단면 + 세로 입면 듀얼</span>
+            <span style="font-size:10.5px;color:var(--text-secondary);font-weight:600;">가로단면(좌) + 세로입면(우) 듀얼</span>
           </div>
-          <canvas id="microDualCanvas" height="215"></canvas>
+          <canvas id="microDualCanvas" height="225"></canvas>
         </div>
 
-        <!-- 3. HUMAN & STRUCTURE DESTINY HUD -->
+        <!-- 4. HUMAN & STRUCTURE DESTINY HUD -->
         <div class="canvas-card">
           <div class="canvas-header">
             <div class="canvas-title">
-              <span>🩺 손상도 & 운명 HUD</span>
+              <span>🩺 손상도 & 건물·인명 운명 HUD</span>
             </div>
           </div>
           <div class="hud-box">
@@ -541,7 +631,9 @@
 </div>
 
 <script>
-// STATE
+// =========================================================================
+// STATE VARIABLES
+// =========================================================================
 let thetaNorm = 1.0;
 let axialRatio = 0.20;
 let tieSpacingRatio = 6.0;
@@ -556,18 +648,18 @@ let animReq = null;
 // CANVASES
 const bbCanvas = document.getElementById('backboneCanvas');
 const bbCtx = bbCanvas.getContext('2d');
-const frCanvas = document.getElementById('frameCanvas');
-const frCtx = frCanvas.getContext('2d');
 const microCanvas = document.getElementById('microDualCanvas');
 const microCtx = microCanvas.getContext('2d');
 
 function resizeCanvas(c) {
   const rect = c.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  c.width = rect.width * dpr;
-  c.height = rect.height * dpr;
+  const dpr = Math.max(window.devicePixelRatio || 1, 2.0);
+  c.width = Math.round(rect.width * dpr);
+  c.height = Math.round(rect.height * dpr);
   const ctx = c.getContext('2d');
   ctx.scale(dpr, dpr);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 }
 
 // ASCE 41 / FEMA LIMITS
@@ -612,7 +704,466 @@ function computeDissipatedEnergy(thMax) {
   return energy;
 }
 
-// UI EVENTS
+// =========================================================================
+// 3D BIM STRUCTURAL BUILDING & PLASTIC HINGE FORMATION (THREE.JS)
+// =========================================================================
+let sceneBim, cameraBim, rendererBim, controlsBim;
+const bimContainer = document.getElementById('threeBimContainer');
+let bimBuildingGroup, bimFoundationGroup, bimHingeGroup, bimAnnotationGroup;
+let bimColumnMeshes = [];
+let bimSlabMeshes = [];
+let bimBeamMeshes = [];
+let bimBaseHingeMeshes = [];
+let bimBeamHingeMeshes = [];
+let bimLateralArrow = null;
+let bimCalloutSprite = null;
+let currentBimView = 'iso';
+
+function createCalloutSprite(text, color, subText) {
+  const cvs = document.createElement('canvas');
+  cvs.width = 460;
+  cvs.height = 90;
+  const c = cvs.getContext('2d');
+  c.fillStyle = 'rgba(255, 255, 255, 0.96)';
+  c.strokeStyle = '#0f172a';
+  c.lineWidth = 4;
+  c.beginPath();
+  c.roundRect(6, 6, 448, 78, 12);
+  c.fill();
+  c.stroke();
+
+  c.fillStyle = color;
+  c.font = 'bold 24px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(text, 230, subText ? 32 : 45);
+
+  if (subText) {
+    c.fillStyle = '#334155';
+    c.font = 'bold 16px sans-serif';
+    c.fillText(subText, 230, 60);
+  }
+
+  const tex = new THREE.CanvasTexture(cvs);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.renderOrder = 999;
+  sprite.scale.set(4.4, 0.85, 1);
+  return sprite;
+}
+
+function initThreeBIM() {
+  sceneBim = new THREE.Scene();
+  sceneBim.background = new THREE.Color(0xfaf8f5);
+  sceneBim.fog = new THREE.Fog(0xfaf8f5, 30, 95);
+
+  const w = bimContainer.clientWidth || 450;
+  const h = bimContainer.clientHeight || 275;
+
+  cameraBim = new THREE.PerspectiveCamera(36, w / h, 0.1, 200);
+  cameraBim.position.set(15, 13, 18);
+
+  rendererBim = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  rendererBim.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+  rendererBim.setSize(w, h);
+  rendererBim.shadowMap.enabled = true;
+  rendererBim.shadowMap.type = THREE.PCFSoftShadowMap;
+  bimContainer.appendChild(rendererBim.domElement);
+
+  controlsBim = new THREE.OrbitControls(cameraBim, rendererBim.domElement);
+  controlsBim.enableDamping = true;
+  controlsBim.dampingFactor = 0.08;
+  controlsBim.target.set(0, 3.2, 0);
+  controlsBim.maxPolarAngle = Math.PI / 2 + 0.05;
+  controlsBim.minDistance = 4;
+  controlsBim.maxDistance = 50;
+
+  // Studio Lighting
+  const ambient = new THREE.AmbientLight(0xffffff, 0.92);
+  sceneBim.add(ambient);
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  keyLight.position.set(16, 26, 18);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.width = 1024;
+  keyLight.shadow.mapSize.height = 1024;
+  sceneBim.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.45);
+  fillLight.position.set(-16, 12, 10);
+  sceneBim.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.30);
+  rimLight.position.set(0, 16, -18);
+  sceneBim.add(rimLight);
+
+  // Ground Plane & Grid
+  const groundGeo = new THREE.PlaneGeometry(60, 60);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85, metalness: 0.05 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  sceneBim.add(ground);
+
+  const grid = new THREE.GridHelper(40, 40, 0xcbd5e1, 0xe2e8f0);
+  grid.position.y = 0.01;
+  sceneBim.add(grid);
+
+  bimBuildingGroup = new THREE.Group();
+  bimFoundationGroup = new THREE.Group();
+  bimHingeGroup = new THREE.Group();
+  bimAnnotationGroup = new THREE.Group();
+
+  sceneBim.add(bimFoundationGroup);
+  sceneBim.add(bimBuildingGroup);
+  sceneBim.add(bimHingeGroup);
+  sceneBim.add(bimAnnotationGroup);
+
+  buildBimStructure();
+  animateBimLoop();
+}
+
+function buildBimStructure() {
+  while (bimBuildingGroup.children.length > 0) {
+    const obj = bimBuildingGroup.children.pop();
+    if (obj.geometry) obj.geometry.dispose();
+    bimBuildingGroup.remove(obj);
+  }
+  while (bimFoundationGroup.children.length > 0) {
+    const obj = bimFoundationGroup.children.pop();
+    if (obj.geometry) obj.geometry.dispose();
+    bimFoundationGroup.remove(obj);
+  }
+  while (bimHingeGroup.children.length > 0) {
+    const obj = bimHingeGroup.children.pop();
+    if (obj.geometry) obj.geometry.dispose();
+    bimHingeGroup.remove(obj);
+  }
+  while (bimAnnotationGroup.children.length > 0) {
+    const obj = bimAnnotationGroup.children.pop();
+    bimAnnotationGroup.remove(obj);
+  }
+
+  bimColumnMeshes = [];
+  bimSlabMeshes = [];
+  bimBeamMeshes = [];
+  bimBaseHingeMeshes = [];
+  bimBeamHingeMeshes = [];
+
+  const bW = 6.4;
+  const bD = 4.4;
+  const floorH = 2.4;
+  const nStories = 2; // 2 stories, 3 slabs
+  const colThick = 0.32;
+  const slabThick = 0.22;
+  const beamW = 0.26;
+  const beamH = 0.36;
+
+  const blackLineMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 }); // Gate 1
+
+  // 6 Columns Grid (3 in X, 2 in Z)
+  const colXCoords = [-bW / 2 + 0.45, 0, bW / 2 - 0.45];
+  const colZCoords = [-bD / 2 + 0.45, bD / 2 - 0.45];
+
+  // Foundation Footings under each column
+  colXCoords.forEach(cx => {
+    colZCoords.forEach(cz => {
+      const footGeo = new THREE.BoxGeometry(0.85, 0.28, 0.85);
+      const footMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6 });
+      const footMesh = new THREE.Mesh(footGeo, footMat);
+      footMesh.position.set(cx, 0.14, cz);
+      footMesh.castShadow = true;
+      footMesh.receiveShadow = true;
+      footMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(footGeo), blackLineMat));
+      bimFoundationGroup.add(footMesh);
+    });
+  });
+
+  const colMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+  const slabMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.35, metalness: 0.15 });
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5 });
+
+  // Story Loops
+  for (let s = 1; s <= nStories; s++) {
+    const yTop = s * floorH;
+    const yBot = (s - 1) * floorH;
+    const colLen = floorH - slabThick;
+
+    // Columns
+    colXCoords.forEach((cx, ix) => {
+      colZCoords.forEach((cz, iz) => {
+        const cGeo = new THREE.BoxGeometry(colThick, colLen, colThick);
+        const cMesh = new THREE.Mesh(cGeo, colMat);
+        cMesh.position.set(cx, yBot + colLen / 2 + (s === 1 ? 0.28 : 0), cz);
+        cMesh.castShadow = true;
+        cMesh.receiveShadow = true;
+        cMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(cGeo), blackLineMat));
+        bimBuildingGroup.add(cMesh);
+
+        bimColumnMeshes.push({
+          mesh: cMesh,
+          story: s,
+          baseX: cx,
+          baseZ: cz,
+          baseY: yBot + colLen / 2 + (s === 1 ? 0.28 : 0)
+        });
+
+        // Plastic Hinges at Column Base for Story 1
+        if (s === 1) {
+          const hGeo = new THREE.SphereGeometry(0.24, 16, 16);
+          const hMat = new THREE.MeshStandardMaterial({
+            color: 0x059669,
+            roughness: 0.2,
+            emissive: 0x059669,
+            emissiveIntensity: 0.3
+          });
+          const hMesh = new THREE.Mesh(hGeo, hMat);
+          hMesh.position.set(cx, 0.40, cz);
+          hMesh.castShadow = true;
+          bimHingeGroup.add(hMesh);
+
+          bimBaseHingeMeshes.push({
+            mesh: hMesh,
+            baseX: cx,
+            baseZ: cz,
+            isCritical: (ix === 0 && iz === 1) // Front-left column is critical
+          });
+        }
+      });
+    });
+
+    // Floor Slab
+    const sGeo = new THREE.BoxGeometry(bW, slabThick, bD);
+    const sMesh = new THREE.Mesh(sGeo, slabMat);
+    sMesh.position.set(0, yTop, 0);
+    sMesh.castShadow = true;
+    sMesh.receiveShadow = true;
+    sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sGeo), blackLineMat));
+    bimBuildingGroup.add(sMesh);
+
+    bimSlabMeshes.push({
+      mesh: sMesh,
+      story: s,
+      baseY: yTop
+    });
+
+    // Longitudinal Beams along X
+    colZCoords.forEach(cz => {
+      const bmGeo = new THREE.BoxGeometry(bW - 0.5, beamH, beamW);
+      const bmMesh = new THREE.Mesh(bmGeo, beamMat);
+      bmMesh.position.set(0, yTop - beamH / 2, cz);
+      bmMesh.castShadow = true;
+      bmMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(bmGeo), blackLineMat));
+      bimBuildingGroup.add(bmMesh);
+
+      bimBeamMeshes.push({
+        mesh: bmMesh,
+        story: s,
+        baseX: 0,
+        baseZ: cz,
+        baseY: yTop - beamH / 2
+      });
+
+      // Beam End Plastic Hinges
+      [-bW / 2 + 0.9, bW / 2 - 0.9].forEach(bx => {
+        const bHingGeo = new THREE.SphereGeometry(0.18, 12, 12);
+        const bHingMat = new THREE.MeshStandardMaterial({
+          color: 0x059669,
+          roughness: 0.2,
+          emissive: 0x059669,
+          emissiveIntensity: 0.2
+        });
+        const bHingMesh = new THREE.Mesh(bHingGeo, bHingMat);
+        bHingMesh.position.set(bx, yTop - beamH / 2, cz);
+        bimHingeGroup.add(bHingMesh);
+
+        bimBeamHingeMeshes.push({
+          mesh: bHingMesh,
+          story: s,
+          baseX: bx,
+          baseZ: cz
+        });
+      });
+    });
+  }
+
+  // 3D Callout Sprite over critical ground hinge
+  bimCalloutSprite = createCalloutSprite("🟢 IO (즉시거주)", "#059669", "미세 균열 / 탄성 회복 한계");
+  bimCalloutSprite.position.set(-bW / 2 + 0.45, 1.4, bD / 2 - 0.45);
+  bimAnnotationGroup.add(bimCalloutSprite);
+
+  // Lateral Pushover Force Arrow on Roof
+  const arrowDir = new THREE.Vector3(1, 0, 0);
+  const arrowOrigin = new THREE.Vector3(-bW / 2 - 1.2, nStories * floorH, 0);
+  bimLateralArrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, 1.6, 0xdc2626, 0.45, 0.35);
+  bimAnnotationGroup.add(bimLateralArrow);
+
+  setBimCameraView(currentBimView);
+}
+
+function setBimCameraView(mode) {
+  currentBimView = mode;
+  document.querySelectorAll('.bim-btn').forEach(b => b.classList.remove('active'));
+  if (mode === 'iso') document.getElementById('btnBimIso').classList.add('active');
+  if (mode === 'elev') document.getElementById('btnBimElev').classList.add('active');
+  if (mode === 'zoom') document.getElementById('btnBimZoom').classList.add('active');
+
+  if (mode === 'iso') {
+    cameraBim.position.set(13.5, 11, 16);
+    controlsBim.target.set(0, 2.6, 0);
+  } else if (mode === 'elev') {
+    cameraBim.position.set(0, 2.6, 17);
+    controlsBim.target.set(0, 2.6, 0);
+  } else if (mode === 'zoom') {
+    // Zoom in to front-left ground plastic hinge
+    cameraBim.position.set(-1.2, 1.3, 3.8);
+    controlsBim.target.set(-2.75, 0.45, 1.75);
+  }
+  cameraBim.lookAt(controlsBim.target);
+  controlsBim.update();
+  update3DBim();
+  if (rendererBim && sceneBim && cameraBim) {
+    rendererBim.render(sceneBim, cameraBim);
+  }
+}
+
+function update3DBim() {
+  if (!sceneBim) return;
+
+  const th = thetaNorm;
+  const bb = computeBackbone(th);
+  const curQ = bb.q;
+
+  // Hinge Damage State & Color
+  let hColor = 0x64748b;
+  let hScale = 1.0;
+  let hStatusText = "⚪ 탄성 (Elastic)";
+  let hSubText = "균열 전무 / 100% 탄성";
+
+  if (th <= 1.0) {
+    hColor = 0x64748b;
+    hScale = 0.85;
+    hStatusText = "⚪ 탄성 (Elastic)";
+    hSubText = "균열 전무 / 완전 탄성 상태";
+  } else if (th <= getIO()) {
+    hColor = 0x059669; // Green
+    hScale = 1.15;
+    hStatusText = "🟢 IO (즉시거주)";
+    hSubText = "주철근 미세 항복 / 즉시 사용 가능";
+  } else if (th <= getLS()) {
+    hColor = 0xd97706; // Amber
+    hScale = 1.45;
+    hStatusText = "🟡 LS (인명안전)";
+    hSubText = "소성힌지 진전 / 피복 균열 확대";
+  } else if (th <= getCP()) {
+    hColor = 0xea580c; // Orange
+    hScale = 1.85;
+    hStatusText = "🟠 CP (붕괴방지)";
+    hSubText = "피복 박리 극심 / 붕괴 직전 방어";
+  } else {
+    hColor = 0xdc2626; // Crimson Red
+    hScale = 2.25;
+    hStatusText = "🔴 E (소성 파단/좌굴)";
+    hSubText = "띠철근 파단 / 주철근 S자 좌굴";
+  }
+
+  // Update HUD text
+  document.getElementById('bimHingeStatus').textContent = hStatusText;
+  document.getElementById('bimHingeStatus').style.color = `#${hColor.toString(16).padStart(6, '0')}`;
+
+  // Pushover Lateral Drift Profile
+  const maxSway = Math.min(th, 6.5) * 0.18;
+
+  // Slabs Sway
+  bimSlabMeshes.forEach(({ mesh, story }) => {
+    const drift = Math.pow(story / 2.0, 1.25) * maxSway;
+    mesh.position.x = drift;
+  });
+
+  // Beams Sway
+  bimBeamMeshes.forEach(({ mesh, story, baseX }) => {
+    const drift = Math.pow(story / 2.0, 1.25) * maxSway;
+    mesh.position.x = baseX + drift;
+  });
+
+  // Columns Deflection (Shear sway double curvature)
+  bimColumnMeshes.forEach(({ mesh, story, baseX }) => {
+    const driftTop = Math.pow(story / 2.0, 1.25) * maxSway;
+    const driftBot = Math.pow((story - 1) / 2.0, 1.25) * maxSway;
+    const midDrift = (driftTop + driftBot) / 2.0;
+
+    mesh.position.x = baseX + midDrift;
+    mesh.rotation.z = -(driftTop - driftBot) / 2.4;
+  });
+
+  // Base Plastic Hinges (Fixed to ground level, pulse and color)
+  bimBaseHingeMeshes.forEach(({ mesh, baseX }) => {
+    mesh.material.color.setHex(hColor);
+    mesh.material.emissive.setHex(hColor);
+    mesh.material.emissiveIntensity = th > 1.0 ? 0.45 : 0.1;
+    mesh.scale.set(hScale, hScale, hScale);
+  });
+
+  // Beam End Hinges
+  bimBeamHingeMeshes.forEach(({ mesh, story, baseX }) => {
+    const drift = Math.pow(story / 2.0, 1.25) * maxSway;
+    mesh.position.x = baseX + drift;
+    mesh.material.color.setHex(hColor);
+    mesh.material.emissive.setHex(hColor);
+    mesh.scale.set(hScale * 0.85, hScale * 0.85, hScale * 0.85);
+  });
+
+  // 3D Callout Sprite Update
+  if (bimCalloutSprite) {
+    bimAnnotationGroup.remove(bimCalloutSprite);
+    bimCalloutSprite = createCalloutSprite(hStatusText, `#${hColor.toString(16).padStart(6, '0')}`, hSubText);
+    if (currentBimView === 'zoom') {
+      bimCalloutSprite.scale.set(1.9, 0.38, 1);
+      bimCalloutSprite.position.set(-6.4 / 2 + 0.45, 1.05, 4.4 / 2 - 0.45);
+    } else if (currentBimView === 'elev') {
+      bimCalloutSprite.scale.set(3.4, 0.68, 1);
+      bimCalloutSprite.position.set(-6.4 / 2 + 0.45, 1.55, 4.4 / 2 - 0.45);
+    } else {
+      bimCalloutSprite.scale.set(4.2, 0.84, 1);
+      bimCalloutSprite.position.set(-6.4 / 2 + 0.45, 1.65, 4.4 / 2 - 0.45);
+    }
+    bimAnnotationGroup.add(bimCalloutSprite);
+  }
+
+  // Lateral Force Arrow
+  if (bimLateralArrow) {
+    const roofDrift = maxSway;
+    bimLateralArrow.position.set(-6.4 / 2 - 1.2 + roofDrift, 2 * 2.4, 0);
+    const arrowLen = Math.max(0.4, curQ * 1.8);
+    bimLateralArrow.setLength(arrowLen, 0.45, 0.35);
+  }
+
+  if (rendererBim && sceneBim && cameraBim) {
+    rendererBim.render(sceneBim, cameraBim);
+  }
+}
+
+function animateBimLoop() {
+  requestAnimationFrame(animateBimLoop);
+  if (controlsBim) controlsBim.update();
+  if (rendererBim && sceneBim && cameraBim) {
+    rendererBim.render(sceneBim, cameraBim);
+  }
+}
+
+function handleBimResize() {
+  if (!rendererBim || !cameraBim) return;
+  const w = bimContainer.clientWidth || 450;
+  const h = bimContainer.clientHeight || 275;
+  cameraBim.aspect = w / h;
+  cameraBim.updateProjectionMatrix();
+  rendererBim.setSize(w, h);
+}
+window.addEventListener('resize', handleBimResize);
+
+// =========================================================================
+// UI EVENTS & CALCULATIONS
+// =========================================================================
 function setPreset(val) {
   thetaNorm = Math.max(0, Math.min(7.0, val));
   document.getElementById('sliderTheta').value = thetaNorm.toFixed(2);
@@ -693,118 +1244,112 @@ function updateAll() {
   updateHUD(thetaNorm, curQ, parseFloat(eps_c));
 
   drawBackbone();
-  drawFrame();
+  update3DBim();
   drawMicroDual();
 }
 
 function updateHUD(th, q, ec) {
-  const io = getIO();
-  const ls = getLS();
-  const cp = getCP();
-  const ptE = getPointE();
-
-  const badge = document.getElementById('badgeStatus');
   const banner = document.getElementById('hudTagBanner');
   const tagTitle = document.getElementById('hudTagTitle');
-  const dmgPct = document.getElementById('hudDamagePct');
+  const pctText = document.getElementById('hudDamagePct');
   const fill = document.getElementById('damageProgress');
-  const dmgDesc = document.getElementById('hudDamageDesc');
-  const humanDesc = document.getElementById('hudHumanDesc');
-  const tieDesc = document.getElementById('hudTieDesc');
+  const badge = document.getElementById('badgeStatus');
+
+  const dDesc = document.getElementById('hudDamageDesc');
+  const hDesc = document.getElementById('hudHumanDesc');
+  const tDesc = document.getElementById('hudTieDesc');
 
   let pct = 0;
+  let statusText = '';
+  let badgeColor = '#dcfce7';
+  let badgeText = '#15803d';
 
-  let thetaBuckle;
-  if (tieSpacingRatio <= 6.0) {
-    thetaBuckle = cp + (ptE - cp) * ((6.0 - tieSpacingRatio) / 4.0);
-  } else {
-    thetaBuckle = cp - (cp - (io + 0.35)) * ((tieSpacingRatio - 6.0) / 8.0);
-  }
+  const isConforming = (tieSpacingRatio <= 6.0);
 
   if (th <= 1.0) {
-    pct = Math.round((th / 1.0) * 15);
-    badge.style.background = '#dcfce7'; badge.style.color = '#15803d'; badge.innerText = '탄성 (정상)';
+    pct = Math.round(th * 12);
+    statusText = '🟢 GREEN TAG: 즉시 사용 (탄성)';
     banner.style.background = '#dcfce7'; banner.style.color = '#166534';
-    tagTitle.innerText = '🟢 GREEN TAG: 정상 가동';
     fill.style.background = '#10b981';
-    dmgDesc.innerText = '피복 콘크리트 완전 건전. 미세 균열 전무. 주철근 100% 탄성 거동.';
-    humanDesc.innerText = '약한 흔들림만 감지. 비구조재 탈락 0건. 전산/병원 무중단 정상 가동.';
-    tieDesc.innerText = (tieSpacingRatio <= 6.0)
-      ? `띠철근 ${tieSpacingRatio.toFixed(1)}db (내진 규준 s ≤ 6db 충족): 코어 삼축 구속 압축력 100% 발휘.`
-      : `⚠️ 띠철근 ${tieSpacingRatio.toFixed(1)}db (비내진 과소 상세): 탄성 상태이나 비지지 길이 과대로 대변형 시 취약.`;
-  } else if (th <= io) {
-    pct = Math.round(15 + ((th - 1.0) / (io - 1.0)) * 15);
-    badge.style.background = '#d1fae5'; badge.style.color = '#047857'; badge.innerText = 'IO (즉시거주)';
-    banner.style.background = '#d1fae5'; banner.style.color = '#065f46';
-    tagTitle.innerText = '🟢 GREEN TAG: 즉시 거주 (IO)';
-    fill.style.background = '#059669';
-    dmgDesc.innerText = `인장측 미세 휨 균열(폭 ${document.getElementById('valCrackW').innerText}) 발생. 피복 박리 없음. 철근 초기 항복.`;
-    humanDesc.innerText = '가벼운 물건 흔들림. 거주자 침착 유지. 즉시 복귀 가능.';
-    tieDesc.innerText = (tieSpacingRatio <= 6.0)
-      ? `띠철근 구속력 양호. 주철근 좌굴 한계각 θ_cr = ${thetaBuckle.toFixed(2)}θy까지 완전 안전.`
-      : `⚠️ 띠철근 간격 ${tieSpacingRatio.toFixed(1)}db: 비지지 길이 과대로 조기 좌굴 한계각이 θ_cr = ${thetaBuckle.toFixed(2)}θy로 급락.`;
-  } else if (th <= ls) {
-    pct = Math.round(30 + ((th - io) / (ls - io)) * 35);
-    badge.style.background = '#fef3c7'; badge.style.color = '#b45309'; badge.innerText = 'LS (인명안전)';
+    badgeColor = '#dcfce7'; badgeText = '#15803d'; badge.innerText = '탄성 정상';
+
+    dDesc.innerText = '피복 콘크리트 완전 건전. 미세 휨 균열 전무. 주철근 100% 탄성 복원.';
+    hDesc.innerText = '약한 진동 감지. 비구조재 탈락 0건. 지진 직후 정상 업무 지속(Green Tag).';
+    tDesc.innerText = `띠철근 ${tieSpacingRatio.toFixed(1)}db 정상 배치로 코어 콘크리트 3축 구속력 100% 발휘 중.`;
+  } else if (th <= getIO()) {
+    pct = 15 + Math.round(((th - 1.0) / (getIO() - 1.0)) * 15);
+    statusText = '🟢 GREEN TAG: 즉시 거주 (IO 달성)';
+    banner.style.background = '#dcfce7'; banner.style.color = '#166534';
+    fill.style.background = '#10b981';
+    badgeColor = '#dcfce7'; badgeText = '#15803d'; badge.innerText = 'IO 만족';
+
+    dDesc.innerText = '미세 헤어라인 휨 균열(폭 < 0.2mm) 발생. 피복 박리 없음. 잔류 변형 극소.';
+    hDesc.innerText = '재실자 가벼운 불안감. 설비 및 배관 정상 가동. 별도 보수 없이 즉시 입주 가능.';
+    tDesc.innerText = `탄성 한계 초과 직후로 띠철근 장력 시작. 횡구속 효율 완벽 유지.`;
+  } else if (th <= getLS()) {
+    pct = 30 + Math.round(((th - getIO()) / (getLS() - getIO())) * 35);
+    statusText = '🟡 YELLOW TAG: 인명 안전 (LS 달성)';
     banner.style.background = '#fef3c7'; banner.style.color = '#92400e';
-    tagTitle.innerText = '🟡 YELLOW TAG: 인명 안전 확보 (LS)';
-    fill.style.background = '#d97706';
-    dmgDesc.innerText = '피복 콘크리트 균열망 확장 및 모서리 콘크리트 미세 탈락(Spalling) 시작. 띠철근 노출.';
-    humanDesc.innerText = '천장재 일부 탈락. 가구 전도. 거주자 전원 안전 대피 완료(사망자 0명).';
-    tieDesc.innerText = (th > thetaBuckle)
-      ? `🚨 띠철근 간격(${tieSpacingRatio.toFixed(1)}db) 과대로 조기 주철근 비탄성 좌굴 개시! (한계 ${thetaBuckle.toFixed(2)}θy 초과)`
-      : ((tieSpacingRatio <= 6.0)
-        ? `내진 띠철근(${tieSpacingRatio.toFixed(1)}db)이 코어와 주철근을 견고히 구속하여 조기 좌굴 완벽 억제 중.`
-        : `⚠️ 띠철근 간격(${tieSpacingRatio.toFixed(1)}db) 과대로 피복 탈락 가속 중 (좌굴 한계 ${thetaBuckle.toFixed(2)}θy 근접).`);
-  } else if (th <= cp) {
-    pct = Math.round(65 + ((th - ls) / (cp - ls)) * 25);
-    badge.style.background = '#ffedd5'; badge.style.color = '#c2410c'; badge.innerText = 'CP (붕괴방지)';
+    fill.style.background = '#f59e0b';
+    badgeColor = '#fef3c7'; badgeText = '#b45309'; badge.innerText = 'LS 만족';
+
+    dDesc.innerText = '주철근 항복 본격화, 콘크리트 피복 일부 균열 및 국부 박리 시작. 띠철근 변형률 급증.';
+    hDesc.innerText = '비구조벽 균열 및 마감재 일부 탈락. 인명 사상 위험 차단. 정밀 안전진단 후 재입주 필요.';
+    tDesc.innerText = isConforming
+      ? `135° 내진 갈고리가 피복 박리 속에서도 코어 콘크리트를 단단히 물고 있음.`
+      : `90° 갈고리가 피복 탈락으로 풀리기 시작(비내진 한계). 좌굴 조기 발생 위험.`;
+  } else if (th <= getCP()) {
+    pct = 65 + Math.round(((th - getLS()) / (getCP() - getLS())) * 25);
+    statusText = '🟠 ORANGE TAG: 붕괴 방지 (CP 달성)';
     banner.style.background = '#ffedd5'; banner.style.color = '#9a3412';
-    tagTitle.innerText = '🟠 RED TAG: 붕괴 방지 (CP)';
     fill.style.background = '#ea580c';
-    dmgDesc.innerText = '피복 콘크리트 전면 탈락! 심부 콘크리트 파쇄 진행 중. 주철근 좌굴 임계 도달.';
-    humanDesc.innerText = '골조 극심한 영구 변위. 인명 압사는 면했으나 건물 수리불가(철거 판정).';
-    tieDesc.innerText = (th > thetaBuckle)
-      ? `🚨 주철근 심각한 S자 좌굴 폭증! 띠철근 파단 및 코어 구속력 급격 붕괴.`
-      : `내진 띠철근(${tieSpacingRatio.toFixed(1)}db)이 극한 인장 상태에서 주철근 좌굴을 필사적으로 억제 중.`;
-  } else if (th <= ptE) {
-    pct = Math.round(90 + ((th - cp) / (ptE - cp)) * 9);
-    badge.style.background = '#fee2e2'; badge.style.color = '#b91c1c'; badge.innerText = 'Near Collapse (잔존강도)';
-    banner.style.background = '#fee2e2'; banner.style.color = '#991b1b';
-    tagTitle.innerText = '🔴 RED TAG: 주철근 S자 좌굴 발생';
-    fill.style.background = '#dc2626';
-    dmgDesc.innerText = '띠철근 파단 및 주철근 심각한 S자 비탄성 좌굴! 강도 80% 상실, 20% 잔존강도 겨우 유지.';
-    humanDesc.innerText = '비상계단 통해 겨우 탈출 완료. 추가 여진 시 즉각 전복 위험(접근 금지).';
-    tieDesc.innerText = `띠철근 파단 및 주철근 ${tieSpacingRatio.toFixed(1)}db 비지지 구간 S자 완전 좌굴! 잔존강도(${paramC.toFixed(2)})만 유지.`;
+    badgeColor = '#ffedd5'; badgeText = '#c2410c'; badge.innerText = 'CP 만족';
+
+    dDesc.innerText = '피복 콘크리트 광범위 폭발적 박리(Spalling). 코어 콘크리트 극한 압축 상태 도달.';
+    hDesc.innerText = '심각한 구조적 손상. 붕괴는 모면하여 인명 대피 시간 확보. 지진 후 건물 철거 불가피.';
+    tDesc.innerText = isConforming
+      ? `밀집 띠철근(${tieSpacingRatio.toFixed(1)}db)이 코어 붕괴를 기적적으로 지탱 중.`
+      : `띠철근 간격 과대로 코어 구속력 상실 직전. 붕괴 위험 임계치 근접.`;
   } else {
-    pct = 100;
-    badge.style.background = '#7f1d1d'; badge.style.color = '#ffffff'; badge.innerText = '완전 붕괴 (Pancake)';
-    banner.style.background = '#7f1d1d'; banner.style.color = '#ffffff';
-    tagTitle.innerText = '💀 BLACK TAG: 완전 붕괴 (Total Collapse)';
-    fill.style.background = '#7f1d1d';
-    dmgDesc.innerText = '주철근 파단 및 코어 콘크리트 분쇄. 중력하중 지지 불능(전복 붕괴).';
-    humanDesc.innerText = '골조 주저앉음(Pancake 붕괴). 대규모 인명 사상 발생.';
-    tieDesc.innerText = '구조적 전파(Total Destruction).';
+    pct = Math.min(100, 90 + Math.round((th - getCP()) * 8));
+    statusText = '🔴 RED TAG: 붕괴 파단 (E점 초과)';
+    banner.style.background = '#fee2e2'; banner.style.color = '#991b1b';
+    fill.style.background = '#dc2626';
+    badgeColor = '#fee2e2'; badgeText = '#b91c1c'; badge.innerText = '붕괴 위험';
+
+    dDesc.innerText = '띠철근 파단 및 벌어짐! 압축 주철근이 S자로 튀어나오는 비탄성 좌굴(Buckling) 완결.';
+    hDesc.innerText = '기둥 축지지력 붕괴. 상부 슬래브 팬케이크 낙하 위험. 접근 절대 금지 구역.';
+    tDesc.innerText = `띠철근 횡구속 파괴 완결. 비선형 잔존강도(c)만으로 간신히 버티는 상태.`;
   }
 
-  dmgPct.innerText = `${pct}% 손상도`;
+  tagTitle.innerText = statusText;
+  pctText.innerText = `${pct}% 손상`;
   fill.style.width = `${pct}%`;
+  badge.style.background = badgeColor;
+  badge.style.color = badgeText;
 }
 
-// 1. DRAW BACKBONE
+// -------------------------------------------------------------
+// 1. DRAW FEMA BACKBONE CANVAS
+// -------------------------------------------------------------
 function drawBackbone() {
+  const dpr = Math.max(window.devicePixelRatio || 1, 2.0);
   const w = bbCanvas.parentElement.clientWidth - 24;
-  const h = 220;
+  const h = 275;
+  bbCanvas.width = Math.round(w * dpr);
+  bbCanvas.height = Math.round(h * dpr);
   bbCanvas.style.width = w + 'px';
   bbCanvas.style.height = h + 'px';
-  resizeCanvas(bbCanvas);
 
-  bbCtx.clearRect(0, 0, w, h);
+  bbCtx.setTransform(1, 0, 0, 1, 0, 0);
+  bbCtx.clearRect(0, 0, bbCanvas.width, bbCanvas.height);
+  bbCtx.save();
+  bbCtx.scale(dpr, dpr);
 
-  const padLeft = 55;
-  const padRight = 25;
-  const padTop = 25;
-  const padBottom = 38;
+  const padLeft = 52;
+  const padRight = 20;
+  const padTop = 26;
+  const padBottom = 34;
   const plotW = w - padLeft - padRight;
   const plotH = h - padTop - padBottom;
 
@@ -820,41 +1365,47 @@ function drawBackbone() {
   for (let th = 1; th <= 7; th++) {
     const x = mapX(th);
     bbCtx.beginPath(); bbCtx.moveTo(x, padTop); bbCtx.lineTo(x, padTop + plotH); bbCtx.stroke();
-    bbCtx.fillStyle = '#94a3b8';
-    bbCtx.font = '10px monospace';
+    bbCtx.fillStyle = '#64748b';
+    bbCtx.font = 'bold 10px monospace';
     bbCtx.textAlign = 'center';
     bbCtx.fillText(th + 'θy', x, padTop + plotH + 15);
   }
   for (let q = 0.2; q <= 1.2; q += 0.2) {
     const y = mapY(q);
     bbCtx.beginPath(); bbCtx.moveTo(padLeft, y); bbCtx.lineTo(padLeft + plotW, y); bbCtx.stroke();
-    bbCtx.fillStyle = '#94a3b8';
-    bbCtx.font = '10px monospace';
+    bbCtx.fillStyle = '#64748b';
+    bbCtx.font = 'bold 10px monospace';
     bbCtx.textAlign = 'right';
     bbCtx.fillText(q.toFixed(1), padLeft - 6, y + 3);
   }
 
   // Axes
-  bbCtx.strokeStyle = '#64748b';
-  bbCtx.lineWidth = 1.5;
+  bbCtx.strokeStyle = '#334155';
+  bbCtx.lineWidth = 1.6;
   bbCtx.beginPath();
   bbCtx.moveTo(padLeft, padTop);
   bbCtx.lineTo(padLeft, padTop + plotH);
   bbCtx.lineTo(padLeft + plotW, padTop + plotH);
   bbCtx.stroke();
 
+  // Axis Labels
+  bbCtx.fillStyle = '#475569';
+  bbCtx.font = '600 10.5px Pretendard, sans-serif';
+  bbCtx.textAlign = 'center';
+  bbCtx.fillText('부재 소성 횡변위비 θ / θy (변형각)', padLeft + plotW / 2, padTop + plotH + 28);
+
   // Performance Zones
   const xIO = mapX(getIO());
   const xLS = mapX(getLS());
   const xCP = mapX(getCP());
 
-  bbCtx.fillStyle = 'rgba(16, 185, 129, 0.07)';
+  bbCtx.fillStyle = 'rgba(16, 185, 129, 0.08)';
   bbCtx.fillRect(mapX(0), padTop, xIO - mapX(0), plotH);
-  bbCtx.fillStyle = 'rgba(217, 119, 6, 0.07)';
+  bbCtx.fillStyle = 'rgba(217, 119, 6, 0.08)';
   bbCtx.fillRect(xIO, padTop, xLS - xIO, plotH);
-  bbCtx.fillStyle = 'rgba(234, 88, 12, 0.07)';
+  bbCtx.fillStyle = 'rgba(234, 88, 12, 0.08)';
   bbCtx.fillRect(xLS, padTop, xCP - xLS, plotH);
-  bbCtx.fillStyle = 'rgba(220, 38, 38, 0.07)';
+  bbCtx.fillStyle = 'rgba(220, 38, 38, 0.08)';
   bbCtx.fillRect(xCP, padTop, mapX(getPointE()) - xCP, plotH);
 
   function drawDashed(x, color, label) {
@@ -936,104 +1487,31 @@ function drawBackbone() {
   bbCtx.fillStyle = '#dc2626';
   bbCtx.beginPath(); bbCtx.arc(curX, curY, 5, 0, Math.PI * 2); bbCtx.fill();
   bbCtx.strokeStyle = '#ffffff'; bbCtx.lineWidth = 1.5; bbCtx.stroke();
+
+  bbCtx.fillStyle = '#dc2626';
+  bbCtx.font = 'bold 10px monospace';
+  bbCtx.textAlign = curX > plotW * 0.75 ? 'right' : 'left';
+  bbCtx.fillText(`(${thetaNorm.toFixed(2)}θy, ${curQ.toFixed(2)}Qy)`, curX + (curX > plotW * 0.75 ? -12 : 12), curY - 6);
+
+  bbCtx.restore();
 }
 
-// 2. DRAW MACRO FRAME (3차 휨곡률 & 골조 거동)
-function drawFrame() {
-  const w = frCanvas.parentElement.clientWidth - 24;
-  const h = 215;
-  frCanvas.style.width = w + 'px';
-  frCanvas.style.height = h + 'px';
-  resizeCanvas(frCanvas);
-
-  frCtx.clearRect(0, 0, w, h);
-
-  const groundY = h - 35;
-  frCtx.strokeStyle = '#cbd5e1';
-  frCtx.lineWidth = 2;
-  frCtx.beginPath(); frCtx.moveTo(15, groundY); frCtx.lineTo(w - 15, groundY); frCtx.stroke();
-
-  const span = Math.min(w * 0.52, 160);
-  const colH = 110;
-  const cx = w / 2;
-  const leftX = cx - span / 2;
-  const rightX = cx + span / 2;
-  const topY = groundY - colH;
-
-  const maxDrift = 38;
-  const drift = (Math.min(thetaNorm, 6.0) / 6.0) * maxDrift;
-  const topLX = leftX + drift;
-  const topRX = rightX + drift;
-  const colThick = 13;
-
-  // Columns via 3차 휨곡률 Bezier (Fixed-Fixed double curvature)
-  function drawColumn(bx, tx) {
-    frCtx.beginPath();
-    frCtx.moveTo(bx, groundY);
-    frCtx.bezierCurveTo(bx, groundY - colH * 0.4, tx, topY + colH * 0.4, tx, topY);
-    frCtx.stroke();
-  }
-
-  frCtx.strokeStyle = '#94a3b8';
-  frCtx.lineWidth = colThick;
-  frCtx.lineCap = 'round';
-  drawColumn(leftX, topLX);
-  drawColumn(rightX, topRX);
-
-  // Beam & Slab
-  frCtx.strokeStyle = '#64748b';
-  frCtx.lineWidth = colThick + 2;
-  frCtx.beginPath();
-  frCtx.moveTo(topLX - 8, topY);
-  frCtx.lineTo(topRX + 8, topY);
-  frCtx.stroke();
-
-  frCtx.fillStyle = '#475569';
-  frCtx.fillRect(topLX - 18, topY - 12, span + 36, 11);
-
-  // Hinges
-  let hCol = '#10b981';
-  let hRad = 5;
-  if (thetaNorm <= 1.0) { hCol = '#10b981'; hRad = 5; }
-  else if (thetaNorm <= getIO()) { hCol = '#059669'; hRad = 7; }
-  else if (thetaNorm <= getLS()) { hCol = '#d97706'; hRad = 10; }
-  else if (thetaNorm <= getCP()) { hCol = '#ea580c'; hRad = 14; }
-  else { hCol = '#dc2626'; hRad = 18; }
-
-  const hLocs = [{ x: leftX, y: groundY - 8 }, { x: rightX, y: groundY - 8 }, { x: topLX + 8, y: topY + 6 }, { x: topRX - 8, y: topY + 6 }];
-  hLocs.forEach(loc => {
-    frCtx.save();
-    frCtx.fillStyle = hCol;
-    frCtx.beginPath(); frCtx.arc(loc.x, loc.y, hRad, 0, Math.PI * 2); frCtx.fill();
-    frCtx.strokeStyle = '#ffffff'; frCtx.lineWidth = 1.5; frCtx.stroke();
-    frCtx.restore();
-  });
-
-  // Lateral Load Arrow
-  const ax = topLX - 28;
-  const ay = topY - 4;
-  frCtx.fillStyle = '#dc2626';
-  frCtx.strokeStyle = '#dc2626';
-  frCtx.lineWidth = 2.5;
-  frCtx.beginPath(); frCtx.moveTo(ax - 20, ay); frCtx.lineTo(ax, ay); frCtx.stroke();
-  frCtx.beginPath(); frCtx.moveTo(ax, ay); frCtx.lineTo(ax - 6, ay - 4); frCtx.lineTo(ax - 6, ay + 4); frCtx.closePath(); frCtx.fill();
-
-  // Drift Callout
-  frCtx.fillStyle = '#64748b';
-  frCtx.font = '10px monospace';
-  frCtx.textAlign = 'left';
-  frCtx.fillText(`Δ = ${drift.toFixed(1)}mm`, topRX + 10, topY + 4);
-}
-
-// 3. DRAW MICRO DUAL (LEFT: CROSS-SECTION 200X / RIGHT: ELEVATION S-BUCKLING)
+// -------------------------------------------------------------
+// 2. DRAW MICRO DUAL (LEFT: CROSS-SECTION 200X / RIGHT: ELEVATION S-BUCKLING)
+// -------------------------------------------------------------
 function drawMicroDual() {
+  const dpr = Math.max(window.devicePixelRatio || 1, 2.0);
   const w = microCanvas.parentElement.clientWidth - 24;
-  const h = 215;
+  const h = 225;
+  microCanvas.width = Math.round(w * dpr);
+  microCanvas.height = Math.round(h * dpr);
   microCanvas.style.width = w + 'px';
   microCanvas.style.height = h + 'px';
-  resizeCanvas(microCanvas);
 
-  microCtx.clearRect(0, 0, w, h);
+  microCtx.setTransform(1, 0, 0, 1, 0, 0);
+  microCtx.clearRect(0, 0, microCanvas.width, microCanvas.height);
+  microCtx.save();
+  microCtx.scale(dpr, dpr);
 
   const midDividerX = w * 0.48;
 
@@ -1045,9 +1523,7 @@ function drawMicroDual() {
   microCtx.lineTo(midDividerX, h - 10);
   microCtx.stroke();
 
-  // -------------------------------------------------------------
   // PART A: LEFT SIDE - 600x600 CROSS SECTION
-  // -------------------------------------------------------------
   const secCX = midDividerX / 2;
   const secCY = h / 2 - 2;
   const colSize = Math.min(midDividerX * 0.72, 135);
@@ -1183,232 +1659,119 @@ function drawMicroDual() {
     microCtx.fillText(isConforming ? `내진 135° 구속 (s=${tieSpacingRatio.toFixed(1)}db)` : `비내진 90° 배근 (s=${tieSpacingRatio.toFixed(1)}db)`, secCX, sTop + colSize + 14);
   }
 
-  // -------------------------------------------------------------
   // PART B: RIGHT SIDE - ELEVATION PLASTIC HINGE & S-BUCKLING
-  // -------------------------------------------------------------
   const eleW = w - midDividerX;
   const eleCX = midDividerX + eleW / 2;
   const groundY = h - 30;
-  const colHeight = 135;
+  const colHeight = 145;
   const colWidth = Math.min(eleW * 0.38, 56);
   const topY = groundY - colHeight;
 
-  // Dynamic Ties in Elevation based on tieSpacingRatio (s / db)
-  // Scale: db ~ 2.8px (represents D25 ~25mm in 600mm column)
-  // At s = 4db: spacing ~ 11.2px (dense, ~11 ties along column)
-  // At s = 6db: spacing ~ 16.8px (standard KDS 41 seismic, ~7 ties)
-  // At s = 10db: spacing ~ 28.0px (~4 ties)
-  // At s = 14db: spacing ~ 39.2px (~3 ties, huge unbraced gap!)
-  const dbPx = 2.8;
-  const tieSpacingPx = Math.max(10, tieSpacingRatio * dbPx);
-  const bottomClearance = 10;
-  const availableColH = colHeight - 16;
-  const nTies = Math.max(2, Math.floor(availableColH / tieSpacingPx));
-
-  // Buckling threshold based on tie confinement ratio:
-  let thetaBuckle;
-  if (tieSpacingRatio <= 6.0) {
-    thetaBuckle = getCP() + (getPointE() - getCP()) * ((6.0 - tieSpacingRatio) / 4.0);
-  } else {
-    thetaBuckle = getCP() - (getCP() - (getIO() + 0.35)) * ((tieSpacingRatio - 6.0) / 8.0);
-  }
-  const isBuckled = thetaNorm > thetaBuckle;
-
   // Ground Line
-  microCtx.strokeStyle = '#cbd5e1';
-  microCtx.lineWidth = 1.8;
-  microCtx.beginPath();
-  microCtx.moveTo(midDividerX + 15, groundY);
-  microCtx.lineTo(w - 15, groundY);
-  microCtx.stroke();
+  microCtx.strokeStyle = '#94a3b8';
+  microCtx.lineWidth = 2;
+  microCtx.beginPath(); microCtx.moveTo(midDividerX + 15, groundY); microCtx.lineTo(w - 15, groundY); microCtx.stroke();
 
-  // Lateral drift of local hinge column
-  const localDrift = (Math.min(thetaNorm, 6.0) / 6.0) * 24;
-  const topCX = eleCX + localDrift;
+  // Column Elevation Body
+  const leftX = eleCX - colWidth / 2;
+  const rightX = eleCX + colWidth / 2;
 
-  // Column Silhouette
+  // Concrete Body
   microCtx.save();
   microCtx.fillStyle = '#f1f5f9';
-  microCtx.strokeStyle = '#64748b';
-  microCtx.lineWidth = 1.6;
-  microCtx.beginPath();
-  microCtx.moveTo(eleCX - colWidth / 2, groundY);
-  microCtx.bezierCurveTo(eleCX - colWidth / 2, groundY - colHeight * 0.4, topCX - colWidth / 2, topY + colHeight * 0.4, topCX - colWidth / 2, topY);
-  microCtx.lineTo(topCX + colWidth / 2, topY);
-  microCtx.bezierCurveTo(topCX + colWidth / 2, topY + colHeight * 0.4, eleCX + colWidth / 2, groundY - colHeight * 0.4, eleCX + colWidth / 2, groundY);
-  microCtx.closePath();
-  microCtx.fill();
-  microCtx.stroke();
+  microCtx.strokeStyle = '#475569';
+  microCtx.lineWidth = 1.5;
+  microCtx.fillRect(leftX, topY, colWidth, colHeight);
+  microCtx.strokeRect(leftX, topY, colWidth, colHeight);
   microCtx.restore();
 
-  // Tie Pitch Dimension Guide on the left of column
-  if (nTies >= 2) {
-    const y1 = groundY - bottomClearance;
-    const y2 = y1 - tieSpacingPx;
-    const dimX = eleCX - colWidth / 2 - 8;
+  // Plastic Hinge Zone bracket on Left
+  const lpH = Math.min(colHeight * 0.45, 55);
+  microCtx.strokeStyle = isBroken ? '#dc2626' : (isSpalled ? '#ea580c' : '#059669');
+  microCtx.lineWidth = 1.5;
+  microCtx.beginPath();
+  microCtx.moveTo(leftX - 6, groundY);
+  microCtx.lineTo(leftX - 10, groundY);
+  microCtx.lineTo(leftX - 10, groundY - lpH);
+  microCtx.lineTo(leftX - 6, groundY - lpH);
+  microCtx.stroke();
+  microCtx.fillStyle = microCtx.strokeStyle;
+  microCtx.font = 'bold 9px monospace';
+  microCtx.textAlign = 'right';
+  microCtx.fillText('Lp 힌지', leftX - 12, groundY - lpH / 2 + 3);
+
+  // Spalled Concrete Jagged Area on Left Face
+  if (isSpalled || isBroken) {
     microCtx.save();
-    microCtx.strokeStyle = (tieSpacingRatio <= 6.0) ? '#2563eb' : '#ea580c';
+    microCtx.fillStyle = '#ffffff';
+    microCtx.strokeStyle = isBroken ? '#dc2626' : '#ea580c';
     microCtx.lineWidth = 1.2;
     microCtx.beginPath();
-    microCtx.moveTo(dimX, y1); microCtx.lineTo(dimX, y2);
-    microCtx.moveTo(dimX - 3, y1); microCtx.lineTo(dimX + 3, y1);
-    microCtx.moveTo(dimX - 3, y2); microCtx.lineTo(dimX + 3, y2);
+    microCtx.moveTo(leftX, groundY);
+    microCtx.lineTo(leftX + 6, groundY - 10);
+    microCtx.lineTo(leftX + 2, groundY - 22);
+    microCtx.lineTo(leftX + 8, groundY - 35);
+    microCtx.lineTo(leftX, groundY - lpH);
+    microCtx.closePath();
+    microCtx.fill();
     microCtx.stroke();
-
-    microCtx.fillStyle = (tieSpacingRatio <= 6.0) ? '#1e40af' : '#c2410c';
-    microCtx.font = 'bold 9px monospace';
-    microCtx.textAlign = 'right';
-    microCtx.fillText(`s=${tieSpacingRatio.toFixed(1)}db`, dimX - 4, (y1 + y2) / 2 + 3);
     microCtx.restore();
   }
 
-  // Ties (Hoops) in Elevation
-  for (let i = 0; i < nTies; i++) {
-    const yL = groundY - bottomClearance - i * tieSpacingPx;
-    if (yL < topY + 4) break;
-    const t = (groundY - yL) / colHeight;
-    const shift = (3 * t * t - 2 * t * t * t) * localDrift;
-    const xM = eleCX + shift;
+  // Rebars in elevation (Left: Compression, Right: Tension)
+  const barL = leftX + 8;
+  const barR = rightX - 8;
 
-    // Tie rupture: in plastic hinge region (i <= 1) if buckled
-    const isTieRuptured = isBuckled && (i === 0 || (tieSpacingRatio > 8.0 && i <= 1));
-
-    microCtx.save();
-    if (isTieRuptured) {
-      microCtx.strokeStyle = '#dc2626';
-      microCtx.lineWidth = 1.8;
-      microCtx.setLineDash([3, 3]);
-      microCtx.beginPath();
-      microCtx.moveTo(xM - colWidth / 2 + 3, yL);
-      microCtx.lineTo(xM + colWidth / 2 + 6, yL - 2);
-      microCtx.stroke();
-    } else {
-      microCtx.strokeStyle = (tieSpacingRatio <= 6.0) ? '#2563eb' : '#64748b';
-      microCtx.lineWidth = (tieSpacingRatio <= 6.0) ? 2.0 : 1.4;
-      microCtx.beginPath();
-      microCtx.moveTo(xM - colWidth / 2 + 3, yL);
-      microCtx.lineTo(xM + colWidth / 2 - 3, yL);
-      microCtx.stroke();
-    }
-    microCtx.restore();
-  }
-
-  // Longitudinal Rebars: Right rebar (Compression side) has S-Buckling
-  const leftRbX_b = eleCX - colWidth / 2 + 7;
-  const rightRbX_b = eleCX + colWidth / 2 - 7;
-
-  // Left Rebar (Tension)
   microCtx.save();
-  microCtx.strokeStyle = '#1e3a8a';
-  microCtx.lineWidth = 2.2;
+  // Left Compression Bar with S-Buckling if broken
+  microCtx.lineWidth = 3.0;
+  microCtx.strokeStyle = isBroken ? '#dc2626' : (isSpalled ? '#ea580c' : '#1e3a8a');
   microCtx.beginPath();
-  microCtx.moveTo(leftRbX_b, groundY);
-  microCtx.bezierCurveTo(leftRbX_b, groundY - colHeight * 0.4, topCX - colWidth / 2 + 7, topY + colHeight * 0.4, topCX - colWidth / 2 + 7, topY);
-  microCtx.stroke();
-  microCtx.restore();
-
-  // Right Rebar (Compression - S-Buckling between ties)
-  microCtx.save();
-  microCtx.strokeStyle = isBuckled ? '#dc2626' : '#1e3a8a';
-  microCtx.lineWidth = isBuckled ? 3.0 : 2.2;
-  microCtx.beginPath();
-  microCtx.moveTo(rightRbX_b, groundY);
-
-  if (isBuckled) {
-    // Amplitude increases with deformation and tie spacing (unbraced length):
-    const amp = Math.min(26, (thetaNorm - thetaBuckle) * 4.5 * (tieSpacingRatio / 6.0));
-    // Buckling wave height corresponds to unbraced length
-    const waveH = Math.min(tieSpacingPx * 1.25, 55);
-    const buckleApexY = groundY - bottomClearance - waveH * 0.45;
-    const buckleTopY = groundY - bottomClearance - waveH;
-
-    microCtx.bezierCurveTo(
-      rightRbX_b + amp * 1.15, groundY - 6,
-      rightRbX_b + amp, buckleApexY,
-      rightRbX_b + localDrift * 0.15, buckleTopY
-    );
-    microCtx.bezierCurveTo(
-      rightRbX_b + localDrift * 0.5, groundY - 80,
-      topCX + colWidth / 2 - 7, topY + 20,
-      topCX + colWidth / 2 - 7, topY
-    );
+  if (isBroken) {
+    // S-Shape Buckling Curve between ties
+    microCtx.moveTo(barL, topY);
+    microCtx.lineTo(barL, groundY - 45);
+    microCtx.bezierCurveTo(barL - 18, groundY - 35, barL + 12, groundY - 18, barL, groundY);
   } else {
-    microCtx.bezierCurveTo(rightRbX_b, groundY - colHeight * 0.4, topCX + colWidth / 2 - 7, topY + colHeight * 0.4, topCX + colWidth / 2 - 7, topY);
+    microCtx.moveTo(barL, topY);
+    microCtx.lineTo(barL, groundY);
   }
+  microCtx.stroke();
+
+  // Right Tension Bar with Elongation
+  microCtx.strokeStyle = thetaNorm > 1.0 ? '#0284c7' : '#1e3a8a';
+  microCtx.beginPath();
+  microCtx.moveTo(barR, topY);
+  microCtx.lineTo(barR, groundY);
   microCtx.stroke();
   microCtx.restore();
 
-  // Plastic Hinge Length Bracket (Lp)
-  const lpH = 50;
-  microCtx.strokeStyle = '#ea580c';
-  microCtx.lineWidth = 1.2;
-  microCtx.setLineDash([2, 2]);
-  microCtx.beginPath();
-  microCtx.moveTo(eleCX + colWidth / 2 + 10, groundY);
-  microCtx.lineTo(eleCX + colWidth / 2 + 18, groundY);
-  microCtx.lineTo(eleCX + colWidth / 2 + 18, groundY - lpH);
-  microCtx.lineTo(eleCX + colWidth / 2 + 10, groundY - lpH);
-  microCtx.stroke();
-  microCtx.setLineDash([]);
+  // Horizontal Ties in Elevation
+  const tieSpacing = Math.max(10, tieSpacingRatio * 2.6);
+  microCtx.strokeStyle = tieHoopColor;
+  microCtx.lineWidth = 1.6;
+  for (let ty = groundY - 8; ty >= topY + 8; ty -= tieSpacing) {
+    microCtx.beginPath();
+    microCtx.moveTo(leftX + 4, ty);
+    microCtx.lineTo(rightX - 4, ty);
+    microCtx.stroke();
+  }
 
-  microCtx.fillStyle = '#ea580c';
-  microCtx.font = 'bold 9.5px Pretendard, sans-serif';
-  microCtx.textAlign = 'left';
-  microCtx.fillText(`Lp ≈ ${lpH}cm`, eleCX + colWidth / 2 + 22, groundY - lpH / 2 + 3);
-
-  // Elevation Title & Warnings
+  // Elevation Title
   microCtx.fillStyle = '#0f172a';
   microCtx.font = 'bold 10px monospace';
   microCtx.textAlign = 'center';
-  microCtx.fillText('기둥 밑둥 세로입면', eleCX, topY - 6);
+  microCtx.fillText('기둥 밑둥 세로입면 (좌굴 관찰)', eleCX, topY - 6);
 
-  if (isBuckled) {
-    microCtx.fillStyle = '#dc2626';
-    microCtx.font = 'bold 10.5px Pretendard, sans-serif';
-    microCtx.textAlign = 'center';
-    microCtx.fillText(`💥 주철근 S자 좌굴! (θ_cr = ${thetaBuckle.toFixed(2)}θy)`, eleCX, groundY + 18);
-  } else {
-    microCtx.fillStyle = (tieSpacingRatio <= 6.0) ? '#059669' : '#d97706';
-    microCtx.font = '9.5px Pretendard, sans-serif';
-    microCtx.textAlign = 'center';
-    microCtx.fillText(
-      tieSpacingRatio <= 6.0
-        ? `🛡️ 내진 s=${tieSpacingRatio.toFixed(1)}db (좌굴 한계: θ=${thetaBuckle.toFixed(2)}θy)`
-        : `⚠️ s=${tieSpacingRatio.toFixed(1)}db 과소 (조기 좌굴: θ=${thetaBuckle.toFixed(2)}θy)`,
-      eleCX, groundY + 18
-    );
-  }
+  microCtx.restore();
 }
 
-// Awwwards Pack: Zentry 3D Tilt on Cards
-function initZentryCards() {
-  const cards = document.querySelectorAll('.panel, .canvas-card, .hud-box, .bottom-insight');
-  cards.forEach(card => {
-    card.classList.add('zentry-card');
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left - rect.width / 2;
-      const y = e.clientY - rect.top - rect.height / 2;
-      const rotX = -(y / (rect.height / 2)) * 3.5;
-      const rotY = (x / (rect.width / 2)) * 3.5;
-      card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
-    });
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
-    });
-  });
-}
-
-// INIT
-window.addEventListener('load', () => {
-  updateParams();
-  initZentryCards();
-});
-window.addEventListener('resize', () => {
-  drawBackbone();
-  drawFrame();
-  drawMicroDual();
-});
+// =========================================================================
+// BOOT
+// =========================================================================
+initThreeBIM();
+updateAll();
 </script>
+
 </body>
 </html>
