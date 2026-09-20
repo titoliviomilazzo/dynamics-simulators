@@ -328,7 +328,7 @@
 
     function initThree() {
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xffffff);
+      scene.background = new THREE.Color(0xf1f5f9);
 
       const r = threeFrameContainer.getBoundingClientRect();
       camera = new THREE.PerspectiveCamera(36, r.width / r.height, 0.1, 1000);
@@ -362,11 +362,15 @@
       // Bedrock Foundation
       bedrockGroup = new THREE.Group();
       const bedGeo = new THREE.BoxGeometry(10, 0.6, 7);
-      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
       bedrock.position.y = 0.3;
       bedrock.receiveShadow = true;
       bedrockGroup.add(bedrock);
+
+      const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
+      bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x475569 })));
+
       scene.add(bedrockGroup);
 
       // SDOF Frame Group

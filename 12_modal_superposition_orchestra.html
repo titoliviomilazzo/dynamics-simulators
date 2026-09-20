@@ -421,7 +421,7 @@
 
     function initThree() {
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xffffff);
+      scene.background = new THREE.Color(0xf1f5f9);
 
       const r = threeContainer.getBoundingClientRect();
       camera = new THREE.PerspectiveCamera(38, r.width / r.height, 0.1, 1000);
@@ -453,18 +453,21 @@
       scene.add(fill);
 
       // Ground subtle grid
-      const grid = new THREE.GridHelper(30, 20, 0xcbd5e1, 0xf1f5f9);
+      const grid = new THREE.GridHelper(30, 20, 0x94a3b8, 0xcbd5e1);
       grid.position.y = -0.01;
       scene.add(grid);
 
       // Bedrock Foundation
       bedrockGroup = new THREE.Group();
       const bedGeo = new THREE.BoxGeometry(14, 0.8, 10);
-      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
       bedrock.position.y = 0.4;
       bedrock.receiveShadow = true;
       bedrockGroup.add(bedrock);
+
+      const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
+      bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x475569 })));
 
       for (let x of [-3.5, 3.5]) {
         for (let z of [-2.5, 2.5]) {

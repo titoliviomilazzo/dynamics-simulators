@@ -170,7 +170,7 @@
         </p>
 
         <!-- Visualizer Area -->
-        <div class="relative w-full flex-1 min-h-[260px] rounded-xl border border-slate-200 overflow-hidden bg-white">
+        <div class="relative w-full flex-1 min-h-[260px] rounded-xl border border-slate-300 overflow-hidden bg-slate-100">
           
           <!-- 3D BIM Container -->
           <div id="threeContainer" class="w-full h-full absolute inset-0">
@@ -303,7 +303,7 @@
 
     function initThree() {
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xffffff);
+      scene.background = new THREE.Color(0xf1f5f9);
 
       const r = threeContainer.getBoundingClientRect();
       camera = new THREE.PerspectiveCamera(38, r.width / r.height, 0.1, 1000);
@@ -335,18 +335,23 @@
       scene.add(fill);
 
       // Ground subtle grid
-      const grid = new THREE.GridHelper(30, 20, 0xcbd5e1, 0xf1f5f9);
+      const grid = new THREE.GridHelper(30, 20, 0x94a3b8, 0xcbd5e1);
       grid.position.y = -0.01;
       scene.add(grid);
 
-      // Bedrock Foundation
+      // Bedrock Foundation (high-contrast concrete)
       bedrockGroup = new THREE.Group();
       const bedGeo = new THREE.BoxGeometry(13, 0.8, 9);
-      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
       bedrock.position.y = 0.4;
       bedrock.receiveShadow = true;
       bedrockGroup.add(bedrock);
+
+      const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
+      const bedEdge = new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x475569 }));
+      bedrock.add(bedEdge);
+
       scene.add(bedrockGroup);
 
       // Building Group
@@ -360,8 +365,10 @@
     function buildPenthouseBuilding() {
       // 3 Slabs (1F: 3.5, 2F: 7.0, Roof: 10.5)
       const slabGeo = new THREE.BoxGeometry(6.5, 0.28, 5);
-      const slabMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
-      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.4 });
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 });
+      const slabEdgesGeo = new THREE.EdgesGeometry(slabGeo);
+      const slabLineMat = new THREE.LineBasicMaterial({ color: 0x475569 });
 
       for (let i = 1; i <= 3; i++) {
         const floorGrp = new THREE.Group();
@@ -371,6 +378,9 @@
         slab.castShadow = true;
         slab.receiveShadow = true;
         floorGrp.add(slab);
+
+        const slabWire = new THREE.LineSegments(slabEdgesGeo, slabLineMat);
+        slab.add(slabWire);
 
         const edgeGeo = new THREE.BoxGeometry(6.6, 0.08, 5.1);
         const edge = new THREE.Mesh(edgeGeo, slabEdgeMat);
@@ -414,12 +424,16 @@
       pentGrp.position.y = 10.5;
       pentGrp.name = 'penthouse_group';
 
-      // Penthouse Walls / Frame
+      // Penthouse Walls / Frame with crisp contrasting borders
       const pentWallGeo = new THREE.BoxGeometry(2.8, 1.8, 2.4);
-      const pentWallMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.7, transparent: true, opacity: 0.85 });
+      const pentWallMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.7, transparent: true, opacity: 0.92 });
       penthouseMesh = new THREE.Mesh(pentWallGeo, pentWallMat);
       penthouseMesh.position.y = 0.9;
       penthouseMesh.castShadow = true;
+
+      const pentEdges = new THREE.EdgesGeometry(pentWallGeo);
+      const pentLines = new THREE.LineSegments(pentEdges, new THREE.LineBasicMaterial({ color: 0x1e293b, linewidth: 2 }));
+      penthouseMesh.add(pentLines);
       pentGrp.add(penthouseMesh);
 
       // Penthouse Mechanical Equipment (HVAC / Water Tank)

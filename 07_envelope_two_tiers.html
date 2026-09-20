@@ -64,17 +64,28 @@
       </div>
     </div>
 
+    <!-- Intuitive Pedagogical Banner -->
+    <div id="tierBanner" class="p-3.5 rounded-xl bg-blue-50/80 border border-blue-200 text-xs text-blue-950 flex items-start gap-2.5">
+      <span class="text-base">💡</span>
+      <div class="leading-relaxed">
+        <strong id="bannerTitle" class="font-bold text-blue-900 block mb-0.5">1차 모달 포락선 (SRSS): 가상의 최외곽 안전망</strong>
+        <span id="bannerDesc">
+          건물이 진동할 때 각 기둥과 층은 시간에 따라 앞뒤로 흔들립니다. <strong>붉은색 반투명 케이지(포락선)</strong>는 건물이 도달한 모든 순간의 최대 변위와 휨모멘트를 감싼 '안전 그물망'입니다. 통계적 제곱합(SRSS)으로 부호(+/-)가 소실되었기 때문에, <strong>건물 전체가 이 포락선 모양으로 동시에 휘어지는 순간은 영원히 실존하지 않습니다!</strong>
+        </span>
+      </div>
+    </div>
+
     <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
       
       <!-- Left Column: Visualizer Area (7 Cols) -->
-      <div class="lg:col-span-7 bg-slate-50/70 border border-slate-200 rounded-xl p-4 flex flex-col justify-between relative min-h-[500px]">
+      <div class="lg:col-span-7 bg-slate-50/70 border border-slate-200 rounded-xl p-4 flex flex-col justify-between relative min-h-[520px]">
         
         <!-- Canvas / 3D Header -->
         <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-2">
           <div>
-            <span id="canvas-title" class="text-sm font-bold text-slate-900 block">1차 모달 포락선: 모드별 BMD와 SRSS 합성선</span>
-            <span id="canvas-subtitle" class="text-[11px] font-mono text-slate-500">3D BIM 기둥 포락선 리본 vs 2D 휨모멘트 분포</span>
+            <span id="canvas-title" class="text-sm font-bold text-slate-900 block">1차 모달 포락선: 3D BIM 골조 & 기둥 포락선</span>
+            <span id="canvas-subtitle" class="text-[11px] font-mono text-slate-500">실제 진동 골조 vs 붉은색 외곽 안전 포락망(SRSS)</span>
           </div>
           
           <div class="flex items-center gap-1.5">
@@ -86,7 +97,7 @@
         </div>
 
         <!-- Visualizer Containers -->
-        <div class="relative flex-1 w-full min-h-[360px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+        <div class="relative flex-1 w-full min-h-[380px] rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
           
           <!-- 3D BIM Container -->
           <div id="threeContainer" class="w-full h-full absolute inset-0">
@@ -103,14 +114,18 @@
             </div>
 
             <!-- Legend Badge in 3D -->
-            <div id="threeLegend" class="absolute top-2 right-2 text-[10px] font-semibold bg-white/90 backdrop-blur-xs border border-slate-200 p-2 rounded-lg shadow-xs space-y-1">
-              <div class="flex items-center gap-1.5">
-                <span class="w-3 h-1.5 rounded bg-red-500 inline-block"></span>
-                <span id="legend-env-name" class="text-slate-700">SRSS 모달 포락선 리본</span>
+            <div id="threeLegend" class="absolute top-2 right-2 text-[10px] font-semibold bg-white/95 backdrop-blur-xs border border-slate-200 p-2.5 rounded-lg shadow-sm space-y-1.5">
+              <div class="flex items-center gap-2">
+                <span id="legend-env-dot" class="w-3 h-2 rounded bg-red-500/80 border border-red-600 inline-block"></span>
+                <span id="legend-env-name" class="text-slate-800 font-bold">SRSS 포락 케이지 (가상 안전망)</span>
               </div>
-              <div class="flex items-center gap-1.5 text-slate-500">
-                <span class="w-3 h-1.5 rounded bg-blue-500 inline-block"></span>
-                <span>실시간 진동 거동 형상</span>
+              <div class="flex items-center gap-2 text-slate-600">
+                <span class="w-3 h-2 rounded bg-slate-700 inline-block"></span>
+                <span>3층 4개 기둥 실시간 골조</span>
+              </div>
+              <div class="flex items-center gap-2 text-blue-700">
+                <span class="w-3 h-1.5 rounded bg-blue-600 inline-block"></span>
+                <span>기둥 전면 휨모멘트 리본</span>
               </div>
             </div>
           </div>
@@ -264,22 +279,38 @@
         'px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition';
 
       const legEnv = document.getElementById('legend-env-name');
+      const legDot = document.getElementById('legend-env-dot');
+      const bTitle = document.getElementById('bannerTitle');
+      const bDesc = document.getElementById('bannerDesc');
+      const bBox = document.getElementById('tierBanner');
 
       if (tier === 1) {
-        document.getElementById('canvas-title').innerText = '1차 모달 포락선: 모드별 BMD와 SRSS 합성선';
-        document.getElementById('canvas-subtitle').innerText = '3D BIM 모달 진동 및 SRSS 부호소실 외곽선';
+        document.getElementById('canvas-title').innerText = '1차 모달 포락선: 3D BIM 골조 & 기둥 포락선';
+        document.getElementById('canvas-subtitle').innerText = '실제 진동 골조 vs 붉은색 외곽 안전 포락망(SRSS)';
         document.getElementById('question-text').innerText = '"이 포락선 모양대로 건물이 휘어지는 순간이 실존할까요?" → 답: 영원히 없음';
-        if (legEnv) legEnv.innerText = 'SRSS 모달 포락선 리본 (가상 외곽선)';
+        if (legEnv) legEnv.innerText = 'SRSS 포락 케이지 (가상 안전망)';
+        if (legDot) legDot.className = 'w-3 h-2 rounded bg-red-500/80 border border-red-600 inline-block';
+        bBox.className = 'p-3.5 rounded-xl bg-blue-50/80 border border-blue-200 text-xs text-blue-950 flex items-start gap-2.5';
+        bTitle.textContent = '1차 모달 포락선 (SRSS): 가상의 최외곽 안전망';
+        bDesc.innerHTML = '건물이 1, 2, 3차 모드로 진동할 때의 <strong>붉은색 반투명 외곽 케이지</strong>입니다. 건물은 끊임없이 흔들리지만 절대 이 포락망을 벗어나지 않습니다. 단, 통계적 제곱합이므로 <strong>건물 전체가 이 형상으로 동시에 휘어지는 순간은 영원히 실존하지 않습니다.</strong>';
       } else if (tier === 2) {
         document.getElementById('canvas-title').innerText = '2차 하중조합 포락선: LC1~LC3 및 최외곽 cENV 포락선';
-        document.getElementById('canvas-subtitle').innerText = '3D BIM 정적 캔틸레버 하중조합 Envelope';
+        document.getElementById('canvas-subtitle').innerText = '3D BIM 정적 캔틸레버 하중조합 Envelope (진동 없음)';
         document.getElementById('question-text').innerText = '수명 기간 중 어떤 시나리오가 와도 이 테두리 안에서 안전함을 보장함';
         if (legEnv) legEnv.innerText = 'cENV 하중조합 최외곽선';
+        if (legDot) legDot.className = 'w-3 h-2 rounded bg-emerald-500/80 border border-emerald-600 inline-block';
+        bBox.className = 'p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2.5';
+        bTitle.textContent = '2차 하중조합 포락선 (cENV): 정적 하중들의 합집합';
+        bDesc.innerHTML = 'LC1(1.4D), LC2(1.2D+1.6L), LC3(1.2D+1.0L+1.0E) 등 설계 수명 동안 발생 가능한 모든 정적 하중의 <strong>초록색 최외곽 테두리</strong>입니다. 통계 합성이 아닌 단순 최대값 추출입니다.';
       } else {
         document.getElementById('canvas-title').innerText = '3차: P-M 상관도 부호 소실 함정 — 동시성이 깨진 가상의 점';
         document.getElementById('canvas-subtitle').innerText = '3D 축하중-모멘트 궤적 vs 허상 좌표 (P_max, M_max)';
         document.getElementById('question-text').innerText = 'P_max와 M_max는 다른 시점에 발생하므로 (P_max, M_max)는 실제 궤적에 없는 허상점입니다.';
-        if (legEnv) legEnv.innerText = '동적 거동 궤적 vs 허상점';
+        if (legEnv) legEnv.innerText = 'P-M 동적 궤적 vs 허상점';
+        if (legDot) legDot.className = 'w-3 h-2 rounded bg-red-600 inline-block';
+        bBox.className = 'p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 flex items-start gap-2.5';
+        bTitle.textContent = '3차 실무 함정: P-M 상관도 부호 소실과 동시성 파괴';
+        bDesc.innerHTML = '실제 지진 시 기둥의 축력과 휨모멘트 (P(t), M(t))는 <strong>안전 타원 궤적</strong>을 그리며 거동합니다. 그러나 포락선의 (P_max, M_max)는 서로 다른 시점의 극값을 억지로 묶은 <strong>허상 좌표(붉은 핀)</strong>이므로, 기둥 설계 시 불필요한 과대설계를 유발하거나 인장파괴를 놓칠 수 있습니다.';
       }
       
       updateThreeSceneForTier();
@@ -299,7 +330,6 @@
       const storyH = totalH / 3;
 
       if (currentTier === 1) {
-        // Central Column Line
         ctx.strokeStyle = '#cbd5e1';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -307,7 +337,6 @@
         ctx.lineTo(cx, botY);
         ctx.stroke();
 
-        // Floor markers
         for (let i = 0; i <= 3; i++) {
           const y = botY - i * storyH;
           ctx.strokeStyle = '#94a3b8';
@@ -323,22 +352,19 @@
           ctx.fillText(i === 0 ? '기초' : `${i}F`, cx - 22, y + 3);
         }
 
-        // Mode 1: Smooth cantilever-like moment
+        // Mode 1, 2, 3
         ctx.strokeStyle = 'rgba(5, 150, 105, 0.6)';
         ctx.lineWidth = 2;
         ctx.setLineDash([4, 3]);
         ctx.beginPath();
-        const ptsM1 = [];
         for (let y = topY; y <= botY; y += 4) {
           const s = (y - topY) / totalH;
           const m1 = 120 * s * s;
-          ptsM1.push({ x: cx + m1, y });
           if (y === topY) ctx.moveTo(cx + m1, y);
           else ctx.lineTo(cx + m1, y);
         }
         ctx.stroke();
 
-        // Mode 2: Inflexion point
         ctx.strokeStyle = 'rgba(37, 99, 235, 0.6)';
         ctx.beginPath();
         for (let y = topY; y <= botY; y += 4) {
@@ -349,7 +375,6 @@
         }
         ctx.stroke();
 
-        // Mode 3: Double inflexion
         ctx.strokeStyle = 'rgba(147, 51, 234, 0.6)';
         ctx.beginPath();
         for (let y = topY; y <= botY; y += 4) {
@@ -361,7 +386,7 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // SRSS Envelope (Bold Red)
+        // SRSS Envelope
         ctx.strokeStyle = '#dc2626';
         ctx.lineWidth = 3;
         ctx.beginPath();
@@ -378,8 +403,7 @@
         }
         ctx.stroke();
 
-        // Use Canonical Engine for Collision-Free Badges
-        const maxPt = srssCurve[srssCurve.length - 1]; // Base maximum
+        const maxPt = srssCurve[srssCurve.length - 1];
         const plotRect = { left: 40, top: 30, width: w - 80, height: h - 60 };
         const boxSize = { w: 140, h: 42 };
         const placement = DynamicsChartCanonical.getBestCalloutPlacement(maxPt.x, maxPt.y, boxSize.w, boxSize.h, plotRect, srssCurve);
@@ -396,7 +420,6 @@
           radius: 6
         });
 
-        // Legends
         const legX = w - 150;
         ctx.font = 'bold 11px Pretendard, sans-serif';
         ctx.textAlign = 'left';
@@ -406,7 +429,6 @@
         ctx.fillStyle = '#dc2626'; ctx.fillText('━ 모달 포락선 (SRSS)', legX, topY + 115);
 
       } else if (currentTier === 2) {
-        // Central Column Line
         ctx.strokeStyle = '#cbd5e1';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -450,7 +472,6 @@
         });
         ctx.setLineDash([]);
 
-        // cENV Envelope (Bold Green)
         ctx.strokeStyle = '#059669';
         ctx.lineWidth = 3;
         ctx.beginPath();
@@ -490,16 +511,14 @@
         ctx.fillStyle = '#059669'; ctx.fillText('━ 하중조합 포락선 (cENV)', legX, topY + 115);
 
       } else {
-        // Tier 3: P-M Correlation Diagram & Sign Loss Trap
         const pmOx = w * 0.42;
         const pmOy = h * 0.52;
 
-        // P-M Axes
         ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.moveTo(pmOx - 160, pmOy); ctx.lineTo(pmOx + 160, pmOy); // M axis
-        ctx.moveTo(pmOx, pmOy + 120); ctx.lineTo(pmOx, pmOy - 140); // P axis
+        ctx.moveTo(pmOx - 160, pmOy); ctx.lineTo(pmOx + 160, pmOy);
+        ctx.moveTo(pmOx, pmOy + 120); ctx.lineTo(pmOx, pmOy - 140);
         ctx.stroke();
 
         ctx.fillStyle = '#64748b';
@@ -507,16 +526,14 @@
         ctx.fillText('+M (휨모멘트)', pmOx + 165, pmOy + 4);
         ctx.fillText('+P (축압축력)', pmOx + 6, pmOy - 145);
 
-        // Concrete Column P-M Capacity Curve (Safe Boundary)
         ctx.strokeStyle = '#2563eb';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(pmOx, pmOy - 120); // Pure compression P0
-        ctx.quadraticCurveTo(pmOx + 130, pmOy - 40, pmOx + 110, pmOy + 20); // Balanced point
-        ctx.quadraticCurveTo(pmOx + 60, pmOy + 80, pmOx, pmOy + 90); // Pure tension
+        ctx.moveTo(pmOx, pmOy - 120);
+        ctx.quadraticCurveTo(pmOx + 130, pmOy - 40, pmOx + 110, pmOy + 20);
+        ctx.quadraticCurveTo(pmOx + 60, pmOy + 80, pmOx, pmOy + 90);
         ctx.stroke();
 
-        // Real Dynamic Trajectory Ellipse of (P(t), M(t)) - SAFE inside
         ctx.fillStyle = 'rgba(5, 150, 105, 0.12)';
         ctx.strokeStyle = '#059669';
         ctx.lineWidth = 2;
@@ -529,11 +546,9 @@
         ctx.font = 'bold 10px Pretendard, sans-serif';
         ctx.fillText('실제 지진 동적 거동 궤적 (P(t), M(t)) [안전]', pmOx + 35, pmOy - 55);
 
-        // Envelope's Phantom Point (P_max, M_max)
         const pMax = pmOy - 65;
         const mMax = pmOx + 95;
 
-        // Dashed lines to phantom point
         ctx.strokeStyle = '#dc2626';
         ctx.lineWidth = 1.2;
         ctx.setLineDash([3, 3]);
@@ -543,11 +558,9 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Red cross phantom point
         ctx.fillStyle = '#dc2626';
         ctx.beginPath(); ctx.arc(mMax, pMax, 6, 0, Math.PI * 2); ctx.fill();
 
-        // Clean Callout Placement with Leader Line
         const plotRect = { left: 40, top: 30, width: w - 80, height: h - 60 };
         const boxSize = { w: 170, h: 48 };
         const placement = DynamicsChartCanonical.getBestCalloutPlacement(mMax, pMax, boxSize.w, boxSize.h, plotRect, [
@@ -569,19 +582,20 @@
       }
     }
 
-    // --- 3D BIM Three.js Scene Setup ---
+    // --- 3D BIM Three.js Scene Setup (High Contrast & Clear Columns) ---
     const threeContainer = document.getElementById('threeContainer');
     let scene, camera, renderer, controls;
-    let bldgGroup, bedrockGroup, ribbonMesh, phantomMarker;
-    let columnSlices = [];
+    let bldgGroup, bedrockGroup, envelopeCageMesh, frontBmdRibbon, phantomMarker;
+    let bldgColumns = []; // 4 corner columns
 
     function initThree() {
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xffffff);
+      // Off-white background for clear contrast
+      scene.background = new THREE.Color(0xf1f5f9);
 
       const r = threeContainer.getBoundingClientRect();
       camera = new THREE.PerspectiveCamera(38, r.width / r.height, 0.1, 1000);
-      camera.position.set(0, 8.5, 26);
+      camera.position.set(0, 8.5, 25);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(r.width, r.height);
@@ -592,41 +606,39 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.target.set(0, 6.0, 0);
+      controls.target.set(0, 5.5, 0);
       controls.maxPolarAngle = Math.PI / 2 + 0.08;
 
       // Lights
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.85);
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.9);
       scene.add(ambLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
       dirLight.position.set(15, 25, 18);
       dirLight.castShadow = true;
-      dirLight.shadow.mapSize.width = 1024;
-      dirLight.shadow.mapSize.height = 1024;
       scene.add(dirLight);
 
-      const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.35);
+      const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.4);
       fillLight.position.set(-15, 10, -12);
       scene.add(fillLight);
 
       // Ground subtle grid
-      const grid = new THREE.GridHelper(30, 20, 0xcbd5e1, 0xf1f5f9);
+      const grid = new THREE.GridHelper(30, 20, 0x94a3b8, 0xcbd5e1);
       grid.position.y = -0.01;
       scene.add(grid);
 
-      // Bedrock Foundation
+      // Bedrock Foundation (Slate-300)
       bedrockGroup = new THREE.Group();
       const bedGeo = new THREE.BoxGeometry(14, 0.8, 10);
-      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.8 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
       bedrock.position.y = 0.4;
       bedrock.receiveShadow = true;
       bedrockGroup.add(bedrock);
 
-      // Foundation anchor footings
-      for (let x of [-3.5, 3.5]) {
-        for (let z of [-2.5, 2.5]) {
+      // 4 Footings
+      for (let x of [-3.2, 3.2]) {
+        for (let z of [-2.2, 2.2]) {
           const footGeo = new THREE.BoxGeometry(1.6, 0.3, 1.6);
           const footMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
           const foot = new THREE.Mesh(footGeo, footMat);
@@ -638,35 +650,35 @@
 
       // Building Group
       bldgGroup = new THREE.Group();
-      bldgGroup.position.y = 0.8; // On top of bedrock
+      bldgGroup.position.y = 0.8;
       scene.add(bldgGroup);
 
-      // Construct 3-Story Frame & Central Column
-      build3DStructure();
-      buildEnvelopeRibbon();
+      // Construct Real 3-Story Frame with 4 Columns
+      buildRealistic3DFrame();
+      buildEnvelopeCage();
+      buildBmdRibbon();
       buildPhantomMarker();
 
       updateThreeSceneForTier();
       animateThree();
     }
 
-    function build3DStructure() {
-      // Slabs at 1F (y=4), 2F (y=8), 3F/Roof (y=12)
-      const slabGeo = new THREE.BoxGeometry(8, 0.3, 6);
-      const slabMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.6 });
-      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.5 });
+    function buildRealistic3DFrame() {
+      // 3 Slabs (1F: 3.8, 2F: 7.6, Roof: 11.4)
+      const slabGeo = new THREE.BoxGeometry(7.6, 0.35, 5.6);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.5 });
+      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.3 });
 
       for (let i = 1; i <= 3; i++) {
         const floorGrp = new THREE.Group();
-        floorGrp.position.y = i * 4;
+        floorGrp.position.y = i * 3.8;
 
         const slab = new THREE.Mesh(slabGeo, slabMat);
         slab.castShadow = true;
         slab.receiveShadow = true;
         floorGrp.add(slab);
 
-        // Edge trim
-        const edgeGeo = new THREE.BoxGeometry(8.1, 0.08, 6.1);
+        const edgeGeo = new THREE.BoxGeometry(7.7, 0.08, 5.7);
         const edge = new THREE.Mesh(edgeGeo, slabEdgeMat);
         floorGrp.add(edge);
 
@@ -674,43 +686,74 @@
         bldgGroup.add(floorGrp);
       }
 
-      // Central Column: Segmented into 24 vertical slices for smooth bending
-      const sliceCount = 24;
-      columnSlices = [];
-      const colMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4, metalness: 0.1 });
-      const sliceH = 12.0 / sliceCount;
+      // 4 Realistic Corner Columns: Segmented into slices for smooth bending
+      const sliceCount = 20;
+      const totalH = 11.4;
+      const sliceH = totalH / sliceCount;
+      const colPositions = [
+        [-3.2, -2.2], [3.2, -2.2],
+        [-3.2, 2.2], [3.2, 2.2]
+      ];
 
-      for (let i = 0; i < sliceCount; i++) {
-        const sliceGeo = new THREE.BoxGeometry(0.7, sliceH, 0.7);
-        const sliceMesh = new THREE.Mesh(sliceGeo, colMat);
-        sliceMesh.position.y = (i + 0.5) * sliceH;
-        sliceMesh.castShadow = true;
-        bldgGroup.add(sliceMesh);
-        columnSlices.push({
-          mesh: sliceMesh,
-          baseY: (i + 0.5) * sliceH,
-          normZ: (i + 0.5) / sliceCount // 0 at base to 1 at roof
-        });
+      bldgColumns = [];
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 });
+
+      for (let pos of colPositions) {
+        const colSlices = [];
+        for (let i = 0; i < sliceCount; i++) {
+          const sliceGeo = new THREE.BoxGeometry(0.42, sliceH, 0.42);
+          const slice = new THREE.Mesh(sliceGeo, colMat);
+          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
+          slice.castShadow = true;
+          bldgGroup.add(slice);
+          colSlices.push({
+            mesh: slice,
+            baseX: pos[0],
+            normZ: (i + 0.5) / sliceCount
+          });
+        }
+        bldgColumns.push(colSlices);
       }
     }
 
-    function buildEnvelopeRibbon() {
-      // A translucent 3D extruded ribbon representing the envelope boundary
-      const ribbonGeo = new THREE.PlaneGeometry(1, 12, 1, 24);
-      const ribbonMat = new THREE.MeshStandardMaterial({
+    function buildEnvelopeCage() {
+      // Bounding Envelope Cage: Translucent box enclosing the maximum displacement envelope
+      const cageGeo = new THREE.BoxGeometry(9.8, 11.4, 6.4);
+      const cageMat = new THREE.MeshStandardMaterial({
         color: 0xdc2626,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.18,
+        wireframe: false,
         side: THREE.DoubleSide,
         depthWrite: false
       });
-      ribbonMesh = new THREE.Mesh(ribbonGeo, ribbonMat);
-      ribbonMesh.position.set(0, 6, 0);
-      bldgGroup.add(ribbonMesh);
+      envelopeCageMesh = new THREE.Mesh(cageGeo, cageMat);
+      envelopeCageMesh.position.set(0, 5.7, 0);
+
+      // Cage wireframe outline
+      const wireGeo = new THREE.EdgesGeometry(cageGeo);
+      const wireMat = new THREE.LineBasicMaterial({ color: 0xdc2626, linewidth: 2 });
+      const wireframe = new THREE.LineSegments(wireGeo, wireMat);
+      envelopeCageMesh.add(wireframe);
+
+      bldgGroup.add(envelopeCageMesh);
+    }
+
+    function buildBmdRibbon() {
+      // 3D Bending Moment Diagram Ribbon along front column
+      const ribbonGeo = new THREE.PlaneGeometry(1, 11.4, 1, 20);
+      const ribbonMat = new THREE.MeshBasicMaterial({
+        color: 0x2563eb,
+        transparent: true,
+        opacity: 0.65,
+        side: THREE.DoubleSide
+      });
+      frontBmdRibbon = new THREE.Mesh(ribbonGeo, ribbonMat);
+      frontBmdRibbon.position.set(-3.2, 5.7, 2.3);
+      bldgGroup.add(frontBmdRibbon);
     }
 
     function buildPhantomMarker() {
-      // 3D Caution Marker for Tier 3 (P_max, M_max)
       phantomMarker = new THREE.Group();
       
       const pinGeo = new THREE.SphereGeometry(0.35, 16, 16);
@@ -718,32 +761,34 @@
       const pinMesh = new THREE.Mesh(pinGeo, pinMat);
       phantomMarker.add(pinMesh);
 
-      // Warning ring
       const ringGeo = new THREE.RingGeometry(0.45, 0.6, 24);
       const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide });
       const ringMesh = new THREE.Mesh(ringGeo, ringMat);
       ringMesh.rotation.x = Math.PI / 2;
       phantomMarker.add(ringMesh);
 
-      phantomMarker.position.set(2.8, 6.0, 0);
+      phantomMarker.position.set(3.2, 5.7, 2.4);
       phantomMarker.visible = false;
       bldgGroup.add(phantomMarker);
     }
 
     function updateThreeSceneForTier() {
-      if (!ribbonMesh) return;
+      if (!envelopeCageMesh) return;
       if (currentTier === 1) {
-        ribbonMesh.visible = true;
-        ribbonMesh.material.color.setHex(0xdc2626); // Red SRSS
-        ribbonMesh.material.opacity = 0.35;
+        envelopeCageMesh.visible = true;
+        envelopeCageMesh.material.color.setHex(0xdc2626); // Red SRSS
+        envelopeCageMesh.material.opacity = 0.18;
+        if (frontBmdRibbon) frontBmdRibbon.visible = true;
         if (phantomMarker) phantomMarker.visible = false;
       } else if (currentTier === 2) {
-        ribbonMesh.visible = true;
-        ribbonMesh.material.color.setHex(0x059669); // Green cENV
-        ribbonMesh.material.opacity = 0.4;
+        envelopeCageMesh.visible = true;
+        envelopeCageMesh.material.color.setHex(0x059669); // Green cENV
+        envelopeCageMesh.material.opacity = 0.22;
+        if (frontBmdRibbon) frontBmdRibbon.visible = true;
         if (phantomMarker) phantomMarker.visible = false;
       } else {
-        ribbonMesh.visible = false;
+        envelopeCageMesh.visible = false;
+        if (frontBmdRibbon) frontBmdRibbon.visible = false;
         if (phantomMarker) phantomMarker.visible = true;
       }
     }
@@ -759,7 +804,7 @@
       const ampFactor = (threeAmpScale / 70.0);
 
       if (currentTier === 1) {
-        // Tier 1: Modal Superposition vibration & dynamic ground shaking
+        // Tier 1: Dynamic Vibration within SRSS Envelope Cage
         const w1 = 2.0;
         const w2 = 5.5;
         const w3 = 12.0;
@@ -769,26 +814,25 @@
         const q3 = Math.sin(animTime * w3) * 0.003 * ampFactor;
 
         // Ground Motion (Coupled Bedrock Shaking)
-        const ug = Math.sin(animTime * w1) * 0.25 * (threeAmpScale / 70.0);
+        const ug = Math.sin(animTime * w1) * 0.22 * ampFactor;
         bedrockGroup.position.x = ug;
         bldgGroup.position.x = ug;
 
-        // Update column slices & floor slabs
-        columnSlices.forEach(sl => {
-          const z = sl.normZ;
-          // Mode 1: 1.5 z^2 - 0.5 z^3
-          const phi1 = 1.5 * z * z - 0.5 * z * z * z;
-          // Mode 2: Inflexion point
-          const phi2 = Math.sin(z * Math.PI * 1.5);
-          // Mode 3: Double inflexion
-          const phi3 = Math.sin(z * Math.PI * 2.5);
+        // Animate all 4 columns
+        bldgColumns.forEach(col => {
+          col.forEach(sl => {
+            const z = sl.normZ;
+            const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+            const phi2 = Math.sin(z * Math.PI * 1.5);
+            const phi3 = Math.sin(z * Math.PI * 2.5);
 
-          const driftX = (phi1 * q1 + phi2 * q2 + phi3 * q3) * 75.0;
-          sl.mesh.position.x = driftX;
-          sl.mesh.rotation.z = -driftX * 0.08;
+            const driftX = (phi1 * q1 + phi2 * q2 + phi3 * q3) * 75.0;
+            sl.mesh.position.x = sl.baseX + driftX;
+            sl.mesh.rotation.z = -driftX * 0.08;
+          });
         });
 
-        // Update Floor Slabs
+        // Floor Slabs
         for (let i = 1; i <= 3; i++) {
           const fl = bldgGroup.getObjectByName(`floor_${i}`);
           if (fl) {
@@ -800,42 +844,33 @@
           }
         }
 
-        // Update 3D SRSS Ribbon Geometry
-        const pos = ribbonMesh.geometry.attributes.position;
-        for (let j = 0; j <= 24; j++) {
-          const z = j / 24.0;
-          const phi1 = 1.5 * z * z - 0.5 * z * z * z;
-          const phi2 = Math.sin(z * Math.PI * 1.5);
-          const phi3 = Math.sin(z * Math.PI * 2.5);
-
-          // SRSS envelope width
-          const m1 = 1.2 * phi1;
-          const m2 = 0.6 * Math.abs(phi2);
-          const m3 = 0.25 * Math.abs(phi3);
-          const envW = Math.sqrt(m1*m1 + m2*m2 + m3*m3) * 1.2 * ampFactor;
-
-          const idxLeft = j * 2;
-          const idxRight = j * 2 + 1;
-
-          pos.setX(idxLeft, -envW);
-          pos.setX(idxRight, envW);
+        // Update front column 3D BMD Ribbon
+        if (frontBmdRibbon) {
+          const pos = frontBmdRibbon.geometry.attributes.position;
+          for (let j = 0; j <= 20; j++) {
+            const z = j / 20.0;
+            const mVal = (1.5 * z * z) * 1.2 * ampFactor;
+            pos.setX(j * 2, 0);
+            pos.setX(j * 2 + 1, mVal);
+          }
+          pos.needsUpdate = true;
         }
-        pos.needsUpdate = true;
 
       } else if (currentTier === 2) {
-        // Tier 2: Static Load Combinations (Authentic Structural Physics - Pure Cantilever, NO Shaking!)
+        // Tier 2: Static Load Combinations (Authentic Static Cantilever - Pure Deflection, Zero Shaking!)
         bedrockGroup.position.x = 0;
         bldgGroup.position.x = 0;
 
-        // Static Cantilever Deflection for LC3 (dominant)
         const staticDriftMax = 1.35 * ampFactor;
 
-        columnSlices.forEach(sl => {
-          const z = sl.normZ;
-          const psi = 1.5 * z * z - 0.5 * z * z * z; // Authentic static cantilever
-          const dx = psi * staticDriftMax;
-          sl.mesh.position.x = dx;
-          sl.mesh.rotation.z = -dx * 0.08;
+        bldgColumns.forEach(col => {
+          col.forEach(sl => {
+            const z = sl.normZ;
+            const psi = 1.5 * z * z - 0.5 * z * z * z;
+            const dx = psi * staticDriftMax;
+            sl.mesh.position.x = sl.baseX + dx;
+            sl.mesh.rotation.z = -dx * 0.08;
+          });
         });
 
         for (let i = 1; i <= 3; i++) {
@@ -847,36 +882,31 @@
           }
         }
 
-        // cENV Outer Ribbon
-        const pos = ribbonMesh.geometry.attributes.position;
-        for (let j = 0; j <= 24; j++) {
-          const z = j / 24.0;
-          const psi = 1.5 * z * z - 0.5 * z * z * z;
-          const envW = psi * staticDriftMax * 1.25;
-
-          const idxLeft = j * 2;
-          const idxRight = j * 2 + 1;
-
-          pos.setX(idxLeft, 0); // From central column to max cENV
-          pos.setX(idxRight, envW);
+        if (frontBmdRibbon) {
+          const pos = frontBmdRibbon.geometry.attributes.position;
+          for (let j = 0; j <= 20; j++) {
+            const z = j / 20.0;
+            const mVal = (z * 1.4) * ampFactor;
+            pos.setX(j * 2, 0);
+            pos.setX(j * 2 + 1, mVal);
+          }
+          pos.needsUpdate = true;
         }
-        pos.needsUpdate = true;
 
       } else {
-        // Tier 3: P-M Dynamic Trajectory & Phantom Point
+        // Tier 3: P-M Dynamic Trajectory & Phantom Marker
         bedrockGroup.position.x = 0;
         bldgGroup.position.x = 0;
 
-        // Real dynamic orbit in (P, M) translated into 3D column motion
         const orbitAngle = animTime * 1.8;
-        const dynM = (Math.cos(orbitAngle) * 0.9 + 0.3) * ampFactor;
-        const dynP = (Math.sin(orbitAngle) * 0.4 + 1.0);
+        const dynM = (Math.cos(orbitAngle) * 0.8 + 0.3) * ampFactor;
 
-        columnSlices.forEach(sl => {
-          const z = sl.normZ;
-          const psi = 1.5 * z * z - 0.5 * z * z * z;
-          sl.mesh.position.x = psi * dynM;
-          sl.mesh.scale.set(1, dynP, 1);
+        bldgColumns.forEach(col => {
+          col.forEach(sl => {
+            const z = sl.normZ;
+            const psi = 1.5 * z * z - 0.5 * z * z * z;
+            sl.mesh.position.x = sl.baseX + psi * dynM;
+          });
         });
 
         for (let i = 1; i <= 3; i++) {
@@ -888,18 +918,17 @@
           }
         }
 
-        // Pulsing Phantom Marker (P_max, M_max)
         if (phantomMarker) {
           const pulse = 1.0 + 0.15 * Math.sin(animTime * 6.0);
           phantomMarker.scale.set(pulse, pulse, pulse);
-          phantomMarker.position.set(2.2 * ampFactor, 6.0, 0);
+          phantomMarker.position.set(2.8 * ampFactor, 5.7, 2.4);
         }
       }
 
       renderer.render(scene, camera);
     }
 
-    // --- Awwwards Pack: Zentry 3D Tilt & Damping on Cards ---
+    // --- Awwwards Pack: Zentry 3D Tilt on Cards ---
     function initZentryCards() {
       const cards = document.querySelectorAll('.zentry-card');
       cards.forEach(card => {
@@ -907,8 +936,8 @@
           const rect = card.getBoundingClientRect();
           const x = e.clientX - rect.left - rect.width / 2;
           const y = e.clientY - rect.top - rect.height / 2;
-          const rotX = -(y / (rect.height / 2)) * 6.0;
-          const rotY = (x / (rect.width / 2)) * 6.0;
+          const rotX = -(y / (rect.height / 2)) * 5.0;
+          const rotY = (x / (rect.width / 2)) * 5.0;
           card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
         });
         card.addEventListener('mouseleave', () => {
@@ -917,7 +946,6 @@
       });
     }
 
-    // --- Init on DOM Ready ---
     window.addEventListener('DOMContentLoaded', () => {
       initThree();
       initZentryCards();

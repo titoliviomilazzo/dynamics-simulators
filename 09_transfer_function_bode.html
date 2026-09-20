@@ -1974,7 +1974,7 @@
     function initThreeSdof() {
       if (!threeSdofContainer) return;
       threeScene = new THREE.Scene();
-      threeScene.background = new THREE.Color(0xffffff);
+      threeScene.background = new THREE.Color(0xf1f5f9);
 
       const r = threeSdofContainer.getBoundingClientRect();
       threeCamera = new THREE.PerspectiveCamera(35, r.width / r.height, 0.1, 1000);
@@ -2003,9 +2003,11 @@
 
       // Base Bedrock & Rails
       const bedGeo = new THREE.BoxGeometry(12, 0.4, 6);
-      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
       bedrock.position.y = 0.2;
+      const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
+      bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x475569 })));
       threeScene.add(bedrock);
 
       // Reaction Wall on Left
