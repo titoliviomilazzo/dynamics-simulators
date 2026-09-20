@@ -4,76 +4,101 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KDS 41 내진설계 규준 인터랙티브 네비게이터 & 7단계 의사결정 파이프라인</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <style>
     :root {
-      --bg-dark: #f8fafc;
+      --bg-main: #f8fafc;
       --panel-bg: #ffffff;
-      --panel-border: #cbd5e1;
-      --accent: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.3);
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --purple: #a855f7;
+      --panel-border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-light: #eff6ff;
       --text-main: #0f172a;
+      --text-secondary: #334155;
       --text-muted: #64748b;
-      --step-active: #0284c7;
-      --step-done: #059669;
+      --success: #059669;
+      --success-bg: #f0fdf4;
+      --warning: #d97706;
+      --warning-bg: #fffbeb;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --purple: #7c3aed;
+      --purple-bg: #faf5ff;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: var(--bg-dark);
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-main);
       color: var(--text-main);
       display: flex;
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
+    /* Top Navigation Header */
     header {
       background: #ffffff;
       border-bottom: 1px solid var(--panel-border);
-      padding: 10px 20px;
+      padding: 10px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
     .brand { display: flex; align-items: center; gap: 12px; }
     .brand-badge {
-      background: linear-gradient(135deg, #0284c7, #6366f1);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    h1 { font-size: 1.15rem; font-weight: 700; color: #0f172a; }
-    .subtitle { font-size: 0.78rem; color: var(--text-muted); }
-
-    .preset-bar {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .preset-btn {
-      background: #ffffff;
-      border: 1px solid #3b82f6;
-      color: #93c5fd;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      color: #ffffff;
       padding: 5px 12px;
       border-radius: 6px;
       font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+    h1 { font-size: 1.05rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.01em; white-space: nowrap; }
+    .subtitle { font-size: 0.76rem; color: var(--text-muted); font-weight: 500; margin-top: 1px; }
+
+    .preset-bar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+    .preset-title {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .preset-btn {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      color: #1e293b;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.73rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
     }
     .preset-btn:hover {
       background: #2563eb;
-      color: #fff;
-      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      color: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+      transform: translateY(-1px);
     }
 
     .main-container {
@@ -83,25 +108,27 @@
       overflow: hidden;
     }
 
-    /* Left Sidebar: 7-Step Pipeline Flowchart */
+    /* Left Sidebar: 7-Step Pipeline Flowchart (DAG) */
     .flowchart-pane {
-      width: 370px;
-      background: #f8fafc;
+      width: 380px;
+      background: #ffffff;
       border-right: 1px solid var(--panel-border);
       display: flex;
       flex-direction: column;
       overflow-y: auto;
       flex-shrink: 0;
-      padding: 14px 12px;
+      padding: 14px;
     }
     .flow-title {
       font-size: 0.82rem;
-      font-weight: 700;
-      color: #94a3b8;
-      margin-bottom: 10px;
+      font-weight: 800;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
     .flow-steps {
       display: flex;
@@ -112,21 +139,23 @@
 
     .flow-step-card {
       background: #ffffff;
-      border: 1px solid var(--panel-border);
-      border-radius: 8px;
-      padding: 9px 12px;
+      border: 1.5px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 10px 14px;
       cursor: pointer;
       position: relative;
-      transition: all 0.2s;
+      transition: all 0.18s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
     .flow-step-card:hover {
-      border-color: var(--accent);
-      transform: translateX(3px);
+      border-color: #93c5fd;
+      background: #f8fafc;
+      transform: translateX(4px);
     }
     .flow-step-card.active {
-      border-color: var(--accent);
-      background: #f1f5f9;
-      box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+      border-color: #2563eb;
+      background: #eff6ff;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15), 0 4px 12px rgba(37, 99, 235, 0.1);
     }
     .step-header {
       display: flex;
@@ -135,21 +164,24 @@
       margin-bottom: 4px;
     }
     .step-num {
-      font-size: 0.68rem;
+      font-size: 0.7rem;
       font-weight: 800;
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 4px;
-      background: #334155;
-      color: #cbd5e1;
+      background: #e2e8f0;
+      color: #334155;
     }
-    .flow-step-card.active .step-num { background: var(--step-active); color: #fff; }
-    .step-code { font-size: 0.66rem; color: #64748b; font-family: monospace; }
-    .step-name { font-size: 0.83rem; font-weight: 700; color: #0f172a; }
+    .flow-step-card.active .step-num {
+      background: #2563eb;
+      color: #ffffff;
+    }
+    .step-code { font-size: 0.68rem; color: #64748b; font-family: monospace; font-weight: 600; }
+    .step-name { font-size: 0.84rem; font-weight: 800; color: #0f172a; margin-top: 2px; }
     .step-summary {
-      font-size: 0.74rem;
-      color: #38bdf8;
-      font-weight: 600;
-      margin-top: 3px;
+      font-size: 0.75rem;
+      color: #2563eb;
+      font-weight: 700;
+      margin-top: 4px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -158,17 +190,19 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 0.65rem;
-      color: #c084fc;
-      background: rgba(168, 85, 247, 0.15);
-      padding: 1px 6px;
+      font-size: 0.66rem;
+      color: #6b21a8;
+      background: #f3e8ff;
+      border: 1px solid #e9d5ff;
+      padding: 2px 7px;
       border-radius: 4px;
-      margin-top: 4px;
+      margin-top: 6px;
+      font-weight: 600;
     }
     .flow-arrow {
       text-align: center;
-      color: #475569;
-      font-size: 0.85rem;
+      color: #94a3b8;
+      font-size: 0.8rem;
       line-height: 1;
       margin: -3px 0;
     }
@@ -179,7 +213,7 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      background: var(--bg-dark);
+      background: var(--bg-main);
     }
 
     .tab-bar {
@@ -187,20 +221,24 @@
       background: #ffffff;
       border-bottom: 1px solid var(--panel-border);
       padding: 0 16px;
-      gap: 4px;
+      gap: 6px;
+      flex-shrink: 0;
     }
     .tab-btn {
       background: transparent;
       border: none;
-      border-bottom: 2px solid transparent;
+      border-bottom: 2.5px solid transparent;
       color: var(--text-muted);
-      padding: 10px 16px;
-      font-size: 0.82rem;
-      font-weight: 600;
+      padding: 12px 18px;
+      font-size: 0.84rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .tab-btn:hover { color: #fff; }
+    .tab-btn:hover { color: var(--text-main); }
     .tab-btn.active {
       color: var(--accent);
       border-bottom-color: var(--accent);
@@ -209,266 +247,354 @@
     .tab-content {
       flex: 1;
       overflow-y: auto;
-      padding: 16px;
+      padding: 20px;
       display: none;
     }
     .tab-content.active { display: block; }
 
     /* Cards & Layout */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
 
     .card {
       background: var(--panel-bg);
       border: 1px solid var(--panel-border);
-      border-radius: 8px;
-      padding: 14px;
+      border-radius: 12px;
+      padding: 16px;
       position: relative;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
     .card-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #cbd5e1;
-      margin-bottom: 8px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
     .card-title-left { display: flex; align-items: center; gap: 8px; }
     .card-title .tag {
-      font-size: 0.65rem;
-      padding: 2px 6px;
+      font-size: 0.68rem;
+      padding: 2px 7px;
       border-radius: 4px;
-      background: #334155;
-      color: #94a3b8;
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 700;
+      border: 1px solid #cbd5e1;
     }
     .link-badge {
-      font-size: 0.68rem;
-      color: #a855f7;
+      font-size: 0.7rem;
+      color: #2563eb;
       text-decoration: none;
-      background: rgba(168, 85, 247, 0.12);
-      border: 1px solid rgba(168, 85, 247, 0.3);
-      padding: 2px 8px;
-      border-radius: 4px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 3px 9px;
+      border-radius: 6px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      transition: all 0.2s;
+      font-weight: 700;
+      transition: all 0.15s ease;
     }
     .link-badge:hover {
-      background: rgba(168, 85, 247, 0.25);
-      color: #d8b4fe;
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
       transform: translateY(-1px);
     }
 
-    .form-group { margin-bottom: 10px; }
+    /* 3D Isometric Mini Badge inside Cards */
+    .iso-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+      flex-shrink: 0;
+    }
+
+    /* Form Controls: Clean & High Contrast */
+    .form-group { margin-bottom: 12px; }
     .form-label {
       display: block;
-      font-size: 0.74rem;
-      color: #94a3b8;
-      margin-bottom: 4px;
-      font-weight: 500;
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      font-weight: 700;
     }
     select, input[type="number"], input[type="text"] {
       width: 100%;
-      background: #0f172a;
-      border: 1px solid #334155;
-      color: #f8fafc;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 0.8rem;
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
+      transition: all 0.15s ease;
     }
     select:focus, input:focus {
       outline: none;
+      background: #ffffff;
       border-color: var(--accent);
-      box-shadow: 0 0 8px var(--accent-glow);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     .checkbox-group {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      font-size: 0.75rem;
+      gap: 8px;
+      font-size: 0.76rem;
     }
     .checkbox-label {
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: #cbd5e1;
+      gap: 8px;
+      color: var(--text-secondary);
       cursor: pointer;
       background: #f8fafc;
-      padding: 5px 8px;
-      border-radius: 4px;
-      border: 1px solid #1f2937;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1.5px solid #e2e8f0;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .checkbox-label:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
     }
     .checkbox-label input { accent-color: var(--accent); }
 
-    /* Metric & Highlight Box */
+    /* Metric & Highlight Box: Bright, Elegant & Ultra-Legible */
     .metric-box {
-      background: #0f172a;
-      border: 1px solid #1e293b;
-      border-radius: 6px;
-      padding: 10px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
       text-align: center;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
     .metric-value {
       font-size: 1.35rem;
       font-weight: 800;
       color: var(--accent);
-      font-family: monospace;
+      font-family: "Pretendard Variable", monospace;
+      letter-spacing: -0.02em;
     }
-    .metric-label { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+    .metric-label {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-top: 3px;
+      font-weight: 600;
+    }
 
     .verdict-banner {
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 0.83rem;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 0.85rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 12px;
-      background: #f1f5f9;
-      border: 1px solid #1e40af;
+      margin-bottom: 16px;
+      background: #eff6ff;
+      border: 1.5px solid #bfdbfe;
+      color: #1e3a8a;
+      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.06);
     }
 
     /* Math & Code Blocks */
     .math-formula {
-      background: #ffffff;
-      border: 1px solid #1e293b;
-      border-left: 3px solid var(--accent);
-      padding: 6px 10px;
-      font-family: monospace;
-      font-size: 0.76rem;
-      color: #e2e8f0;
-      margin: 6px 0;
-      border-radius: 0 4px 4px 0;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid var(--accent);
+      padding: 8px 12px;
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 0.78rem;
+      color: var(--text-main);
+      margin: 8px 0;
+      border-radius: 0 6px 6px 0;
+      font-weight: 600;
     }
 
-    /* Matrix Table */
+    /* Matrix Table: Clean White with High Contrast */
     .matrix-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.72rem;
+      font-size: 0.74rem;
       text-align: center;
-      margin-top: 6px;
+      margin-top: 8px;
+      border-radius: 6px;
+      overflow: hidden;
     }
     .matrix-table th, .matrix-table td {
-      border: 1px solid #334155;
-      padding: 4px 6px;
+      border: 1px solid #e2e8f0;
+      padding: 6px 8px;
     }
-    .matrix-table th { background: #ffffff; color: #94a3b8; }
-    .matrix-table td.selected {
-      background: #0284c7;
-      color: #fff;
+    .matrix-table th {
+      background: #f1f5f9;
+      color: #1e293b;
       font-weight: 800;
-      box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+      border-color: #cbd5e1;
+    }
+    .matrix-table td {
+      background: #ffffff;
+      color: #334155;
+      font-weight: 600;
+    }
+    .matrix-table td.selected {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      font-weight: 800;
+      box-shadow: inset 0 0 0 1px #1d4ed8;
     }
 
-    /* Canvas visual */
+    /* 3D BIM Visual Viewer in Tab 2 */
     .visual-wrapper {
       position: relative;
-      background: #ffffff;
-      border: 1px solid #1e293b;
-      border-radius: 8px;
+      background: #faf8f5;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
       overflow: hidden;
-      height: 340px;
+      height: 380px;
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.04);
     }
     canvas { display: block; width: 100%; height: 100%; }
 
     .canvas-toolbar {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 12px;
+      right: 12px;
       display: flex;
       gap: 6px;
       z-index: 10;
     }
     .canvas-btn {
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid #475569;
-      color: #f8fafc;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 0.72rem;
-      font-weight: 600;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1.5px solid #cbd5e1;
+      color: #0f172a;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-weight: 700;
       cursor: pointer;
-      backdrop-filter: blur(4px);
-      transition: all 0.2s;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      transition: all 0.15s ease;
     }
-    .canvas-btn:hover { background: #3b82f6; border-color: #60a5fa; }
-    .canvas-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
+    .canvas-btn:hover {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+    .canvas-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #1d4ed8;
+    }
 
-    /* Teacher notes */
+    /* Teacher notes & commentary */
     .teacher-note {
-      background: #ffffff;
-      border-left: 4px solid #a855f7;
-      padding: 12px 14px;
-      border-radius: 0 8px 8px 0;
-      margin-bottom: 12px;
+      background: var(--purple-bg);
+      border: 1px solid #e9d5ff;
+      border-left: 4px solid var(--purple);
+      padding: 14px 16px;
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
     .note-badge {
-      font-size: 0.65rem;
-      background: #a855f7;
+      font-size: 0.68rem;
+      background: var(--purple);
       color: #fff;
-      font-weight: 700;
-      padding: 2px 6px;
+      font-weight: 800;
+      padding: 2px 8px;
       border-radius: 4px;
-      margin-right: 6px;
+      margin-right: 8px;
     }
-    .note-title { font-size: 0.82rem; font-weight: 700; color: #e9d5ff; margin-bottom: 4px; }
-    .note-text { font-size: 0.76rem; color: #cbd5e1; line-height: 1.55; }
+    .note-title {
+      font-size: 0.86rem;
+      font-weight: 800;
+      color: #581c87;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+    }
+    .note-text {
+      font-size: 0.78rem;
+      color: #334155;
+      line-height: 1.6;
+      font-weight: 500;
+    }
 
     /* Checklist Card */
     .checklist-item {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
+      background: #ffffff;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
     .check-title {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #38bdf8;
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: #0f172a;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
     .check-desc {
-      font-size: 0.74rem;
-      color: #94a3b8;
-      margin-top: 4px;
-      line-height: 1.5;
+      font-size: 0.76rem;
+      color: #475569;
+      margin-top: 6px;
+      line-height: 1.6;
+      font-weight: 500;
     }
 
-    /* Tooltip / Badges */
+    /* Pills & Status Badges */
     .pill {
-      font-size: 0.68rem;
-      padding: 2px 8px;
+      font-size: 0.7rem;
+      padding: 3px 10px;
       border-radius: 12px;
-      font-weight: 600;
+      font-weight: 800;
+      letter-spacing: 0.2px;
     }
-    .pill-blue { background: #1e3a8a; color: #93c5fd; }
-    .pill-green { background: #064e3b; color: #6ee7b7; }
-    .pill-red { background: #7f1d1d; color: #fca5a5; }
-    .pill-amber { background: #78350f; color: #fcd34d; }
+    .pill-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .pill-green { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .pill-red { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .pill-amber { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
 
-    /* Micro Table */
+    /* Vertical Distribution Table */
     .micro-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.72rem;
+      font-size: 0.74rem;
       text-align: right;
     }
     .micro-table th, .micro-table td {
-      border: 1px solid #334155;
-      padding: 4px 8px;
+      border: 1px solid #e2e8f0;
+      padding: 6px 10px;
     }
-    .micro-table th { background: #ffffff; color: #94a3b8; text-align: center; }
-    .micro-table tr:nth-child(even) { background: #0f172a; }
+    .micro-table th {
+      background: #f1f5f9;
+      color: #0f172a;
+      text-align: center;
+      font-weight: 800;
+      border-color: #cbd5e1;
+    }
+    .micro-table tr:nth-child(even) { background: #f8fafc; }
+    .micro-table tr:hover { background: #eff6ff; }
   </style>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body>
@@ -483,7 +609,7 @@
       </div>
     </div>
     <div class="preset-bar">
-      <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 600;">실무 대표 프리셋:</span>
+      <span class="preset-title">실무 대표 프리셋:</span>
       <button class="preset-btn" onclick="applyPreset('apt')">🏢 서울 25층 아파트</button>
       <button class="preset-btn" onclick="applyPreset('hospital')">🏥 경주 응급병원</button>
       <button class="preset-btn" onclick="applyPreset('piloti')">🚗 포항 4층 필로티</button>
@@ -499,7 +625,7 @@
     <div class="flowchart-pane">
       <div class="flow-title">
         <span>7단계 의사결정 순서도 (DAG)</span>
-        <span style="font-size: 0.65rem; color: #38bdf8;">단계별 카드 클릭 시 이동</span>
+        <span style="font-size: 0.68rem; color: #2563eb; font-weight: 700;">단계별 카드 클릭 시 이동</span>
       </div>
 
       <div class="flow-steps">
@@ -588,7 +714,7 @@
             <span class="step-code">제7.2절 & 제7.2.8절</span>
           </div>
           <div class="step-name">밑면전단력 & 층간변위 검증</div>
-          <div class="step-summary" id="flow-summary-7">V = 0.082W, Δi = 1.04% (OK)</div>
+          <div class="step-summary" id="flow-summary-7">V = 8,321kN, Δi = 1.04% (OK)</div>
           <div class="dynamics-tag">🔗 동역학: 42 Cd 변위증폭 & 06 85%보정</div>
         </div>
       </div>
@@ -600,7 +726,7 @@
       <!-- Tab Headers -->
       <div class="tab-bar">
         <button class="tab-btn active" onclick="setTab('workbench')">⚡ 7단계 파라미터 조작 & 계산서</button>
-        <button class="tab-btn" onclick="setTab('visuals')">🏢 3D/2D 구조 거동 & 응답스펙트럼 곡선</button>
+        <button class="tab-btn" onclick="setTab('visuals')">🏢 3D BIM 거동 & 응답스펙트럼 곡선</button>
         <button class="tab-btn" onclick="setTab('fx-table')">📊 층별 횡하중(Fx) & 층전단력 수직분배</button>
         <button class="tab-btn" onclick="setTab('checklist')">📋 초급 엔지니어 7대 실무 체크리스트</button>
         <button class="tab-btn" onclick="setTab('lectures')">🎓 강사의 규준 해설 & 실무 함정</button>
@@ -614,8 +740,8 @@
           <div>
             <span id="banner-text">내진설계범주 SDC D | 동적해석법(모달스펙트럼/시간이력) 의무 대상 구조물</span>
           </div>
-          <div id="banner-badges" style="display: flex; gap: 6px;">
-            <span class="pill pill-blue" id="badge-sdc">SDC D</span>
+          <div id="banner-badges" style="display: flex; gap: 8px;">
+            <span class="pill pill-red" id="badge-sdc">SDC D</span>
             <span class="pill pill-green" id="badge-system">시스템 허용</span>
             <span class="pill pill-amber" id="badge-method">동적해석 의무</span>
           </div>
@@ -628,8 +754,11 @@
           <div class="card" id="card-step-1">
             <div class="card-title">
               <div class="card-title-left">
-                <span>STEP 1: 건축물 중요도 및 내진등급</span>
-                <span class="tag">표 2.2-1</span>
+                <div class="iso-badge">🏛️</div>
+                <div>
+                  <div>STEP 1: 건축물 중요도 및 내진등급</div>
+                  <span class="tag">표 2.2-1</span>
+                </div>
               </div>
               <a href="01_sdof_resonance.html" target="_blank" class="link-badge">
                 <span>01 SDOF 공진 실습 ➔</span>
@@ -660,8 +789,11 @@
           <div class="card" id="card-step-2">
             <div class="card-title">
               <div class="card-title-left">
-                <span>STEP 2: 지진구역 & 지반분류</span>
-                <span class="tag">표 4.2-1, 4.2-2</span>
+                <div class="iso-badge">🌋</div>
+                <div>
+                  <div>STEP 2: 지진구역 & 지반분류</div>
+                  <span class="tag">표 4.2-1, 4.2-2</span>
+                </div>
               </div>
               <a href="10_fourier_fft_psd.html" target="_blank" class="link-badge">
                 <span>10 푸리에 FFT 실습 ➔</span>
@@ -707,8 +839,11 @@
           <div class="card" id="card-step-3">
             <div class="card-title">
               <div class="card-title-left">
-                <span>STEP 3: 설계스펙트럼 & 내진설계범주(SDC)</span>
-                <span class="tag">표 5.2-1, 5.2-2</span>
+                <div class="iso-badge">📈</div>
+                <div>
+                  <div>STEP 3: 설계스펙트럼 & 내진설계범주(SDC)</div>
+                  <span class="tag">표 5.2-1, 5.2-2</span>
+                </div>
               </div>
               <a href="39_newmark_tripartite_adrs.html" target="_blank" class="link-badge">
                 <span>39 Newmark 삼분도 ➔</span>
@@ -719,11 +854,11 @@
             </div>
             <div class="grid-2">
               <div class="metric-box">
-                <div class="metric-value" id="val-sds">0.50 g</div>
+                <div class="metric-value" id="val-sds">0.499 g</div>
                 <div class="metric-label">단주기 가속도 (SDS)</div>
               </div>
               <div class="metric-box">
-                <div class="metric-value" id="val-sd1">0.29 g</div>
+                <div class="metric-value" id="val-sd1">0.287 g</div>
                 <div class="metric-label">1초주기 가속도 (SD1)</div>
               </div>
             </div>
@@ -760,8 +895,8 @@
                 </tr>
               </tbody>
             </table>
-            <div style="text-align: right; margin-top: 6px; font-size: 0.72rem; color: #38bdf8; font-weight: 700;">
-              최종 내진설계범주: max(SDC_sds, SDC_sd1) = <span id="val-final-sdc">SDC D</span>
+            <div style="text-align: right; margin-top: 6px; font-size: 0.72rem; color: #2563eb; font-weight: 700;">
+              최종 내진설계범주: <span id="val-final-sdc">SDC D</span>
             </div>
           </div>
 
@@ -769,14 +904,17 @@
           <div class="card" id="card-step-4">
             <div class="card-title">
               <div class="card-title-left">
-                <span>STEP 4: 평면 및 수직 비정형성 진단</span>
-                <span class="tag">표 5.3-1, 5.3-2</span>
+                <div class="iso-badge">⚠️</div>
+                <div>
+                  <div>STEP 4: 평면 및 수직 비정형성 진단</div>
+                  <span class="tag">표 5.3-1, 5.3-2</span>
+                </div>
               </div>
-              <a href="43_period_upper_bound_torsion_warning.html" target="_blank" class="link-badge">
+              <a href="43_torsional_irregularity_accidental_eccentricity.html" target="_blank" class="link-badge">
                 <span>43 1모드 비틀림 경고 ➔</span>
               </a>
             </div>
-            <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 6px;">
+            <div style="font-size: 0.74rem; color: #475569; margin-bottom: 6px; font-weight: 600;">
               건물에 해당하는 비정형성을 체크하십시오 (복수 선택 가능):
             </div>
             <div class="checkbox-group">
@@ -786,7 +924,7 @@
               </label>
               <label class="checkbox-label">
                 <input type="checkbox" id="chk-v1" onchange="updateAll()">
-                <span>[V-1] 연층 강성비정형 (Ki &lt; 0.7 Ki+1)</span>
+                <span>[V-1] 연층 강성비정형 (Ki < 0.7 Ki+1)</span>
               </label>
               <label class="checkbox-label">
                 <input type="checkbox" id="chk-h2" onchange="updateAll()">
@@ -798,11 +936,11 @@
               </label>
               <label class="checkbox-label">
                 <input type="checkbox" id="chk-h3" onchange="updateAll()">
-                <span>[H-3] 다이어프램 개구부 (&gt; 50%)</span>
+                <span>[H-3] 다이어프램 개구부 (> 50%)</span>
               </label>
               <label class="checkbox-label">
                 <input type="checkbox" id="chk-v3" onchange="updateAll()">
-                <span>[V-3] 기하학적 형상비정형 (&gt; 130%)</span>
+                <span>[V-3] 기하학적 형상비정형 (> 130%)</span>
               </label>
               <label class="checkbox-label">
                 <input type="checkbox" id="chk-h4" onchange="updateAll()">
@@ -810,10 +948,10 @@
               </label>
               <label class="checkbox-label">
                 <input type="checkbox" id="chk-v5" onchange="updateAll()">
-                <span>[V-5] 약층 강도비정형 (Vi &lt; 0.8 Vi+1)</span>
+                <span>[V-5] 약층 강도비정형 (Vi < 0.8 Vi+1)</span>
               </label>
             </div>
-            <div class="math-formula" id="irregular-summary" style="margin-top: 10px; color: #10b981;">
+            <div class="math-formula" id="irregular-summary" style="margin-top: 10px; color: #059669; background: #f0fdf4; border-color: #bbf7d0; border-left-color: #059669;">
               ✓ 정형 구조물: 비정형 결함 없음
             </div>
           </div>
@@ -827,8 +965,11 @@
           <div class="card" id="card-step-5">
             <div class="card-title">
               <div class="card-title-left">
-                <span>STEP 5: 지진력저항시스템 & 설계계수</span>
-                <span class="tag">표 6.2-1</span>
+                <div class="iso-badge">🏗️</div>
+                <div>
+                  <div>STEP 5: 지진력저항시스템 & 설계계수</div>
+                  <span class="tag">표 6.2-1</span>
+                </div>
               </div>
               <a href="41_r_factor_decomposition_dual_system.html" target="_blank" class="link-badge">
                 <span>41 R계수 분해 ➔</span>
@@ -859,7 +1000,7 @@
                 </optgroup>
               </select>
             </div>
-            <div id="system-verdict-box" style="padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; margin-bottom: 8px;">
+            <div id="system-verdict-box" style="padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; margin-bottom: 10px; font-weight: 700;">
               <!-- Dynamic verdict -->
             </div>
             <div class="grid-3">
@@ -882,8 +1023,11 @@
           <div class="card" id="card-step-6">
             <div class="card-title">
               <div class="card-title-left">
-                <span>STEP 6: 구조해석법 의무 판정</span>
-                <span class="tag">표 7.1-1</span>
+                <div class="iso-badge">🏢</div>
+                <div>
+                  <div>STEP 6: 구조해석법 의무 판정</div>
+                  <span class="tag">표 7.1-1</span>
+                </div>
               </div>
               <a href="40_kds_analysis_method_selector.html" target="_blank" class="link-badge">
                 <span>40 해석법 판정 ➔</span>
@@ -899,10 +1043,10 @@
                 <input type="number" id="inp-stories" value="25" min="1" max="100" onchange="updateAll()">
               </div>
             </div>
-            <div id="method-verdict-box" style="padding: 8px; border-radius: 6px; font-size: 0.76rem; line-height: 1.4; margin-top: 4px;">
+            <div id="method-verdict-box" style="padding: 10px 12px; border-radius: 8px; font-size: 0.76rem; line-height: 1.45; margin-top: 4px; font-weight: 600;">
               <!-- Dynamic interpretation -->
             </div>
-            <div class="math-formula" id="method-code-ref">
+            <div class="math-formula" id="method-code-ref" style="margin-top: 8px;">
               근거: KDS 41 17 00 제7.1.3절 & 표 7.1-1 제4항
             </div>
           </div>
@@ -911,8 +1055,11 @@
           <div class="card" id="card-step-7">
             <div class="card-title">
               <div class="card-title-left">
-                <span>STEP 7: 밑면전단력 & 층간변위비</span>
-                <span class="tag">제7.2절</span>
+                <div class="iso-badge">💥</div>
+                <div>
+                  <div>STEP 7: 밑면전단력 & 층간변위비</div>
+                  <span class="tag">제7.2절</span>
+                </div>
               </div>
               <a href="42_cd_deflection_amplification_inelastic_drift.html" target="_blank" class="link-badge">
                 <span>42 Cd 증폭 랩 ➔</span>
@@ -930,15 +1077,15 @@
             </div>
             <div class="grid-2">
               <div class="metric-box">
-                <div class="metric-value" id="val-vbase">12,240 kN</div>
-                <div class="metric-label" id="lbl-vbase">밑면전단력 V (Cs=0.082)</div>
+                <div class="metric-value" id="val-vbase">8,321 kN</div>
+                <div class="metric-label" id="lbl-vbase">밑면전단력 V (Cs = 0.055)</div>
               </div>
               <div class="metric-box">
                 <div class="metric-value" id="val-drift">1.04 %</div>
                 <div class="metric-label" id="lbl-drift">비탄성 변위비 Δi (허용 1.5%)</div>
               </div>
             </div>
-            <div id="drift-verdict-box" style="padding: 6px 10px; border-radius: 6px; font-size: 0.74rem; text-align: center; margin-top: 6px;">
+            <div id="drift-verdict-box" style="padding: 8px 12px; border-radius: 8px; font-size: 0.74rem; text-align: center; margin-top: 8px; font-weight: 700;">
               <!-- Dynamic Drift Verdict -->
             </div>
           </div>
@@ -947,42 +1094,57 @@
 
       </div>
 
-      <!-- Tab 2: Visualizations (3D/2D building profile & Design Spectrum) -->
+      <!-- Tab 2: Visualizations (Full 3D BIM Structural Visualizer & Design Spectrum) -->
       <div class="tab-content" id="tab-visuals">
         <div class="grid-2">
           
-          <!-- Building Visual Canvas -->
+          <!-- 3D BIM Building Visual Card -->
           <div class="card">
             <div class="card-title">
-              <span>🏢 건물 거동 & 지반-구조물 진동 시뮬레이션</span>
-              <span class="tag">Canvas Live</span>
-            </div>
-            <div class="visual-wrapper">
-              <div class="canvas-toolbar">
-                <button class="canvas-btn" id="btn-anim-toggle" onclick="toggleAnimation()">▶ 지진동 진동 시작</button>
+              <div class="card-title-left">
+                <div class="iso-badge">🏢</div>
+                <div>
+                  <div>3D BIM 입체 골조 거동 & 지진동 진동 시뮬레이션</div>
+                  <span class="tag">Three.js 3D BIM Engine</span>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <button class="canvas-btn active" id="btn-anim-toggle" onclick="toggleAnimation()">▶ 지진동 시작</button>
                 <button class="canvas-btn" onclick="resetDeformation()">↺ 리셋</button>
               </div>
-              <canvas id="building-canvas"></canvas>
             </div>
-            <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 6px; display: flex; justify-content: space-between;">
-              <span>하늘색: 탄성변위 δe</span>
-              <span style="color: #f87171;">빨강/황색: Cd 증폭 비탄성변위 Δi (연층 취약부)</span>
-              <span>화살표: 층별 지진력 Fx (k-분포)</span>
+            
+            <div class="visual-wrapper" id="three-container">
+              <!-- Three.js Canvas mounts here -->
+              <div style="position: absolute; bottom: 10px; left: 12px; font-size: 0.72rem; color: #475569; background: rgba(255,255,255,0.9); padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; z-index: 5; font-weight: 600;">
+                🖱️ 3D 회전 / 줌 / 팬 &middot; 골조 층수: <span id="three-story-tag" class="text-blue-600 font-bold">25층</span>
+              </div>
+            </div>
+            
+            <div style="font-size: 0.74rem; color: #475569; margin-top: 8px; display: flex; justify-content: space-between; font-weight: 600;">
+              <span class="flex items-center gap-1.5"><span style="display:inline-block; width:10px; height:10px; background:#2563eb; border-radius:2px;"></span>청색: 탄성 슬래브 & 골조</span>
+              <span class="flex items-center gap-1.5"><span style="display:inline-block; width:10px; height:10px; background:#ef4444; border-radius:2px;"></span>적색: 연층/약층 취약부</span>
+              <span class="flex items-center gap-1.5"><span style="display:inline-block; width:10px; height:10px; background:#d97706; border-radius:2px;"></span>황색: 층별 지진하중 Fx</span>
             </div>
           </div>
 
           <!-- Spectrum Visual Canvas -->
           <div class="card">
             <div class="card-title">
-              <span>📈 KDS 41 설계응답가속도스펙트럼 (Sa - T) 곡선</span>
-              <span class="tag">Chopra Eq. & KDS 41</span>
+              <div class="card-title-left">
+                <div class="iso-badge">📊</div>
+                <div>
+                  <div>KDS 41 설계응답가속도스펙트럼 (Sa - T) 곡선</div>
+                  <span class="tag">Chopra Eq. & KDS 41</span>
+                </div>
+              </div>
             </div>
             <div class="visual-wrapper">
               <canvas id="spectrum-canvas"></canvas>
             </div>
-            <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 6px; display: flex; justify-content: space-between;">
+            <div style="font-size: 0.74rem; color: #475569; margin-top: 8px; display: flex; justify-content: space-between; font-weight: 600;">
               <span id="spec-params">SDS=0.50g, SD1=0.29g, T0=0.11s, TS=0.58s</span>
-              <span style="color: #ef4444;">빨간선: 구조물 주기 Ta (상한 CuTa 캡핑)</span>
+              <span style="color: #dc2626;">빨간선: 구조물 주기 Ta (상한 CuTa 캡핑)</span>
             </div>
           </div>
 
@@ -991,20 +1153,25 @@
         <!-- Accidental Torsion Visualization -->
         <div class="card" style="margin-top: 14px;">
           <div class="card-title">
-            <span>🔄 평면 우발비틀림(Accidental Torsion) 및 CM-CR 편심 모멘트 (Mt)</span>
-            <span class="tag">KDS 41 17 00 제7.2.6.4절</span>
+            <div class="card-title-left">
+              <div class="iso-badge">🔄</div>
+              <div>
+                <div>평면 우발비틀림(Accidental Torsion) 및 CM-CR 편심 모멘트 (Mt)</div>
+                <span class="tag">KDS 41 17 00 제7.2.6.4절</span>
+              </div>
+            </div>
           </div>
-          <div style="display: flex; gap: 20px; align-items: center;">
-            <div style="width: 280px; height: 160px; background: #ffffff; border: 1px solid #1e293b; border-radius: 6px; position: relative;">
+          <div style="display: flex; gap: 24px; align-items: center;">
+            <div style="width: 300px; height: 170px; background: #faf8f5; border: 1.5px solid #cbd5e1; border-radius: 8px; position: relative; overflow: hidden;">
               <canvas id="torsion-canvas"></canvas>
             </div>
-            <div style="flex: 1; font-size: 0.78rem; color: #cbd5e1; line-height: 1.6;">
-              <div><strong>규준 핵심 공식:</strong> <code>Mt = Vx × (e ± 0.05 B)</code></div>
-              <p style="color: #94a3b8; margin-top: 4px;">
+            <div style="flex: 1; font-size: 0.8rem; color: #334155; line-height: 1.6; font-weight: 500;">
+              <div style="font-weight: 700; color: #0f172a;"><strong>규준 핵심 공식:</strong> <code>Mt = Vx × (e ± 0.05 B)</code></div>
+              <p style="color: #475569; margin-top: 6px;">
                 질량중심(CM)과 강성중심(CR)이 완전히 일치하는 대칭 건물이라도, 시공 오차나 거주자 편중에 의한 예상치 못한 회전을 방어하기 위해 <strong>직교방향 평면치수 B의 ±5%를 우발편심</strong>으로 강제 가산해야 합니다.
               </p>
-              <div style="margin-top: 8px; color: #38bdf8;">
-                우발편심 거리: <span id="acc-ecc-dist">± 1.50 m</span> (평면폭 B = 30m 가정 시)
+              <div style="margin-top: 8px; color: #2563eb; font-weight: 700;">
+                우발편심 거리: <span id="acc-ecc-dist">± 1.50 m (평면폭 B = 30m 가정 시)</span>
               </div>
             </div>
           </div>
@@ -1015,13 +1182,18 @@
       <div class="tab-content" id="tab-fx-table">
         <div class="card">
           <div class="card-title">
-            <span>📊 KDS 41 17 00 제7.2.5절 층별 지진력(Fx) & 층전단력(Vx) 수직분배 계산서</span>
-            <span class="tag">k = <span id="val-k-factor">1.25</span> (T = <span id="val-table-ta">0.82</span>s)</span>
+            <div class="card-title-left">
+              <div class="iso-badge">📋</div>
+              <div>
+                <div>KDS 41 17 00 제7.2.5절 층별 지진력(Fx) & 층전단력(Vx) 수직분배 계산서</div>
+                <span class="tag">k = <span id="val-k-factor">1.25</span> (T = <span id="val-table-ta">0.82</span>s)</span>
+              </div>
+            </div>
           </div>
-          <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;">
+          <p style="font-size: 0.78rem; color: #475569; margin-bottom: 12px; font-weight: 600;">
             공식: <code>Fx = Cvx × V</code>, <code>Cvx = (wx × hx^k) / ∑(wi × hi^k)</code> (T ≤ 0.5s: k=1.0, T ≥ 2.5s: k=2.0 선형보간)
           </p>
-          <div style="max-height: 420px; overflow-y: auto;">
+          <div style="max-height: 440px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
             <table class="micro-table">
               <thead>
                 <tr>
@@ -1048,10 +1220,15 @@
       <div class="tab-content" id="tab-checklist">
         <div class="card">
           <div class="card-title">
-            <span>📋 초급 구조엔지니어를 위한 KDS 41 내진설계 7대 실무 체크리스트</span>
-            <span class="tag">구조감리 & 인허가 심의 단골 지적사항</span>
+            <div class="card-title-left">
+              <div class="iso-badge">🛡️</div>
+              <div>
+                <div>초급 구조엔지니어를 위한 KDS 41 내진설계 7대 실무 체크리스트</div>
+                <span class="tag">구조감리 & 인허가 심의 단골 지적사항</span>
+              </div>
+            </div>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
             
             <div class="checklist-item">
               <div class="check-title">
@@ -1237,7 +1414,11 @@
         document.querySelectorAll('.tab-btn')[idx].classList.add('active');
         document.getElementById(`tab-${tabId}`).classList.add('active');
         if (tabId === 'visuals') {
-          setTimeout(renderVisuals, 10);
+          setTimeout(() => {
+            if (!threeRenderer) initThreeBIM();
+            resizeThreeBIM();
+            renderVisuals();
+          }, 20);
         }
       }
     }
@@ -1250,7 +1431,7 @@
       const targetCard = document.getElementById(`card-step-${stepNum}`);
       if (targetCard) {
         targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        targetCard.style.boxShadow = '0 0 20px rgba(56, 189, 248, 0.4)';
+        targetCard.style.boxShadow = '0 0 0 2px #2563eb, 0 8px 24px rgba(37, 99, 235, 0.2)';
         setTimeout(() => targetCard.style.boxShadow = '', 1500);
       }
     }
@@ -1412,11 +1593,17 @@
       const isIrregular = irrCount > 0;
 
       if (isIrregular) {
-        irrBox.style.color = '#ef4444';
-        irrBox.innerHTML = `⚠️ <strong>비정형 구조물 (${irrCount}개 항목 해당)</strong>: ${irrActiveList.join(', ')}<br><span style="font-size:0.7rem; color:#94a3b8;">동적해석 의무화 및 우발비틀림 할증 증폭 검토 필요</span>`;
+        irrBox.style.color = '#b91c1c';
+        irrBox.style.background = '#fef2f2';
+        irrBox.style.borderColor = '#fecaca';
+        irrBox.style.borderLeftColor = '#dc2626';
+        irrBox.innerHTML = `⚠️ <strong>비정형 구조물 (${irrCount}개 항목 해당)</strong>: ${irrActiveList.join(', ')}<br><span style="font-size:0.72rem; color:#475569; font-weight:500;">동적해석 의무화 및 우발비틀림 할증 증폭 검토 필요</span>`;
         document.getElementById('flow-summary-4').textContent = `비정형 (${irrActiveList.join(', ')})`;
       } else {
-        irrBox.style.color = '#10b981';
+        irrBox.style.color = '#059669';
+        irrBox.style.background = '#f0fdf4';
+        irrBox.style.borderColor = '#bbf7d0';
+        irrBox.style.borderLeftColor = '#059669';
         irrBox.innerHTML = `✓ <strong>정형 구조물</strong>: 비정형 결함 없음`;
         document.getElementById('flow-summary-4').textContent = `정형 구조물 (비정형 없음)`;
       }
@@ -1436,21 +1623,25 @@
       let isSystemAllowed = true;
       if (limitVal === 'prohibited') {
         isSystemAllowed = false;
-        sysVerdictBox.style.background = 'rgba(239, 68, 68, 0.2)';
-        sysVerdictBox.style.color = '#f87171';
+        sysVerdictBox.style.background = '#fef2f2';
+        sysVerdictBox.style.color = '#991b1b';
+        sysVerdictBox.style.border = '1px solid #fecaca';
         sysVerdictBox.innerHTML = `⛔ <strong>사용 불가</strong>: ${sysInfo.name}은(는) SDC ${finalSDC}에서 설치가 전면 금지됩니다! (KDS 41 표 6.2-1)`;
       } else if (limitVal !== null && state.height > limitVal) {
         isSystemAllowed = false;
-        sysVerdictBox.style.background = 'rgba(245, 158, 11, 0.2)';
-        sysVerdictBox.style.color = '#fbbf24';
+        sysVerdictBox.style.background = '#fffbeb';
+        sysVerdictBox.style.color = '#92400e';
+        sysVerdictBox.style.border = '1px solid #fde68a';
         sysVerdictBox.innerHTML = `⚠️ <strong>높이제한 초과</strong>: 허용높이 ${limitVal}m이나 현재 건물은 ${state.height}m입니다! (설계 수정 필요)`;
       } else if (limitVal !== null) {
-        sysVerdictBox.style.background = 'rgba(16, 185, 129, 0.15)';
-        sysVerdictBox.style.color = '#34d399';
+        sysVerdictBox.style.background = '#f0fdf4';
+        sysVerdictBox.style.color = '#166534';
+        sysVerdictBox.style.border = '1px solid #bbf7d0';
         sysVerdictBox.innerHTML = `✓ <strong>사용 가능</strong>: 허용높이 ${limitVal}m 이하 만족 (현재 ${state.height}m)`;
       } else {
-        sysVerdictBox.style.background = 'rgba(16, 185, 129, 0.15)';
-        sysVerdictBox.style.color = '#34d399';
+        sysVerdictBox.style.background = '#f0fdf4';
+        sysVerdictBox.style.color = '#166534';
+        sysVerdictBox.style.border = '1px solid #bbf7d0';
         sysVerdictBox.innerHTML = `✓ <strong>사용 가능</strong>: SDC ${finalSDC}에서 높이제한 없이 적용 가능 (무제한)`;
       }
       document.getElementById('flow-summary-5').textContent = `${sysInfo.name} (R=${sysInfo.R}, Cd=${sysInfo.Cd})`;
@@ -1494,8 +1685,9 @@
         }
       }
 
-      methodBox.style.background = requiresDynamic ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)';
-      methodBox.style.color = requiresDynamic ? '#f87171' : '#34d399';
+      methodBox.style.background = requiresDynamic ? '#fff1f2' : '#f0fdf4';
+      methodBox.style.color = requiresDynamic ? '#9f1239' : '#166534';
+      methodBox.style.border = requiresDynamic ? '1px solid #fecdd3' : '1px solid #bbf7d0';
       methodBox.innerHTML = `<strong>${requiresDynamic ? '🚨 [판정] 동적해석법 의무화' : '✓ [판정] 등가정적해석 허용'}</strong><br>${reasonText}`;
       document.getElementById('flow-summary-6').textContent = requiresDynamic ? '동적해석법 의무' : '등가정적 허용';
 
@@ -1532,17 +1724,19 @@
       const isDriftOk = driftRatio <= allowDriftRatio;
 
       document.getElementById('val-drift').textContent = `${driftRatio.toFixed(2)} %`;
-      document.getElementById('val-drift').style.color = isDriftOk ? '#10b981' : '#ef4444';
+      document.getElementById('val-drift').style.color = isDriftOk ? '#059669' : '#dc2626';
       document.getElementById('lbl-drift').textContent = `비탄성 변위비 Δi (허용 ${allowDriftRatio.toFixed(1)}%)`;
 
       const driftBox = document.getElementById('drift-verdict-box');
       if (isDriftOk) {
-        driftBox.style.background = 'rgba(16, 185, 129, 0.2)';
-        driftBox.style.color = '#34d399';
+        driftBox.style.background = '#f0fdf4';
+        driftBox.style.color = '#166534';
+        driftBox.style.border = '1px solid #bbf7d0';
         driftBox.innerHTML = `✓ <strong>층간변위 만족 (OK)</strong>: 설계변위비 ${driftRatio.toFixed(2)}% ≤ 허용치 ${allowDriftRatio.toFixed(1)}% (Δi = ${deltaI.toFixed(1)}mm)`;
       } else {
-        driftBox.style.background = 'rgba(239, 68, 68, 0.2)';
-        driftBox.style.color = '#f87171';
+        driftBox.style.background = '#fef2f2';
+        driftBox.style.color = '#991b1b';
+        driftBox.style.border = '1px solid #fecaca';
         driftBox.innerHTML = `⛔ <strong>층간변위 초과 (NG)</strong>: 설계변위비 ${driftRatio.toFixed(2)}% > 허용치 ${allowDriftRatio.toFixed(1)}%! 부재 단면 증가 또는 제진장치 추가 필요`;
       }
       document.getElementById('flow-summary-7').textContent = `V = ${Math.round(Vbase)}kN, 층간변위 ${driftRatio.toFixed(2)}% (${isDriftOk ? 'OK' : 'NG'})`;
@@ -1565,7 +1759,8 @@
       // Update Vertical Distribution Table (Tab 3)
       updateVerticalDistributionTable(Ta, Vbase);
 
-      // Render Visuals if tab active
+      // Update 3D BIM model & visuals
+      updateThreeBIMModel();
       renderVisuals();
     }
 
@@ -1622,21 +1817,255 @@
       rows.forEach(r => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td style="text-align:center; font-weight:700; color:#38bdf8;">${r.floor}F</td>
+          <td style="text-align:center; font-weight:800; color:#2563eb;">${r.floor}F</td>
           <td>${r.storyH}</td>
           <td>${r.hi}</td>
           <td>${r.wi}</td>
-          <td style="font-family:monospace;">${r.whk}</td>
-          <td style="color:#60a5fa; font-weight:600;">${r.cvx}</td>
-          <td style="color:#f59e0b; font-weight:700;">${r.fx}</td>
-          <td style="color:#10b981; font-weight:700;">${r.vx}</td>
-          <td style="color:#c084fc;">${r.mx}</td>
+          <td style="font-family:monospace; font-weight:600;">${r.whk}</td>
+          <td style="color:#2563eb; font-weight:700;">${r.cvx}</td>
+          <td style="color:#d97706; font-weight:800;">${r.fx}</td>
+          <td style="color:#059669; font-weight:800;">${r.vx}</td>
+          <td style="color:#7c3aed; font-weight:600;">${r.mx}</td>
         `;
         tbody.appendChild(tr);
       });
     }
 
+    // =========================================================================
+    // Three.js 3D BIM Structural Visualizer Engine
+    // =========================================================================
+    let threeScene, threeCamera, threeRenderer, threeControls;
+    let bimGroup = null;
+    let slabGroup = null;
+    let colGroup = null;
+    let forceArrows = [];
+
+    function initThreeBIM() {
+      const container = document.getElementById('three-container');
+      if (!container) return;
+      const w = container.clientWidth || 400;
+      const h = container.clientHeight || 380;
+
+      threeScene = new THREE.Scene();
+      threeScene.background = new THREE.Color(0xfaf8f5); // Warm off-white
+
+      threeCamera = new THREE.PerspectiveCamera(35, w / h, 0.5, 300);
+      threeCamera.position.set(22, 18, 28);
+
+      threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      threeRenderer.setPixelRatio(window.devicePixelRatio || 1);
+      threeRenderer.setSize(w, h);
+      threeRenderer.shadowMap.enabled = true;
+      container.appendChild(threeRenderer.domElement);
+
+      threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+      threeControls.enableDamping = true;
+      threeControls.dampingFactor = 0.08;
+      threeControls.maxPolarAngle = Math.PI / 2 - 0.02;
+      threeControls.target.set(0, 8, 0);
+      threeControls.update();
+
+      // Lighting (Bright & Architectural)
+      const ambLight = new THREE.AmbientLight(0xffffff, 1.25);
+      threeScene.add(ambLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.95);
+      dirLight.position.set(20, 35, 25);
+      dirLight.castShadow = true;
+      dirLight.shadow.bias = -0.0005;
+      threeScene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.5);
+      fillLight.position.set(-20, 15, -20);
+      threeScene.add(fillLight);
+
+      // Ground subtle grid
+      const grid = new THREE.GridHelper(36, 18, 0x94a3b8, 0xe2e8f0);
+      grid.position.y = 0;
+      threeScene.add(grid);
+
+      // Bedrock Soil layer in 3D
+      const soilGeo = new THREE.BoxGeometry(28, 1.0, 24);
+      const soilMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.5 });
+      const soilMesh = new THREE.Mesh(soilGeo, soilMat);
+      soilMesh.position.set(0, -0.5, 0);
+      soilMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(soilGeo), new THREE.LineBasicMaterial({ color: 0x94a3b8 })));
+      threeScene.add(soilMesh);
+
+      buildThreeBIMModel();
+    }
+
+    function resizeThreeBIM() {
+      if (!threeRenderer || !threeCamera) return;
+      const container = document.getElementById('three-container');
+      if (!container) return;
+      const w = container.clientWidth || 400;
+      const h = container.clientHeight || 380;
+      threeCamera.aspect = w / h;
+      threeCamera.updateProjectionMatrix();
+      threeRenderer.setSize(w, h);
+    }
+
+    function buildThreeBIMModel() {
+      if (bimGroup) threeScene.remove(bimGroup);
+      bimGroup = new THREE.Group();
+      threeScene.add(bimGroup);
+
+      slabGroup = new THREE.Group();
+      colGroup = new THREE.Group();
+      bimGroup.add(slabGroup);
+      bimGroup.add(colGroup);
+      forceArrows = [];
+
+      const stories = Math.min(state.stories, 25);
+      const slabW = 8.0;
+      const slabD = 6.4;
+      const slabH = 0.28;
+      const storyH = Math.max(0.65, 16.0 / stories);
+
+      document.getElementById('three-story-tag').textContent = `${state.stories}층 (${state.height}m)`;
+
+      // 1. Foundation Mat
+      const baseGeo = new THREE.BoxGeometry(slabW * 1.3, 0.6, slabD * 1.3);
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.35 });
+      const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+      baseMesh.position.set(0, 0.3, 0);
+      baseMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(baseGeo), new THREE.LineBasicMaterial({ color: 0x94a3b8 })));
+      bimGroup.add(baseMesh);
+
+      // 2. Slabs
+      const slabGeo = new THREE.BoxGeometry(slabW, slabH, slabD);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+      const slabEdgeMat = new THREE.LineBasicMaterial({ color: 0x64748b, linewidth: 1.5 });
+
+      for (let s = 1; s <= stories; s++) {
+        const sMesh = new THREE.Mesh(slabGeo, slabMat);
+        sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(slabGeo), slabEdgeMat));
+        const y = 0.6 + s * storyH;
+        sMesh.position.set(0, y, 0);
+        sMesh.userData = { baseY: y, story: s };
+        slabGroup.add(sMesh);
+
+        // Lateral Force Arrow Fx
+        if (s % Math.max(1, Math.floor(stories / 8)) === 0 || s === stories) {
+          const arrowDir = new THREE.Vector3(1, 0, 0);
+          const arrowOrigin = new THREE.Vector3(-slabW / 2 - 3.5, y, 0);
+          const arrowLen = 3.0;
+          const arrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, arrowLen, 0xd97706, 0.6, 0.4);
+          bimGroup.add(arrow);
+          forceArrows.push({ arrow, origX: -slabW / 2 - 3.5, y });
+        }
+      }
+
+      // 3. Columns / Core Wall
+      const colW = 0.38;
+      const colGeo = new THREE.BoxGeometry(colW, storyH, colW);
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 });
+      const softColMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 }); // Soft story red
+
+      const colPositions = [
+        [-slabW / 2 + 0.4, -slabD / 2 + 0.4],
+        [ slabW / 2 - 0.4, -slabD / 2 + 0.4],
+        [-slabW / 2 + 0.4,  slabD / 2 - 0.4],
+        [ slabW / 2 - 0.4,  slabD / 2 - 0.4]
+      ];
+
+      for (let s = 0; s < stories; s++) {
+        const y = 0.6 + s * storyH + storyH / 2;
+        const isSoft = state.irregulars.v1 && s === 0;
+
+        colPositions.forEach(([cx, cz]) => {
+          const col = new THREE.Mesh(colGeo, isSoft ? softColMat : colMat);
+          col.position.set(cx, y, cz);
+          col.userData = { baseX: cx, baseY: y, baseZ: cz, story: s };
+          colGroup.add(col);
+        });
+
+        // If shear wall system, add central shear core
+        if (state.system.includes('wall') || state.system.includes('dual')) {
+          const wallGeo = new THREE.BoxGeometry(2.4, storyH, 0.28);
+          const wallMat = new THREE.MeshStandardMaterial({ color: isSoft ? 0xfca5a5 : 0x60a5fa, transparent: true, opacity: 0.85 });
+          const wall = new THREE.Mesh(wallGeo, wallMat);
+          wall.position.set(0, y, 0);
+          wall.userData = { baseX: 0, baseY: y, baseZ: 0, story: s, isWall: true };
+          colGroup.add(wall);
+        }
+      }
+
+      threeControls.target.set(0, (0.6 + stories * storyH) / 2, 0);
+      threeControls.update();
+    }
+
+    function updateThreeBIMModel() {
+      if (threeRenderer) {
+        buildThreeBIMModel();
+      }
+    }
+
+    function animateThreeBIM() {
+      if (!threeRenderer) return;
+
+      const stories = Math.min(state.stories, 25);
+      const vib = state.animating ? Math.sin(state.animTime * 3) : 0;
+      const maxDisp = 1.6 * vib;
+
+      // Slab translation & torsion rotation
+      if (slabGroup) {
+        slabGroup.children.forEach((sMesh, idx) => {
+          const sNorm = (idx + 1) / stories;
+          let dispX = 0;
+
+          if (state.irregulars.v1 && idx === 0) {
+            dispX = maxDisp * 0.7; // Soft story kink
+          } else if (state.irregulars.v1 && idx > 0) {
+            dispX = maxDisp * 0.7 + (maxDisp * 0.3) * Math.pow(sNorm, 1.3);
+          } else {
+            dispX = maxDisp * Math.pow(sNorm, 1.5);
+          }
+
+          sMesh.position.x = dispX;
+
+          // Torsional irregularity [H-1]
+          if (state.irregulars.h1) {
+            sMesh.rotation.y = (maxDisp * 0.15) * sNorm;
+          } else {
+            sMesh.rotation.y = 0;
+          }
+        });
+      }
+
+      // Column deformation
+      if (colGroup) {
+        colGroup.children.forEach(col => {
+          const s = col.userData.story;
+          const sNorm = (s + 0.5) / stories;
+          let dispX = 0;
+
+          if (state.irregulars.v1 && s === 0) {
+            dispX = maxDisp * 0.35;
+          } else if (state.irregulars.v1 && s > 0) {
+            dispX = maxDisp * 0.7 + (maxDisp * 0.3) * Math.pow(sNorm, 1.3);
+          } else {
+            dispX = maxDisp * Math.pow(sNorm, 1.5);
+          }
+
+          col.position.x = col.userData.baseX + dispX;
+
+          if (state.irregulars.h1) {
+            col.rotation.y = (maxDisp * 0.15) * sNorm;
+          } else {
+            col.rotation.y = 0;
+          }
+        });
+      }
+
+      threeControls.update();
+      threeRenderer.render(threeScene, threeCamera);
+    }
+
+    // =========================================================================
     // Canvas Visual Rendering & Animation
+    // =========================================================================
     function toggleAnimation() {
       state.animating = !state.animating;
       const btn = document.getElementById('btn-anim-toggle');
@@ -1645,7 +2074,7 @@
         btn.classList.add('active');
         animLoop();
       } else {
-        btn.textContent = '▶ 지진동 진동 시작';
+        btn.textContent = '▶ 지진동 시작';
         btn.classList.remove('active');
       }
     }
@@ -1654,181 +2083,24 @@
       state.animating = false;
       state.animTime = 0;
       const btn = document.getElementById('btn-anim-toggle');
-      btn.textContent = '▶ 지진동 진동 시작';
+      btn.textContent = '▶ 지진동 시작';
       btn.classList.remove('active');
-      renderBuildingCanvas();
+      animateThreeBIM();
     }
 
     function animLoop() {
       if (!state.animating) return;
       state.animTime += 0.05;
-      renderBuildingCanvas();
+      animateThreeBIM();
       requestAnimationFrame(animLoop);
     }
 
     function renderVisuals() {
-      renderBuildingCanvas();
+      if (threeRenderer) {
+        animateThreeBIM();
+      }
       renderSpectrumCanvas();
       renderTorsionCanvas();
-    }
-
-    function renderBuildingCanvas() {
-      const cvs = document.getElementById('building-canvas');
-      if (!cvs || cvs.offsetParent === null) return;
-      const dpr = window.devicePixelRatio || 1;
-      const w = cvs.clientWidth, h = cvs.clientHeight;
-      cvs.width = Math.round(w * dpr);
-      cvs.height = Math.round(h * dpr);
-      cvs.style.width = w + 'px';
-      cvs.style.height = h + 'px';
-      const ctx = cvs.getContext('2d');
-
-      ctx.clearRect(0, 0, cvs.width, cvs.height);
-      ctx.save();
-      ctx.scale(dpr, dpr);
-
-      // Soil layer background at bottom
-      const soilH = 65;
-      const groundY = h - soilH;
-      ctx.fillStyle = '#1e1b18';
-      ctx.fillRect(0, groundY, w, soilH);
-
-      // Oscillating ground motion offset
-      const gOffset = state.animating ? Math.sin(state.animTime * 3) * 12 : 0;
-
-      // Soil Hatching
-      ctx.fillStyle = '#3f2e1f';
-      for (let x = -20; x < w + 20; x += 20) {
-        ctx.beginPath();
-        ctx.moveTo(x + gOffset, groundY);
-        ctx.lineTo(x + 15 + gOffset, h);
-        ctx.strokeStyle = '#523a23';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-      ctx.fillStyle = '#cbd5e1';
-      ctx.font = '11px sans-serif';
-      ctx.fillText(`지반: ${state.soil} (Fa=${interpolateSoil(soilTableFa[state.soil], 0.22).toFixed(2)}, Fv=${interpolateSoil(soilTableFv[state.soil], 0.22).toFixed(2)})`, 15, groundY + 25);
-      ctx.fillText(`기반암 상부 지지층`, 15, groundY + 45);
-
-      // Ground surface line
-      ctx.strokeStyle = '#78350f';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(0, groundY);
-      ctx.lineTo(w, groundY);
-      ctx.stroke();
-
-      // Building Drawing
-      const bldgBaseX = w * 0.45 + gOffset;
-      const bldgW = 110;
-      const stories = Math.min(state.stories, 25);
-      const floorH = (groundY - 30) / stories;
-
-      // Undeformed wireframe
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
-      ctx.strokeRect(w * 0.45 - bldgW / 2, groundY - stories * floorH, bldgW, stories * floorH);
-      ctx.setLineDash([]);
-
-      // Vibration amplitude
-      const vibFactor = state.animating ? Math.sin(state.animTime * 3 - 0.6) : 1.0;
-      const maxDispl = 45 * vibFactor;
-
-      ctx.beginPath();
-      ctx.strokeStyle = state.irregulars.v1 ? '#ef4444' : '#0284c7';
-      ctx.lineWidth = 2.5;
-
-      const floorCoords = [];
-
-      for (let i = 0; i <= stories; i++) {
-        const y = groundY - i * floorH;
-        let displ = 0;
-        if (state.irregulars.v1 && i === 1) {
-          displ = maxDispl * 0.65;
-        } else if (state.irregulars.v1 && i > 1) {
-          displ = maxDispl * 0.65 + (maxDispl * 0.35) * Math.pow((i - 1) / (stories - 1), 1.2);
-        } else {
-          displ = maxDispl * Math.pow(i / stories, 1.5);
-        }
-
-        const xLeft = bldgBaseX - bldgW / 2 + displ;
-        const xRight = bldgBaseX + bldgW / 2 + displ;
-        floorCoords.push({ y, xLeft, xRight, displ });
-      }
-
-      // Draw columns between floors
-      for (let i = 0; i < stories; i++) {
-        const f0 = floorCoords[i];
-        const f1 = floorCoords[i + 1];
-
-        ctx.strokeStyle = (state.irregulars.v1 && i === 0) ? '#ef4444' : '#64748b';
-        ctx.lineWidth = (state.irregulars.v1 && i === 0) ? 3.5 : 2;
-
-        // Left column
-        ctx.beginPath();
-        ctx.moveTo(f0.xLeft + 5, f0.y);
-        ctx.lineTo(f1.xLeft + 5, f1.y);
-        ctx.stroke();
-
-        // Right column
-        ctx.beginPath();
-        ctx.moveTo(f0.xRight - 5, f0.y);
-        ctx.lineTo(f1.xRight - 5, f1.y);
-        ctx.stroke();
-
-        // Center shear wall / column if shear wall system
-        if (state.system.includes('wall')) {
-          ctx.fillStyle = (state.irregulars.v1 && i === 0) ? 'rgba(239, 68, 68, 0.4)' : 'rgba(56, 189, 248, 0.2)';
-          ctx.beginPath();
-          ctx.moveTo(f0.xLeft + bldgW / 2 - 12, f0.y);
-          ctx.lineTo(f0.xLeft + bldgW / 2 + 12, f0.y);
-          ctx.lineTo(f1.xLeft + bldgW / 2 + 12, f1.y);
-          ctx.lineTo(f1.xLeft + bldgW / 2 - 12, f1.y);
-          ctx.closePath();
-          ctx.fill();
-        }
-      }
-
-      // Draw floor slabs
-      for (let i = 0; i <= stories; i++) {
-        const f = floorCoords[i];
-        ctx.fillStyle = i === 0 ? '#475569' : (state.irregulars.v1 && i === 1 ? 'rgba(239,68,68,0.5)' : '#334155');
-        ctx.fillRect(f.xLeft, f.y - 3, bldgW, 6);
-        ctx.strokeStyle = state.irregulars.v1 && i === 1 ? '#f87171' : '#0284c7';
-        ctx.strokeRect(f.xLeft, f.y - 3, bldgW, 6);
-
-        // Draw lateral force arrows Fx on right side
-        if (i > 0 && (stories <= 10 || i % 2 === 0)) {
-          const arrowLen = 15 + 40 * Math.pow(i / stories, 1.8);
-          ctx.beginPath();
-          ctx.moveTo(f.xRight + 6, f.y);
-          ctx.lineTo(f.xRight + 6 + arrowLen, f.y);
-          ctx.strokeStyle = '#d97706';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          // Arrowhead
-          ctx.beginPath();
-          ctx.moveTo(f.xRight + 6 + arrowLen, f.y);
-          ctx.lineTo(f.xRight + 6 + arrowLen - 8, f.y - 3.5);
-          ctx.lineTo(f.xRight + 6 + arrowLen - 8, f.y + 3.5);
-          ctx.fillStyle = '#d97706';
-          ctx.fill();
-        }
-      }
-
-      // Legend overlay
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillText(`${state.stories}층 (${state.height}m) ${systemsDB[state.system].name}`, 15, 25);
-      if (state.irregulars.v1) {
-        ctx.fillStyle = '#ef4444';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText(`🚨 [V-1] 1층 연층 강성비정형 극심한 전단변형 집중!`, 15, 45);
-      }
-
-      ctx.restore();
     }
 
     function renderSpectrumCanvas() {
@@ -1846,7 +2118,7 @@
       ctx.save();
       ctx.scale(dpr, dpr);
 
-      const padL = 45, padR = 20, padT = 25, padB = 35;
+      const padL = 50, padR = 24, padT = 25, padB = 38;
       const plotW = w - padL - padR;
       const plotH = h - padT - padB;
 
@@ -1886,8 +2158,8 @@
 
       // Spectrum Curve Sa(T)
       ctx.beginPath();
-      ctx.strokeStyle = '#0284c7';
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 3.2;
 
       let first = true;
       for (let t = 0; t <= maxT; t += 0.01) {
@@ -1908,7 +2180,8 @@
 
       // Highlight T0 and Ts
       ctx.strokeStyle = '#d97706';
-      ctx.setLineDash([2, 2]);
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
       ctx.beginPath();
       ctx.moveTo(toX(T0), toY(Sds));
       ctx.lineTo(toX(T0), padT + plotH);
@@ -1925,8 +2198,8 @@
       const Ta = Ct * Math.pow(state.height, xExp);
       const pX = toX(Math.min(Ta, maxT));
 
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
       ctx.moveTo(pX, padT);
       ctx.lineTo(pX, padT + plotH);
@@ -1935,19 +2208,19 @@
       ctx.restore(); // restore clipping
 
       ctx.fillStyle = '#d97706';
-      ctx.font = '10px sans-serif';
+      ctx.font = 'bold 10px sans-serif';
       ctx.fillText(`T0=${T0.toFixed(2)}s`, toX(T0) - 15, padT + plotH + 28);
       ctx.fillText(`Ts=${Ts.toFixed(2)}s`, toX(Ts) - 15, padT + plotH + 28);
 
-      ctx.fillStyle = '#ef4444';
+      ctx.fillStyle = '#dc2626';
       ctx.font = 'bold 11px sans-serif';
       ctx.fillText(`건물주기 Ta=${Ta.toFixed(2)}s`, pX + 5, padT + 30);
 
       // Axis labels
       ctx.fillStyle = '#0f172a';
       ctx.font = 'bold 11px sans-serif';
-      ctx.fillText('Sa (g)', padL - 35, padT - 8);
-      ctx.fillText('주기 T (초)', padL + plotW - 40, padT + plotH + 30);
+      ctx.fillText('Sa (g)', padL - 38, padT - 8);
+      ctx.fillText('주기 T (초)', padL + plotW - 45, padT + plotH + 30);
 
       ctx.restore(); // restore dpr
     }
@@ -1967,69 +2240,73 @@
       ctx.save();
       ctx.scale(dpr, dpr);
 
-      const planW = 160, planH = 100;
+      const planW = 180, planH = 110;
       const cX = w / 2, cY = h / 2;
 
       // Draw Floor Plan
-      ctx.fillStyle = '#f1f5f9';
+      ctx.fillStyle = '#ffffff';
       ctx.fillRect(cX - planW / 2, cY - planH / 2, planW, planH);
       ctx.strokeStyle = '#475569';
       ctx.lineWidth = 2;
       ctx.strokeRect(cX - planW / 2, cY - planH / 2, planW, planH);
 
-      // Center of Rigidity (CR) - Cyan dot
-      const crX = cX - 15, crY = cY;
-      ctx.fillStyle = '#0284c7';
+      // Center of Rigidity (CR) - Blue dot
+      const crX = cX - 18, crY = cY;
+      ctx.fillStyle = '#2563eb';
       ctx.beginPath();
-      ctx.arc(crX, crY, 5, 0, Math.PI * 2);
+      ctx.arc(crX, crY, 5.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#0284c7';
+      ctx.fillStyle = '#1e40af';
       ctx.font = 'bold 10px sans-serif';
-      ctx.fillText('CR(강성중심)', crX - 25, crY - 10);
+      ctx.fillText('CR (강성중심)', crX - 30, crY - 12);
 
       // Center of Mass (CM) - Amber dot
-      const cmX = cX + 15, cmY = cY;
+      const cmX = cX + 18, cmY = cY;
       ctx.fillStyle = '#d97706';
       ctx.beginPath();
-      ctx.arc(cmX, cmY, 5, 0, Math.PI * 2);
+      ctx.arc(cmX, cmY, 5.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#d97706';
+      ctx.fillStyle = '#b45309';
       ctx.font = 'bold 10px sans-serif';
-      ctx.fillText('CM(질량중심)', cmX - 25, cmY - 10);
+      ctx.fillText('CM (질량중심)', cmX - 30, cmY - 12);
 
       // Accidental eccentricity 5% offset arrow
-      const eccX = cmX + 20;
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([2, 2]);
+      const eccX = cmX + 22;
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([3, 3]);
       ctx.beginPath();
       ctx.moveTo(cmX, cmY);
       ctx.lineTo(eccX, cmY);
       ctx.stroke();
       ctx.setLineDash([]);
 
-      ctx.fillStyle = '#ef4444';
-      ctx.font = '10px sans-serif';
-      ctx.fillText('±0.05B', cmX + 4, cmY + 14);
+      ctx.fillStyle = '#dc2626';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillText('±0.05B', cmX + 4, cmY + 16);
 
       // Torsional moment arrow arc
       ctx.beginPath();
-      ctx.arc(cX, cY, 35, -0.4, 1.8);
+      ctx.arc(cX, cY, 40, -0.4, 1.8);
       ctx.strokeStyle = '#7c3aed';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
-      ctx.fillStyle = '#7c3aed';
-      ctx.fillText('Mt (비틀림모멘트)', cX - 40, cY + 45);
+      ctx.fillStyle = '#6b21a8';
+      ctx.font = 'bold 10.5px sans-serif';
+      ctx.fillText('Mt (비틀림모멘트)', cX - 44, cY + 52);
 
       ctx.restore();
     }
 
     window.addEventListener('resize', () => {
+      resizeThreeBIM();
       renderVisuals();
     });
 
-    // Initialize
-    updateAll();
+    // Initialize on DOM load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateAll();
+    });
   </script>
 </body>
 </html>
