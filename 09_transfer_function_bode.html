@@ -2026,11 +2026,11 @@
       threeControls.minDistance = 5;
       threeControls.maxDistance = 25;
 
-      // Studio Lighting (Multi-point bright architectural illumination)
-      const ambLight = new THREE.AmbientLight(0xffffff, 1.25);
+      // Studio Lighting (Balanced architectural illumination, no washed-out blown areas)
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.95);
       threeScene.add(ambLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 1.05);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
       dirLight.position.set(10, 18, 12);
       dirLight.castShadow = true;
       dirLight.shadow.mapSize.width = 2048;
@@ -2041,32 +2041,32 @@
       dirLight.shadow.camera.right = 12;
       dirLight.shadow.camera.top = 12;
       dirLight.shadow.camera.bottom = -12;
-      dirLight.shadow.bias = 0.0005; // Positive bias eliminates self-shadowing acne
+      dirLight.shadow.bias = 0.0005;
       threeScene.add(dirLight);
 
-      // Front-Left Fill Light ensures reaction wall and damper are radiantly bright
-      const fillLight = new THREE.DirectionalLight(0xffffff, 0.85);
+      // Fill light from left
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.45);
       fillLight.position.set(-12, 14, 10);
       threeScene.add(fillLight);
 
-      const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.45);
+      const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.3);
       rimLight.position.set(0, 10, -12);
       threeScene.add(rimLight);
 
-      // 1. Bedrock Plinth (Bright Machined Granite Surface Plate)
+      // 1. Bedrock Plinth (Solid Light Granite/Concrete with Crisp Edges)
       const bedGeo = new THREE.BoxGeometry(13.4, 0.45, 6.4);
-      const bedMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45, metalness: 0.10 });
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.35, metalness: 0.05 });
       const bedrock = new THREE.Mesh(bedGeo, bedMat);
       bedrock.position.set(0.5, 0.225, 0);
       bedrock.receiveShadow = true;
       threeScene.add(bedrock);
 
       const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
-      bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0xcbd5e1 })));
+      bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0x94a3b8 })));
 
-      // 4 Leveling Mount Pads at corners (Bright Satin Stainless)
+      // 4 Leveling Mount Pads at corners
       const padGeo = new THREE.CylinderGeometry(0.35, 0.45, 0.25, 16);
-      const padMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
+      const padMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.35, roughness: 0.3 });
       for (let px of [-5.8, 6.8]) {
         for (let pz of [-2.8, 2.8]) {
           const pad = new THREE.Mesh(padGeo, padMat);
@@ -2077,25 +2077,25 @@
         }
       }
 
-      // 2. Left Reaction Buttress Wall (Bright Pure Architectural Concrete)
+      // 2. Left Reaction Buttress Wall (Solid Architectural Concrete)
       const wallGeo = new THREE.BoxGeometry(1.4, 3.4, 4.4);
-      const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35, metalness: 0.05 });
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.35, metalness: 0.05 });
       const wall = new THREE.Mesh(wallGeo, wallMat);
       wall.position.set(-4.9, 1.925, 0);
       wall.castShadow = true;
       wall.receiveShadow = true;
       threeScene.add(wall);
 
-      // Steel Anchor Faceplate on Wall (Bright Satin Steel)
+      // Steel Anchor Faceplate on Wall (Solid Gunmetal Slate for immediate contrast)
       const faceplateGeo = new THREE.BoxGeometry(0.12, 3.0, 3.8);
-      const faceplateMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
+      const faceplateMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.4, roughness: 0.25 });
       const faceplate = new THREE.Mesh(faceplateGeo, faceplateMat);
       faceplate.position.set(-4.14, 1.925, 0);
       threeScene.add(faceplate);
 
       // Wall Anchor Bolts (Polished Chrome)
       const boltGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.18, 12);
-      const boltMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
+      const boltMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.1 });
       boltGeo.rotateZ(Math.PI / 2);
       for (let by of [0.8, 1.5, 2.2, 2.9]) {
         for (let bz of [-1.6, 1.6]) {
@@ -2129,7 +2129,7 @@
       // 3. Precision Stainless Linear Guideway (LM Rails - Mirror Chrome)
       for (let z of [-1.2, 1.2]) {
         const railGeo = new THREE.BoxGeometry(9.6, 0.12, 0.20);
-        const railMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.15 });
+        const railMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.1 });
         const rail = new THREE.Mesh(railGeo, railMat);
         rail.position.set(0.5, 0.51, z);
         rail.receiveShadow = true;
@@ -2142,7 +2142,7 @@
         }
 
         const bumperGeo = new THREE.BoxGeometry(0.25, 0.35, 0.28);
-        const bumperMat = new THREE.MeshStandardMaterial({ color: 0xf87171, roughness: 0.3 });
+        const bumperMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.3 });
         const bumperL = new THREE.Mesh(bumperGeo, bumperMat);
         bumperL.position.set(-4.1, 0.65, z);
         threeScene.add(bumperL);
@@ -2151,13 +2151,13 @@
         threeScene.add(bumperR);
       }
 
-      // 4. HIGH-END SDOF MASS RIG CART (Bright Palette & Realistic Proportions)
+      // 4. HIGH-END SDOF MASS RIG CART (Rich Royal Blue & Gunmetal Slabs)
       threeCartGroup = new THREE.Group();
       threeCartGroup.position.set(1.30, 0, 0); // Safe equilibrium position
 
-      // Chassis Base Plate (Bright Machined Aluminum)
+      // Chassis Base Plate (Machined Satin Steel)
       const chassisGeo = new THREE.BoxGeometry(2.4, 0.18, 2.9);
-      const chassisMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.25, roughness: 0.3 });
+      const chassisMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.4, roughness: 0.25 });
       const chassis = new THREE.Mesh(chassisGeo, chassisMat);
       chassis.position.set(0, 0.66, 0);
       chassis.castShadow = true;
@@ -2165,7 +2165,7 @@
 
       // LM Carriage Pillow Blocks under chassis
       const pillowGeo = new THREE.BoxGeometry(0.48, 0.16, 0.32);
-      const pillowMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
+      const pillowMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.5, roughness: 0.25 });
       for (let px of [-0.75, 0.75]) {
         for (let pz of [-1.2, 1.2]) {
           const pb = new THREE.Mesh(pillowGeo, pillowMat);
@@ -2174,12 +2174,12 @@
         }
       }
 
-      // 4 Flanged Wheels (Polished Chrome)
+      // 4 Flanged Wheels (Polished Chrome with Dark Tread)
       threeWheelMeshes = [];
       const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.10, 24);
       wheelGeo.rotateX(Math.PI / 2);
-      const wheelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.35, roughness: 0.15 });
-      const hubMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.85, roughness: 0.1 });
+      const hubMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.5, roughness: 0.2 });
       for (let wx of [-0.75, 0.75]) {
         for (let wz of [-1.2, 1.2]) {
           const wGroup = new THREE.Group();
@@ -2193,7 +2193,7 @@
           wGroup.add(hub);
 
           const spokeGeo = new THREE.BoxGeometry(0.30, 0.02, 0.11);
-          const spoke = new THREE.Mesh(spokeGeo, new THREE.MeshBasicMaterial({ color: 0x94a3b8 }));
+          const spoke = new THREE.Mesh(spokeGeo, new THREE.MeshBasicMaterial({ color: 0x475569 }));
           wGroup.add(spoke);
 
           threeCartGroup.add(wGroup);
@@ -2201,17 +2201,17 @@
         }
       }
 
-      // Main Inertia Mass Block (Bright Vibrant Cerulean Blue)
+      // Main Inertia Mass Block (Vivid Royal Blue)
       const massGeo = new THREE.BoxGeometry(2.1, 1.35, 2.4);
-      const massMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.25, roughness: 0.3 });
+      const massMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.35, roughness: 0.25 });
       const massBody = new THREE.Mesh(massGeo, massMat);
       massBody.position.set(0, 1.425, 0);
       massBody.castShadow = true;
       threeCartGroup.add(massBody);
 
-      // Stacked Counterweight Slabs on Top (Bright Polished White/Silver)
+      // Stacked Counterweight Slabs on Top (Dark Steel / Titanium Plates)
       const slabGeo = new THREE.BoxGeometry(1.8, 0.14, 2.0);
-      const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.15, roughness: 0.25 });
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.5, roughness: 0.25 });
       const slab1 = new THREE.Mesh(slabGeo, slabMat);
       slab1.position.set(0, 2.17, 0);
       slab1.castShadow = true;
@@ -2222,7 +2222,7 @@
       slab2.castShadow = true;
       threeCartGroup.add(slab2);
 
-      // Top Hex Bolt Studs
+      // Top Hex Bolt Studs (Chrome)
       for (let bx of [-0.75, 0.75]) {
         for (let bz of [-0.85, 0.85]) {
           const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.14, 8), boltMat);
@@ -2250,14 +2250,14 @@
       threeCartGroup.add(createCartClevis(-1.05, 1.55, -0.85)); // Spring clevis on cart
       threeCartGroup.add(createCartClevis(-1.05, 1.55, 0.85));  // Damper clevis on cart
 
-      // Side HUD / CAD Nameplate on cart face facing camera (Bright White)
+      // Side HUD / CAD Nameplate on cart face facing camera (Dark Slate Bezel)
       const plateGeo = new THREE.BoxGeometry(1.6, 0.5, 0.04);
-      const plateMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.25, roughness: 0.3 });
+      const plateMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.3, roughness: 0.3 });
       const nameplate = new THREE.Mesh(plateGeo, plateMat);
       nameplate.position.set(0, 1.45, 1.22);
       threeCartGroup.add(nameplate);
 
-      // Digital LED bezel (Bright Electric Cyan)
+      // Digital LED bezel (High-contrast Bright Electric Cyan)
       const ledGeo = new THREE.BoxGeometry(1.4, 0.18, 0.05);
       const ledMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
       const ledBezel = new THREE.Mesh(ledGeo, ledMat);
@@ -2266,80 +2266,80 @@
 
       threeScene.add(threeCartGroup);
 
-      // 5. TRUE 3D HELICAL COIL SPRING (Bright Metallic Sky Blue)
+      // 5. TRUE 3D HELICAL COIL SPRING (Thick, Vivid Royal Blue Metallic)
       const springStart = new THREE.Vector3(-3.8, 1.55, -0.85);
       const springEnd = new THREE.Vector3(0.0, 1.55, -0.85);
-      const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.28, 10);
-      const springGeo = new THREE.TubeGeometry(springCurve, 120, 0.045, 10, false);
+      const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.35, 10);
+      const springGeo = new THREE.TubeGeometry(springCurve, 140, 0.065, 12, false);
       const springMat = new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        metalness: 0.3,
-        roughness: 0.2,
+        color: 0x1d4ed8,
+        metalness: 0.45,
+        roughness: 0.20,
       });
       threeSpringMesh = new THREE.Mesh(springGeo, springMat);
       threeSpringMesh.castShadow = true;
       threeScene.add(threeSpringMesh);
 
-      // 6. INDUSTRIAL HYDRAULIC DAMPER (Bright Anodized Aluminum + Amber Reservoir)
+      // 6. INDUSTRIAL HYDRAULIC DAMPER (Dark Anodized Titanium Barrel + Rich Amber Fluid)
       // Damper Outer Barrel (Mounted to Wall: from X = -3.80 to X = -2.10, length 1.70m)
       const cylLen = 1.70;
-      const cylGeo = new THREE.CylinderGeometry(0.18, 0.18, cylLen, 24);
+      const cylGeo = new THREE.CylinderGeometry(0.20, 0.20, cylLen, 24);
       cylGeo.rotateZ(Math.PI / 2);
-      const cylMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.25, roughness: 0.3 });
+      const cylMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.25 });
       threeDamperCyl = new THREE.Mesh(cylGeo, cylMat);
       threeDamperCyl.position.set(-2.95, 1.55, 0.85);
       threeDamperCyl.castShadow = true;
       threeScene.add(threeDamperCyl);
 
-      // Amber Oil Sight Glass Reservoir Window (Golden Amber)
-      const glassGeo = new THREE.CylinderGeometry(0.175, 0.175, 1.1, 24);
+      // Amber Oil Sight Glass Reservoir Window (Vivid Golden Amber Fluid)
+      const glassGeo = new THREE.CylinderGeometry(0.195, 0.195, 1.1, 24);
       glassGeo.rotateZ(Math.PI / 2);
       const glassMat = new THREE.MeshStandardMaterial({
-        color: 0xfbbf24,
-        metalness: 0.05,
-        roughness: 0.05,
+        color: 0xf59e0b,
+        metalness: 0.15,
+        roughness: 0.08,
         transparent: true,
-        opacity: 0.60
+        opacity: 0.85
       });
       const damperGlass = new THREE.Mesh(glassGeo, glassMat);
       damperGlass.position.set(-2.95, 1.55, 0.85);
       threeScene.add(damperGlass);
 
       // Front Gold Gland Wiper Seal Nut (wiper front at X = -1.96m)
-      const wiperGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.14, 24);
+      const wiperGeo = new THREE.CylinderGeometry(0.21, 0.21, 0.14, 24);
       wiperGeo.rotateZ(Math.PI / 2);
-      const wiperMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.4, roughness: 0.25 });
+      const wiperMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.6, roughness: 0.2 });
       const wiper = new THREE.Mesh(wiperGeo, wiperMat);
       wiper.position.set(-2.03, 1.55, 0.85);
       threeScene.add(wiper);
 
-      // Damper Chrome Piston Rod & Internal Piston Head
+      // Damper Chrome Piston Rod & Internal Piston Head (Mirror Chrome)
       const rodLen = 3.6;
-      const rodGeo = new THREE.CylinderGeometry(0.075, 0.075, rodLen, 24);
+      const rodGeo = new THREE.CylinderGeometry(0.085, 0.085, rodLen, 24);
       rodGeo.rotateZ(Math.PI / 2);
-      const rodMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
+      const rodMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.85, roughness: 0.08 });
       threeDamperRod = new THREE.Mesh(rodGeo, rodMat);
       threeDamperRod.position.set(-1.47, 1.55, 0.85);
       threeDamperRod.castShadow = true;
       threeScene.add(threeDamperRod);
 
       // Internal Piston Head (Visible through amber glass - Bright Bronze)
-      const pHeadGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.14, 20);
+      const pHeadGeo = new THREE.CylinderGeometry(0.17, 0.17, 0.14, 20);
       pHeadGeo.rotateZ(Math.PI / 2);
-      const pHeadMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.4, roughness: 0.25 });
+      const pHeadMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.5, roughness: 0.2 });
       threeDamperPistonHead = new THREE.Mesh(pHeadGeo, pHeadMat);
       threeDamperPistonHead.position.set(-2.95, 1.55, 0.85);
       threeScene.add(threeDamperPistonHead);
 
-      // 7. Dynamic 3D Excitation Force Vector Arrow
+      // 7. Dynamic 3D Excitation Force Vector Arrow (Vibrant Amber-Orange)
       threeForceArrowGroup = new THREE.Group();
-      const fShaftGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.0, 16);
+      const fShaftGeo = new THREE.CylinderGeometry(0.07, 0.07, 1.0, 16);
       fShaftGeo.rotateZ(Math.PI / 2);
-      const fMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.3, roughness: 0.2 });
+      const fMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.4, roughness: 0.2 });
       threeForceArrowMesh = new THREE.Mesh(fShaftGeo, fMat);
       threeForceArrowGroup.add(threeForceArrowMesh);
 
-      const fHeadGeo = new THREE.ConeGeometry(0.14, 0.35, 16);
+      const fHeadGeo = new THREE.ConeGeometry(0.16, 0.38, 16);
       fHeadGeo.rotateZ(-Math.PI / 2);
       threeForceArrowHead = new THREE.Mesh(fHeadGeo, fMat);
       threeForceArrowHead.position.set(0.5, 0, 0);
