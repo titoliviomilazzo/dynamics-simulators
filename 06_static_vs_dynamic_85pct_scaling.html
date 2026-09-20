@@ -570,8 +570,8 @@
     // =========================================================================
     let activeBldgView = '3D';
     let threeBldgScene, threeBldgCamera, threeBldgRenderer, threeBldgControls;
-    let staticSlabs = [], staticCols = [];
-    let dynamicSlabs = [], dynamicCols = [];
+    let staticSlabs = [], continuousStaticCols = [];
+    let dynamicSlabs = [], continuousDynamicCols = [], dynamicFeet = [];
     let staticBaseMesh, dynamicBaseMesh;
     let threeBldgDimGroup;
     let threeDispAmp = 75.0; // 기본 75배 증폭
@@ -694,7 +694,7 @@
 
     function buildThreeBldgModels() {
       staticSlabs = []; continuousStaticCols = [];
-      dynamicSlabs = []; continuousDynamicCols = [];
+      dynamicSlabs = []; continuousDynamicCols = []; dynamicFeet = [];
       if (threeBldgDimGroup) threeBldgScene.remove(threeBldgDimGroup);
       threeBldgDimGroup = new THREE.Group();
       threeBldgScene.add(threeBldgDimGroup);
@@ -703,6 +703,9 @@
       const slabD = 4.8;
       const slabH = 0.40;
       const storyH = 3.2;
+      const totalColH = 3 * storyH;
+      const colWidth = 0.32;
+      const segmentsY = 36;
 
       // 1. LEFT BUILDING: 등가정적 (ELF, x = -6.8)
       const leftX = -6.8;
@@ -795,6 +798,7 @@
         const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x64748b }));
         foot.position.set(rightX + cx * colOffsetX, 0.825, cz * colOffsetZ);
         threeBldgScene.add(foot);
+        dynamicFeet.push({ mesh: foot, baseX: rightX + cx * colOffsetX });
 
         const colGeo = new THREE.BoxGeometry(colWidth, totalColH, colWidth, 1, segmentsY, 1);
         colGeo.translate(0, totalColH / 2, 0);
@@ -870,6 +874,9 @@
       if (dynamicBaseMesh) {
         dynamicBaseMesh.position.x = 6.8 + groundVibe;
       }
+      dynamicFeet.forEach(f => {
+        f.mesh.position.x = f.baseX + groundVibe;
+      });
 
       const dynXs = [];
       for (let s = 1; s <= 3; s++) {
@@ -1228,14 +1235,6 @@
       initZentryTilt();
       updateT1(0.648);
       mainLoop();
-    }, 50);
-  </script>
-</body>
-</html>
-
-    setTimeout(() => {
-      resize();
-      updateT1(0.648);
     }, 50);
   </script>
 </body>
