@@ -345,12 +345,81 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    .zentry-card {
-      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
-      transform-style: preserve-3d;
-      will-change: transform;
-    }
-  </style>
+  }
+  .zentry-card {
+    transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  /* 3D BIM Viewport Container */
+  .bim-viewport-box {
+    width: 100%;
+    height: 330px;
+    background: #faf8f5;
+    border: 1.5px solid var(--text-primary);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  #threeBimContainer {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .bim-hud-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(4px);
+    padding: 3px 7px;
+    border-radius: 5px;
+    border: 1px solid #0f172a;
+    font-size: 10px;
+    font-weight: 700;
+    color: #0f172a;
+    z-index: 10;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .bim-view-buttons {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+  }
+  .bim-btn {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #0f172a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .bim-btn:hover { background: #0f172a; color: #ffffff; }
+  .bim-btn.active { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+  .bim-hud-controls {
+    position: absolute;
+    bottom: 6px;
+    left: 8px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(4px);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    font-size: 9.5px;
+    color: #475569;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 10;
+  }
+</style>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <script src="assets/dynamics-chart-canonical.js"></script>
@@ -499,18 +568,30 @@
       <!-- TOP HERO TRIPLE GRID: 2D MEMBER DEFORMATION + 2D PM ENVELOPE + 3D 90-DEG QUARTER SURFACE -->
       <div class="hero-triple-grid">
 
-        <!-- 1. 2D COLUMN MEMBER DEFORMATION (P, Rz BENDING & AXIAL SHORTENING) -->
+        <!-- 1. 3D BIM RC COLUMN & BIAXIAL P-M DEFORMATION VIEWPORT -->
         <div class="canvas-card">
           <div class="canvas-header">
             <div class="canvas-title">
-              <span>🧱 2D 기둥 부재 거동 (P, Rz 휨·축 변형)</span>
-            </div>
-            <div class="canvas-legend">
-              <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>축력 P</span></div>
-              <div class="legend-item"><div class="legend-color" style="background:#4f46e5"></div><span>모멘트 Rz</span></div>
+              <span>🏢 3D BIM 기둥 2축 휨·축력 거동</span>
             </div>
           </div>
-          <canvas id="columnDeformCanvas" height="330"></canvas>
+          <div class="bim-viewport-box">
+            <div class="bim-hud-badge">
+              <span id="bimColumnStatus" style="color:#2563eb;">인장지배 (연성)</span>
+            </div>
+            <div class="bim-view-buttons">
+              <button class="bim-btn active" id="btnBimCol3d" onclick="setBimCameraView('col3d')">🧱 기둥</button>
+              <button class="bim-btn" id="btnBimRebar" onclick="setBimCameraView('rebar')">🔩 배근망</button>
+              <button class="bim-btn" id="btnBimFrame" onclick="setBimCameraView('frame')">🏢 골조</button>
+            </div>
+            <div class="bim-hud-controls">
+              🖱️ 3D 오르빗: 좌클릭 회전 &middot; 휠 줌 &middot; 우클릭 이동
+            </div>
+            <div id="bimColumnPM" class="bim-hud-badge" style="top: auto; bottom: 6px; right: 8px; left: auto; font-family: monospace; font-size: 9.5px; color: #334155;">
+              φPn=1951kN, φMn=889kNm
+            </div>
+            <div id="threeBimContainer"></div>
+          </div>
         </div>
 
         <!-- 2. 2D BALANCED PM CANVAS (ULTRA-SMOOTH SPLINE ENVELOPE) -->
@@ -629,9 +710,8 @@ let playDirection = 1;
 let animReq = null;
 let pulsePhase = 0;
 
-// CANVASES
-const deformCanvas = document.getElementById('columnDeformCanvas');
-const deformCtx = deformCanvas.getContext('2d');
+// CANVASES & CONTAINERS
+const bimContainer = document.getElementById('threeBimContainer');
 const pmCanvas = document.getElementById('interactionCanvas');
 const pmCtx = pmCanvas.getContext('2d');
 const strainCanvas = document.getElementById('strainCanvas');
@@ -1180,7 +1260,7 @@ function updateAll(isParamChange = false) {
 
   updateHUD(curPM, p0_data, flexPt);
 
-  drawColumnDeformation2D(curPM, p0_data);
+  update3DBim(curPM, p0_data);
   drawInteractionDiagram(curPM, p0_data);
   drawStrainProfile(curPM);
   drawStressBlock(curPM);
@@ -1242,303 +1322,767 @@ function updateHUD(pm, p0_data, flexPt) {
     : `축인장력(Pn < 0)으로 인해 콘크리트 인장 균열이 가속화되어 모멘트 강도 급감.`;
 }
 
-// -------------------------------------------------------------
-// 1. DRAW 2D COLUMN MEMBER DEFORMATION (P, Rz BENDING & DEFORMED SHAPE)
-// -------------------------------------------------------------
-function drawColumnDeformation2D(curPM, p0_data) {
-  const w = deformCanvas.parentElement.clientWidth - 24;
-  const h = 330;
-  deformCanvas.style.width = w + 'px';
-  deformCanvas.style.height = h + 'px';
-  resizeCanvas(deformCanvas);
+// =========================================================================
+// 1. 3D BIM RC COLUMN & BIAXIAL P-M DEFORMATION VIEWPORT (THREE.JS)
+// =========================================================================
+let sceneBim, cameraBim, rendererBim, controlsBim;
+let bimMacroGroup, bimDetailGroup, bimAnnotationGroup;
+let currentBimView = 'col3d'; // 'col3d', 'rebar', 'frame'
 
-  deformCtx.clearRect(0, 0, w, h);
+// Detail Column Elements
+let colFootingMesh = null;
+let colSegmentMeshes = [];
+let colSegmentEdges = [];
+let colTopCapMesh = null;
+let colTopCapEdge = null;
+let rebarMeshes = [];      // 8 longitudinal steel bars
+let tieHoopMeshes = [];    // 6 transverse hoops
+let whitneyBlockGroup = null;
+let whitneyBlockMesh = null;
+let whitneyEdgeMesh = null;
+let axialArrowGroup = null;
+let momentArcGroup = null;
+let bimCalloutSprite = null;
 
-  // Background
-  deformCtx.fillStyle = '#ffffff';
-  deformCtx.fillRect(0, 0, w, h);
+// Macro Structure Elements
+let macroColumnMeshes = [];
+let macroSlabMeshes = [];
+let macroBeamMeshes = [];
+let macroFootingMeshes = [];
+let macroTargetColumn = null;
+let macroSeismicArrow = null;
 
-  // Geometry Constants
-  const baseX = w * 0.50;
-  const baseY = h - 42;
-  const baseH = 190;
-  const baseW = 54;
+const blackLineMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 }); // Gate 1
 
-  // Kinematic Scaling
+function createCalloutSprite(text, color, subText) {
+  const cvs = document.createElement('canvas');
+  cvs.width = 460;
+  cvs.height = 90;
+  const c = cvs.getContext('2d');
+  c.fillStyle = 'rgba(255, 255, 255, 0.96)';
+  c.strokeStyle = '#0f172a';
+  c.lineWidth = 4;
+  c.beginPath();
+  if (c.roundRect) {
+    c.roundRect(6, 6, 448, 78, 12);
+  } else {
+    c.rect(6, 6, 448, 78);
+  }
+  c.fill();
+  c.stroke();
+
+  c.fillStyle = color;
+  c.font = 'bold 22px Pretendard, sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(text, 230, subText ? 30 : 45);
+
+  if (subText) {
+    c.fillStyle = '#334155';
+    c.font = 'bold 15px monospace';
+    c.fillText(subText, 230, 60);
+  }
+
+  const tex = new THREE.CanvasTexture(cvs);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.renderOrder = 999;
+  sprite.scale.set(2.4, 0.48, 1);
+  return sprite;
+}
+
+function initThreeBIM() {
+  const container = document.getElementById('threeBimContainer');
+  if (!container) return;
+
+  sceneBim = new THREE.Scene();
+  sceneBim.background = new THREE.Color(0xfaf8f5);
+  sceneBim.fog = new THREE.Fog(0xfaf8f5, 20, 70);
+
+  const w = container.clientWidth || 450;
+  const h = container.clientHeight || 330;
+
+  cameraBim = new THREE.PerspectiveCamera(36, w / h, 0.1, 200);
+  cameraBim.position.set(3.8, 2.3, 4.4);
+
+  rendererBim = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  rendererBim.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+  rendererBim.setSize(w, h);
+  rendererBim.shadowMap.enabled = true;
+  rendererBim.shadowMap.type = THREE.PCFSoftShadowMap;
+  container.appendChild(rendererBim.domElement);
+
+  controlsBim = new THREE.OrbitControls(cameraBim, rendererBim.domElement);
+  controlsBim.enableDamping = true;
+  controlsBim.dampingFactor = 0.08;
+  controlsBim.target.set(0, 1.25, 0);
+  controlsBim.maxPolarAngle = Math.PI / 2 + 0.05;
+  controlsBim.minDistance = 1.2;
+  controlsBim.maxDistance = 50;
+
+  // Studio Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.92);
+  sceneBim.add(ambientLight);
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  keyLight.position.set(16, 26, 18);
+  keyLight.castShadow = true;
+  sceneBim.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.50);
+  fillLight.position.set(-15, 12, 12);
+  sceneBim.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
+  rimLight.position.set(0, 15, -18);
+  sceneBim.add(rimLight);
+
+  // Ground Plane & Grid
+  const groundGeo = new THREE.PlaneGeometry(50, 50);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85, metalness: 0.05 });
+  const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+  groundMesh.rotation.x = -Math.PI / 2;
+  groundMesh.receiveShadow = true;
+  sceneBim.add(groundMesh);
+
+  const grid = new THREE.GridHelper(30, 30, 0xcbd5e1, 0xe2e8f0);
+  grid.position.y = 0.01;
+  sceneBim.add(grid);
+
+  bimMacroGroup = new THREE.Group();
+  bimDetailGroup = new THREE.Group();
+  bimAnnotationGroup = new THREE.Group();
+
+  sceneBim.add(bimMacroGroup);
+  sceneBim.add(bimDetailGroup);
+  sceneBim.add(bimAnnotationGroup);
+
+  buildDetailColumnBase();
+  buildMacroStructure();
+
+  setBimCameraView(currentBimView);
+  animateBimLoop();
+}
+
+// -------------------------------------------------------------------------
+// 1. DETAIL RC COLUMN & REBAR CAGE SOLID MODEL
+// -------------------------------------------------------------------------
+function buildDetailColumnBase() {
+  while (bimDetailGroup.children.length > 0) {
+    const obj = bimDetailGroup.children.pop();
+    if (obj.geometry) obj.geometry.dispose();
+    bimDetailGroup.remove(obj);
+  }
+
+  colSegmentMeshes = [];
+  colSegmentEdges = [];
+  rebarMeshes = [];
+  tieHoopMeshes = [];
+
+  const bM = colB / 1000.0;
+  const dM = colH / 1000.0;
+  const colBaseY = 0.24;
+  const H0 = 2.4;
+
+  // 1. Foundation Footing (Ground level)
+  const footGeo = new THREE.BoxGeometry(1.8, 0.24, 1.8);
+  const footMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.65 });
+  colFootingMesh = new THREE.Mesh(footGeo, footMat);
+  colFootingMesh.position.set(0, 0.12, 0);
+  colFootingMesh.castShadow = true;
+  colFootingMesh.receiveShadow = true;
+
+  const footEdge = new THREE.LineSegments(new THREE.EdgesGeometry(footGeo), blackLineMat);
+  colFootingMesh.add(footEdge);
+  bimDetailGroup.add(colFootingMesh);
+
+  // 2. Concrete Column Shaft (12 Slices)
+  const nSegments = 12;
+  const segH = H0 / nSegments;
+  for (let i = 0; i < nSegments; i++) {
+    const segGeo = new THREE.BoxGeometry(bM, segH, dM);
+    const segMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.5,
+      metalness: 0.05,
+      transparent: true,
+      opacity: 0.88
+    });
+    const segMesh = new THREE.Mesh(segGeo, segMat);
+    segMesh.castShadow = true;
+    segMesh.receiveShadow = true;
+
+    const segEdge = new THREE.LineSegments(new THREE.EdgesGeometry(segGeo), blackLineMat);
+    segMesh.add(segEdge);
+
+    const s = (i + 0.5) / nSegments;
+    segMesh.position.set(0, colBaseY + s * H0, 0);
+
+    bimDetailGroup.add(segMesh);
+    colSegmentMeshes.push(segMesh);
+    colSegmentEdges.push(segEdge);
+  }
+
+  // 3. Top Cap
+  const capGeo = new THREE.BoxGeometry(bM + 0.20, 0.18, dM + 0.20);
+  const capMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6 });
+  colTopCapMesh = new THREE.Mesh(capGeo, capMat);
+  colTopCapMesh.position.set(0, colBaseY + H0 + 0.09, 0);
+  colTopCapMesh.castShadow = true;
+  colTopCapMesh.receiveShadow = true;
+
+  colTopCapEdge = new THREE.LineSegments(new THREE.EdgesGeometry(capGeo), blackLineMat);
+  colTopCapMesh.add(colTopCapEdge);
+  bimDetailGroup.add(colTopCapMesh);
+
+  // 4. 8 Longitudinal Rebars
+  // Normalized positions in cross-section: 4 corners + 4 mid-faces
+  const barOffsets = [
+    { u:  0.38, v:  0.38 }, // 1. (+, +)
+    { u: -0.38, v:  0.38 }, // 2. (-, +)
+    { u: -0.38, v: -0.38 }, // 3. (-, -)
+    { u:  0.38, v: -0.38 }, // 4. (+, -)
+    { u:  0.00, v:  0.38 }, // 5. Top Mid
+    { u:  0.00, v: -0.38 }, // 6. Bot Mid
+    { u:  0.38, v:  0.00 }, // 7. Right Mid
+    { u: -0.38, v:  0.00 }  // 8. Left Mid
+  ];
+
+  barOffsets.forEach((bo) => {
+    const curvePoints = [];
+    for (let k = 0; k <= 8; k++) {
+      const s = k / 8;
+      curvePoints.push(new THREE.Vector3(bo.u * bM, colBaseY + s * H0, bo.v * dM));
+    }
+    const curve = new THREE.CatmullRomCurve3(curvePoints);
+    const barGeo = new THREE.TubeGeometry(curve, 16, 0.020, 8, false);
+    const barMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7, // default tension blue
+      metalness: 0.75,
+      roughness: 0.25
+    });
+    const barMesh = new THREE.Mesh(barGeo, barMat);
+    barMesh.castShadow = true;
+    bimDetailGroup.add(barMesh);
+
+    rebarMeshes.push({
+      mesh: barMesh,
+      u: bo.u,
+      v: bo.v,
+      baseX: bo.u * bM,
+      baseZ: bo.v * dM
+    });
+  });
+
+  // 5. 6 Transverse Tie Hoops
+  const hoopHFracs = [0.15, 0.30, 0.45, 0.60, 0.75, 0.90];
+  hoopHFracs.forEach(frac => {
+    const hoopGroup = new THREE.Group();
+    const wH = bM - 0.06;
+    const dH = dM - 0.06;
+    const rH = 0.010;
+
+    const tieMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.35 });
+
+    // 4 rods forming rectangular hoop
+    const rodXGeo = new THREE.CylinderGeometry(rH, rH, wH, 6);
+    const rodZGeo = new THREE.CylinderGeometry(rH, rH, dH, 6);
+
+    const rod1 = new THREE.Mesh(rodXGeo, tieMat);
+    rod1.rotation.z = Math.PI / 2;
+    rod1.position.set(0, 0, dH / 2);
+
+    const rod2 = new THREE.Mesh(rodXGeo, tieMat);
+    rod2.rotation.z = Math.PI / 2;
+    rod2.position.set(0, 0, -dH / 2);
+
+    const rod3 = new THREE.Mesh(rodZGeo, tieMat);
+    rod3.rotation.x = Math.PI / 2;
+    rod3.position.set(wH / 2, 0, 0);
+
+    const rod4 = new THREE.Mesh(rodZGeo, tieMat);
+    rod4.rotation.x = Math.PI / 2;
+    rod4.position.set(-wH / 2, 0, 0);
+
+    hoopGroup.add(rod1, rod2, rod3, rod4);
+    hoopGroup.position.set(0, colBaseY + frac * H0, 0);
+
+    bimDetailGroup.add(hoopGroup);
+    tieHoopMeshes.push({ group: hoopGroup, frac: frac });
+  });
+
+  // 6. Whitney Compression Stress Block (Volumetric Amber)
+  whitneyBlockGroup = new THREE.Group();
+  const wbGeo = new THREE.BoxGeometry(bM * 0.96, 0.70, 0.25);
+  const wbMat = new THREE.MeshStandardMaterial({
+    color: 0xf97316,
+    transparent: true,
+    opacity: 0.82,
+    roughness: 0.35
+  });
+  whitneyBlockMesh = new THREE.Mesh(wbGeo, wbMat);
+  whitneyBlockMesh.position.set(0, 0.35, 0);
+  whitneyEdgeMesh = new THREE.LineSegments(new THREE.EdgesGeometry(wbGeo), blackLineMat);
+  whitneyBlockMesh.add(whitneyEdgeMesh);
+  whitneyBlockGroup.add(whitneyBlockMesh);
+  whitneyBlockGroup.position.set(0, colBaseY, 0);
+  bimDetailGroup.add(whitneyBlockGroup);
+
+  // 7. Axial Force 3D Arrow (P)
+  axialArrowGroup = new THREE.Group();
+  const arrowShaftGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.5, 12);
+  const arrowHeadGeo = new THREE.ConeGeometry(0.075, 0.18, 12);
+  const arrowMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.2, roughness: 0.3 });
+
+  const arrowShaft = new THREE.Mesh(arrowShaftGeo, arrowMat);
+  arrowShaft.name = 'shaft';
+  const arrowHead = new THREE.Mesh(arrowHeadGeo, arrowMat);
+  arrowHead.name = 'head';
+
+  axialArrowGroup.add(arrowShaft, arrowHead);
+  bimDetailGroup.add(axialArrowGroup);
+
+  // 8. Moment 3D Arc / Indicator (M)
+  momentArcGroup = new THREE.Group();
+  const torusGeo = new THREE.TorusGeometry(0.42, 0.022, 8, 24, Math.PI * 1.3);
+  const mMat = new THREE.MeshStandardMaterial({ color: 0x4f46e5, roughness: 0.3 });
+  const torusMesh = new THREE.Mesh(torusGeo, mMat);
+  torusMesh.rotation.x = Math.PI / 2;
+
+  const mHeadGeo = new THREE.ConeGeometry(0.055, 0.15, 8);
+  const mHead = new THREE.Mesh(mHeadGeo, mMat);
+  const arcAngle = Math.PI * 1.3;
+  mHead.position.set(0.42 * Math.cos(arcAngle), 0, 0.42 * Math.sin(arcAngle));
+  mHead.rotation.y = -arcAngle + Math.PI / 2;
+
+  momentArcGroup.add(torusMesh, mHead);
+  bimDetailGroup.add(momentArcGroup);
+}
+
+// -------------------------------------------------------------------------
+// 2. MACRO 2-STORY RC BUILDING FRAME
+// -------------------------------------------------------------------------
+function buildMacroStructure() {
+  while (bimMacroGroup.children.length > 0) {
+    const obj = bimMacroGroup.children.pop();
+    if (obj.geometry) obj.geometry.dispose();
+    bimMacroGroup.remove(obj);
+  }
+
+  macroColumnMeshes = [];
+  macroSlabMeshes = [];
+  macroBeamMeshes = [];
+  macroFootingMeshes = [];
+
+  const bW = 5.6;
+  const bD = 4.2;
+  const floorH = 2.2;
+  const nStories = 2;
+  const colThick = 0.32;
+  const slabThick = 0.20;
+  const beamW = 0.24;
+  const beamH = 0.32;
+
+  const colXCoords = [-bW / 2 + 0.4, 0, bW / 2 - 0.4];
+  const colZCoords = [-bD / 2 + 0.4, bD / 2 - 0.4];
+
+  // Footings
+  colXCoords.forEach(cx => {
+    colZCoords.forEach(cz => {
+      const footGeo = new THREE.BoxGeometry(0.85, 0.28, 0.85);
+      const footMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6 });
+      const footMesh = new THREE.Mesh(footGeo, footMat);
+      footMesh.position.set(cx, 0.14, cz);
+      const footEdge = new THREE.LineSegments(new THREE.EdgesGeometry(footGeo), blackLineMat);
+      footMesh.add(footEdge);
+      footMesh.receiveShadow = true;
+      bimMacroGroup.add(footMesh);
+      macroFootingMeshes.push(footMesh);
+    });
+  });
+
+  // Story Columns
+  for (let s = 1; s <= nStories; s++) {
+    const yBase = 0.28 + (s - 1) * floorH;
+    colXCoords.forEach((cx, xi) => {
+      colZCoords.forEach((cz, zi) => {
+        const isTarget = (s === 1 && xi === 1 && zi === 1); // Front center ground column
+        const colGeo = new THREE.BoxGeometry(colThick, floorH, colThick);
+        const colMat = new THREE.MeshStandardMaterial({
+          color: isTarget ? 0x2563eb : 0x94a3b8,
+          roughness: 0.5,
+          metalness: isTarget ? 0.2 : 0.05
+        });
+        const colMesh = new THREE.Mesh(colGeo, colMat);
+        colMesh.position.set(cx, yBase + floorH / 2, cz);
+        colMesh.castShadow = true;
+        colMesh.receiveShadow = true;
+
+        const colEdge = new THREE.LineSegments(
+          new THREE.EdgesGeometry(colGeo),
+          isTarget ? new THREE.LineBasicMaterial({ color: 0x1e3a8a, linewidth: 2 }) : blackLineMat
+        );
+        colMesh.add(colEdge);
+
+        bimMacroGroup.add(colMesh);
+        macroColumnMeshes.push({ mesh: colMesh, story: s, basePos: new THREE.Vector3(cx, yBase + floorH / 2, cz), isTarget });
+
+        if (isTarget) macroTargetColumn = colMesh;
+      });
+    });
+  }
+
+  // Floor Slabs & Beams
+  for (let s = 1; s <= nStories; s++) {
+    const ySlab = 0.28 + s * floorH;
+    const slabGeo = new THREE.BoxGeometry(bW + 0.5, slabThick, bD + 0.5);
+    const slabMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.45,
+      transparent: true,
+      opacity: 0.90
+    });
+    const slabMesh = new THREE.Mesh(slabGeo, slabMat);
+    slabMesh.position.set(0, ySlab + slabThick / 2, 0);
+    slabMesh.castShadow = true;
+    slabMesh.receiveShadow = true;
+
+    const slabEdge = new THREE.LineSegments(new THREE.EdgesGeometry(slabGeo), blackLineMat);
+    slabMesh.add(slabEdge);
+
+    bimMacroGroup.add(slabMesh);
+    macroSlabMeshes.push({ mesh: slabMesh, story: s, baseY: ySlab + slabThick / 2 });
+
+    // Perimeter Beams
+    const beamMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.55 });
+    // Along X
+    [-bD / 2 + 0.4, bD / 2 - 0.4].forEach(bz => {
+      const bGeo = new THREE.BoxGeometry(bW - 0.4, beamH, beamW);
+      const bMesh = new THREE.Mesh(bGeo, beamMat);
+      bMesh.position.set(0, ySlab - beamH / 2, bz);
+      const bEdge = new THREE.LineSegments(new THREE.EdgesGeometry(bGeo), blackLineMat);
+      bMesh.add(bEdge);
+      bimMacroGroup.add(bMesh);
+      macroBeamMeshes.push({ mesh: bMesh, story: s, basePos: new THREE.Vector3(0, ySlab - beamH / 2, bz) });
+    });
+    // Along Z
+    colXCoords.forEach(bx => {
+      const bGeo = new THREE.BoxGeometry(beamW, beamH, bD - 0.4);
+      const bMesh = new THREE.Mesh(bGeo, beamMat);
+      bMesh.position.set(bx, ySlab - beamH / 2, 0);
+      const bEdge = new THREE.LineSegments(new THREE.EdgesGeometry(bGeo), blackLineMat);
+      bMesh.add(bEdge);
+      bimMacroGroup.add(bMesh);
+      macroBeamMeshes.push({ mesh: bMesh, story: s, basePos: new THREE.Vector3(bx, ySlab - beamH / 2, 0) });
+    });
+  }
+
+  // Lateral Seismic Force Arrow on Roof Slab
+  const topY = 0.28 + nStories * floorH + slabThick + 0.25;
+  macroSeismicArrow = new THREE.ArrowHelper(
+    new THREE.Vector3(1, 0, 0),
+    new THREE.Vector3(-bW / 2 - 1.2, topY, 0),
+    1.6,
+    0xdc2626,
+    0.35,
+    0.20
+  );
+  bimMacroGroup.add(macroSeismicArrow);
+}
+
+// -------------------------------------------------------------------------
+// 3. BIM CAMERA MODES
+// -------------------------------------------------------------------------
+function setBimCameraView(mode) {
+  currentBimView = mode;
+  ['btnBimCol3d', 'btnBimRebar', 'btnBimFrame'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.classList.remove('active');
+  });
+
+  if (mode === 'col3d') {
+    const b = document.getElementById('btnBimCol3d');
+    if (b) b.classList.add('active');
+    bimDetailGroup.visible = true;
+    bimMacroGroup.visible = false;
+
+    // Concrete segments semi-opaque
+    colSegmentMeshes.forEach(mesh => {
+      mesh.material.opacity = 0.88;
+    });
+    if (colTopCapMesh) colTopCapMesh.material.opacity = 1.0;
+
+    controlsBim.target.set(0, 1.25, 0);
+    cameraBim.position.set(3.8, 2.3, 4.4);
+    controlsBim.update();
+  } else if (mode === 'rebar') {
+    const b = document.getElementById('btnBimRebar');
+    if (b) b.classList.add('active');
+    bimDetailGroup.visible = true;
+    bimMacroGroup.visible = false;
+
+    // Concrete segments X-Ray transparent
+    colSegmentMeshes.forEach(mesh => {
+      mesh.material.opacity = 0.18;
+    });
+    if (colTopCapMesh) colTopCapMesh.material.opacity = 0.35;
+
+    controlsBim.target.set(0, 1.20, 0);
+    cameraBim.position.set(3.0, 1.8, 3.4);
+    controlsBim.update();
+  } else if (mode === 'frame') {
+    const b = document.getElementById('btnBimFrame');
+    if (b) b.classList.add('active');
+    bimDetailGroup.visible = false;
+    bimMacroGroup.visible = true;
+
+    controlsBim.target.set(0, 2.1, 0);
+    cameraBim.position.set(9.2, 5.4, 10.0);
+    controlsBim.update();
+  }
+
+  if (rendererBim && sceneBim && cameraBim) {
+    rendererBim.render(sceneBim, cameraBim);
+  }
+}
+
+// -------------------------------------------------------------------------
+// 4. UPDATE 3D BIM (PHYSICAL DEFORMATION & SYNCHRONIZATION)
+// -------------------------------------------------------------------------
+function update3DBim(curPM, p0_data) {
+  if (!sceneBim) return;
+
+  const bM = colB / 1000.0;
+  const dM = colH / 1000.0;
+  const colBaseY = 0.24;
+  const H0 = 2.4;
+
   // 1. Axial deformation
   const maxP0 = Math.max(1, p0_data.P0);
-  const pRatio = curPM.Pn / maxP0;
   let deltaH = 0;
-  let deltaW = 0;
   if (curPM.Pn >= 0) {
-    deltaH = -Math.min(26, Math.max(0, pRatio) * 22);
-    deltaW = Math.abs(deltaH) * 0.35;
+    deltaH = -Math.min(0.20, (curPM.Pn / maxP0) * 0.15); // shortening
   } else {
     const tRatio = Math.abs(curPM.Pn) / (Math.abs(p0_data.Pnt) + 1e-5);
-    deltaH = Math.min(22, tRatio * 18);
-    deltaW = -deltaH * 0.25;
+    deltaH = Math.min(0.18, tRatio * 0.12); // elongation
   }
-  const colH_px = Math.max(120, baseH + deltaH);
-  const colW_px = Math.max(36, baseW + deltaW);
+  const Heff = Math.max(1.6, H0 + deltaH);
 
-  // 2. Bending lateral deflection (Cantilever under end moment M)
+  // 2. Bending lateral deflection
   const maxM_ref = 1000.0;
   const mRatio = curPM.Mn / maxM_ref;
-  const deltaTip = Math.max(-55, Math.min(55, mRatio * 44));
+  const deltaTip = Math.max(-0.45, Math.min(0.45, mRatio * 0.35));
 
-  const nSegments = 30;
-  const leftPts = [];
-  const rightPts = [];
-  const centerPts = [];
+  // Biaxial orientation
+  const rad = (biaxialAngleDeg * Math.PI) / 180.0;
+  const cosT = Math.cos(rad);
+  const sinT = Math.sin(rad);
 
-  for (let i = 0; i <= nSegments; i++) {
-    const s = i / nSegments;
-    const y = baseY - s * colH_px;
+  const nSegments = colSegmentMeshes.length;
+  const segH = Heff / nSegments;
+
+  // 3. Update Concrete Column Segments
+  for (let i = 0; i < nSegments; i++) {
+    const s = (i + 0.5) / nSegments;
     const sway = deltaTip * (1.0 - Math.cos((Math.PI * 0.5) * s));
-    const slope = deltaTip * ((Math.PI * 0.5) / colH_px) * Math.sin((Math.PI * 0.5) * s);
-    const cx = baseX + sway;
+    const slope = deltaTip * ((Math.PI * 0.5) / Heff) * Math.sin((Math.PI * 0.5) * s);
 
-    centerPts.push({ x: cx, y: y, s: s, slope: slope });
-    leftPts.push({ x: cx - colW_px * 0.5, y: y });
-    rightPts.push({ x: cx + colW_px * 0.5, y: y });
+    const mesh = colSegmentMeshes[i];
+    mesh.scale.set(bM / 0.6, segH / (H0 / 12), dM / 0.6);
+    mesh.position.set(sway * cosT, colBaseY + s * Heff, sway * sinT);
+
+    // Rotation perpendicular to sway direction
+    mesh.rotation.set(-slope * sinT, 0, slope * cosT);
   }
 
-  const tipPt = centerPts[centerPts.length - 1];
-
-  // Grid & Guide lines
-  deformCtx.strokeStyle = '#f8fafc';
-  deformCtx.lineWidth = 1;
-  deformCtx.beginPath();
-  deformCtx.moveTo(baseX, 15);
-  deformCtx.lineTo(baseX, baseY);
-  deformCtx.stroke();
-
-  // Fixed Base / Footing (Ground Hatch)
-  const footW = colW_px + 70;
-  const footH = 14;
-  deformCtx.fillStyle = '#f1f5f9';
-  deformCtx.strokeStyle = '#94a3b8';
-  deformCtx.lineWidth = 1.5;
-  deformCtx.fillRect(baseX - footW / 2, baseY, footW, footH);
-  deformCtx.strokeRect(baseX - footW / 2, baseY, footW, footH);
-
-  // Ground Hatch lines
-  deformCtx.strokeStyle = '#cbd5e1';
-  deformCtx.lineWidth = 1.2;
-  for (let gx = baseX - footW / 2 + 5; gx <= baseX + footW / 2; gx += 10) {
-    deformCtx.beginPath();
-    deformCtx.moveTo(gx, baseY + footH);
-    deformCtx.lineTo(gx - 6, baseY + footH + 8);
-    deformCtx.stroke();
+  // 4. Update Top Cap
+  const tipSway = deltaTip;
+  const tipSlope = deltaTip * ((Math.PI * 0.5) / Heff);
+  if (colTopCapMesh) {
+    colTopCapMesh.scale.set((bM + 0.20) / 0.80, 1, (dM + 0.20) / 0.80);
+    colTopCapMesh.position.set(tipSway * cosT, colBaseY + Heff + 0.09, tipSway * sinT);
+    colTopCapMesh.rotation.set(-tipSlope * sinT, 0, tipSlope * cosT);
   }
 
-  // Undistorted Initial Ghost Boundary (Dotted light outline)
-  deformCtx.save();
-  deformCtx.strokeStyle = '#e2e8f0';
-  deformCtx.lineWidth = 1.2;
-  deformCtx.setLineDash([3, 3]);
-  deformCtx.strokeRect(baseX - baseW / 2, baseY - baseH, baseW, baseH);
-  deformCtx.restore();
+  // 5. Update 8 Rebars
+  const rebarTensionColor = 0x0284c7; // Deep blue
+  const rebarCompColor = 0xdc2626;    // Crimson red
+  const rebarYieldColor = 0x38bdf8;   // Vibrant cyan
 
-  // Deformed Concrete Column Body
-  deformCtx.save();
-  deformCtx.beginPath();
-  deformCtx.moveTo(leftPts[0].x, leftPts[0].y);
-  for (let i = 1; i < leftPts.length; i++) deformCtx.lineTo(leftPts[i].x, leftPts[i].y);
-  for (let i = rightPts.length - 1; i >= 0; i--) deformCtx.lineTo(rightPts[i].x, rightPts[i].y);
-  deformCtx.closePath();
-
-  const colGrad = deformCtx.createLinearGradient(baseX - baseW, baseY, baseX + baseW + deltaTip, baseY - colH_px);
-  colGrad.addColorStop(0, '#f8fafc');
-  colGrad.addColorStop(0.5, '#f1f5f9');
-  colGrad.addColorStop(1, '#e2e8f0');
-  deformCtx.fillStyle = colGrad;
-  deformCtx.fill();
-  deformCtx.strokeStyle = '#64748b';
-  deformCtx.lineWidth = 1.8;
-  deformCtx.stroke();
-  deformCtx.restore();
-
-  // Internal Longitudinal Rebars (Left & Right)
-  const coverPx = 6.5;
-  deformCtx.save();
-  const leftTension = (curPM.Mn > 20);
-  deformCtx.strokeStyle = leftTension ? '#0284c7' : '#ea580c';
-  deformCtx.lineWidth = 2.4;
-  deformCtx.beginPath();
-  for (let i = 0; i < centerPts.length; i++) {
-    const rx = centerPts[i].x - (colW_px * 0.5 - coverPx);
-    const ry = centerPts[i].y;
-    if (i === 0) deformCtx.moveTo(rx, ry); else deformCtx.lineTo(rx, ry);
-  }
-  deformCtx.stroke();
-
-  const rightTension = (curPM.Mn < -20);
-  deformCtx.strokeStyle = rightTension ? '#0284c7' : '#dc2626';
-  deformCtx.lineWidth = 2.4;
-  deformCtx.beginPath();
-  for (let i = 0; i < centerPts.length; i++) {
-    const rx = centerPts[i].x + (colW_px * 0.5 - coverPx);
-    const ry = centerPts[i].y;
-    if (i === 0) deformCtx.moveTo(rx, ry); else deformCtx.lineTo(rx, ry);
-  }
-  deformCtx.stroke();
-  deformCtx.restore();
-
-  // Transverse Ties (Hoops)
-  deformCtx.save();
-  deformCtx.strokeStyle = '#94a3b8';
-  deformCtx.lineWidth = 1.4;
-  const nTies = 6;
-  for (let t = 1; t <= nTies; t++) {
-    const idx = Math.round((t / (nTies + 1)) * nSegments);
-    const pL = leftPts[idx];
-    const pR = rightPts[idx];
-    deformCtx.beginPath();
-    deformCtx.moveTo(pL.x + 3, pL.y);
-    deformCtx.lineTo(pR.x - 3, pR.y);
-    deformCtx.stroke();
-  }
-  deformCtx.restore();
-
-  // Dynamic Flexural Tension Cracks (if M is significant)
-  if (Math.abs(curPM.Mn) > 120) {
-    deformCtx.save();
-    deformCtx.strokeStyle = '#0369a1';
-    deformCtx.lineWidth = 1.2;
-    const nCracks = Math.min(4, Math.floor(Math.abs(curPM.Mn) / 220) + 1);
-    for (let c = 1; c <= nCracks; c++) {
-      const idx = Math.round((c * 0.15) * nSegments);
-      const startPt = (curPM.Mn > 0) ? leftPts[idx] : rightPts[idx];
-      const dir = (curPM.Mn > 0) ? 1 : -1;
-      const cLen = 6 + (Math.abs(curPM.Mn) / maxM_ref) * 12;
-      deformCtx.beginPath();
-      deformCtx.moveTo(startPt.x, startPt.y);
-      deformCtx.lineTo(startPt.x + dir * (cLen * 0.6), startPt.y - 1.5);
-      deformCtx.lineTo(startPt.x + dir * cLen, startPt.y + 1);
-      deformCtx.stroke();
+  rebarMeshes.forEach(rb => {
+    const pts = [];
+    for (let k = 0; k <= 8; k++) {
+      const s = k / 8;
+      const sway = deltaTip * (1.0 - Math.cos((Math.PI * 0.5) * s));
+      pts.push(new THREE.Vector3(
+        rb.u * bM + sway * cosT,
+        colBaseY + s * Heff,
+        rb.v * dM + sway * sinT
+      ));
     }
-    deformCtx.restore();
+    rb.mesh.geometry.dispose();
+    const newCurve = new THREE.CatmullRomCurve3(pts);
+    rb.mesh.geometry = new THREE.TubeGeometry(newCurve, 16, 0.020, 8, false);
+
+    // Stress color based on biaxial projection
+    const dProj = rb.u * cosT + rb.v * sinT; // distance along bending direction
+    if (curPM.Pn < 0) {
+      rb.mesh.material.color.setHex(rebarTensionColor);
+    } else if (dProj > 0.08) {
+      rb.mesh.material.color.setHex(curPM.eps_t >= 0.005 ? rebarYieldColor : rebarTensionColor);
+    } else if (dProj < -0.08) {
+      rb.mesh.material.color.setHex(rebarCompColor);
+    } else {
+      rb.mesh.material.color.setHex(0xd97706); // intermediate amber
+    }
+  });
+
+  // 6. Update Transverse Tie Hoops
+  tieHoopMeshes.forEach(th => {
+    const s = th.frac;
+    const sway = deltaTip * (1.0 - Math.cos((Math.PI * 0.5) * s));
+    const slope = deltaTip * ((Math.PI * 0.5) / Heff) * Math.sin((Math.PI * 0.5) * s);
+    th.group.position.set(sway * cosT, colBaseY + s * Heff, sway * sinT);
+    th.group.rotation.set(-slope * sinT, 0, slope * cosT);
+    th.group.scale.set((bM - 0.06) / 0.54, 1, (dM - 0.06) / 0.54);
+  });
+
+  // 7. Update Whitney Stress Block
+  if (whitneyBlockGroup && whitneyBlockMesh) {
+    if (curPM.Pn >= 0 && curPM.a > 0) {
+      whitneyBlockGroup.visible = true;
+      const a3d = Math.max(0.04, Math.min(dM, (curPM.a / colH) * dM));
+      whitneyBlockMesh.scale.set(bM / 0.6, 1, a3d / 0.25);
+
+      // Block is placed on compression face: opposite to sway direction
+      const compShift = -(dM / 2 - a3d / 2);
+      whitneyBlockMesh.position.set(compShift * cosT, 0.35, compShift * sinT);
+      whitneyBlockMesh.rotation.y = -rad;
+    } else {
+      whitneyBlockGroup.visible = false;
+    }
   }
 
-  // DYNAMIC AXIAL FORCE ARROW (P) on Column Top
+  // 8. Update Axial Force Arrow (P)
+  let arrowLen = 0.40;
   const isComp = (curPM.Pn >= 0);
-  const pNorm = Math.min(1.8, Math.abs(curPM.Pn) / (p0_data.P0 * 0.75 + 1e-5));
-  const pArrowLen = 18 + pNorm * 28;
-  const pArrCol = isComp ? '#dc2626' : '#0284c7';
-  const tx = tipPt.x;
-  const ty = tipPt.y;
+  if (axialArrowGroup) {
+    const pNorm = Math.min(1.6, Math.abs(curPM.Pn) / (p0_data.P0 * 0.75 + 1e-5));
+    arrowLen = 0.28 + pNorm * 0.32;
+    const shaft = axialArrowGroup.getObjectByName('shaft');
+    const head = axialArrowGroup.getObjectByName('head');
 
-  deformCtx.save();
-  deformCtx.strokeStyle = pArrCol;
-  deformCtx.fillStyle = pArrCol;
-  deformCtx.lineWidth = 2.8 + pNorm * 0.8;
-  deformCtx.lineCap = 'round';
+    const topX = tipSway * cosT;
+    const topY = colBaseY + Heff + 0.18;
+    const topZ = tipSway * sinT;
 
-  if (isComp) {
-    deformCtx.beginPath();
-    deformCtx.moveTo(tx, ty - pArrowLen);
-    deformCtx.lineTo(tx, ty);
-    deformCtx.stroke();
+    shaft.scale.set(1 + pNorm * 0.25, arrowLen / 0.5, 1 + pNorm * 0.25);
+    head.scale.set(1 + pNorm * 0.25, 1, 1 + pNorm * 0.25);
 
-    deformCtx.beginPath();
-    deformCtx.moveTo(tx, ty);
-    deformCtx.lineTo(tx - 5.5, ty - 9);
-    deformCtx.lineTo(tx + 5.5, ty - 9);
-    deformCtx.closePath();
-    deformCtx.fill();
+    const col = isComp ? 0xdc2626 : 0x0284c7;
+    shaft.material.color.setHex(col);
+    head.material.color.setHex(col);
 
-    deformCtx.font = 'bold 10px monospace';
-    deformCtx.textAlign = 'center';
-    deformCtx.fillText(`P = ${curPM.Pn.toFixed(0)} kN (압축)`, tx, ty - pArrowLen - 6);
-  } else {
-    deformCtx.beginPath();
-    deformCtx.moveTo(tx, ty);
-    deformCtx.lineTo(tx, ty - pArrowLen);
-    deformCtx.stroke();
-
-    deformCtx.beginPath();
-    deformCtx.moveTo(tx, ty - pArrowLen);
-    deformCtx.lineTo(tx - 5.5, ty - pArrowLen + 9);
-    deformCtx.lineTo(tx + 5.5, ty - pArrowLen + 9);
-    deformCtx.closePath();
-    deformCtx.fill();
-
-    deformCtx.font = 'bold 10px monospace';
-    deformCtx.textAlign = 'center';
-    deformCtx.fillText(`P = ${curPM.Pn.toFixed(0)} kN (인장)`, tx, ty - pArrowLen - 6);
-  }
-  deformCtx.restore();
-
-  // DYNAMIC MOMENT ARROW (Rz: In-Plane 2D Rotation about Z-axis perpendicular to screen)
-  const absM = Math.abs(curPM.Mn);
-  if (absM > 10) {
-    const mNorm = Math.min(1.8, absM / 650.0);
-    const mRadius = 24 + mNorm * 18;
-    const mCol = '#4f46e5';
-
-    deformCtx.save();
-    deformCtx.strokeStyle = mCol;
-    deformCtx.fillStyle = mCol;
-    deformCtx.lineWidth = 2.2 + mNorm * 1.0;
-    deformCtx.lineCap = 'round';
-
-    const rotCenterX = tx;
-    const rotCenterY = ty;
-    const startAng = Math.PI * 1.05;
-    const endAng = Math.PI * 1.95;
-
-    deformCtx.beginPath();
-    deformCtx.arc(rotCenterX, rotCenterY, mRadius, startAng, endAng, false);
-    deformCtx.stroke();
-
-    const arrowX = rotCenterX + mRadius * Math.cos(endAng);
-    const arrowY = rotCenterY + mRadius * Math.sin(endAng);
-    const tangent = endAng + Math.PI / 2.0;
-
-    const headLen = 6 + mNorm * 2;
-    deformCtx.beginPath();
-    deformCtx.moveTo(arrowX, arrowY);
-    deformCtx.lineTo(arrowX - headLen * Math.cos(tangent - 0.45), arrowY - headLen * Math.sin(tangent - 0.45));
-    deformCtx.lineTo(arrowX - headLen * Math.cos(tangent + 0.45), arrowY - headLen * Math.sin(tangent + 0.45));
-    deformCtx.closePath();
-    deformCtx.fill();
-
-    deformCtx.font = 'bold 10px monospace';
-    deformCtx.textAlign = 'left';
-    deformCtx.fillText(`M(Rz) = ${curPM.Mn.toFixed(0)} kNm`, arrowX + 5, arrowY + 2);
-    deformCtx.restore();
+    if (isComp) {
+      // Downward pushing
+      axialArrowGroup.position.set(topX, topY + arrowLen, topZ);
+      shaft.position.set(0, -arrowLen / 2, 0);
+      head.position.set(0, -arrowLen, 0);
+      head.rotation.set(Math.PI, 0, 0);
+    } else {
+      // Upward pulling
+      axialArrowGroup.position.set(topX, topY, topZ);
+      shaft.position.set(0, arrowLen / 2, 0);
+      head.position.set(0, arrowLen, 0);
+      head.rotation.set(0, 0, 0);
+    }
   }
 
-  // HUD Info Badge
-  deformCtx.save();
-  deformCtx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-  deformCtx.strokeStyle = '#e2e8f0';
-  deformCtx.lineWidth = 1;
-  deformCtx.beginPath();
-  deformCtx.rect(10, h - 68, 140, 56);
-  deformCtx.fill();
-  deformCtx.stroke();
+  // 9. Update Moment Arc (M)
+  if (momentArcGroup) {
+    const topX = tipSway * cosT;
+    const topY = colBaseY + Heff + 0.18;
+    const topZ = tipSway * sinT;
+    momentArcGroup.position.set(topX, topY, topZ);
+    momentArcGroup.rotation.y = rad;
+    const mNorm = Math.min(1.5, Math.abs(curPM.Mn) / 800.0);
+    momentArcGroup.scale.set(0.6 + mNorm * 0.4, 1, 0.6 + mNorm * 0.4);
+    momentArcGroup.visible = (Math.abs(curPM.Mn) > 15);
+  }
 
-  deformCtx.font = 'bold 9px Pretendard, sans-serif';
-  deformCtx.fillStyle = '#475569';
-  deformCtx.fillText('변형량 (Deformation)', 16, h - 53);
+  // 10. Update HUD Badge in DOM
+  const bimStatusEl = document.getElementById('bimColumnStatus');
+  const bimPmEl = document.getElementById('bimColumnPM');
+  if (bimStatusEl) {
+    if (curPM.Pn > p0_data.Pn_max) {
+      bimStatusEl.style.color = '#dc2626';
+      bimStatusEl.innerText = '0.80P0 초과 비허용';
+    } else if (curPM.eps_t >= 0.005) {
+      bimStatusEl.style.color = '#16a34a';
+      bimStatusEl.innerText = '인장지배 (연성)';
+    } else if (curPM.eps_t <= fy / 200000.0) {
+      bimStatusEl.style.color = '#ea580c';
+      bimStatusEl.innerText = '압축지배 (취성)';
+    } else {
+      bimStatusEl.style.color = '#ca8a04';
+      bimStatusEl.innerText = '천이지배 (전이구간)';
+    }
+  }
+  if (bimPmEl) {
+    bimPmEl.innerText = `φPn=${curPM.phiPn.toFixed(0)}kN, φMn=${curPM.phiMn.toFixed(0)}kNm (θ=${biaxialAngleDeg.toFixed(0)}°)`;
+  }
 
-  deformCtx.font = '9px monospace';
-  deformCtx.fillStyle = '#0f172a';
-  const signSway = deltaTip >= 0 ? '+' : '';
-  deformCtx.fillText(`횡처짐 Δ : ${signSway}${deltaTip.toFixed(1)} mm`, 16, h - 39);
-  const signH = deltaH >= 0 ? '+' : '';
-  deformCtx.fillText(`축단축 ΔH : ${signH}${deltaH.toFixed(1)} mm`, 16, h - 25);
-  deformCtx.restore();
+  // 12. Update Macro Structure Sway
+  if (macroColumnMeshes.length > 0) {
+    const macroDrift = deltaTip * 1.8;
+    macroColumnMeshes.forEach(col => {
+      const s = col.story;
+      const drift = (s === 1) ? macroDrift * 0.5 : macroDrift;
+      col.mesh.position.set(col.basePos.x + drift * cosT, col.basePos.y, col.basePos.z + drift * sinT);
+      if (col.isTarget) {
+        col.mesh.material.color.setHex(curPM.eps_t >= 0.005 ? 0x10b981 : (curPM.eps_t <= fy/200000.0 ? 0xea580c : 0x2563eb));
+      }
+    });
 
-  // Coordinate Legend
-  deformCtx.save();
-  deformCtx.font = 'bold 9px monospace';
-  deformCtx.fillStyle = '#64748b';
-  deformCtx.textAlign = 'right';
-  deformCtx.fillText('화면 수직 Z축 휨 (Rz)', w - 10, h - 14);
-  deformCtx.restore();
+    macroSlabMeshes.forEach(slab => {
+      const drift = (slab.story === 1) ? macroDrift * 0.5 : macroDrift;
+      slab.mesh.position.set(drift * cosT, slab.baseY, drift * sinT);
+    });
+
+    macroBeamMeshes.forEach(beam => {
+      const drift = (beam.story === 1) ? macroDrift * 0.5 : macroDrift;
+      beam.mesh.position.set(beam.basePos.x + drift * cosT, beam.basePos.y, beam.basePos.z + drift * sinT);
+    });
+
+    if (macroSeismicArrow) {
+      macroSeismicArrow.setDirection(new THREE.Vector3(cosT, 0, sinT));
+    }
+  }
+
+  // Synchronous Render
+  if (rendererBim && sceneBim && cameraBim) {
+    rendererBim.render(sceneBim, cameraBim);
+  }
+}
+
+function animateBimLoop() {
+  requestAnimationFrame(animateBimLoop);
+  if (controlsBim) controlsBim.update();
+  if (rendererBim && sceneBim && cameraBim) {
+    rendererBim.render(sceneBim, cameraBim);
+  }
+}
+
+function handleBimResize() {
+  if (rendererBim && cameraBim) {
+    const container = document.getElementById('threeBimContainer');
+    if (!container) return;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    cameraBim.aspect = w / h;
+    cameraBim.updateProjectionMatrix();
+    rendererBim.setSize(w, h);
+  }
 }
 
 // -------------------------------------------------------------
@@ -2024,6 +2568,7 @@ function initZentryCards() {
 // INIT
 window.addEventListener('load', () => {
   initThree3D();
+  initThreeBIM();
   updateParams();
   initZentryCards();
 });
@@ -2036,10 +2581,11 @@ window.addEventListener('resize', () => {
     camera3d.updateProjectionMatrix();
     renderer3d.setSize(w, h);
   }
+  handleBimResize();
   const currentC = chRatio * colH;
   const curPM = computePM(currentC, biaxialAngleDeg);
   const p0_data = computeP0();
-  drawColumnDeformation2D(curPM, p0_data);
+  update3DBim(curPM, p0_data);
   drawInteractionDiagram(curPM, p0_data);
   drawStrainProfile(curPM);
   drawStressBlock(curPM);
