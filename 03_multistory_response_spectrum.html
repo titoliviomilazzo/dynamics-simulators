@@ -888,14 +888,14 @@
       baseMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(baseGeom), new THREE.LineBasicMaterial({ color: 0x475569 })));
       threeFrameScene.add(baseMesh);
 
-      // 2. 3개 층 (1F, 2F, 3F) 슬래브 & 각 층 4개 코너 기둥
+      // 2. 3개 층 (1F, 2F, 3F) 슬래브
       const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 });
       const slabEdgesMat = new THREE.LineBasicMaterial({ color: 0x334155, linewidth: 1.5 });
-      const colMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3 });
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.35 });
 
       const colOffsetX = slabW / 2 - 0.45;
       const colOffsetZ = slabD / 2 - 0.45;
-      const colRadius = 0.24;
+      const colWidth = 0.48;
 
       for (let s = 1; s <= 3; s++) {
         // 층 슬래브 그룹
@@ -910,20 +910,37 @@
         sGroup.userData = { baseY: yLevel, story: s };
         threeFrameScene.add(sGroup);
         slabMeshes.push(sGroup);
-
-        // 해당 층 4개 기둥 (s-1층과 s층 슬래브 연결)
-        const storyCols = [];
-        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
-          const colGeom = new THREE.CylinderGeometry(colRadius, colRadius, storyH - slabH, 12);
-          const col = new THREE.Mesh(colGeom, colMat);
-          const colBaseY = 0.8 + (s - 1) * storyH + (storyH - slabH) / 2;
-          col.position.set(cx * colOffsetX, colBaseY, cz * colOffsetZ);
-          col.userData = { cx: cx * colOffsetX, cz: cz * colOffsetZ, baseY: colBaseY, story: s };
-          threeFrameScene.add(col);
-          storyCols.push(col);
-        });
-        colMeshes.push(storyCols);
       }
+
+      // 4 Continuous Smooth Columns (Hermite Cubic Double-Curvature, Zero Kinks/Pixels)
+      const totalColH = 3 * storyH;
+      const segmentsY = 48; // 16 segments per story for ultra-smooth bending
+      continuousColumns = [];
+
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+        // Footing pad
+        const footGeo = new THREE.BoxGeometry(1.4, 0.25, 1.4);
+        const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x64748b }));
+        foot.position.set(cx * colOffsetX, 0.925, cz * colOffsetZ);
+        threeFrameScene.add(foot);
+
+        const colGeo = new THREE.BoxGeometry(colWidth, totalColH, colWidth, 1, segmentsY, 1);
+        colGeo.translate(0, totalColH / 2, 0);
+
+        const col = new THREE.Mesh(colGeo, colMat);
+        col.position.set(cx * colOffsetX, 0.8, cz * colOffsetZ);
+        col.castShadow = true;
+        col.receiveShadow = true;
+        threeFrameScene.add(col);
+
+        continuousColumns.push({
+          mesh: col,
+          geo: colGeo,
+          origPositions: new Float32Array(colGeo.attributes.position.array),
+          baseX: cx * colOffsetX,
+          totalH: totalColH
+        });
+      });
 
       // 3. 3D CAD 정밀 치수선 (H = 12.0m & 층별 표고 태그)
       const dimX = -slabW / 2 - 2.5;
@@ -985,21 +1002,28 @@
         sGroup.position.x = xs[idx];
       });
 
-      // 기둥 실시간 휨 경사 및 이동
+      // 기둥 연속 곡면 이중곡률(Double-Curvature) Hermite 변형 (마인크래프트/픽셀화 완전 제거)
       const storyH = 3.6;
       const prevXs = [bX, x1, x2];
-      for (let s = 0; s < 3; s++) {
-        const lowerX = prevXs[s];
-        const upperX = xs[s];
-        const midX = (lowerX + upperX) / 2;
-        const drift = upperX - lowerX;
-        const tiltZ = -Math.atan2(drift, storyH);
 
-        colMeshes[s].forEach(col => {
-          col.position.x = col.userData.cx + midX;
-          col.rotation.z = tiltZ;
-        });
-      }
+      continuousColumns.forEach(col => {
+        const positions = col.geo.attributes.position.array;
+        const orig = col.origPositions;
+
+        for (let i = 0; i < positions.length; i += 3) {
+          const origX = orig[i];
+          const y = orig[i + 1]; // 0 ~ totalColH (10.8m)
+          const storyIdx = Math.max(0, Math.min(2, Math.floor(y / storyH)));
+          const localY = y - storyIdx * storyH;
+          const sNorm = Math.max(0, Math.min(1, localY / storyH));
+          const hermite = 3 * sNorm * sNorm - 2 * sNorm * sNorm * sNorm;
+          const storyDisp = prevXs[storyIdx] + (xs[storyIdx] - prevXs[storyIdx]) * hermite;
+
+          positions[i] = origX + storyDisp;
+        }
+        col.geo.attributes.position.needsUpdate = true;
+        col.geo.computeVertexNormals();
+      });
 
       threeFrameControls.update();
       threeFrameRenderer.render(threeFrameScene, threeFrameCamera);

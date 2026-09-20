@@ -417,7 +417,7 @@
     const threeContainer = document.getElementById('superThreeContainer');
     let scene, camera, renderer, controls;
     let bldgGroup, bedrockGroup;
-    let bldgColumns = [];
+    let continuousColumns = [];
 
     function initThree() {
       scene = new THREE.Scene();
@@ -511,9 +511,10 @@
         bldgGroup.add(floorGrp);
       }
 
-      // 4 Columns segmented into 24 vertical slices
-      const sliceCount = 24;
-      const sliceH = 12.0 / sliceCount;
+      // 4 Continuous Smooth Columns (Hermite Cubic Spline, Zero Slices)
+      const totalH = 12.0;
+      const colWidth = 0.42;
+      const segmentsY = 36;
       const colPositions = [
         [-3.0, -2.0],
         [3.0, -2.0],
@@ -521,24 +522,32 @@
         [3.0, 2.0]
       ];
 
-      bldgColumns = [];
+      continuousColumns = [];
       const colMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
 
       for (let pos of colPositions) {
-        const colSlices = [];
-        for (let i = 0; i < sliceCount; i++) {
-          const sliceGeo = new THREE.BoxGeometry(0.4, sliceH, 0.4);
-          const slice = new THREE.Mesh(sliceGeo, colMat);
-          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
-          slice.castShadow = true;
-          bldgGroup.add(slice);
-          colSlices.push({
-            mesh: slice,
-            baseX: pos[0],
-            normZ: (i + 0.5) / sliceCount
-          });
-        }
-        bldgColumns.push(colSlices);
+        // Footing pad
+        const footGeo = new THREE.BoxGeometry(1.4, 0.25, 1.4);
+        const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x64748b }));
+        foot.position.set(pos[0], 0.125, pos[1]);
+        bldgGroup.add(foot);
+
+        const colGeo = new THREE.BoxGeometry(colWidth, totalH, colWidth, 1, segmentsY, 1);
+        colGeo.translate(0, totalH / 2, 0);
+
+        const colMesh = new THREE.Mesh(colGeo, colMat);
+        colMesh.position.set(pos[0], 0, pos[1]);
+        colMesh.castShadow = true;
+        colMesh.receiveShadow = true;
+        bldgGroup.add(colMesh);
+
+        continuousColumns.push({
+          mesh: colMesh,
+          geo: colGeo,
+          origPositions: new Float32Array(colGeo.attributes.position.array),
+          baseX: pos[0],
+          totalH: totalH
+        });
       }
     }
 
@@ -582,11 +591,16 @@
         bedrockGroup.position.x = ug;
         bldgGroup.position.x = ug;
 
-        // Columns deflection
-        bldgColumns.forEach(col => {
-          col.forEach(sl => {
-            const z = sl.normZ;
-            // Mode shape values
+        // Continuous smooth columns deflection
+        continuousColumns.forEach(col => {
+          const positions = col.geo.attributes.position.array;
+          const orig = col.origPositions;
+          const H = col.totalH;
+
+          for (let i = 0; i < positions.length; i += 3) {
+            const origX = orig[i];
+            const y = orig[i + 1];
+            const z = Math.max(0, Math.min(1, y / H));
             const phi1 = 1.5 * z * z - 0.5 * z * z * z;
             const phi2 = Math.sin(z * Math.PI * 1.5);
             const phi3 = Math.sin(z * Math.PI * 2.5);
@@ -596,9 +610,10 @@
             const y3 = getAmp('m3') * Math.cos(modes[2].w * time);
 
             const totalDrift = (phi1 * y1 * 0.7 + phi2 * y2 * 0.4 + phi3 * y3 * 0.2) * ampMultiplier;
-            sl.mesh.position.x = sl.baseX + totalDrift;
-            sl.mesh.rotation.z = -totalDrift * 0.08;
-          });
+            positions[i] = origX + totalDrift;
+          }
+          col.geo.attributes.position.needsUpdate = true;
+          col.geo.computeVertexNormals();
         });
 
         // Floor Slabs deflection

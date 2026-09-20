@@ -459,7 +459,7 @@
     const threeOmaContainer = document.getElementById('threeOmaContainer');
     let scene, camera, renderer, controls;
     let bldgGroup, bedrockGroup;
-    let bldgSlices = [];
+    let continuousColumns = [];
 
     function initThree() {
       scene = new THREE.Scene();
@@ -541,27 +541,40 @@
         bldgGroup.add(floorGrp);
       }
 
-      // Columns
-      const sliceCount = 18;
+      // Continuous Smooth Columns (Hermite Cubic Spline, Zero Slices)
       const totalH = 10.5;
-      const sliceH = totalH / sliceCount;
+      const colWidth = 0.38;
+      const segmentsY = 36;
       const colPositions = [
         [-2.5, -1.8], [2.5, -1.8],
         [-2.5, 1.8], [2.5, 1.8]
       ];
 
-      bldgSlices = [];
+      continuousColumns = [];
       const colMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 });
 
       for (let pos of colPositions) {
-        for (let i = 0; i < sliceCount; i++) {
-          const sliceGeo = new THREE.BoxGeometry(0.35, sliceH, 0.35);
-          const slice = new THREE.Mesh(sliceGeo, colMat);
-          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
-          slice.castShadow = true;
-          bldgGroup.add(slice);
-          bldgSlices.push({ mesh: slice, baseX: pos[0], normZ: (i + 0.5) / sliceCount });
-        }
+        // Footing pad
+        const footGeo = new THREE.BoxGeometry(1.2, 0.25, 1.2);
+        const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x64748b }));
+        foot.position.set(pos[0], 0.125, pos[1]);
+        bldgGroup.add(foot);
+
+        const colGeo = new THREE.BoxGeometry(colWidth, totalH, colWidth, 1, segmentsY, 1);
+        colGeo.translate(0, totalH / 2, 0);
+
+        const colMesh = new THREE.Mesh(colGeo, colMat);
+        colMesh.position.set(pos[0], 0, pos[1]);
+        colMesh.castShadow = true;
+        bldgGroup.add(colMesh);
+
+        continuousColumns.push({
+          mesh: colMesh,
+          geo: colGeo,
+          origPositions: new Float32Array(colGeo.attributes.position.array),
+          baseX: pos[0],
+          totalH: totalH
+        });
       }
     }
 
@@ -578,15 +591,25 @@
         const q2 = Math.sin(animT * 2 * Math.PI * 2.5 + 0.5) * 0.007 * ampMultiplier;
         const q3 = Math.sin(animT * 2 * Math.PI * 5.0 + 1.2) * 0.003 * ampMultiplier;
 
-        bldgSlices.forEach(sl => {
-          const z = sl.normZ;
-          const phi1 = 1.5 * z * z - 0.5 * z * z * z;
-          const phi2 = Math.sin(z * Math.PI * 1.5);
-          const phi3 = Math.sin(z * Math.PI * 2.5);
+        // Continuous smooth column deformation
+        continuousColumns.forEach(col => {
+          const positions = col.geo.attributes.position.array;
+          const orig = col.origPositions;
+          const H = col.totalH;
 
-          const drift = (phi1 * q1 + phi2 * q2 + phi3 * q3) * 60.0;
-          sl.mesh.position.x = sl.baseX + drift;
-          sl.mesh.rotation.z = -drift * 0.08;
+          for (let i = 0; i < positions.length; i += 3) {
+            const origX = orig[i];
+            const y = orig[i + 1];
+            const z = Math.max(0, Math.min(1, y / H));
+            const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+            const phi2 = Math.sin(z * Math.PI * 1.5);
+            const phi3 = Math.sin(z * Math.PI * 2.5);
+
+            const drift = (phi1 * q1 + phi2 * q2 + phi3 * q3) * 60.0;
+            positions[i] = origX + drift;
+          }
+          col.geo.attributes.position.needsUpdate = true;
+          col.geo.computeVertexNormals();
         });
 
         for (let i = 1; i <= 3; i++) {

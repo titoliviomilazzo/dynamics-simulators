@@ -693,8 +693,8 @@
     }
 
     function buildThreeBldgModels() {
-      staticSlabs = []; staticCols = [];
-      dynamicSlabs = []; dynamicCols = [];
+      staticSlabs = []; continuousStaticCols = [];
+      dynamicSlabs = []; continuousDynamicCols = [];
       if (threeBldgDimGroup) threeBldgScene.remove(threeBldgDimGroup);
       threeBldgDimGroup = new THREE.Group();
       threeBldgScene.add(threeBldgDimGroup);
@@ -734,19 +734,33 @@
         sGroup.userData = { originX: leftX, baseY: yLevel, story: s };
         threeBldgScene.add(sGroup);
         staticSlabs.push(sGroup);
-
-        const storyCols = [];
-        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
-          const colGeom = new THREE.CylinderGeometry(colRadius, colRadius, storyH - slabH, 12);
-          const col = new THREE.Mesh(colGeom, colMatStatic);
-          const colBaseY = 0.7 + (s - 1) * storyH + (storyH - slabH) / 2;
-          col.position.set(leftX + cx * colOffsetX, colBaseY, cz * colOffsetZ);
-          col.userData = { cx: cx * colOffsetX, cz: cz * colOffsetZ, originX: leftX, story: s };
-          threeBldgScene.add(col);
-          storyCols.push(col);
-        });
-        staticCols.push(storyCols);
       }
+
+      // 4 Continuous Static Columns
+      continuousStaticCols = [];
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+        const footGeo = new THREE.BoxGeometry(1.2, 0.25, 1.2);
+        const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x64748b }));
+        foot.position.set(leftX + cx * colOffsetX, 0.825, cz * colOffsetZ);
+        threeBldgScene.add(foot);
+
+        const colGeo = new THREE.BoxGeometry(colWidth, totalColH, colWidth, 1, segmentsY, 1);
+        colGeo.translate(0, totalColH / 2, 0);
+
+        const col = new THREE.Mesh(colGeo, colMatStatic);
+        col.position.set(leftX + cx * colOffsetX, 0.7, cz * colOffsetZ);
+        col.castShadow = true;
+        col.receiveShadow = true;
+        threeBldgScene.add(col);
+
+        continuousStaticCols.push({
+          mesh: col,
+          geo: colGeo,
+          origPositions: new Float32Array(colGeo.attributes.position.array),
+          baseX: leftX + cx * colOffsetX,
+          totalH: totalColH
+        });
+      });
 
       // Static Building Title Tag
       const staticTitle = createCADSprite('정적 (ELF 100% Vs)', '#0f172a', 'rgba(255,255,255,0.96)', '#cbd5e1');
@@ -772,19 +786,33 @@
         sGroup.userData = { originX: rightX, baseY: yLevel, story: s };
         threeBldgScene.add(sGroup);
         dynamicSlabs.push(sGroup);
-
-        const storyCols = [];
-        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
-          const colGeom = new THREE.CylinderGeometry(colRadius, colRadius, storyH - slabH, 12);
-          const col = new THREE.Mesh(colGeom, colMatDynamic);
-          const colBaseY = 0.7 + (s - 1) * storyH + (storyH - slabH) / 2;
-          col.position.set(rightX + cx * colOffsetX, colBaseY, cz * colOffsetZ);
-          col.userData = { cx: cx * colOffsetX, cz: cz * colOffsetZ, originX: rightX, story: s };
-          threeBldgScene.add(col);
-          storyCols.push(col);
-        });
-        dynamicCols.push(storyCols);
       }
+
+      // 4 Continuous Dynamic Columns
+      continuousDynamicCols = [];
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+        const footGeo = new THREE.BoxGeometry(1.2, 0.25, 1.2);
+        const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x64748b }));
+        foot.position.set(rightX + cx * colOffsetX, 0.825, cz * colOffsetZ);
+        threeBldgScene.add(foot);
+
+        const colGeo = new THREE.BoxGeometry(colWidth, totalColH, colWidth, 1, segmentsY, 1);
+        colGeo.translate(0, totalColH / 2, 0);
+
+        const col = new THREE.Mesh(colGeo, colMatDynamic);
+        col.position.set(rightX + cx * colOffsetX, 0.7, cz * colOffsetZ);
+        col.castShadow = true;
+        col.receiveShadow = true;
+        threeBldgScene.add(col);
+
+        continuousDynamicCols.push({
+          mesh: col,
+          geo: colGeo,
+          origPositions: new Float32Array(colGeo.attributes.position.array),
+          baseX: rightX + cx * colOffsetX,
+          totalH: totalColH
+        });
+      });
 
       // Dynamic Building Title Tag
       const dynamicTitle = createCADSprite('동적 (RSA 85% 보정)', '#047857', 'rgba(236,253,245,0.96)', '#a7f3d0');
@@ -811,16 +839,24 @@
       }
 
       const prevStaticXs = [0, staticXs[0], staticXs[1]];
-      for (let s = 0; s < 3; s++) {
-        const drift = staticXs[s] - prevStaticXs[s];
-        const midX = (prevStaticXs[s] + staticXs[s]) / 2;
-        const tiltZ = -Math.atan2(drift, storyH);
+      continuousStaticCols.forEach(col => {
+        const positions = col.geo.attributes.position.array;
+        const orig = col.origPositions;
 
-        staticCols[s].forEach(col => {
-          col.position.x = col.userData.originX + col.userData.cx + midX;
-          col.rotation.z = tiltZ;
-        });
-      }
+        for (let i = 0; i < positions.length; i += 3) {
+          const origX = orig[i];
+          const y = orig[i + 1];
+          const storyIdx = Math.max(0, Math.min(2, Math.floor(y / storyH)));
+          const localY = y - storyIdx * storyH;
+          const sNorm = Math.max(0, Math.min(1, localY / storyH));
+          const hermite = 3 * sNorm * sNorm - 2 * sNorm * sNorm * sNorm;
+          const storyDisp = prevStaticXs[storyIdx] + (staticXs[storyIdx] - prevStaticXs[storyIdx]) * hermite;
+
+          positions[i] = origX + storyDisp;
+        }
+        col.geo.attributes.position.needsUpdate = true;
+        col.geo.computeVertexNormals();
+      });
 
       // 2. Dynamic Building: 1차 주기 T1 기반 실시간 지진 진동 및 85% 스케일링
       const omega1 = (2 * Math.PI) / currentT1;
@@ -844,16 +880,24 @@
       }
 
       const prevDynXs = [groundVibe, dynXs[0], dynXs[1]];
-      for (let s = 0; s < 3; s++) {
-        const drift = dynXs[s] - prevDynXs[s];
-        const midX = (prevDynXs[s] + dynXs[s]) / 2;
-        const tiltZ = -Math.atan2(drift, storyH);
+      continuousDynamicCols.forEach(col => {
+        const positions = col.geo.attributes.position.array;
+        const orig = col.origPositions;
 
-        dynamicCols[s].forEach(col => {
-          col.position.x = col.userData.originX + col.userData.cx + midX;
-          col.rotation.z = tiltZ;
-        });
-      }
+        for (let i = 0; i < positions.length; i += 3) {
+          const origX = orig[i];
+          const y = orig[i + 1];
+          const storyIdx = Math.max(0, Math.min(2, Math.floor(y / storyH)));
+          const localY = y - storyIdx * storyH;
+          const sNorm = Math.max(0, Math.min(1, localY / storyH));
+          const hermite = 3 * sNorm * sNorm - 2 * sNorm * sNorm * sNorm;
+          const storyDisp = prevDynXs[storyIdx] + (dynXs[storyIdx] - prevDynXs[storyIdx]) * hermite;
+
+          positions[i] = origX + storyDisp;
+        }
+        col.geo.attributes.position.needsUpdate = true;
+        col.geo.computeVertexNormals();
+      });
 
       threeBldgControls.update();
       threeBldgRenderer.render(threeBldgScene, threeBldgCamera);
