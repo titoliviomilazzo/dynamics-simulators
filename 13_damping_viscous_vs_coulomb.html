@@ -3,39 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>점성감쇠 vs 마찰감쇠 (Viscous vs Coulomb Damping)</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>구조동역학 13: 점성감쇠 vs 쿨롱 마찰감쇠 (Viscous vs Coulomb Damping)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="assets/dynamics-fx.js" defer></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
-    
     body {
-      font-family: 'Inter', -apple-system, sans-serif;
       background-color: #f8fafc;
       color: #0f172a;
-      overflow-x: hidden;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
     }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
-    
-    .panel {
-      background: #ffffff;
-      border: 2px solid #0f172a;
-      box-shadow: 0 4px 0 #0f172a;
-      backdrop-filter: blur(12px);
+    .math-var {
+      font-family: "Cambria Math", "Times New Roman", "STIX Two Math", serif;
+      font-style: italic;
+      font-weight: 600;
+      letter-spacing: 0.02em;
     }
-    
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
+    .math-sym {
+      font-family: "Cambria Math", "Times New Roman", "STIX Two Math", serif;
     }
-    
-    . {
-      background-image: 
-        linear-gradient(rgba(30, 41, 59, 0.5) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(30, 41, 59, 0.5) 1px, transparent 1px);
-      background-size: 20px 20px;
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
     }
-    
     input[type=range] {
       -webkit-appearance: none;
       background: transparent;
@@ -43,390 +38,1173 @@
     input[type=range]::-webkit-slider-runnable-track {
       height: 6px;
       border-radius: 3px;
-      background: #334155;
+      background: #e2e8f0;
     }
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
       height: 16px;
       width: 16px;
       border-radius: 50%;
-      background: #38bdf8;
+      background: #2563eb;
       margin-top: -5px;
-      cursor: ew-resize;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    input[type=range].accent-amber::-webkit-slider-thumb {
+      background: #d97706;
     }
   </style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-  <script src="assets/dynamics-fx.js" defer></script>
 </head>
-<body class="min-h-screen p-4 flex flex-col items-center">
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-  <div class="max-w-7xl w-full">
+  <div id="sim-app-container" class="w-full max-w-6xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
     
-    <header class="mb-6 flex justify-between items-end border-b border-slate-200 pb-4">
-      <div>
-        <div class="flex items-center gap-2 mb-2">
-          <span class="px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-400 text-xs font-bold font-mono border border-blue-500/30">TRACK 1</span>
-          <span class="text-slate-600 text-sm font-medium">구조동역학 · 자유진동(Free Vibration)</span>
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div class="space-y-1">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+            CHOPRA §2.7 &middot; 자유진동 감쇠 메커니즘
+          </span>
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            점성감쇠 vs 쿨롱 마찰감쇠 (Viscous vs Coulomb Damping)
+          </h1>
         </div>
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 ">
-          점성감쇠 vs 마찰감쇠 (Viscous vs Coulomb Damping)
-        </h1>
-        <p class="text-slate-600 text-sm mt-2 max-w-3xl leading-relaxed">
-          유체 저항에 의한 <strong>점성감쇠(지수함수적 감소)</strong>와 고체 마찰에 의한 <strong>쿨롱 마찰감쇠(선형적 감소 및 정지)</strong>의 차이를 시각적으로 비교합니다.
+        <p class="text-xs md:text-sm text-slate-600 font-mono">
+          유체 전단 저항(지수함수 포락선 e^(-&zeta;&omega;ₙt)) vs 고체 접촉 마찰(선형 포락선 및 Stick 영구 정지) &middot; 엄밀 해석해
         </p>
       </div>
-      <a href="index.html" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-700 text-slate-800 text-sm font-bold transition">
-        &larr; 마스터 허브
-      </a>
-    </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+      <div class="flex items-center gap-2">
+        <button id="btn-play" onclick="togglePlay()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+          <span id="play-icon">⏸</span>
+          <span id="play-text">일시정지</span>
+        </button>
+        <button onclick="resetSim()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold transition">
+          초기화 (Reset)
+        </button>
+        <button id="btn-view-mode" onclick="toggleViewMode()" class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 text-xs font-bold transition">
+          📊 오버레이 비교
+        </button>
+        <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+          &larr; 마스터 허브
+        </a>
+      </div>
+    </div>
+
+    <!-- Global Parameters & Initial Displacement Control -->
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 md:p-4 flex flex-wrap items-center justify-between gap-4 text-xs font-medium">
+      <div class="flex-1 min-w-[280px] flex items-center gap-3">
+        <span class="text-slate-800 font-bold whitespace-nowrap text-sm">
+          🎯 초기변위 <span class="math-var">u</span>₀:
+        </span>
+        <input type="range" id="slider-u0" min="50" max="150" step="5" value="100" oninput="updateU0(this.value)" class="flex-1 cursor-pointer">
+        <span id="txt-u0-val" class="font-mono font-bold text-blue-700 w-16 text-right text-sm">100 mm</span>
+      </div>
+
+      <div class="flex items-center gap-4 text-xs font-mono text-slate-600">
+        <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+          <span class="text-slate-400">질량 m:</span>
+          <span class="font-bold text-slate-800">10 kg</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+          <span class="text-slate-400">강성 k:</span>
+          <span class="font-bold text-slate-800">394.8 N/m</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+          <span class="text-slate-400">고유주기 Tₙ:</span>
+          <span class="font-bold text-emerald-700">1.00 s (2&pi; rad/s)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dual Comparison Cards Section -->
+    <div id="dual-cards-container" class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
       
-      <!-- Viscous Damping Panel -->
-      <div class="panel rounded-2xl p-5 flex flex-col">
-        <h2 class="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-slate-300"></span> 점성감쇠 (Viscous Damping)
-        </h2>
-        <p class="text-xs text-slate-600 font-mono mb-4">m·ü + c·u̇ + k·u = 0  (지수함수 포락선 e^(-ζωnt))</p>
-        
-        <div class="flex items-center gap-4 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
-          <div class="flex-1">
-            <div class="flex justify-between text-xs text-slate-800 mb-1">
-              <span>감쇠비 ζ</span>
-              <span id="val-zeta" class="font-bold text-slate-900">0.05 (5%)</span>
+      <!-- 1. Viscous Damping Card -->
+      <div class="zentry-card bg-white border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md space-y-4">
+        <div>
+          <!-- Title & Formula -->
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-blue-600"></span>
+              <h2 class="text-base font-bold text-slate-900 tracking-tight">점성감쇠 (Viscous Damping)</h2>
             </div>
-            <input type="range" id="slider-zeta" min="0" max="0.2" step="0.01" value="0.05" class="w-full">
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+              유체 저항
+            </span>
+          </div>
+          <p class="text-xs font-mono text-slate-500 mt-1.5">
+            <span class="math-var">m&middot;u''</span> + <span class="math-var">c&middot;u'</span> + <span class="math-var">k&middot;u</span> = 0 &middot; 지수함수 포락선 <span class="math-var">e<sup>-&zeta;&omega;ₙt</sup></span>
+          </p>
+
+          <!-- Slider & Presets -->
+          <div class="mt-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-2.5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-700">감쇠비 <span class="math-var">&zeta;</span>:</span>
+              <span id="txt-zeta-val" class="font-mono font-bold text-blue-700 text-sm">0.05 (5%)</span>
+            </div>
+            <input type="range" id="slider-zeta" min="0" max="0.25" step="0.01" value="0.05" oninput="updateZeta(this.value)" class="w-full">
+            
+            <div class="flex flex-wrap gap-1.5 pt-1">
+              <button onclick="setZeta(0.01)" class="px-2 py-1 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-600 transition">1% 강구조</button>
+              <button onclick="setZeta(0.05)" class="px-2 py-1 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[11px] font-bold text-blue-700 transition">5% RC 표준</button>
+              <button onclick="setZeta(0.10)" class="px-2 py-1 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-600 transition">10% 제진</button>
+              <button onclick="setZeta(0.20)" class="px-2 py-1 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-600 transition">20% 고감쇠</button>
+            </div>
+          </div>
+
+          <!-- Real-Time Metrics Chips -->
+          <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-500 block">감쇠계수 c</span>
+              <span id="txt-visc-c" class="font-mono font-bold text-slate-800 text-xs">6.28 N&middot;s/m</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-500 block">감쇠주기 T<sub>D</sub></span>
+              <span id="txt-visc-td" class="font-mono font-bold text-blue-700 text-xs">1.001 s</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-500 block">대수감소율 &delta;</span>
+              <span id="txt-visc-delta" class="font-mono font-bold text-emerald-700 text-xs">0.315</span>
+            </div>
           </div>
         </div>
 
-        <div class="relative w-full h-[120px] mb-4 border-b border-slate-200">
-          <canvas id="canvas-visc-sys"></canvas>
+        <!-- Mechanical System Canvas -->
+        <div class="relative w-full h-[120px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <canvas id="canvas-visc-sys" class="w-full h-full block"></canvas>
         </div>
-        <div class="relative flex-1 w-full min-h-[250px]  rounded-xl border border-slate-200/50 overflow-hidden">
-          <canvas id="canvas-visc-plot"></canvas>
+
+        <!-- Time History Oscilloscope Canvas -->
+        <div class="relative w-full h-[220px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <canvas id="canvas-visc-plot" class="w-full h-full block"></canvas>
         </div>
       </div>
 
-      <!-- Coulomb Damping Panel -->
-      <div class="panel rounded-2xl p-5 flex flex-col">
-        <h2 class="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-amber-400"></span> 마찰감쇠 (Coulomb Damping)
-        </h2>
-        <p class="text-xs text-slate-600 font-mono mb-4">m·ü + k·u = -μN·sgn(u̇)  (선형적 포락선 및 Stick)</p>
-        
-        <div class="flex items-center gap-4 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
-          <div class="flex-1">
-            <div class="flex justify-between text-xs text-slate-800 mb-1">
-              <span>동마찰력 μN</span>
-              <span id="val-mu" class="font-bold text-amber-400">10 N</span>
+      <!-- 2. Coulomb Friction Damping Card -->
+      <div class="zentry-card bg-white border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md space-y-4">
+        <div>
+          <!-- Title & Formula -->
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+              <h2 class="text-base font-bold text-slate-900 tracking-tight">마찰감쇠 (Coulomb Damping)</h2>
             </div>
-            <input type="range" id="slider-mu" min="0" max="50" step="1" value="10" class="w-full">
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
+              고체 마찰
+            </span>
+          </div>
+          <p class="text-xs font-mono text-slate-500 mt-1.5">
+            <span class="math-var">m&middot;u''</span> + <span class="math-var">k&middot;u</span> = &plusmn;<span class="math-var">&mu;N</span> &middot; 선형 포락선 및 Stick(영구정지)
+          </p>
+
+          <!-- Slider & Presets -->
+          <div class="mt-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-2.5">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-700">동마찰력 <span class="math-var">&mu;N</span>:</span>
+              <span id="txt-mu-val" class="font-mono font-bold text-amber-700 text-sm">5 N</span>
+            </div>
+            <input type="range" id="slider-mu" min="0" max="25" step="0.5" value="5" oninput="updateMu(this.value)" class="w-full accent-amber">
+            
+            <div class="flex flex-wrap gap-1.5 pt-1">
+              <button onclick="setMu(2)" class="px-2 py-1 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-600 transition">2 N 테프론</button>
+              <button onclick="setMu(5)" class="px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-200 text-[11px] font-bold text-amber-800 transition">5 N 강재 건식</button>
+              <button onclick="setMu(10)" class="px-2 py-1 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-600 transition">10 N 마찰패드</button>
+              <button onclick="setMu(20)" class="px-2 py-1 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-600 transition">20 N 급제동</button>
+            </div>
+          </div>
+
+          <!-- Real-Time Metrics Chips -->
+          <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-500 block">정지 한계 u<sub>f</sub></span>
+              <span id="txt-fric-uf" class="font-mono font-bold text-slate-800 text-xs">12.7 mm</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-500 block">진동 주기 T</span>
+              <span id="txt-fric-tn" class="font-mono font-bold text-amber-700 text-xs">1.000 s (불변)</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] text-slate-500 block">반주기당 감쇠</span>
+              <span id="txt-fric-decay" class="font-mono font-bold text-emerald-700 text-xs">25.3 mm</span>
+            </div>
           </div>
         </div>
 
-        <div class="relative w-full h-[120px] mb-4 border-b border-slate-200">
-          <canvas id="canvas-fric-sys"></canvas>
+        <!-- Mechanical System Canvas -->
+        <div class="relative w-full h-[120px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <canvas id="canvas-fric-sys" class="w-full h-full block"></canvas>
         </div>
-        <div class="relative flex-1 w-full min-h-[250px]  rounded-xl border border-slate-200/50 overflow-hidden">
-          <canvas id="canvas-fric-plot"></canvas>
+
+        <!-- Time History Oscilloscope Canvas -->
+        <div class="relative w-full h-[220px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <canvas id="canvas-fric-plot" class="w-full h-full block"></canvas>
         </div>
       </div>
 
     </div>
 
-    <div class="mt-6 flex justify-center gap-4">
-      <button onclick="resetSim()" class="px-6 py-3 bg-slate-900 hover:bg-slate-100 text-slate-900 rounded-xl font-bold shadow-lg  transition flex items-center gap-2">
-        <span class="text-lg">▶</span> 초기변위 100mm 부여 (재시작)
-      </button>
+    <!-- Optional Overlay Mode Viewport -->
+    <div id="overlay-container" class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3" style="display: none;">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+          <h3 class="text-sm font-bold text-slate-900">동일 시간축 오버레이 비교 (Viscous vs Coulomb Overlay)</h3>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-bold">
+          <span class="flex items-center gap-1 text-blue-600"><span class="w-2 h-2 rounded-full bg-blue-600"></span> 점성감쇠 (지수 포락선)</span>
+          <span class="flex items-center gap-1 text-amber-600"><span class="w-2 h-2 rounded-full bg-amber-500"></span> 마찰감쇠 (선형 포락선 & Stick)</span>
+        </div>
+      </div>
+      <div class="relative w-full h-[320px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+        <canvas id="canvas-overlay-plot" class="w-full h-full block"></canvas>
+      </div>
+    </div>
+
+    <!-- 5 Key Dynamic Comparison Principles (Chopra §2.7 Master Summary) -->
+    <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 md:p-5 text-xs text-slate-700 space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+        <span class="font-bold text-slate-900 text-xs md:text-sm flex items-center gap-2">
+          📚 Chopra 구조동역학 §2.7 정본 비교: 점성 vs 쿨롱 마찰의 5대 본질적 차이
+        </span>
+        <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono text-[10px] font-bold">
+          EXAM ESSENTIALS
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="bg-white p-3 rounded-xl border border-slate-200">
+          <strong class="text-slate-900 block mb-1">① 감쇠력 메커니즘</strong>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            <strong>점성:</strong> 속도에 정비례 (<span class="math-var">F<sub>d</sub> = -c&middot;u'</span>)<br>
+            <strong>쿨롱:</strong> 속도 크기와 무관, 운동방향 반대 일정 크기 (<span class="math-var">F<sub>f</sub> = -&mu;N&middot;sgn(u')</span>)
+          </p>
+        </div>
+
+        <div class="bg-white p-3 rounded-xl border border-slate-200">
+          <strong class="text-slate-900 block mb-1">② 포락선 (Envelope)</strong>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            <strong>점성:</strong> 지수함수적 감소 (<span class="math-var">e<sup>-&zeta;&omega;ₙt</sup></span>)<br>
+            <strong>쿨롱:</strong> 엄밀한 선형 직선 (<span class="math-var">&Delta;u = 4u<sub>f</sub>/Tₙ</span> 기울기)
+          </p>
+        </div>
+
+        <div class="bg-white p-3 rounded-xl border border-slate-200">
+          <strong class="text-slate-900 block mb-1">③ 사이클당 감쇠량</strong>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            <strong>점성:</strong> 진폭에 비례 (진폭 클수록 감쇠 큼, 대수감소율 일정)<br>
+            <strong>쿨롱:</strong> 진폭과 무관하게 사이클당 <span class="math-var">4u<sub>f</sub> = 4&mu;N/k</span>로 일정
+          </p>
+        </div>
+
+        <div class="bg-white p-3 rounded-xl border border-slate-200">
+          <strong class="text-slate-900 block mb-1">④ 진동 주기</strong>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            <strong>점성:</strong> 주기 신장 (<span class="math-var">T<sub>D</sub> = Tₙ/&radic;(1-&zeta;&sup2;)</span>)<br>
+            <strong>쿨롱:</strong> 고유주기 <span class="math-var">Tₙ</span>와 100% 동일 (마찰은 주기를 바꾸지 않음!)
+          </p>
+        </div>
+
+        <div class="bg-white p-3 rounded-xl border border-slate-200">
+          <strong class="text-slate-900 block mb-1">⑤ 정지 조건 (Termination)</strong>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            <strong>점성:</strong> 이론상 무한 진동 (<span class="math-var">t &rarr; &infin;</span>)<br>
+            <strong>쿨롱:</strong> 유한 시간 내 <strong>Stick 영구 정지</strong> (<span class="math-var">|k&middot;u| &le; &mu;N</span>)
+          </p>
+        </div>
+      </div>
     </div>
 
   </div>
 
   <script>
+    // =========================================================================
+    // PHYSICAL PARAMETERS (Chopra Chapter 2 & 3 Standard)
+    // =========================================================================
+    const m = 10.0;                       // Mass: 10 kg
+    const wn = 2 * Math.PI;              // Natural frequency: 2*pi rad/s (approx 6.283 rad/s)
+    const Tn = 2 * Math.PI / wn;         // Natural period: exactly 1.00 s
+    const k = m * wn * wn;               // Stiffness: 394.784 N/m
+
+    let u0 = 0.100;                      // Initial displacement: 100 mm (0.100 m)
+    let zeta = 0.05;                     // Viscous damping ratio (5%)
+    let muN = 5.0;                       // Coulomb friction force: 5.0 N
+
     let isRunning = true;
-    let time = 0;
-    const dt = 0.016;
-    
-    // Properties
-    const m = 1.0;
-    const k = 39.478; // wn = 2*pi approx 6.28, k = 39.478
-    const wn = Math.sqrt(k/m);
-    
-    let zeta = 0.05;
-    let muN = 10;
-    
-    // States
-    let v_u = 100, v_v = 0; // Viscous
-    let f_u = 100, f_v = 0; // Friction
-    
+    let simTime = 0;
+    const dt = 0.016;                    // Simulation timestep: ~60fps
+    let simSpeed = 1.0;                  // 1.0x or 0.5x
+
+    let viewMode = 'dual';               // 'dual' or 'overlay'
+
+    // Time History Buffers
     const histV = [];
     const histF = [];
-    const maxHist = 300; // 5 seconds at 60fps
-    
-    document.getElementById('slider-zeta').addEventListener('input', e => {
-      zeta = parseFloat(e.target.value);
-      document.getElementById('val-zeta').textContent = zeta.toFixed(2) + ` (${Math.round(zeta*100)}%)`;
-    });
-    document.getElementById('slider-mu').addEventListener('input', e => {
-      muN = parseFloat(e.target.value);
-      document.getElementById('val-mu').textContent = muN.toFixed(0) + ' N';
-    });
+    const maxHistSeconds = 6.0;
 
-    function resetSim() {
-      time = 0;
-      v_u = 100; v_v = 0;
-      f_u = 100; f_v = 0;
-      histV.length = 0;
-      histF.length = 0;
-      isRunning = true;
+    // =========================================================================
+    // EXACT CLOSED-FORM ANALYTICAL PHYSICS ENGINES
+    // =========================================================================
+    
+    // 1. Viscous Damping Closed-Form Solution
+    function getViscousState(t, u0_val, zeta_val) {
+      if (zeta_val >= 1.0) {
+        return { u: u0_val * Math.exp(-wn * t), v: -u0_val * wn * Math.exp(-wn * t), a: 0 };
+      }
+      const wd = wn * Math.sqrt(1 - zeta_val * zeta_val);
+      const expDecay = Math.exp(-zeta_val * wn * t);
+      const u = u0_val * expDecay * (Math.cos(wd * t) + (zeta_val / Math.sqrt(1 - zeta_val * zeta_val)) * Math.sin(wd * t));
+      const v = -u0_val * (wn / Math.sqrt(1 - zeta_val * zeta_val)) * expDecay * Math.sin(wd * t);
+      const c = 2 * zeta_val * wn * m;
+      const a = (-c * v - k * u) / m;
+      const env = u0_val * expDecay;
+      return { u, v, a, env, Fs: -k * u, Fd: -c * v };
     }
 
-    function setupCanvas(id) {
+    // 2. Coulomb Damping Closed-Form Piecewise Analytical Solution (Chopra §2.7)
+    function getCoulombState(t, u0_val, muN_val) {
+      const uf = muN_val / k; // Characteristic friction offset (m)
+      const halfT = Tn / 2;
+      const n = Math.floor(t / halfT);
+      const tLocal = t - n * halfT;
+
+      let curU = u0_val;
+      let isStuck = false;
+      let stopTime = 0;
+      let stopU = 0;
+
+      for (let i = 0; i <= n; i++) {
+        if (Math.abs(curU) <= uf + 1e-9) {
+          isStuck = true;
+          stopTime = i * halfT;
+          stopU = curU;
+          break;
+        }
+        if (i < n) {
+          curU = -(curU - Math.sign(curU) * 2 * uf);
+        }
+      }
+
+      if (isStuck && t >= stopTime) {
+        return {
+          u: stopU,
+          v: 0,
+          a: 0,
+          isStuck: true,
+          stopU,
+          stopTime,
+          uf,
+          Fs: -k * stopU,
+          Ff: k * stopU // Static friction balances spring force
+        };
+      }
+
+      const U_n = curU;
+      if (Math.abs(U_n) <= uf + 1e-9) {
+        return {
+          u: U_n,
+          v: 0,
+          a: 0,
+          isStuck: true,
+          stopU: U_n,
+          stopTime: n * halfT,
+          uf,
+          Fs: -k * U_n,
+          Ff: k * U_n
+        };
+      }
+
+      let u, v;
+      if (U_n > 0) {
+        // Moving negative: friction opposes -> +Ff
+        u = (U_n - uf) * Math.cos(wn * tLocal) + uf;
+        v = -(U_n - uf) * wn * Math.sin(wn * tLocal);
+      } else {
+        // Moving positive: friction opposes -> -Ff
+        u = (U_n + uf) * Math.cos(wn * tLocal) - uf;
+        v = -(U_n + uf) * wn * Math.sin(wn * tLocal);
+      }
+
+      const Fs = -k * u;
+      const Ff = -Math.sign(v || -1) * muN_val;
+      const a = (Fs + Ff) / m;
+
+      // Linear envelope magnitude at time t
+      const env = Math.max(0, u0_val - (4 * uf / Tn) * t);
+
+      return {
+        u,
+        v,
+        a,
+        isStuck: false,
+        stopU: 0,
+        stopTime: 0,
+        uf,
+        env,
+        Fs,
+        Ff
+      };
+    }
+
+    // =========================================================================
+    // CANVAS RESIZING & HIGH-DPI SETUP
+    // =========================================================================
+    function getCanvasContext(id) {
       const cvs = document.getElementById(id);
       if (!cvs) return null;
       const rect = cvs.parentElement.getBoundingClientRect();
-      const pr = window.devicePixelRatio || 1;
-      cvs.width = Math.max(rect.width, 100) * pr;
-      cvs.height = Math.max(rect.height, 100) * pr;
+      const dpr = window.devicePixelRatio || 1;
+      const w = rect.width;
+      const h = rect.height;
+      if (cvs.width !== Math.floor(w * dpr) || cvs.height !== Math.floor(h * dpr)) {
+        cvs.width = Math.floor(w * dpr);
+        cvs.height = Math.floor(h * dpr);
+      }
       const ctx = cvs.getContext('2d');
-      ctx.scale(pr, pr);
-      return { cvs, ctx, w: cvs.width/pr, h: cvs.height/pr };
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return { cvs, ctx, w, h };
     }
 
-    function drawSystem(ctx, w, h, u, isViscous) {
-      ctx.clearRect(0, 0, w, h);
-      const cx = w/2;
-      const cy = h/2;
-      
-      // Draw surface
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(0, cy + 25);
-      ctx.lineTo(w, cy + 25);
-      ctx.stroke();
+    // Rounded rectangle helper
+    function drawRoundRect(c, x, y, width, height, radius, fill, stroke) {
+      c.beginPath();
+      c.moveTo(x + radius, y);
+      c.lineTo(x + width - radius, y);
+      c.quadraticCurveTo(x + width, y, x + width, y + radius);
+      c.lineTo(x + width, y + height - radius);
+      c.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      c.lineTo(x + radius, y + height);
+      c.quadraticCurveTo(x, y + height, x, y + height - radius);
+      c.lineTo(x, y + radius);
+      c.quadraticCurveTo(x, y, x + radius, y);
+      c.closePath();
+      if (fill) c.fill();
+      if (stroke) c.stroke();
+    }
 
-      if (!isViscous) {
-        // Friction surface hatching
-        ctx.strokeStyle = '#b45309';
-        ctx.lineWidth = 1;
-        for(let x=10; x<w; x+=15) {
-          ctx.beginPath(); ctx.moveTo(x, cy+25); ctx.lineTo(x-5, cy+32); ctx.stroke();
+    // =========================================================================
+    // 3D REALISTIC MECHANICAL RENDERING
+    // =========================================================================
+
+    // 1. 3D Helical Metallic Spring
+    function drawHelicalSpring(ctx, startX, endX, y, radius, numCoils = 9, wireRadius = 2.4) {
+      const len = endX - startX;
+      if (len <= 20) return;
+      const coilW = len / numCoils;
+
+      ctx.save();
+      // Back coils (shaded darker)
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = wireRadius * 1.7;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < numCoils; i++) {
+        const x0 = startX + i * coilW;
+        const x1 = x0 + coilW * 0.5;
+        ctx.beginPath();
+        ctx.ellipse((x0 + x1) / 2, y, Math.max(1, coilW * 0.28), radius, -0.22, 0, Math.PI);
+        ctx.stroke();
+      }
+
+      // Front coils (bright metallic gradient highlight)
+      for (let i = 0; i < numCoils; i++) {
+        const x0 = startX + (i + 0.5) * coilW;
+        const x1 = x0 + coilW * 0.5;
+        const grad = ctx.createLinearGradient(x0, y - radius, x1, y + radius);
+        grad.addColorStop(0, '#94a3b8');
+        grad.addColorStop(0.35, '#ffffff');
+        grad.addColorStop(0.7, '#cbd5e1');
+        grad.addColorStop(1, '#64748b');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = wireRadius * 2.0;
+        ctx.beginPath();
+        ctx.ellipse((x0 + x1) / 2, y, Math.max(1, coilW * 0.28), radius, -0.22, Math.PI, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 2. Polished Hydraulic Dashpot
+    function drawHydraulicDashpot(ctx, startX, rodEndX, cy, cylW = 75, cylH = 26) {
+      const cylX = startX + 16;
+      ctx.save();
+
+      // Bracket
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(startX, cy - 3, 16, 6);
+
+      // Cylinder Housing (Metallic gradient)
+      const bodyGrad = ctx.createLinearGradient(cylX, cy - cylH/2, cylX, cy + cylH/2);
+      bodyGrad.addColorStop(0, '#334155');
+      bodyGrad.addColorStop(0.2, '#64748b');
+      bodyGrad.addColorStop(0.5, '#cbd5e1');
+      bodyGrad.addColorStop(0.8, '#475569');
+      bodyGrad.addColorStop(1, '#1e293b');
+
+      ctx.fillStyle = bodyGrad;
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.5;
+      drawRoundRect(ctx, cylX, cy - cylH/2, cylW, cylH, 4, true, true);
+
+      // Translucent Oil Fluid Window
+      const pad = 3;
+      ctx.fillStyle = 'rgba(14, 165, 233, 0.22)';
+      ctx.fillRect(cylX + pad, cy - cylH/2 + pad, cylW - pad * 2, cylH - pad * 2);
+
+      // Piston Stroke mapping
+      const minStroke = 10, maxStroke = cylW - 18;
+      const normU = (rodEndX - (startX + 120)) / 90; // approx stroke
+      const pistonX = Math.max(cylX + minStroke, Math.min(cylX + maxStroke, cylX + (cylW/2) + normU * 24));
+
+      // Chrome Rod
+      const rodGrad = ctx.createLinearGradient(pistonX, cy - 3, pistonX, cy + 3);
+      rodGrad.addColorStop(0, '#cbd5e1');
+      rodGrad.addColorStop(0.5, '#ffffff');
+      rodGrad.addColorStop(1, '#475569');
+      ctx.fillStyle = rodGrad;
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.fillRect(pistonX, cy - 3, rodEndX - pistonX, 6);
+      ctx.strokeRect(pistonX, cy - 3, rodEndX - pistonX, 6);
+
+      // Piston Head
+      ctx.fillStyle = '#0284c7';
+      ctx.strokeStyle = '#0369a1';
+      ctx.lineWidth = 1.2;
+      drawRoundRect(ctx, pistonX - 5, cy - cylH/2 + 4, 8, cylH - 8, 2, true, true);
+
+      // Seal ring
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(pistonX - 2, cy - cylH/2 + 6, 2, cylH - 12);
+
+      ctx.restore();
+    }
+
+    // 3. Machined Steel Mass Block with Chamfers & Highlights
+    function drawMassBlock(ctx, x, y, w, h, isViscous, u_mm, isStuck = false) {
+      ctx.save();
+      
+      // Shadow
+      ctx.shadowColor = isViscous ? 'rgba(37, 99, 235, 0.25)' : (isStuck ? 'rgba(239, 68, 68, 0.35)' : 'rgba(217, 119, 6, 0.25)');
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 3;
+
+      // Body Gradient
+      const blockGrad = ctx.createLinearGradient(x - w/2, y - h/2, x + w/2, y + h/2);
+      if (isViscous) {
+        blockGrad.addColorStop(0, '#38bdf8');
+        blockGrad.addColorStop(0.3, '#0284c7');
+        blockGrad.addColorStop(0.8, '#0369a1');
+        blockGrad.addColorStop(1, '#075985');
+      } else {
+        if (isStuck) {
+          blockGrad.addColorStop(0, '#f87171');
+          blockGrad.addColorStop(0.3, '#dc2626');
+          blockGrad.addColorStop(0.8, '#b91c1c');
+          blockGrad.addColorStop(1, '#991b1b');
+        } else {
+          blockGrad.addColorStop(0, '#fbbf24');
+          blockGrad.addColorStop(0.3, '#d97706');
+          blockGrad.addColorStop(0.8, '#b45309');
+          blockGrad.addColorStop(1, '#78350f');
         }
       }
 
-      // Wall X
-      const wallX = Math.max(30, cx - 190);
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(wallX, cy - 35);
-      ctx.lineTo(wallX, cy + 25);
-      ctx.stroke();
+      ctx.fillStyle = blockGrad;
+      ctx.strokeStyle = isViscous ? '#0369a1' : (isStuck ? '#991b1b' : '#92400e');
+      ctx.lineWidth = 1.5;
+      drawRoundRect(ctx, x - w/2, y - h/2, w, h, 6, true, true);
+      ctx.shadowColor = 'transparent';
 
-      // Damper geometry (Attached to wall)
-      const cylStartX = wallX + 20;
-      const cylEndX = wallX + 85;
-      const minClearance = 45; // 최소 45px 이상의 안전 간격 (절대 충돌 불가)
-      const blockHalfW = 25;
+      // Specular Top Highlight
+      const hlGrad = ctx.createLinearGradient(x - w/2, y - h/2, x - w/2, y - h/2 + 8);
+      hlGrad.addColorStop(0, 'rgba(255, 255, 255, 0.65)');
+      hlGrad.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+      ctx.fillStyle = hlGrad;
+      drawRoundRect(ctx, x - w/2 + 2, y - h/2 + 2, w - 4, 7, 2, true, false);
 
-      // Equilibrium position & visual displacement scaling
-      const eqX = cylEndX + minClearance + blockHalfW + 40;
-      const maxVisualShift = 50; // 최대 진폭 시각화
-      const visualShift = Math.max(-maxVisualShift, Math.min(maxVisualShift, (u / 100) * maxVisualShift));
-      const blockX = eqX + visualShift;
-      const blockLeft = blockX - blockHalfW;
-
-      // Draw Spring (상단)
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(wallX, cy - 5);
-      const springW = blockLeft - wallX;
-      const coils = 8;
-      for(let i=0; i<=coils; i++) {
-        ctx.lineTo(wallX + springW * (i/coils), cy - 5 + (i%2===0?10:-10));
-      }
-      ctx.lineTo(blockLeft, cy - 5);
-      ctx.stroke();
-
-      // Draw Dashpot (if viscous)
-      if (isViscous) {
-        ctx.strokeStyle = '#06b6d4';
-        ctx.lineWidth = 2;
-        // Cylinder housing
-        ctx.beginPath();
-        ctx.moveTo(wallX, cy - 20);
-        ctx.lineTo(cylStartX, cy - 20);
-        
-        ctx.moveTo(cylStartX, cy - 27);
-        ctx.lineTo(cylEndX, cy - 27);
-        ctx.moveTo(cylStartX, cy - 13);
-        ctx.lineTo(cylEndX, cy - 13);
-        ctx.moveTo(cylStartX, cy - 27);
-        ctx.lineTo(cylStartX, cy - 13);
-        ctx.stroke();
-
-        // Piston head & rod extending to blockLeft
-        const strokeRatio = (visualShift + maxVisualShift) / (2 * maxVisualShift);
-        const pistonHeadX = cylStartX + 12 + strokeRatio * (cylEndX - cylStartX - 24);
-        ctx.beginPath();
-        ctx.moveTo(pistonHeadX, cy - 25);
-        ctx.lineTo(pistonHeadX, cy - 15);
-        ctx.moveTo(pistonHeadX, cy - 20);
-        ctx.lineTo(blockLeft, cy - 20);
-        ctx.stroke();
-      }
-
-      // Draw Block
-      ctx.fillStyle = isViscous ? '#0284c7' : '#d97706';
-      ctx.shadowColor = isViscous ? 'rgba(14, 165, 233, 0.5)' : 'rgba(245, 158, 11, 0.5)';
-      ctx.shadowBlur = 10;
-      ctx.fillRect(blockLeft, cy - 25, 50, 50);
-      ctx.shadowBlur = 0;
-      
+      // Labels
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 13px sans-serif';
+      ctx.font = 'bold 11px Pretendard, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Mass', blockX, cy);
+      ctx.fillText('Mass', x, y - 6);
+
+      ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillText(`${(u_mm >= 0 ? '+' : '') + u_mm.toFixed(0)}mm`, x, y + 8);
+
+      // Rollers / Slider Shoes
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(x - w/2 + 5, y + h/2, 9, 3);
+      ctx.fillRect(x + w/2 - 14, y + h/2, 9, 3);
+
+      // Lock clamp visual if stuck
+      if (isStuck) {
+        ctx.fillStyle = '#fee2e2';
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 1;
+        drawRoundRect(ctx, x - 24, y - h/2 - 16, 48, 14, 3, true, true);
+        ctx.fillStyle = '#b91c1c';
+        ctx.font = 'bold 9px Pretendard, sans-serif';
+        ctx.fillText('🔒 STICK', x, y - h/2 - 9);
+      }
+
+      ctx.restore();
     }
 
-    function drawPlot(ctx, w, h, hist, color, isViscous) {
-      ctx.clearRect(0, 0, w, h);
-      
-      const cy = h/2;
-      const amp = 1.0;
+    // 4. Force Vectors
+    function drawForceVector(ctx, startX, y, force, label, color) {
+      if (Math.abs(force) < 0.5) return;
+      ctx.save();
+      const maxLen = 45;
+      const len = Math.max(-maxLen, Math.min(maxLen, (force / 30) * maxLen));
+      const endX = startX + len;
 
-      // Draw Grid
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, cy); ctx.lineTo(w, cy);
-      ctx.moveTo(0, cy - 100); ctx.lineTo(w, cy - 100);
-      ctx.moveTo(0, cy + 100); ctx.lineTo(w, cy + 100);
-      ctx.stroke();
-
-      if (hist.length === 0) return;
-
-      // Draw Envelope
-      ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      for (let i=0; i<hist.length; i++) {
-        const x = w - (hist.length - i) * (w / maxHist);
-        const t_i = i * dt;
-        let env = 0;
-        if (isViscous) {
-          env = 100 * Math.exp(-zeta * wn * t_i);
-        } else {
-          env = Math.max(0, 100 - (2 * muN / (Math.PI * wn)) * t_i * 6.28); // Approximation for envelope
-        }
-        ctx.lineTo(x, cy - env * amp);
-      }
-      ctx.stroke();
-      
-      ctx.beginPath();
-      for (let i=0; i<hist.length; i++) {
-        const x = w - (hist.length - i) * (w / maxHist);
-        const t_i = i * dt;
-        let env = 0;
-        if (isViscous) {
-          env = 100 * Math.exp(-zeta * wn * t_i);
-        } else {
-          env = Math.max(0, 100 - (2 * muN / (Math.PI * wn)) * t_i * 6.28); 
-        }
-        ctx.lineTo(x, cy + env * amp);
-      }
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Draw Response
       ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(startX, y);
+      ctx.lineTo(endX, y);
+      ctx.stroke();
+
+      // Arrow head
+      const head = len > 0 ? 5 : -5;
+      ctx.beginPath();
+      ctx.moveTo(endX, y);
+      ctx.lineTo(endX - head, y - 3.5);
+      ctx.lineTo(endX - head, y + 3.5);
+      ctx.closePath();
+      ctx.fill();
+
+      // Label
+      ctx.font = 'bold 9px "JetBrains Mono", monospace';
+      ctx.textAlign = len > 0 ? 'left' : 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`${label} ${force.toFixed(1)}N`, endX + (len > 0 ? 4 : -4), y - 2);
+      ctx.restore();
+    }
+
+    // 5. Complete Mechanical System Render
+    function renderSystem(ctx, w, h, state, isViscous) {
+      ctx.clearRect(0, 0, w, h);
+      const cy = h / 2 + 5;
+      const wallX = 35;
+      const groundY = cy + 26;
+
+      // 1. Structural Ground
+      ctx.strokeStyle = '#0f172a';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      for (let i=0; i<hist.length; i++) {
-        const x = w - (hist.length - i) * (w / maxHist);
-        const y = cy - hist[i].u * amp;
-        if (i===0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
+      ctx.moveTo(10, groundY);
+      ctx.lineTo(w - 10, groundY);
       ctx.stroke();
-      
-      // Plot stick region if friction
-      if (!isViscous && hist.length > 0) {
-        const lastU = hist[hist.length-1].u;
-        const lastV = hist[hist.length-1].v;
-        if (Math.abs(lastV) < 0.1 && Math.abs(lastU * k) <= muN) {
-          ctx.fillStyle = '#ef4444';
-          ctx.font = 'bold 12px sans-serif';
-          ctx.fillText('STICK (정지)', w - 40, cy - lastU * amp - 15);
-        }
-      }
-    }
 
-    function step() {
-      // Viscous step
-      const c = 2 * zeta * wn * m;
-      const v_a = (-c * v_v - k * v_u) / m;
-      v_v += v_a * dt;
-      v_u += v_v * dt;
-      
-      // Coulomb step
-      let f_a = 0;
-      const springForce = -k * f_u;
-      
-      if (Math.abs(f_v) > 0.5) {
-        // Sliding
-        const friction = -Math.sign(f_v) * muN;
-        f_a = (springForce + friction) / m;
-        f_v += f_a * dt;
-        f_u += f_v * dt;
+      // Hatching
+      ctx.strokeStyle = isViscous ? '#cbd5e1' : '#f59e0b';
+      ctx.lineWidth = 1;
+      for (let x = 15; x < w - 10; x += 14) {
+        ctx.beginPath();
+        ctx.moveTo(x, groundY);
+        ctx.lineTo(x - 6, groundY + 8);
+        ctx.stroke();
+      }
+
+      // 2. Left Wall
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(wallX, cy - 38);
+      ctx.lineTo(wallX, groundY);
+      ctx.stroke();
+
+      // Wall Anchor Bolts
+      ctx.fillStyle = '#64748b';
+      ctx.beginPath();
+      ctx.arc(wallX - 3, cy - 20, 2.5, 0, Math.PI * 2);
+      ctx.arc(wallX - 3, cy + 10, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Wall cross-hatching
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1;
+      for (let y = cy - 34; y < groundY; y += 10) {
+        ctx.beginPath();
+        ctx.moveTo(wallX, y);
+        ctx.lineTo(wallX - 10, y + 6);
+        ctx.stroke();
+      }
+
+      // 3. Block Position Mapping
+      const u_mm = state.u * 1000;
+      const eqX = wallX + 160;
+      const maxVisualAmp = 65; // px for 100mm
+      const blockX = eqX + (u_mm / 100) * maxVisualAmp;
+      const blockW = 46, blockH = 46;
+      const blockLeft = blockX - blockW / 2;
+
+      // 4. Draw Spring (Upper Row)
+      const springY = cy - 12;
+      drawHelicalSpring(ctx, wallX, blockLeft, springY, 9, 8, 2.2);
+
+      // 5. Draw Damper or Lower Mount
+      if (isViscous) {
+        const damperY = cy + 12;
+        drawHydraulicDashpot(ctx, wallX, blockLeft, damperY, 70, 18);
+      }
+
+      // 6. Draw Mass Block
+      drawMassBlock(ctx, blockX, cy, blockW, blockH, isViscous, u_mm, state.isStuck);
+
+      // 7. Draw Equilibrium Center Reference Line
+      ctx.strokeStyle = '#94a3b8';
+      ctx.setLineDash([2, 2]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(eqX, cy - 38);
+      ctx.lineTo(eqX, groundY + 12);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 8.5px Pretendard, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('평형위치 u=0', eqX, groundY + 18);
+
+      // 8. Force Vectors
+      const fVecY = cy - 28;
+      drawForceVector(ctx, blockX, fVecY, state.Fs, 'Fs', '#2563eb');
+      if (isViscous) {
+        drawForceVector(ctx, blockX, fVecY - 14, state.Fd, 'Fd', '#0284c7');
       } else {
-        // Sticking condition check
-        if (Math.abs(springForce) > muN) {
-          const friction = -Math.sign(springForce) * muN;
-          f_a = (springForce + friction) / m;
-          f_v += f_a * dt;
-          f_u += f_v * dt;
+        drawForceVector(ctx, blockX, fVecY - 14, state.Ff, 'Ff', '#d97706');
+      }
+    }
+
+    // =========================================================================
+    // OSCILLOSCOPE TIME HISTORY PLOT
+    // =========================================================================
+    function renderPlot(ctx, w, h, hist, isViscous, overlayMode = false) {
+      ctx.clearRect(0, 0, w, h);
+
+      const marginL = 50;
+      const marginR = 25;
+      const marginT = 24;
+      const marginB = 30;
+      const plotW = w - marginL - marginR;
+      const plotH = h - marginT - marginB;
+      const cy = marginT + plotH / 2;
+
+      const maxU = 120; // mm
+      function toX(t) { return marginL + (t / maxHistSeconds) * plotW; }
+      function toY(u_mm) { return cy - (u_mm / maxU) * (plotH / 2); }
+
+      // 1. Grid & Ticks
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+
+      // Y Ticks
+      const yTicks = [-100, -50, 0, 50, 100];
+      yTicks.forEach(val => {
+        const y = toY(val);
+        ctx.beginPath();
+        ctx.moveTo(marginL, y);
+        ctx.lineTo(w - marginR, y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${val > 0 ? '+' : ''}${val}`, marginL - 6, y);
+      });
+
+      // X Ticks
+      for (let t = 0; t <= maxHistSeconds; t += 1.0) {
+        const x = toX(t);
+        ctx.beginPath();
+        ctx.moveTo(x, marginT);
+        ctx.lineTo(x, h - marginB);
+        ctx.stroke();
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${t.toFixed(0)}s`, x, h - marginB + 6);
+      }
+      ctx.setLineDash([]);
+
+      // 2. Axes
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(marginL, marginT - 10);
+      ctx.lineTo(marginL, h - marginB);
+      ctx.lineTo(w - marginR + 10, h - marginB);
+      ctx.stroke();
+
+      // Zero Axis
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(marginL, cy);
+      ctx.lineTo(w - marginR, cy);
+      ctx.stroke();
+
+      // Axis Titles
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 10px Pretendard, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('변위 u (mm)', marginL - 45, marginT - 8);
+
+      ctx.textAlign = 'right';
+      ctx.fillText('시간 t (s)', w - marginR + 10, h - marginB + 20);
+
+      // 3. Stick Zone (Coulomb only)
+      if (!isViscous) {
+        const uf_mm = (muN / k) * 1000;
+        const yTop = toY(uf_mm);
+        const yBot = toY(-uf_mm);
+
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+        ctx.fillRect(marginL, yTop, plotW, yBot - yTop);
+
+        ctx.strokeStyle = '#fca5a5';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 2]);
+        ctx.beginPath();
+        ctx.moveTo(marginL, yTop); ctx.lineTo(w - marginR, yTop);
+        ctx.moveTo(marginL, yBot); ctx.lineTo(w - marginR, yBot);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#b91c1c';
+        ctx.font = 'bold 9px Pretendard, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`Stick 한계: ±${uf_mm.toFixed(1)}mm`, w - marginR - 6, yTop - 7);
+      }
+
+      // 4. Envelope Curves
+      const steps = 180;
+      const u0_mm = u0 * 1000;
+
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+
+      if (isViscous) {
+        ctx.strokeStyle = '#94a3b8';
+        // Positive envelope
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * maxHistSeconds;
+          const env_mm = u0_mm * Math.exp(-zeta * wn * t);
+          const x = toX(t);
+          const y = toY(env_mm);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Negative envelope
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * maxHistSeconds;
+          const env_mm = u0_mm * Math.exp(-zeta * wn * t);
+          const x = toX(t);
+          const y = toY(-env_mm);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      } else {
+        // Coulomb Linear Envelope
+        const uf_mm = (muN / k) * 1000;
+        ctx.strokeStyle = '#f59e0b';
+
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * maxHistSeconds;
+          const env_mm = Math.max(0, u0_mm - (4 * uf_mm / Tn) * t);
+          const x = toX(t);
+          const y = toY(env_mm);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * maxHistSeconds;
+          const env_mm = Math.max(0, u0_mm - (4 * uf_mm / Tn) * t);
+          const x = toX(t);
+          const y = toY(-env_mm);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      // 5. Response Waveform Stroke
+      if (hist.length > 0) {
+        ctx.lineWidth = 2.4;
+        ctx.strokeStyle = isViscous ? '#2563eb' : '#d97706';
+        ctx.beginPath();
+        for (let i = 0; i < hist.length; i++) {
+          const x = toX(hist[i].t);
+          const y = toY(hist[i].u * 1000);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Glowing Head Dot
+        const last = hist[hist.length - 1];
+        const hx = toX(last.t);
+        const hy = toY(last.u * 1000);
+
+        ctx.fillStyle = isViscous ? '#38bdf8' : '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(hx, hy, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Sticky badge if stuck
+        if (!isViscous && last.isStuck) {
+          ctx.fillStyle = '#ef4444';
+          ctx.font = 'bold 11px Pretendard, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(`🔒 STICK 정지 완료 (u = ${(last.stopU * 1000).toFixed(1)}mm)`, hx + 8, hy - 4);
+        }
+      }
+    }
+
+    // 6. Overlay Dual Plot
+    function renderOverlayPlot(ctx, w, h) {
+      ctx.clearRect(0, 0, w, h);
+
+      const marginL = 55;
+      const marginR = 30;
+      const marginT = 28;
+      const marginB = 34;
+      const plotW = w - marginL - marginR;
+      const plotH = h - marginT - marginB;
+      const cy = marginT + plotH / 2;
+
+      const maxU = 120;
+      function toX(t) { return marginL + (t / maxHistSeconds) * plotW; }
+      function toY(u_mm) { return cy - (u_mm / maxU) * (plotH / 2); }
+
+      // Grid
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      [-100, -50, 0, 50, 100].forEach(val => {
+        const y = toY(val);
+        ctx.beginPath(); ctx.moveTo(marginL, y); ctx.lineTo(w - marginR, y); ctx.stroke();
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 10px "JetBrains Mono", monospace';
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText(`${val > 0 ? '+' : ''}${val}`, marginL - 8, y);
+      });
+
+      for (let t = 0; t <= maxHistSeconds; t += 1.0) {
+        const x = toX(t);
+        ctx.beginPath(); ctx.moveTo(x, marginT); ctx.lineTo(x, h - marginB); ctx.stroke();
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 10px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(`${t.toFixed(0)}s`, x, h - marginB + 8);
+      }
+      ctx.setLineDash([]);
+
+      // Axes
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(marginL, marginT - 10); ctx.lineTo(marginL, h - marginB); ctx.lineTo(w - marginR + 10, h - marginB);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(marginL, cy); ctx.lineTo(w - marginR, cy); ctx.stroke();
+
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 11px Pretendard, sans-serif';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText('변위 u (mm)', marginL - 45, marginT - 10);
+
+      // Coulomb Waveform (Amber)
+      if (histF.length > 0) {
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        for (let i = 0; i < histF.length; i++) {
+          const x = toX(histF[i].t);
+          const y = toY(histF[i].u * 1000);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      // Viscous Waveform (Blue)
+      if (histV.length > 0) {
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        for (let i = 0; i < histV.length; i++) {
+          const x = toX(histV[i].t);
+          const y = toY(histV[i].u * 1000);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // =========================================================================
+    // SIMULATION LOOP & USER INTERACTIONS
+    // =========================================================================
+    function updateMetrics() {
+      // Viscous
+      const c = 2 * zeta * wn * m;
+      const td = Tn / Math.sqrt(Math.max(0.0001, 1 - zeta * zeta));
+      const delta = (2 * Math.PI * zeta) / Math.sqrt(Math.max(0.0001, 1 - zeta * zeta));
+
+      document.getElementById('txt-visc-c').innerText = `${c.toFixed(2)} N·s/m`;
+      document.getElementById('txt-visc-td').innerText = `${td.toFixed(3)} s`;
+      document.getElementById('txt-visc-delta').innerText = `${delta.toFixed(3)}`;
+
+      // Coulomb
+      const uf_mm = (muN / k) * 1000;
+      const halfDecay_mm = 2 * uf_mm;
+
+      document.getElementById('txt-fric-uf').innerText = `${uf_mm.toFixed(1)} mm`;
+      document.getElementById('txt-fric-decay').innerText = `${halfDecay_mm.toFixed(1)} mm`;
+    }
+
+    function updateU0(val) {
+      u0 = parseFloat(val) / 1000;
+      document.getElementById('txt-u0-val').innerText = `${val} mm`;
+      resetSim();
+    }
+
+    function updateZeta(val) {
+      zeta = parseFloat(val);
+      document.getElementById('txt-zeta-val').innerText = `${zeta.toFixed(2)} (${Math.round(zeta * 100)}%)`;
+      updateMetrics();
+      resetSim();
+    }
+
+    function setZeta(val) {
+      document.getElementById('slider-zeta').value = val;
+      updateZeta(val);
+    }
+
+    function updateMu(val) {
+      muN = parseFloat(val);
+      document.getElementById('txt-mu-val').innerText = `${muN.toFixed(1)} N`;
+      updateMetrics();
+      resetSim();
+    }
+
+    function setMu(val) {
+      document.getElementById('slider-mu').value = val;
+      updateMu(val);
+    }
+
+    function togglePlay() {
+      isRunning = !isRunning;
+      document.getElementById('play-icon').innerText = isRunning ? '⏸' : '▶';
+      document.getElementById('play-text').innerText = isRunning ? '일시정지' : '재생';
+    }
+
+    function resetSim() {
+      simTime = 0;
+      histV.length = 0;
+      histF.length = 0;
+      isRunning = true;
+      document.getElementById('play-icon').innerText = '⏸';
+      document.getElementById('play-text').innerText = '일시정지';
+    }
+
+    function toggleViewMode() {
+      viewMode = viewMode === 'dual' ? 'overlay' : 'dual';
+      const dualContainer = document.getElementById('dual-cards-container');
+      const overlayContainer = document.getElementById('overlay-container');
+      const btn = document.getElementById('btn-view-mode');
+
+      if (viewMode === 'overlay') {
+        dualContainer.style.display = 'none';
+        overlayContainer.style.display = 'block';
+        btn.innerText = '📊 나란히 비교';
+      } else {
+        dualContainer.style.display = 'grid';
+        overlayContainer.style.display = 'none';
+        btn.innerText = '📊 오버레이 비교';
+      }
+    }
+
+    // Zentry 3D Card Hover Effect
+    function initZentryTilt() {
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        card.addEventListener('mousemove', e => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 2.5;
+          const rotY = (x / (rect.width / 2)) * 2.5;
+          card.style.transform = `perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        });
+      });
+    }
+
+    // Main 60fps Loop
+    function mainLoop() {
+      if (isRunning) {
+        simTime += dt * simSpeed;
+        if (simTime <= maxHistSeconds) {
+          const stateV = getViscousState(simTime, u0, zeta);
+          const stateF = getCoulombState(simTime, u0, muN);
+
+          histV.push({ t: simTime, ...stateV });
+          histF.push({ t: simTime, ...stateF });
         } else {
-          // Stuck
-          f_v = 0;
-          f_a = 0;
+          // Loop or pause at end
+          // isRunning = false;
         }
       }
 
-      time += dt;
+      const curStateV = histV.length > 0 ? histV[histV.length - 1] : getViscousState(0, u0, zeta);
+      const curStateF = histF.length > 0 ? histF[histF.length - 1] : getCoulombState(0, u0, muN);
 
-      histV.push({u: v_u, v: v_v});
-      histF.push({u: f_u, v: f_v});
+      if (viewMode === 'dual') {
+        const cSysV = getCanvasContext('canvas-visc-sys');
+        if (cSysV) renderSystem(cSysV.ctx, cSysV.w, cSysV.h, curStateV, true);
 
-      if (histV.length > maxHist) {
-        histV.shift();
-        histF.shift();
+        const cPlotV = getCanvasContext('canvas-visc-plot');
+        if (cPlotV) renderPlot(cPlotV.ctx, cPlotV.w, cPlotV.h, histV, true);
+
+        const cSysF = getCanvasContext('canvas-fric-sys');
+        if (cSysF) renderSystem(cSysF.ctx, cSysF.w, cSysF.h, curStateF, false);
+
+        const cPlotF = getCanvasContext('canvas-fric-plot');
+        if (cPlotF) renderPlot(cPlotF.ctx, cPlotF.w, cPlotF.h, histF, false);
+      } else {
+        const cOverlay = getCanvasContext('canvas-overlay-plot');
+        if (cOverlay) renderOverlayPlot(cOverlay.ctx, cOverlay.w, cOverlay.h);
       }
+
+      requestAnimationFrame(mainLoop);
     }
 
-    function render() {
-      if (isRunning) step();
-
-      const cv1 = setupCanvas('canvas-visc-sys');
-      if (cv1) drawSystem(cv1.ctx, cv1.w, cv1.h, v_u, true);
-      
-      const cp1 = setupCanvas('canvas-visc-plot');
-      if (cp1) drawPlot(cp1.ctx, cp1.w, cp1.h, histV, '#0284c7', true);
-
-      const cv2 = setupCanvas('canvas-fric-sys');
-      if (cv2) drawSystem(cv2.ctx, cv2.w, cv2.h, f_u, false);
-
-      const cp2 = setupCanvas('canvas-fric-plot');
-      if (cp2) drawPlot(cp2.ctx, cp2.w, cp2.h, histF, '#d97706', false);
-
-      requestAnimationFrame(render);
-    }
-
-    render();
+    // Initialize
+    updateMetrics();
+    initZentryTilt();
+    requestAnimationFrame(mainLoop);
 
   </script>
 </body>
