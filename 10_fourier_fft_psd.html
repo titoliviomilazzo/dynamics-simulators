@@ -1,731 +1,631 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>10. 고속 푸리에 변환(FFT) & 파워스펙트럼밀도(PSD) 시뮬레이터</title>
-<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-<style>
-  :root {
-    --bg-main: #f8fafc;
-    --bg-card: #ffffff;
-    --border-color: #e2e8f0;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
-    --accent-blue: #2563eb;
-    --accent-indigo: #4f46e5;
-    --accent-purple: #7c3aed;
-    --accent-red: #dc2626;
-    --accent-amber: #d97706;
-    --accent-emerald: #059669;
-    --font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: var(--font-family);
-    background-color: var(--bg-main);
-    color: var(--text-primary);
-    line-height: 1.5;
-    padding: 24px;
-    display: flex;
-    justify-content: center;
-  }
-  .app-container {
-    width: 100%;
-    max-width: 1360px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  header {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    padding: 20px 24px;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .header-left h1 {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-  }
-  .header-left p {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-top: 4px;
-  }
-  .nav-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #f1f5f9;
-    padding: 6px 14px;
-    border-radius: 9999px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent-indigo);
-    text-decoration: none;
-    border: 1px solid #e2e8f0;
-  }
-  .nav-badge:hover { background: #e2e8f0; }
-  .grid-layout {
-    display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 20px;
-  }
-  @media (max-width: 1024px) {
-    .grid-layout { grid-template-columns: 1fr; }
-  }
-  .panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  }
-  .control-section {
-    margin-bottom: 20px;
-  }
-  .control-section:last-child { margin-bottom: 0; }
-  .section-title {
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .form-group {
-    margin-bottom: 14px;
-  }
-  .form-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-  }
-  .form-val {
-    font-family: monospace;
-    color: var(--accent-blue);
-    font-weight: 700;
-  }
-  input[type="range"] {
-    width: 100%;
-    accent-color: var(--accent-blue);
-  }
-  select {
-    width: 100%;
-    padding: 9px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: #fff;
-    font-family: var(--font-family);
-    font-size: 13px;
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-top: 14px;
-  }
-  .metric-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 10px;
-  }
-  .metric-label {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-  .metric-value {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-top: 2px;
-    font-family: monospace;
-  }
-  .main-content {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  .canvas-wrapper {
-    position: relative;
-    background: #fff;
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  }
-  .canvas-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-  .canvas-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .canvas-legend {
-    display: flex;
-    gap: 14px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .legend-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-  }
-  canvas {
-    display: block;
-    width: 100%;
-    border-radius: 8px;
-    background: #ffffff;
-  }
-  .theory-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 18px 22px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-  .theory-card h3 {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-  }
-  .formula-badge {
-    font-family: monospace;
-    background: #f1f5f9;
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: #0f172a;
-    font-weight: 600;
-  }
-</style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>10. 고속 푸리에 변환(FFT) & 파워스펙트럼밀도(PSD) 시뮬레이터</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="assets/dynamics-fx.js" defer></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+  </style>
 </head>
-<body>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-<div class="app-container">
-  <header>
-    <div class="header-left">
-      <h1>10. 고속 푸리에 변환(FFT) & 파워스펙트럼밀도(PSD)</h1>
-      <p>시간영역 동역학 신호 ↔ 주파수영역 스펙트럼 분해 | El Centro 지진파 주파수 대역 & 건물 고유진동수 식별(OMA)</p>
-    </div>
-    <a href="index.html" class="nav-badge">← 마스터 대시보드</a>
-  </header>
-
-  <div class="grid-layout">
-    <!-- 좌측 컨트롤 패널 -->
-    <div class="panel">
-      <div class="control-section">
-        <div class="section-title">신호원(Signal Source) 선택</div>
-        <div class="form-group">
-          <label class="form-label">파형 유형</label>
-          <select id="selectSignal">
-            <option value="multisine" selected>복합 조화파 (1.0Hz + 2.5Hz + 5.0Hz)</option>
-            <option value="square">사각파 푸리에 합성 (Square Wave Series)</option>
-            <option value="elcentro">El Centro 1940 지진파 가속도</option>
-            <option value="building_oma">백색잡음 하 3층 건물 상시진동(OMA)</option>
-          </select>
+  <div class="w-full max-w-7xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
+    
+    <!-- Top Header -->
+    <header class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-4 gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+            TRACK 1 · SIGNAL
+          </span>
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            10. 고속 푸리에 변환(FFT) & 파워스펙트럼밀도(PSD)
+          </h1>
         </div>
-        <div class="form-group" id="groupHarmonics" style="display: none;">
-          <div class="form-label">
-            <span>푸리에 조화수 (N Harmonics)</span>
-            <span class="form-val" id="valHarmonics">5 차</span>
-          </div>
-          <input type="range" id="rangeHarmonics" min="1" max="31" step="2" value="5">
-        </div>
-        <div class="form-group">
-          <div class="form-label">
-            <span>노이즈 레벨 (White Noise)</span>
-            <span class="form-val" id="valNoise">10 %</span>
-          </div>
-          <input type="range" id="rangeNoise" min="0" max="50" step="5" value="10">
-        </div>
-        <div class="form-group">
-          <div class="form-label">
-            <span>샘플링 주파수 (f_s)</span>
-            <span class="form-val" id="valFs">50 Hz</span>
-          </div>
-          <input type="range" id="rangeFs" min="20" max="100" step="10" value="50">
-        </div>
-      </div>
-
-      <div class="control-section">
-        <div class="section-title">주파수 분석 지표</div>
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-label">나이퀴스트 주파수 (f_Nyq)</div>
-            <div class="metric-value" id="metricNyq">25.0 Hz</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-label">주파수 분해능 (Δf)</div>
-            <div class="metric-value" id="metricDf">0.098 Hz</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-label">1차 지배 주파수 (f₁)</div>
-            <div class="metric-value" id="metricF1" style="color: var(--accent-blue);">1.00 Hz</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-label">2차 피크 주파수 (f₂)</div>
-            <div class="metric-value" id="metricF2" style="color: var(--accent-indigo);">2.50 Hz</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-label">3차 피크 주파수 (f₃)</div>
-            <div class="metric-value" id="metricF3" style="color: var(--accent-purple);">5.00 Hz</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-label">최대 PSD 피크 (S_max)</div>
-            <div class="metric-value" id="metricSmax">0.245 g²/Hz</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 우측 캔버스 영역 -->
-    <div class="main-content">
-      <!-- 시간영역 신호 플롯 -->
-      <div class="canvas-wrapper">
-        <div class="canvas-header">
-          <div class="canvas-title">
-            <span>(1) 시간영역 신호 x(t) [Time-Domain Waveform]</span>
-          </div>
-          <div class="canvas-legend">
-            <div class="legend-item">
-              <div class="legend-dot" style="background: #2563eb;"></div>
-              <span>계측 가속도/변위 x(t)</span>
-            </div>
-          </div>
-        </div>
-        <canvas id="timeCanvas"></canvas>
-      </div>
-
-      <!-- 주파수영역 푸리에 진폭 & PSD 플롯 -->
-      <div class="canvas-wrapper">
-        <div class="canvas-header">
-          <div class="canvas-title">
-            <span>(2) 주파수영역 푸리에 진폭 스펙트럼 |X(f)| 및 PSD [Power Spectral Density]</span>
-          </div>
-          <div class="canvas-legend">
-            <div class="legend-item">
-              <div class="legend-dot" style="background: #7c3aed;"></div>
-              <span>푸리에 스펙트럼 |X(f)|</span>
-            </div>
-            <div class="legend-item">
-              <div class="legend-dot" style="background: #dc2626;"></div>
-              <span>식별된 고유진동수 피크 (Peak Picking)</span>
-            </div>
-          </div>
-        </div>
-        <canvas id="freqCanvas"></canvas>
-      </div>
-
-      <!-- 이론 설명 카드 -->
-      <div class="theory-card">
-        <h3>푸리에 변환(FFT)과 상시진동 고유진동수 식별(OMA) 공학 원리</h3>
-        <p>
-          1. <strong>이산 푸리에 변환 (DFT / FFT):</strong> 임의의 이산 시간신호 <span class="formula-badge">x[n]</span>을 정현파와 여현파의 선형 결합 
-          <span class="formula-badge">X[k] = Σ x[n] e^(-j 2π k n / N)</span> 으로 분해하여 주파수 성분별 기여도를 도출합니다.<br>
-          2. <strong>파워스펙트럼밀도 (PSD):</strong> 주파수 단위폭당 신호의 에너지 밀도로서 <span class="formula-badge">S_xx(f) = |X(f)|² / (N · f_s)</span> 로 정의됩니다.<br>
-          3. <strong>OMA (Operational Modal Analysis):</strong> 풍하중이나 지반 미진동(백색잡음) 하에서 계측된 가속도 응답의 PSD 피크를 찾으면, 가진력의 주파수를 몰라도 건물의 1차·2차·3차 모드 고유진동수를 직접 추출(Peak Picking)할 수 있습니다.
+        <p class="text-xs md:text-sm text-slate-600 mt-1">
+          시간영역 신호 x(t) &harr; 주파수영역 스펙트럼 분해 | 3D BIM 상시진동(OMA) 건물 고유진동수 식별
         </p>
       </div>
+      <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition shadow-xs">
+        &larr; 마스터 대시보드
+      </a>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      
+      <!-- Left Controls Panel (4 Cols) -->
+      <div class="lg:col-span-4 space-y-4">
+        
+        <!-- Signal Config Card (Zentry Tilt) -->
+        <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 space-y-3.5 zentry-card shadow-2xs">
+          <span class="text-xs font-black uppercase text-slate-500 tracking-wider block border-b border-slate-200 pb-1.5">
+            신호원(Signal Source) 선택
+          </span>
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-700 block">파형 유형</label>
+            <select id="selectSignal" onchange="updateSimulation()" class="w-full py-1.5 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-800">
+              <option value="building_oma" selected>🏢 3층 건물 상시진동 계측 (OMA)</option>
+              <option value="multisine">복합 조화파 (1.0Hz + 2.5Hz + 5.0Hz)</option>
+              <option value="square">사각파 푸리에 합성 (Square Wave Series)</option>
+              <option value="elcentro">El Centro 1940 지진파 가속도</option>
+            </select>
+          </div>
+
+          <div id="groupHarmonics" class="space-y-1" style="display: none;">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">푸리에 조화수 (N Harmonics)</span>
+              <span id="valHarmonics" class="font-mono font-bold text-blue-700">5 차</span>
+            </div>
+            <input type="range" id="rangeHarmonics" min="1" max="31" step="2" value="5" oninput="updateSimulation()" class="w-full accent-blue-600 cursor-pointer">
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">노이즈 레벨 (White Noise)</span>
+              <span id="valNoise" class="font-mono font-bold text-amber-700">10 %</span>
+            </div>
+            <input type="range" id="rangeNoise" min="0" max="50" step="5" value="10" oninput="updateSimulation()" class="w-full accent-amber-500 cursor-pointer">
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">샘플링 주파수 (fs)</span>
+              <span id="valFs" class="font-mono font-bold text-indigo-700">50 Hz</span>
+            </div>
+            <input type="range" id="rangeFs" min="20" max="100" step="10" value="50" oninput="updateSimulation()" class="w-full accent-indigo-600 cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Frequency Metrics Card (Zentry Tilt) -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 zentry-card shadow-2xs">
+          <span class="text-xs font-black uppercase text-slate-500 tracking-wider block border-b border-slate-100 pb-1.5">
+            주파수 분석 지표 (OMA 식별)
+          </span>
+
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-sans">나이퀴스트 (f_Nyq)</span>
+              <span id="metricNyq" class="text-sm font-black text-slate-800">25.0 Hz</span>
+            </div>
+            <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-sans">주파수 분해능 (&Delta;f)</span>
+              <span id="metricDf" class="text-sm font-black text-slate-800">0.098 Hz</span>
+            </div>
+            <div class="bg-blue-50/60 p-2 rounded-lg border border-blue-200">
+              <span class="text-[10px] text-blue-800 block font-sans">1차 고유진동수 (f₁)</span>
+              <span id="metricF1" class="text-sm font-black text-blue-700">1.00 Hz</span>
+            </div>
+            <div class="bg-purple-50/60 p-2 rounded-lg border border-purple-200">
+              <span class="text-[10px] text-purple-800 block font-sans">2차 고유진동수 (f₂)</span>
+              <span id="metricF2" class="text-sm font-black text-purple-700">2.50 Hz</span>
+            </div>
+            <div class="bg-indigo-50/60 p-2 rounded-lg border border-indigo-200">
+              <span class="text-[10px] text-indigo-800 block font-sans">3차 고유진동수 (f₃)</span>
+              <span id="metricF3" class="text-sm font-black text-indigo-700">5.00 Hz</span>
+            </div>
+            <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-sans">최대 PSD 피크 (S_max)</span>
+              <span id="metricSmax" class="text-sm font-black text-amber-700">0.245 g²/Hz</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theory Card -->
+        <div class="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5 text-xs text-purple-950 leading-relaxed zentry-card shadow-2xs">
+          <strong>💡 상시진동 고유진동수 식별(OMA)의 위력:</strong><br>
+          지진이나 인위적 가진기 없이도, 바람과 지반 미진동(백색잡음)만으로 가속도계를 부착해 PSD 피크를 찍으면 건물의 1·2·3차 모드 고유진동수를 비파괴로 정확히 추출(Peak Picking)할 수 있습니다.
+        </div>
+
+      </div>
+
+      <!-- Right Visualizations Panel (8 Cols) -->
+      <div class="lg:col-span-8 space-y-4">
+        
+        <!-- 1. Top: Time-Domain Waveform / 3D BIM OMA Building View -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-2 shadow-sm">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+              <span>(1) 시간영역 신호 x(t) & 3D BIM 상시진동 계측</span>
+            </span>
+            <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-xs font-semibold border border-slate-200">
+              <button id="btnView3D" onclick="switchTimeView('3D')" class="px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs">🏢 3D BIM OMA</button>
+              <button id="btnViewWave" onclick="switchTimeView('Wave')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📈 2D 파형</button>
+            </div>
+          </div>
+
+          <!-- View Container -->
+          <div class="relative w-full h-[220px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+            <!-- 3D BIM Container -->
+            <div id="threeOmaContainer" class="w-full h-full absolute inset-0">
+              <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2 py-1 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1 flex-wrap">
+                <span>🖱️ 3D</span>
+                <span class="text-slate-300">|</span>
+                <span class="font-bold text-slate-800">변위:</span>
+                <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+                <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x</button>
+                <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
+              </div>
+
+              <div class="absolute top-2 right-2 text-[10px] font-semibold bg-white/90 backdrop-blur-xs border border-slate-200 p-2 rounded-lg shadow-xs space-y-0.5">
+                <div class="flex items-center gap-1 text-red-600 font-bold">
+                  <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                  <span>가속도계 센서 (Roof 계측)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2D Time Waveform Canvas -->
+            <div id="timeWaveContainer" class="w-full h-full absolute inset-0 bg-slate-50/50 p-2" style="display: none;">
+              <canvas id="timeCanvas" class="w-full h-full block"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Bottom: Frequency-Domain Fourier Amplitude & PSD Spectrum -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-2 shadow-sm">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <span class="text-xs font-bold text-slate-900">
+              (2) 주파수영역 푸리에 진폭 스펙트럼 |X(f)| 및 파워스펙트럼밀도(PSD)
+            </span>
+            <div class="flex items-center gap-2 text-[11px] font-semibold">
+              <span class="flex items-center gap-1 text-purple-700"><span class="w-2.5 h-1 bg-purple-600 rounded"></span> 푸리에 |X(f)|</span>
+              <span class="flex items-center gap-1 text-red-600"><span class="w-2 h-2 rounded-full bg-red-600"></span> OMA 식별 피크</span>
+            </div>
+          </div>
+
+          <div class="relative w-full h-[270px] rounded-xl overflow-hidden border border-slate-200 bg-slate-50/50 p-2">
+            <canvas id="freqCanvas" class="w-full h-full block"></canvas>
+          </div>
+        </div>
+
+      </div>
+
     </div>
+
   </div>
-</div>
 
-<script>
-let signalType = 'multisine';
-let numHarmonics = 5;
-let noisePct = 10;
-let Fs = 50; // Hz
-const duration = 10.0; // s
+  <script>
+    // --- Global State ---
+    let signalType = 'building_oma';
+    let numHarmonics = 5;
+    let noisePct = 10;
+    let Fs = 50;
+    const duration = 10.0;
+    let threeAmpScale = 70.0;
+    let currentTimeView = '3D';
+    let animT = 0;
 
-// DOM
-const selectSignal = document.getElementById('selectSignal');
-const groupHarmonics = document.getElementById('groupHarmonics');
-const rangeHarmonics = document.getElementById('rangeHarmonics');
-const rangeNoise = document.getElementById('rangeNoise');
-const rangeFs = document.getElementById('rangeFs');
+    const timeCanvas = document.getElementById('timeCanvas');
+    const timeCtx = timeCanvas.getContext('2d');
+    const freqCanvas = document.getElementById('freqCanvas');
+    const freqCtx = freqCanvas.getContext('2d');
 
-const valHarmonics = document.getElementById('valHarmonics');
-const valNoise = document.getElementById('valNoise');
-const valFs = document.getElementById('valFs');
+    function setThreeAmp(scale) {
+      threeAmpScale = scale;
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+    }
 
-const metricNyq = document.getElementById('metricNyq');
-const metricDf = document.getElementById('metricDf');
-const metricF1 = document.getElementById('metricF1');
-const metricF2 = document.getElementById('metricF2');
-const metricF3 = document.getElementById('metricF3');
-const metricSmax = document.getElementById('metricSmax');
+    function switchTimeView(view) {
+      currentTimeView = view;
+      const b3d = document.getElementById('btnView3D');
+      const bw = document.getElementById('btnViewWave');
+      const c3d = document.getElementById('threeOmaContainer');
+      const cw = document.getElementById('timeWaveContainer');
 
-const timeCanvas = document.getElementById('timeCanvas');
-const timeCtx = timeCanvas.getContext('2d');
-const freqCanvas = document.getElementById('freqCanvas');
-const freqCtx = freqCanvas.getContext('2d');
-
-function resizeCanvases() {
-  const dpr = window.devicePixelRatio || 1;
-  const timeWrapper = timeCanvas.parentElement;
-  const freqWrapper = freqCanvas.parentElement;
-
-  const tw = timeWrapper.clientWidth - 32;
-  const th = 200;
-  timeCanvas.width = Math.round(tw * dpr);
-  timeCanvas.height = Math.round(th * dpr);
-  timeCanvas.style.width = tw + 'px';
-  timeCanvas.style.height = th + 'px';
-
-  const fw = freqWrapper.clientWidth - 32;
-  const fh = 260;
-  freqCanvas.width = Math.round(fw * dpr);
-  freqCanvas.height = Math.round(fh * dpr);
-  freqCanvas.style.width = fw + 'px';
-  freqCanvas.style.height = fh + 'px';
-}
-window.addEventListener('resize', () => {
-  resizeCanvases();
-  updateSimulation();
-});
-
-// 신호 생성 함수
-function generateSignal() {
-  const N = Math.floor(duration * Fs);
-  const tArr = new Float32Array(N);
-  const xArr = new Float32Array(N);
-
-  for (let i = 0; i < N; i++) {
-    const t = i / Fs;
-    tArr[i] = t;
-
-    let val = 0.0;
-    if (signalType === 'multisine') {
-      // 1.0Hz (진폭 1.0) + 2.5Hz (진폭 0.6) + 5.0Hz (진폭 0.3)
-      val = 1.0 * Math.sin(2.0 * Math.PI * 1.0 * t) +
-            0.6 * Math.sin(2.0 * Math.PI * 2.5 * t) +
-            0.3 * Math.sin(2.0 * Math.PI * 5.0 * t);
-    } else if (signalType === 'square') {
-      // 사각파 (기본 1.0Hz) 푸리에 급수: sin(wt) + 1/3 sin(3wt) + ...
-      for (let h = 1; h <= numHarmonics; h += 2) {
-        val += (4.0 / (Math.PI * h)) * Math.sin(2.0 * Math.PI * 1.0 * h * t);
+      if (view === '3D') {
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        bw.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'block';
+        cw.style.display = 'none';
+      } else {
+        bw.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'none';
+        cw.style.display = 'block';
+        resizeCanvases();
+        updateSimulation();
       }
-    } else if (signalType === 'elcentro') {
-      // El Centro 풍의 1.5Hz 지배 광대역 불규칙파 합성
-      val = 0.35 * Math.sin(2.0 * Math.PI * 1.5 * t + 0.5) * Math.exp(-0.15 * t) +
-            0.20 * Math.sin(2.0 * Math.PI * 2.8 * t + 1.2) +
-            0.15 * Math.sin(2.0 * Math.PI * 4.2 * t) +
-            0.10 * Math.sin(2.0 * Math.PI * 6.8 * t);
-    } else if (signalType === 'building_oma') {
-      // 3층 건물 상시진동 응답: 모드1 (1.2Hz), 모드2 (3.6Hz), 모드3 (6.0Hz)
-      val = 0.8 * Math.sin(2.0 * Math.PI * 1.2 * t) * (1.0 + 0.3 * Math.sin(0.4 * t)) +
-            0.4 * Math.sin(2.0 * Math.PI * 3.6 * t) +
-            0.2 * Math.sin(2.0 * Math.PI * 6.0 * t);
     }
 
-    // 백색잡음 추가
-    const noise = (Math.random() - 0.5) * 2.0 * (noisePct / 100.0);
-    xArr[i] = val + noise;
-  }
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+      [timeCanvas, freqCanvas].forEach(c => {
+        const r = c.parentElement.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return;
+        c.width = r.width * dpr;
+        c.height = r.height * dpr;
+      });
+      timeCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      freqCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', () => {
+      resizeCanvases();
+      updateSimulation();
+      if (renderer && camera) {
+        const r = threeOmaContainer.getBoundingClientRect();
+        camera.aspect = r.width / r.height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(r.width, r.height);
+      }
+    });
 
-  return { tArr, xArr, N };
-}
+    // --- Signal Generation & FFT ---
+    function generateSignal() {
+      const N = Math.floor(duration * Fs);
+      const tArr = new Float32Array(N);
+      const xArr = new Float32Array(N);
 
-// FFT (DFT 구현: N_freq = N/2)
-function computeFFT(xArr, N) {
-  const halfN = Math.floor(N / 2);
-  const freqArr = new Float32Array(halfN);
-  const magArr = new Float32Array(halfN);
-  const psdArr = new Float32Array(halfN);
+      for (let i = 0; i < N; i++) {
+        const t = i / Fs;
+        tArr[i] = t;
 
-  const df = Fs / N;
+        let val = 0.0;
+        if (signalType === 'building_oma') {
+          // Ambient vibration: 3 modes excited by white noise
+          val = 0.6 * Math.sin(2.0 * Math.PI * 1.0 * t) +
+                0.3 * Math.sin(2.0 * Math.PI * 2.5 * t + 0.4) +
+                0.15 * Math.sin(2.0 * Math.PI * 5.0 * t + 1.1);
+        } else if (signalType === 'multisine') {
+          val = 1.0 * Math.sin(2.0 * Math.PI * 1.0 * t) +
+                0.6 * Math.sin(2.0 * Math.PI * 2.5 * t) +
+                0.3 * Math.sin(2.0 * Math.PI * 5.0 * t);
+        } else if (signalType === 'square') {
+          for (let h = 1; h <= numHarmonics; h += 2) {
+            val += (4.0 / (Math.PI * h)) * Math.sin(2.0 * Math.PI * 1.0 * h * t);
+          }
+        } else if (signalType === 'elcentro') {
+          val = 0.35 * Math.sin(2.0 * Math.PI * 1.5 * t + 0.5) * Math.exp(-0.15 * t) +
+                0.20 * Math.sin(2.0 * Math.PI * 2.8 * t + 1.2) +
+                0.15 * Math.sin(2.0 * Math.PI * 4.2 * t) +
+                0.10 * Math.sin(2.0 * Math.PI * 6.8 * t);
+        }
 
-  for (let k = 0; k < halfN; k++) {
-    freqArr[k] = k * df;
-    let real = 0.0;
-    let imag = 0.0;
-
-    // DFT
-    for (let n = 0; n < N; n++) {
-      const angle = (2.0 * Math.PI * k * n) / N;
-      real += xArr[n] * Math.cos(angle);
-      imag -= xArr[n] * Math.sin(angle);
+        // Noise
+        const noise = (Math.random() * 2.0 - 1.0) * (noisePct / 100.0);
+        xArr[i] = val + noise;
+      }
+      return { tArr, xArr, N };
     }
 
-    const mag = (2.0 / N) * Math.sqrt(real * real + imag * imag);
-    magArr[k] = mag;
-    psdArr[k] = (mag * mag) / (2.0 * df); // PSD 추정
-  }
+    function computeDFT(xArr, N) {
+      const numFreqs = Math.floor(N / 2);
+      const magArr = new Float32Array(numFreqs);
+      const fArr = new Float32Array(numFreqs);
+      const df = Fs / N;
 
-  return { freqArr, magArr, psdArr, df };
-}
+      for (let k = 0; k < numFreqs; k++) {
+        fArr[k] = k * df;
+        let real = 0.0, imag = 0.0;
+        const angleStep = (2.0 * Math.PI * k) / N;
 
-function updateSimulation() {
-  valHarmonics.textContent = `${numHarmonics} 차`;
-  valNoise.textContent = `${noisePct} %`;
-  valFs.textContent = `${Fs} Hz`;
-
-  groupHarmonics.style.display = (signalType === 'square') ? 'block' : 'none';
-
-  const { tArr, xArr, N } = generateSignal();
-  const { freqArr, magArr, psdArr, df } = computeFFT(xArr, N);
-
-  metricNyq.textContent = `${(Fs / 2.0).toFixed(1)} Hz`;
-  metricDf.textContent = `${df.toFixed(3)} Hz`;
-
-  // 피크 찾기 (Top 3 주파수)
-  let peaks = [];
-  for (let k = 2; k < magArr.length - 2; k++) {
-    if (magArr[k] > magArr[k - 1] && magArr[k] > magArr[k + 1] && magArr[k] > 0.05) {
-      peaks.push({ f: freqArr[k], mag: magArr[k] });
+        for (let n = 0; n < N; n++) {
+          const angle = angleStep * n;
+          real += xArr[n] * Math.cos(angle);
+          imag -= xArr[n] * Math.sin(angle);
+        }
+        const mag = Math.sqrt(real * real + imag * imag) * (2.0 / N);
+        magArr[k] = (k === 0) ? mag * 0.5 : mag;
+      }
+      return { fArr, magArr, numFreqs, df };
     }
-  }
-  peaks.sort((a, b) => b.mag - a.mag);
 
-  metricF1.textContent = peaks[0] ? `${peaks[0].f.toFixed(2)} Hz` : '-';
-  metricF2.textContent = peaks[1] ? `${peaks[1].f.toFixed(2)} Hz` : '-';
-  metricF3.textContent = peaks[2] ? `${peaks[2].f.toFixed(2)} Hz` : '-';
+    function updateSimulation() {
+      signalType = document.getElementById('selectSignal').value;
+      document.getElementById('groupHarmonics').style.display = (signalType === 'square') ? 'block' : 'none';
+      numHarmonics = parseInt(document.getElementById('rangeHarmonics').value);
+      document.getElementById('valHarmonics').textContent = `${numHarmonics} 차`;
 
-  let maxPsd = 0.0;
-  for (let p of psdArr) { if (p > maxPsd) maxPsd = p; }
-  metricSmax.textContent = `${maxPsd.toFixed(3)} g²/Hz`;
+      noisePct = parseInt(document.getElementById('rangeNoise').value);
+      document.getElementById('valNoise').textContent = `${noisePct} %`;
 
-  drawTimeDomain(tArr, xArr);
-  drawFreqDomain(freqArr, magArr, peaks);
-}
+      Fs = parseInt(document.getElementById('rangeFs').value);
+      document.getElementById('valFs').textContent = `${Fs} Hz`;
 
-function drawTimeDomain(tArr, xArr) {
-  const dpr = window.devicePixelRatio || 1;
-  const w = timeCanvas.width / dpr;
-  const h = timeCanvas.height / dpr;
-  timeCtx.clearRect(0, 0, timeCanvas.width, timeCanvas.height);
-  timeCtx.save();
-  timeCtx.scale(dpr, dpr);
+      const sig = generateSignal();
+      const dft = computeDFT(sig.xArr, sig.N);
 
-  const padLeft = 60;
-  const padRight = 30;
-  const padTop = 20;
-  const padBottom = 35;
-  const plotW = w - padLeft - padRight;
-  const plotH = h - padTop - padBottom;
+      // Metrics
+      document.getElementById('metricNyq').textContent = `${(Fs / 2).toFixed(1)} Hz`;
+      document.getElementById('metricDf').textContent = `${dft.df.toFixed(3)} Hz`;
 
-  let yMax = 1.5;
-  for (let v of xArr) { if (Math.abs(v) > yMax) yMax = Math.abs(v); }
-  yMax *= 1.2;
+      let maxVal = 0;
+      for (let i = 0; i < dft.numFreqs; i++) {
+        if (dft.magArr[i] > maxVal) maxVal = dft.magArr[i];
+      }
+      document.getElementById('metricSmax').textContent = `${(maxVal * maxVal * 0.5).toFixed(3)} g²/Hz`;
 
-  // 그리드
-  timeCtx.strokeStyle = '#f1f5f9';
-  timeCtx.lineWidth = 1;
-  timeCtx.font = '10px monospace';
-  timeCtx.fillStyle = '#64748b';
-  timeCtx.textAlign = 'right';
+      drawTimeCanvas(sig);
+      drawFreqCanvasCanonical(dft);
+    }
 
-  const yTicks = [-1.0, -0.5, 0.0, 0.5, 1.0];
-  for (let yt of yTicks) {
-    if (Math.abs(yt) > yMax) continue;
-    const y = padTop + plotH / 2 - (yt / yMax) * (plotH / 2);
-    timeCtx.beginPath();
-    timeCtx.moveTo(padLeft, y);
-    timeCtx.lineTo(w - padRight, y);
-    timeCtx.stroke();
-    timeCtx.fillText(yt.toFixed(1), padLeft - 6, y + 3);
-  }
+    function drawTimeCanvas(sig) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = timeCanvas.width / dpr;
+      const h = timeCanvas.height / dpr;
+      timeCtx.clearRect(0, 0, w, h);
 
-  // 0 중심선
-  const yZero = padTop + plotH / 2;
-  timeCtx.strokeStyle = '#cbd5e1';
-  timeCtx.lineWidth = 1.2;
-  timeCtx.beginPath();
-  timeCtx.moveTo(padLeft, yZero);
-  timeCtx.lineTo(w - padRight, yZero);
-  timeCtx.stroke();
+      // Soft Grid
+      timeCtx.strokeStyle = '#e2e8f0';
+      timeCtx.lineWidth = 1;
+      timeCtx.beginPath();
+      timeCtx.moveTo(0, h * 0.5);
+      timeCtx.lineTo(w, h * 0.5);
+      timeCtx.stroke();
 
-  // 시간 세로 눈금
-  timeCtx.textAlign = 'center';
-  for (let t = 0; t <= duration; t += 2) {
-    const x = padLeft + (t / duration) * plotW;
-    timeCtx.beginPath();
-    timeCtx.moveTo(x, padTop);
-    timeCtx.lineTo(x, padTop + plotH);
-    timeCtx.stroke();
-    timeCtx.fillText(`${t}s`, x, padTop + plotH + 16);
-  }
+      // Waveform
+      timeCtx.strokeStyle = '#2563eb';
+      timeCtx.lineWidth = 1.8;
+      timeCtx.beginPath();
+      for (let i = 0; i < sig.N; i++) {
+        const px = (i / (sig.N - 1)) * w;
+        const py = h * 0.5 - sig.xArr[i] * (h * 0.3);
+        if (i === 0) timeCtx.moveTo(px, py);
+        else timeCtx.lineTo(px, py);
+      }
+      timeCtx.stroke();
+    }
 
-  // 신호 곡선 (클리핑 적용으로 경계 밖 오버플로 완벽 차단)
-  timeCtx.save();
-  timeCtx.beginPath();
-  timeCtx.rect(padLeft, padTop, plotW, plotH);
-  timeCtx.clip();
+    function drawFreqCanvasCanonical(dft) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = freqCanvas.width / dpr;
+      const h = freqCanvas.height / dpr;
+      freqCtx.clearRect(0, 0, w, h);
 
-  timeCtx.strokeStyle = '#2563eb';
-  timeCtx.lineWidth = 1.8;
-  timeCtx.beginPath();
-  for (let i = 0; i < tArr.length; i++) {
-    const x = padLeft + (tArr[i] / duration) * plotW;
-    const clampedY = Math.max(-yMax, Math.min(yMax, xArr[i]));
-    const y = yZero - (clampedY / yMax) * (plotH / 2);
-    if (i === 0) timeCtx.moveTo(x, y);
-    else timeCtx.lineTo(x, y);
-  }
-  timeCtx.stroke();
-  timeCtx.restore();
+      const margin = { left: 45, right: 25, top: 25, bottom: 35 };
+      const pw = w - margin.left - margin.right;
+      const ph = h - margin.top - margin.bottom;
 
-  timeCtx.restore();
-}
+      // Soft Grid
+      freqCtx.strokeStyle = '#f1f5f9';
+      freqCtx.lineWidth = 1;
+      for (let f = 1; f <= 10; f++) {
+        const px = margin.left + (f / 10.0) * pw;
+        freqCtx.beginPath(); freqCtx.moveTo(px, margin.top); freqCtx.lineTo(px, margin.top + ph); freqCtx.stroke();
+      }
 
-function drawFreqDomain(freqArr, magArr, peaks) {
-  const dpr = window.devicePixelRatio || 1;
-  const w = freqCanvas.width / dpr;
-  const h = freqCanvas.height / dpr;
-  freqCtx.clearRect(0, 0, freqCanvas.width, freqCanvas.height);
-  freqCtx.save();
-  freqCtx.scale(dpr, dpr);
+      freqCtx.strokeStyle = '#cbd5e1';
+      freqCtx.lineWidth = 1.2;
+      freqCtx.strokeRect(margin.left, margin.top, pw, ph);
 
-  const padLeft = 60;
-  const padRight = 30;
-  const padTop = 25;
-  const padBottom = 35;
-  const plotW = w - padLeft - padRight;
-  const plotH = h - padTop - padBottom;
+      // Frequency curve
+      let maxMag = 0.001;
+      for (let i = 0; i < dft.numFreqs; i++) {
+        if (dft.fArr[i] <= 10.0 && dft.magArr[i] > maxMag) maxMag = dft.magArr[i];
+      }
 
-  const fMax = Math.min(15.0, Fs / 2.0); // 최대 15Hz 시각화
+      freqCtx.strokeStyle = '#7c3aed';
+      freqCtx.lineWidth = 2.4;
+      freqCtx.beginPath();
 
-  let magMax = 0.5;
-  for (let i = 0; i < freqArr.length; i++) {
-    if (freqArr[i] <= fMax && magArr[i] > magMax) magMax = magArr[i];
-  }
-  magMax *= 1.25;
+      const curvePts = [];
+      for (let i = 0; i < dft.numFreqs; i++) {
+        if (dft.fArr[i] > 10.0) break;
+        const px = margin.left + (dft.fArr[i] / 10.0) * pw;
+        const py = margin.top + ph - (dft.magArr[i] / maxMag) * ph;
+        curvePts.push({ x: px, y: py, f: dft.fArr[i], mag: dft.magArr[i] });
+        if (i === 0) freqCtx.moveTo(px, py);
+        else freqCtx.lineTo(px, py);
+      }
+      freqCtx.stroke();
 
-  // 주파수 세로 그리드
-  freqCtx.strokeStyle = '#f1f5f9';
-  freqCtx.lineWidth = 1;
-  freqCtx.font = '10px monospace';
-  freqCtx.fillStyle = '#64748b';
-  freqCtx.textAlign = 'center';
+      // Peak Picking for f1 (approx 1.0Hz)
+      const p1 = curvePts.find(p => Math.abs(p.f - 1.0) < 0.15) || curvePts[0];
+      if (p1) {
+        freqCtx.fillStyle = '#dc2626';
+        freqCtx.beginPath(); freqCtx.arc(p1.x, p1.y, 5, 0, Math.PI * 2); freqCtx.fill();
 
-  for (let f = 0; f <= fMax; f += 2.0) {
-    const x = padLeft + (f / fMax) * plotW;
-    freqCtx.beginPath();
-    freqCtx.moveTo(x, padTop);
-    freqCtx.lineTo(x, padTop + plotH);
-    freqCtx.stroke();
-    freqCtx.fillText(`${f.toFixed(0)}Hz`, x, padTop + plotH + 16);
-  }
+        const plotRect = { left: margin.left, top: margin.top, width: pw, height: ph };
+        const boxSize = { w: 140, h: 36 };
+        const placement = DynamicsChartCanonical.getBestCalloutPlacement(p1.x, p1.y, boxSize.w, boxSize.h, plotRect, curvePts);
 
-  // 진폭 가로 그리드
-  freqCtx.textAlign = 'right';
-  for (let i = 0; i <= 4; i++) {
-    const val = (magMax * i) / 4.0;
-    const y = padTop + plotH - (i / 4.0) * plotH;
-    freqCtx.beginPath();
-    freqCtx.moveTo(padLeft, y);
-    freqCtx.lineTo(w - padRight, y);
-    freqCtx.stroke();
-    freqCtx.fillText(val.toFixed(2), padLeft - 6, y + 3);
-  }
+        DynamicsChartCanonical.drawLeaderLine(freqCtx, p1.x, p1.y, placement.x, placement.y, boxSize.w, boxSize.h, '#dc2626');
+        DynamicsChartCanonical.drawAutoBadge(freqCtx, `1차 고유진동수 f₁\n${p1.f.toFixed(2)} Hz (OMA 피크)`, placement.x, placement.y, {
+          textColor: '#991b1b',
+          borderColor: '#fca5a5',
+          fillColor: 'rgba(254, 242, 242, 0.95)',
+          align: 'left',
+          fontSize: 9.5,
+          fontWeight: 'bold',
+          padding: { x: 7, y: 4 },
+          radius: 5
+        });
+      }
+    }
 
-  // 스펙트럼 라인 및 피크 마커 (클리핑 적용)
-  freqCtx.save();
-  freqCtx.beginPath();
-  freqCtx.rect(padLeft, padTop, plotW, plotH);
-  freqCtx.clip();
+    // --- 3D BIM OMA Building Setup ---
+    const threeOmaContainer = document.getElementById('threeOmaContainer');
+    let scene, camera, renderer, controls;
+    let bldgGroup, bedrockGroup;
+    let bldgSlices = [];
 
-  // 스펙트럼 라인 (보라 막대/스파이크)
-  freqCtx.strokeStyle = '#7c3aed';
-  freqCtx.lineWidth = 2.0;
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
 
-  for (let i = 0; i < freqArr.length; i++) {
-    if (freqArr[i] > fMax) break;
-    const x = padLeft + (freqArr[i] / fMax) * plotW;
-    const clampedMag = Math.min(magMax, magArr[i]);
-    const y = padTop + plotH - (clampedMag / magMax) * plotH;
+      const r = threeOmaContainer.getBoundingClientRect();
+      camera = new THREE.PerspectiveCamera(38, r.width / r.height, 0.1, 1000);
+      camera.position.set(0, 7.5, 20);
 
-    freqCtx.beginPath();
-    freqCtx.moveTo(x, padTop + plotH);
-    freqCtx.lineTo(x, y);
-    freqCtx.stroke();
-  }
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(r.width, r.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      threeOmaContainer.appendChild(renderer.domElement);
 
-  // 피크 마커 (빨강 점 & 주파수 라벨)
-  freqCtx.fillStyle = '#dc2626';
-  freqCtx.textAlign = 'center';
-  freqCtx.font = 'bold 11px Pretendard';
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 5.0, 0);
+      controls.maxPolarAngle = Math.PI / 2 + 0.08;
 
-  for (let i = 0; i < Math.min(3, peaks.length); i++) {
-    const p = peaks[i];
-    if (p.f > fMax) continue;
-    const x = padLeft + (p.f / fMax) * plotW;
-    const clampedMag = Math.min(magMax, p.mag);
-    const y = padTop + plotH - (clampedMag / magMax) * plotH;
+      // Lights
+      const amb = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(amb);
 
-    freqCtx.beginPath();
-    freqCtx.arc(x, y, 5, 0, Math.PI * 2);
-    freqCtx.fill();
+      const dir = new THREE.DirectionalLight(0xffffff, 0.75);
+      dir.position.set(12, 20, 16);
+      dir.castShadow = true;
+      scene.add(dir);
 
-    freqCtx.fillText(`f_${i+1}=${p.f.toFixed(2)}Hz`, x, Math.max(padTop + 14, y - 10));
-  }
+      // Bedrock
+      bedrockGroup = new THREE.Group();
+      const bedGeo = new THREE.BoxGeometry(12, 0.6, 8);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.y = 0.3;
+      bedrockGroup.add(bedrock);
+      scene.add(bedrockGroup);
 
-  freqCtx.restore();
-  freqCtx.restore();
-}
+      // Building Group
+      bldgGroup = new THREE.Group();
+      bldgGroup.position.y = 0.6;
+      scene.add(bldgGroup);
 
-// 이벤트
-selectSignal.addEventListener('change', (e) => {
-  signalType = e.target.value;
-  updateSimulation();
-});
+      buildOmaBuilding();
+    }
 
-rangeHarmonics.addEventListener('input', (e) => {
-  numHarmonics = parseInt(e.target.value);
-  updateSimulation();
-});
+    function buildOmaBuilding() {
+      const slabGeo = new THREE.BoxGeometry(6.2, 0.28, 4.8);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
+      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
 
-rangeNoise.addEventListener('input', (e) => {
-  noisePct = parseInt(e.target.value);
-  updateSimulation();
-});
+      for (let i = 1; i <= 3; i++) {
+        const floorGrp = new THREE.Group();
+        floorGrp.position.y = i * 3.5;
 
-rangeFs.addEventListener('input', (e) => {
-  Fs = parseInt(e.target.value);
-  updateSimulation();
-});
+        const slab = new THREE.Mesh(slabGeo, slabMat);
+        slab.castShadow = true;
+        floorGrp.add(slab);
 
-// 초기화
-resizeCanvases();
-updateSimulation();
-</script>
+        const edge = new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.08, 4.9), slabEdgeMat);
+        floorGrp.add(edge);
 
+        // Sensor on roof
+        if (i === 3) {
+          const sensorGeo = new THREE.BoxGeometry(0.5, 0.3, 0.5);
+          const sensorMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.6 });
+          const sensor = new THREE.Mesh(sensorGeo, sensorMat);
+          sensor.position.set(0, 0.3, 0);
+          floorGrp.add(sensor);
+        }
+
+        floorGrp.name = `floor_${i}`;
+        bldgGroup.add(floorGrp);
+      }
+
+      // Columns
+      const sliceCount = 18;
+      const totalH = 10.5;
+      const sliceH = totalH / sliceCount;
+      const colPositions = [
+        [-2.5, -1.8], [2.5, -1.8],
+        [-2.5, 1.8], [2.5, 1.8]
+      ];
+
+      bldgSlices = [];
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 });
+
+      for (let pos of colPositions) {
+        for (let i = 0; i < sliceCount; i++) {
+          const sliceGeo = new THREE.BoxGeometry(0.35, sliceH, 0.35);
+          const slice = new THREE.Mesh(sliceGeo, colMat);
+          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
+          slice.castShadow = true;
+          bldgGroup.add(slice);
+          bldgSlices.push({ mesh: slice, baseX: pos[0], normZ: (i + 0.5) / sliceCount });
+        }
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      animT += 0.03;
+
+      if (currentTimeView === '3D' && renderer && camera) {
+        controls.update();
+
+        const ampMultiplier = (threeAmpScale / 70.0);
+        // Modal motion under ambient white noise
+        const q1 = Math.sin(animT * 2 * Math.PI * 1.0) * 0.018 * ampMultiplier;
+        const q2 = Math.sin(animT * 2 * Math.PI * 2.5 + 0.5) * 0.007 * ampMultiplier;
+        const q3 = Math.sin(animT * 2 * Math.PI * 5.0 + 1.2) * 0.003 * ampMultiplier;
+
+        bldgSlices.forEach(sl => {
+          const z = sl.normZ;
+          const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+          const phi2 = Math.sin(z * Math.PI * 1.5);
+          const phi3 = Math.sin(z * Math.PI * 2.5);
+
+          const drift = (phi1 * q1 + phi2 * q2 + phi3 * q3) * 60.0;
+          sl.mesh.position.x = sl.baseX + drift;
+          sl.mesh.rotation.z = -drift * 0.08;
+        });
+
+        for (let i = 1; i <= 3; i++) {
+          const fl = bldgGroup.getObjectByName(`floor_${i}`);
+          if (fl) {
+            const z = i / 3.0;
+            const phi1 = 1.5 * z * z - 0.5 * z * z * z;
+            const phi2 = Math.sin(z * Math.PI * 1.5);
+            const phi3 = Math.sin(z * Math.PI * 2.5);
+            fl.position.x = (phi1 * q1 + phi2 * q2 + phi3 * q3) * 60.0;
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+    }
+
+    // --- Awwwards Pack: Zentry 3D Tilt on Cards ---
+    function initZentryCards() {
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 4.0;
+          const rotY = (x / (rect.width / 2)) * 4.0;
+          card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+        });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initZentryCards();
+      setTimeout(() => {
+        resizeCanvases();
+        updateSimulation();
+      }, 50);
+      animate();
+    });
+  </script>
 </body>
 </html>

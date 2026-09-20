@@ -6,6 +6,12 @@
   <title>구조동역학 37: Newmark 등변위 규칙 &middot; R계수의 물리적 실체</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="assets/dynamics-fx.js" defer></script>
   <style>
     body {
       background-color: #f8fafc;
@@ -13,18 +19,16 @@
       font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
     }
-    .light-grid {
-      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-      background-size: 16px 16px;
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
     }
   </style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-  <script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-lg space-y-5">
+  <div class="w-full max-w-6xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
     
     <!-- Top Header -->
     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -44,8 +48,9 @@
 
       <!-- Controls -->
       <div class="flex items-center gap-2">
-        <button onclick="toggleLoop()" id="btn-toggle-loop" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">
-          일시정지
+        <button onclick="toggleLoop()" id="btn-toggle-loop" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+          <span id="play-icon">⏸</span>
+          <span id="play-text">일시정지</span>
         </button>
         <button onclick="resetLoop()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition">
           초기화
@@ -57,17 +62,58 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
       
       <!-- 1. Left (6 Cols): Structural Displacement Comparison -->
-      <div class="lg:col-span-6 bg-slate-50/70 border border-slate-200 rounded-xl p-5 flex flex-col justify-between light-grid min-h-[360px]">
+      <div class="lg:col-span-6 bg-slate-50/70 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between relative min-h-[440px]">
         <div class="border-b border-slate-200 pb-2 flex justify-between items-center">
-          <span class="text-sm font-bold text-slate-900">1. 탄성 골조(R=1) vs 연성 골조(R=5) 지진 변위 일치</span>
-          <span class="text-xs font-mono font-bold text-blue-700">u<sub>max,inelastic</sub> &approx; u<sub>max,elastic</sub></span>
+          <div>
+            <span class="text-sm font-bold text-slate-900 block">1. 탄성 골조(R=1) vs 연성 골조(R=5) 지진 변위 일치</span>
+            <span class="text-[11px] font-mono font-bold text-blue-700">u<sub>max,inelastic</sub> &approx; u<sub>max,elastic</sub> (등변위)</span>
+          </div>
+          <div class="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-xs font-semibold">
+            <button id="btnFrame3D" onclick="switchFrameView('3D')" class="px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs">🏢 3D BIM</button>
+            <button id="btnFrame2D" onclick="switchFrameView('2D')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📊 2D</button>
+          </div>
         </div>
 
-        <div class="relative w-full flex-1 my-2 min-h-[220px]">
-          <canvas id="canvasFrames" class="w-full h-full block"></canvas>
+        <!-- 3D / 2D Viewport -->
+        <div class="relative w-full flex-1 my-2 min-h-[280px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          
+          <!-- 3D Container -->
+          <div id="threeFrameContainer" class="w-full h-full absolute inset-0">
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2 py-1 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1 flex-wrap">
+              <span>🖱️ 3D 회전</span>
+              <span class="text-slate-300">|</span>
+              <span class="font-bold text-slate-800">변위:</span>
+              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
+            </div>
+
+            <!-- Legend Overlay -->
+            <div class="absolute top-2 right-2 text-[10px] font-semibold bg-white/90 backdrop-blur-xs border border-slate-200 p-2 rounded-lg shadow-xs space-y-1">
+              <div class="flex items-center gap-1.5 text-slate-700">
+                <span class="w-3 h-1.5 rounded bg-slate-700 inline-block"></span>
+                <span>탄성 (R=1, Ve = 3,686 kN)</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-emerald-700">
+                <span class="w-3 h-1.5 rounded bg-emerald-600 inline-block"></span>
+                <span>연성 (R=5, Vy = 737 kN)</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-red-600 font-bold">
+                <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                <span>소성 힌지(Plastic Hinge) 소산</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2D Canvas Container -->
+          <div id="frame2DContainer" class="w-full h-full absolute inset-0 bg-white" style="display: none;">
+            <canvas id="canvasFrames" class="w-full h-full block"></canvas>
+          </div>
+
         </div>
 
-        <div class="p-3 bg-white border border-slate-200 rounded-xl text-xs space-y-1 font-mono">
+        <!-- Telemetry Card (Zentry Tilt) -->
+        <div class="p-3 bg-white border border-slate-200 rounded-xl text-xs space-y-1 font-mono zentry-card shadow-2xs">
           <div class="flex justify-between">
             <span class="text-slate-500 font-sans">탄성 요구 밑면력 V<sub>e</sub> (R=1):</span>
             <span class="font-bold text-slate-800">3,686 kN (감당 불가)</span>
@@ -84,20 +130,20 @@
       </div>
 
       <!-- 2. Right (6 Cols): F-u Hysteresis Loop & Energy Dissipation -->
-      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-3">
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-3 shadow-sm">
         <div class="border-b border-slate-100 pb-2 flex justify-between items-center">
           <span class="text-sm font-bold text-slate-900">2. 힘-변위(F-u) 이력 루프와 소산 에너지 면적</span>
           <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">&oint; F du 소산</span>
         </div>
 
-        <div class="relative w-full flex-1 min-h-[220px]">
+        <div class="relative w-full flex-1 min-h-[280px] bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden">
           <canvas id="canvasHysteresis" class="w-full h-full block"></canvas>
         </div>
 
-        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 leading-relaxed font-sans">
+        <div class="p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 leading-relaxed font-sans zentry-card shadow-2xs">
           <strong>💡 공학사에서 가장 경제적인 트릭:</strong><br>
           탄성으로 지진을 버티려면 기둥과 기초를 5배 키워야 하지만(경제성 파탄), 
-          부재에 연성(Ductility)을 부여하면 <strong>항복 루프 안의 면적만큼 지진 에너지를 열로 날려버려</strong> 1/5 크기의 기둥으로도 붕괴 없이 살아남습니다.
+          부재에 연성(Ductility)을 부여하면 <strong>항복 루프 안의 면적만큼 지진 에너지를 열로 날려버려</strong> 1/5 크기의 기둥으로도 붕괴 없이 안전하게 살아남습니다.
         </div>
       </div>
 
@@ -106,39 +152,214 @@
   </div>
 
   <script>
+    // --- Global State ---
     let isRunning = true;
     let t = 0;
+    let threeAmpScale = 70.0;
+    let currentFrameView = '3D';
+
     const canvasF = document.getElementById('canvasFrames');
     const ctxF = canvasF.getContext('2d');
     const canvasH = document.getElementById('canvasHysteresis');
     const ctxH = canvasH.getContext('2d');
 
-    function resize() {
+    // Kinematic hysteresis state for R=5
+    const uMax = 90;       // Canvas pixels for 4.8 cm
+    const fElastic = 95;   // Canvas pixels for 3,686 kN
+    const uy = 18;         // Yield disp (uMax / 5) = 0.96 cm
+    const fy = 20;         // Yield force (fElastic / 5) = 737 kN
+
+    function setThreeAmp(scale) {
+      threeAmpScale = scale;
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+    }
+
+    function switchFrameView(view) {
+      currentFrameView = view;
+      const b3d = document.getElementById('btnFrame3D');
+      const b2d = document.getElementById('btnFrame2D');
+      const c3d = document.getElementById('threeFrameContainer');
+      const c2d = document.getElementById('frame2DContainer');
+
+      if (view === '3D') {
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        b2d.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'block';
+        c2d.style.display = 'none';
+      } else {
+        b2d.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'none';
+        c2d.style.display = 'block';
+        resizeCanvases();
+      }
+    }
+
+    function resizeCanvases() {
       const dpr = window.devicePixelRatio || 1;
       [canvasF, canvasH].forEach(c => {
         const r = c.parentElement.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return;
         c.width = r.width * dpr;
         c.height = r.height * dpr;
       });
       ctxF.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctxH.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawHysteresis();
     }
-    window.addEventListener('resize', resize);
-    setTimeout(resize, 40);
+    window.addEventListener('resize', () => {
+      resizeCanvases();
+      if (renderer && camera) {
+        const r = threeFrameContainer.getBoundingClientRect();
+        camera.aspect = r.width / r.height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(r.width, r.height);
+      }
+    });
 
     function toggleLoop() {
       isRunning = !isRunning;
-      document.getElementById('btn-toggle-loop').innerText = isRunning ? '일시정지' : '재생';
+      document.getElementById('play-text').innerText = isRunning ? '일시정지' : '재생';
+      document.getElementById('play-icon').innerText = isRunning ? '⏸' : '▶';
     }
 
     function resetLoop() {
       t = 0;
     }
 
-    function drawColumn(c, x0, y0, x1, y1, col) {
+    function getHysteresisForce(uVal, uVel) {
+      if (uVel >= 0) {
+        const fLoading = -fy + (fy / uy) * (uVal - (-uMax + 2 * uy));
+        return Math.min(fy, Math.max(-fy, fLoading));
+      } else {
+        const fUnloading = fy - (fy / uy) * ((uMax - 2 * uy) - uVal);
+        return Math.max(-fy, Math.min(fy, fUnloading));
+      }
+    }
+
+    // --- 3D BIM Dual Building Setup ---
+    const threeFrameContainer = document.getElementById('threeFrameContainer');
+    let scene, camera, renderer, controls;
+    let bldgGroup, bedrockGroup;
+    let elasticBldg, ductileBldg;
+    let ductileHinges = [];
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+
+      const r = threeFrameContainer.getBoundingClientRect();
+      camera = new THREE.PerspectiveCamera(38, r.width / r.height, 0.1, 1000);
+      camera.position.set(0, 6.5, 22);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(r.width, r.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      threeFrameContainer.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 4.5, 0);
+      controls.maxPolarAngle = Math.PI / 2 + 0.08;
+
+      // Lights
+      const amb = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(amb);
+
+      const dir = new THREE.DirectionalLight(0xffffff, 0.75);
+      dir.position.set(12, 22, 16);
+      dir.castShadow = true;
+      scene.add(dir);
+
+      const fill = new THREE.DirectionalLight(0xe0f2fe, 0.35);
+      fill.position.set(-12, 10, -10);
+      scene.add(fill);
+
+      // Bedrock
+      bedrockGroup = new THREE.Group();
+      const bedGeo = new THREE.BoxGeometry(16, 0.6, 9);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.y = 0.3;
+      bedrock.receiveShadow = true;
+      bedrockGroup.add(bedrock);
+      scene.add(bedrockGroup);
+
+      // Building Group
+      bldgGroup = new THREE.Group();
+      bldgGroup.position.y = 0.6;
+      scene.add(bldgGroup);
+
+      buildDualBuildings();
+    }
+
+    function buildDualBuildings() {
+      // 1. Left Building: Elastic (R=1, Massive Columns)
+      elasticBldg = new THREE.Group();
+      elasticBldg.position.x = -4.5;
+
+      const elSlabGeo = new THREE.BoxGeometry(5.2, 0.5, 4.5);
+      const elSlabMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+      const elRoof = new THREE.Mesh(elSlabGeo, elSlabMat);
+      elRoof.position.y = 6.25;
+      elRoof.castShadow = true;
+      elasticBldg.add(elRoof);
+
+      // Massive Columns (0.9m x 0.9m)
+      const elColGeo = new THREE.BoxGeometry(0.85, 6.0, 0.85);
+      const elColMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.4 });
+      for (let x of [-1.8, 1.8]) {
+        const col = new THREE.Mesh(elColGeo, elColMat);
+        col.position.set(x, 3.0, 0);
+        col.castShadow = true;
+        elasticBldg.add(col);
+      }
+      bldgGroup.add(elasticBldg);
+
+      // 2. Right Building: Ductile (R=5, Slender Columns + Plastic Hinges)
+      ductileBldg = new THREE.Group();
+      ductileBldg.position.x = 4.5;
+
+      const ducSlabGeo = new THREE.BoxGeometry(5.2, 0.5, 4.5);
+      const ducSlabMat = new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.5 });
+      const ducRoof = new THREE.Mesh(ducSlabGeo, ducSlabMat);
+      ducRoof.position.y = 6.25;
+      ducRoof.castShadow = true;
+      ductileBldg.add(ducRoof);
+
+      // Slender Columns (0.4m x 0.4m)
+      const ducColGeo = new THREE.BoxGeometry(0.42, 6.0, 0.42);
+      const ducColMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.4 });
+      for (let x of [-1.8, 1.8]) {
+        const col = new THREE.Mesh(ducColGeo, ducColMat);
+        col.position.set(x, 3.0, 0);
+        col.castShadow = true;
+        ductileBldg.add(col);
+
+        // Plastic Hinge markers at top and base
+        const hingeGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16);
+        const hingeMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: 0x991b1b, emissiveIntensity: 0.5 });
+        
+        const topHinge = new THREE.Mesh(hingeGeo, hingeMat);
+        topHinge.position.set(x, 5.7, 0);
+        ductileBldg.add(topHinge);
+        ductileHinges.push(topHinge);
+
+        const botHinge = new THREE.Mesh(hingeGeo, hingeMat);
+        botHinge.position.set(x, 0.3, 0);
+        ductileBldg.add(botHinge);
+        ductileHinges.push(botHinge);
+      }
+      bldgGroup.add(ductileBldg);
+    }
+
+    // --- 2D Drawing ---
+    function drawColumn2D(c, x0, y0, x1, y1, col, lw = 3.5) {
       c.strokeStyle = col;
-      c.lineWidth = 3.5;
+      c.lineWidth = lw;
       c.lineCap = 'round';
       c.beginPath();
       for (let i = 0; i <= 20; i++) {
@@ -152,26 +373,64 @@
       c.stroke();
     }
 
-    // Kinematic hysteresis state for R=5
-    const uMax = 90;       // Canvas pixels for 4.8 cm
-    const fElastic = 95;   // Canvas pixels for 3,686 kN
-    const uy = 18;         // Yield disp (uMax / 5) = 0.96 cm
-    const fy = 20;         // Yield force (fElastic / 5) = 737 kN
+    function drawFrames2D(currU) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvasF.width / dpr;
+      const h = canvasF.height / dpr;
+      ctxF.clearRect(0, 0, w, h);
 
-    function getHysteresisForce(uVal, uVel) {
-      // Bilinear Kinematic Hysteresis loop calculation
-      if (uVel >= 0) {
-        // Moving right (loading or reloading)
-        const fLoading = -fy + (fy / uy) * (uVal - (-uMax + 2 * uy));
-        return Math.min(fy, Math.max(-fy, fLoading));
-      } else {
-        // Moving left (unloading)
-        const fUnloading = fy - (fy / uy) * ((uMax - 2 * uy) - uVal);
-        return Math.max(-fy, Math.min(fy, fUnloading));
+      const baseY = h - 35;
+      const topY = 60;
+      const bay = Math.min(100, w * 0.22);
+      const halfBay = bay / 2;
+
+      // Left: Elastic Frame (cx = w * 0.3)
+      const cxEl = w * 0.28;
+      const roofXEl = cxEl + currU;
+
+      ctxF.strokeStyle = '#cbd5e1';
+      ctxF.lineWidth = 2;
+      ctxF.beginPath(); ctxF.moveTo(cxEl - halfBay - 15, baseY); ctxF.lineTo(cxEl + halfBay + 15, baseY); ctxF.stroke();
+
+      drawColumn2D(ctxF, cxEl - halfBay, baseY, roofXEl - halfBay, topY, '#334155', 6);
+      drawColumn2D(ctxF, cxEl + halfBay, baseY, roofXEl + halfBay, topY, '#334155', 6);
+
+      ctxF.fillStyle = '#334155';
+      ctxF.fillRect(roofXEl - halfBay - 10, topY - 10, bay + 20, 16);
+      ctxF.fillStyle = '#fff';
+      ctxF.font = 'bold 9px monospace';
+      ctxF.textAlign = 'center';
+      ctxF.fillText('탄성 (R=1)', roofXEl, topY + 2);
+
+      // Right: Ductile Frame (cx = w * 0.72)
+      const cxDuc = w * 0.72;
+      const roofXDuc = cxDuc + currU; // EQUAL DISPLACEMENT!
+
+      ctxF.strokeStyle = '#cbd5e1';
+      ctxF.lineWidth = 2;
+      ctxF.beginPath(); ctxF.moveTo(cxDuc - halfBay - 15, baseY); ctxF.lineTo(cxDuc + halfBay + 15, baseY); ctxF.stroke();
+
+      drawColumn2D(ctxF, cxDuc - halfBay, baseY, roofXDuc - halfBay, topY, '#059669', 3.5);
+      drawColumn2D(ctxF, cxDuc + halfBay, baseY, roofXDuc + halfBay, topY, '#059669', 3.5);
+
+      // Plastic Hinges
+      ctxF.fillStyle = '#dc2626';
+      for (let x of [roofXDuc - halfBay, roofXDuc + halfBay]) {
+        ctxF.beginPath(); ctxF.arc(x, topY + 4, 4, 0, Math.PI * 2); ctxF.fill();
       }
+      for (let x of [cxDuc - halfBay, cxDuc + halfBay]) {
+        ctxF.beginPath(); ctxF.arc(x, baseY - 4, 4, 0, Math.PI * 2); ctxF.fill();
+      }
+
+      ctxF.fillStyle = '#059669';
+      ctxF.fillRect(roofXDuc - halfBay - 10, topY - 10, bay + 20, 16);
+      ctxF.fillStyle = '#fff';
+      ctxF.font = 'bold 9px monospace';
+      ctxF.textAlign = 'center';
+      ctxF.fillText('연성 (R=5)', roofXDuc, topY + 2);
     }
 
-    function drawHysteresis(currU, currVel) {
+    function drawHysteresisCanonical(currU, currVel) {
       const dpr = window.devicePixelRatio || 1;
       const w = canvasH.width / dpr;
       const h = canvasH.height / dpr;
@@ -188,7 +447,6 @@
       ctxH.moveTo(cx, 15); ctxH.lineTo(cx, h - 15);
       ctxH.stroke();
 
-      // Axis labels
       ctxH.fillStyle = '#64748b';
       ctxH.font = 'bold 9px monospace';
       ctxH.fillText('+u (변위)', w - 45, cy - 6);
@@ -239,7 +497,7 @@
       ctxH.textAlign = 'center';
       ctxH.fillText('등변위 ±umax = 4.8 cm', cx + uMax, h - 8);
 
-      // --- DYNAMIC TRACER DOTS ---
+      // Tracer Dots
       // 1. Elastic Dot (Grey)
       const fElNow = (currU / uMax) * fElastic;
       const elPx = cx + currU;
@@ -249,106 +507,101 @@
       ctxH.beginPath();
       ctxH.arc(elPx, elPy, 5, 0, Math.PI * 2);
       ctxH.fill();
-      ctxH.strokeStyle = '#ffffff';
-      ctxH.lineWidth = 1.5;
-      ctxH.stroke();
 
-      // 2. Elasto-plastic Dot (Emerald Glowing)
-      const fEpNow = getHysteresisForce(currU, currVel);
-      const epPx = cx + currU;
-      const epPy = cy - fEpNow;
+      // 2. Ductile Yielding Dot (Emerald)
+      const fDucNow = getHysteresisForce(currU, currVel);
+      const ducPx = cx + currU;
+      const ducPy = cy - fDucNow;
 
-      // Glow effect
-      ctxH.shadowColor = '#059669';
-      ctxH.shadowBlur = 8;
       ctxH.fillStyle = '#059669';
       ctxH.beginPath();
-      ctxH.arc(epPx, epPy, 6, 0, Math.PI * 2);
+      ctxH.arc(ducPx, ducPy, 6, 0, Math.PI * 2);
       ctxH.fill();
-      ctxH.shadowBlur = 0; // reset
-      ctxH.strokeStyle = '#ffffff';
-      ctxH.lineWidth = 1.5;
-      ctxH.stroke();
 
-      // Real-time Force Callout Tags
-      const realElForce = Math.round((fElNow / fElastic) * 3686);
-      const realEpForce = Math.round((fEpNow / fy) * 737);
+      // Collision-free Auto-badge for Hysteresis
+      const plotRect = { left: 20, top: 15, width: w - 40, height: h - 30 };
+      const boxSize = { w: 140, h: 36 };
+      const placement = DynamicsChartCanonical.getBestCalloutPlacement(ducPx, ducPy, boxSize.w, boxSize.h, plotRect, [
+        { x: elPx, y: elPy },
+        { x: ducPx, y: ducPy }
+      ]);
 
-      ctxH.font = 'bold 9px monospace';
-      ctxH.fillStyle = '#334155';
-      ctxH.fillText(`Fel: ${realElForce} kN`, elPx + 8, elPy - 6);
-
-      const isYielded = Math.abs(fEpNow) >= fy * 0.96;
-      ctxH.fillStyle = isYielded ? '#dc2626' : '#059669';
-      ctxH.fillText(`Fy: ${realEpForce} kN ${isYielded ? '⚡항복!' : ''}`, epPx + 8, epPy + 14);
+      DynamicsChartCanonical.drawLeaderLine(ctxH, ducPx, ducPy, placement.x, placement.y, boxSize.w, boxSize.h, '#059669');
+      DynamicsChartCanonical.drawAutoBadge(ctxH, '항복 에너지 소산 루프\nVy = 737 kN (1/R 경감)', placement.x, placement.y, {
+        textColor: '#065f46',
+        borderColor: '#6ee7b7',
+        fillColor: 'rgba(236, 253, 245, 0.95)',
+        align: 'left',
+        fontSize: 9.5,
+        fontWeight: 'bold',
+        padding: { x: 7, y: 4 },
+        radius: 5
+      });
     }
 
-    let prevU = 0;
-
+    // --- Master Loop ---
     function animate() {
       requestAnimationFrame(animate);
-      if (isRunning) t += 0.025;
+      if (isRunning) t += 0.035;
 
-      const dpr = window.devicePixelRatio || 1;
-      const wF = canvasF.width / dpr;
-      const hF = canvasF.height / dpr;
-      ctxF.clearRect(0, 0, wF, hF);
+      const currU = Math.sin(t) * uMax;
+      const currVel = Math.cos(t) * uMax;
 
-      // Frame displacement (in pixels)
-      const uSim = 32 * Math.sin(t * 3.2);
-      const uVel = 32 * 3.2 * Math.cos(t * 3.2);
+      if (currentFrameView === '2D') {
+        drawFrames2D(currU);
+      } else if (renderer && camera) {
+        controls.update();
+        const ampMultiplier = (threeAmpScale / 70.0);
+        const drift3D = (currU / uMax) * 1.5 * ampMultiplier;
 
-      // Hysteresis scale displacement
-      const uHyster = (uSim / 32) * uMax;
+        // Both buildings experience THE EXACT SAME displacement (Equal Displacement Rule!)
+        if (elasticBldg) {
+          elasticBldg.position.x = -4.5 + drift3D;
+          elasticBldg.rotation.z = -drift3D * 0.04;
+        }
 
-      // Left Frame: Elastic (Grey)
-      const c1X = wF * 0.28;
-      const gy = hF - 30;
-      const bay = 45;
-      const fH = (gy - 30) / 3;
+        if (ductileBldg) {
+          ductileBldg.position.x = 4.5 + drift3D;
+          ductileBldg.rotation.z = -drift3D * 0.04;
 
-      // Ground bar
-      ctxF.fillStyle = '#475569';
-      ctxF.fillRect(c1X - bay - 10, gy, (bay + 10) * 2, 5);
+          // Pulse plastic hinges when yielding
+          const isYielding = Math.abs(currU) > uy;
+          const hingeGlow = isYielding ? 1.5 : 0.2;
+          ductileHinges.forEach(h => {
+            h.material.emissiveIntensity = hingeGlow;
+          });
+        }
 
-      drawColumn(ctxF, c1X - bay, gy, c1X - bay + uSim * 0.4, gy - fH, '#64748b');
-      drawColumn(ctxF, c1X + bay, gy, c1X + bay + uSim * 0.4, gy - fH, '#64748b');
-      drawColumn(ctxF, c1X - bay + uSim * 0.4, gy - fH, c1X - bay + uSim * 0.75, gy - 2 * fH, '#64748b');
-      drawColumn(ctxF, c1X + bay + uSim * 0.4, gy - fH, c1X + bay + uSim * 0.75, gy - 2 * fH, '#64748b');
-      drawColumn(ctxF, c1X - bay + uSim * 0.75, gy - 2 * fH, c1X - bay + uSim, gy - 3 * fH, '#64748b');
-      drawColumn(ctxF, c1X + bay + uSim * 0.75, gy - 2 * fH, c1X + bay + uSim, gy - 3 * fH, '#64748b');
+        renderer.render(scene, camera);
+      }
 
-      ctxF.fillStyle = '#1e293b';
-      ctxF.font = 'bold 10px Pretendard, sans-serif';
-      ctxF.textAlign = 'center';
-      ctxF.fillText('탄성 골조 (R=1, Ve = 3,686 kN)', c1X, gy + 18);
-
-      // Right Frame: Ductile R=5 (Emerald with plastic hinges)
-      const c2X = wF * 0.72;
-      ctxF.fillStyle = '#059669';
-      ctxF.fillRect(c2X - bay - 10, gy, (bay + 10) * 2, 5);
-
-      drawColumn(ctxF, c2X - bay, gy, c2X - bay + uSim * 0.4, gy - fH, '#059669');
-      drawColumn(ctxF, c2X + bay, gy, c2X + bay + uSim * 0.4, gy - fH, '#059669');
-      drawColumn(ctxF, c2X - bay + uSim * 0.4, gy - fH, c2X - bay + uSim * 0.75, gy - 2 * fH, '#059669');
-      drawColumn(ctxF, c2X + bay + uSim * 0.4, gy - fH, c2X + bay + uSim * 0.75, gy - 2 * fH, '#059669');
-      drawColumn(ctxF, c2X - bay + uSim * 0.75, gy - 2 * fH, c2X - bay + uSim, gy - 3 * fH, '#059669');
-      drawColumn(ctxF, c2X + bay + uSim * 0.75, gy - 2 * fH, c2X + bay + uSim, gy - 3 * fH, '#059669');
-
-      // Red plastic hinge dots at bottom of columns when yield condition is reached
-      const isYielding = Math.abs(uSim / 32) > 0.20;
-      ctxF.fillStyle = isYielding ? '#ef4444' : '#059669';
-      ctxF.beginPath(); ctxF.arc(c2X - bay, gy - 4, isYielding ? 5 : 3.5, 0, Math.PI * 2); ctxF.fill();
-      ctxF.beginPath(); ctxF.arc(c2X + bay, gy - 4, isYielding ? 5 : 3.5, 0, Math.PI * 2); ctxF.fill();
-
-      ctxF.fillStyle = '#065f46';
-      ctxF.fillText(`연성 골조 (R=5, Vy = 737 kN ${isYielding ? '💥' : ''})`, c2X, gy + 18);
-
-      // Render Dynamic Hysteresis
-      drawHysteresis(uHyster, uVel);
+      drawHysteresisCanonical(currU, currVel);
     }
 
-    requestAnimationFrame(animate);
+    // --- Awwwards Pack: Zentry 3D Tilt & Damping on Cards ---
+    function initZentryCards() {
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 4.5;
+          const rotY = (x / (rect.width / 2)) * 4.5;
+          card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+        });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initZentryCards();
+      setTimeout(resizeCanvases, 50);
+      animate();
+    });
   </script>
 </body>
 </html>

@@ -1,703 +1,648 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sim 39: Newmark 삼분 응답 스펙트럼 & ADRS 4-in-1 랩</title>
-<style>
-  :root {
-    --bg-dark: #f8fafc;
-    --card-bg: #ffffff;
-    --border: #cbd5e1;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --accent-blue: #0284c7;
-    --accent-cyan: #06b6d4;
-    --accent-amber: #f59e0b;
-    --accent-emerald: #10b981;
-    --accent-rose: #f43f5e;
-    --accent-purple: #a855f7;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
-  header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
-  .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
-  .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
-
-  .main-container { flex: 1; display: grid; grid-template-columns: 320px 1fr 300px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
-  @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
-
-  .panel { background: #ffffff; border: 1.5px solid #0f172a; box-shadow: 0 4px 0 #0f172a; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
-  .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
-
-  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
-  .control-group label { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
-  .control-group input[type="range"] { width: 100%; accent-color: var(--accent-blue); }
-  .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-  button { background: #0f172a; color: #fff; border: 1.5px solid #0f172a; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
-  button:hover { background: #475569; }
-  button.active { background: #0f172a; color: #ffffff; border-color: var(--accent-blue); font-weight: 700; }
-
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-  .stat-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
-  .stat-card .label { font-size: 0.7rem; color: var(--text-muted); }
-  .stat-card .value { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-top: 0.2rem; font-feature-settings: 'tnum'; }
-  .stat-card.blue .value { color: var(--accent-blue); }
-  .stat-card.amber .value { color: var(--accent-amber); }
-  .stat-card.emerald .value { color: var(--accent-emerald); }
-  .stat-card.rose .value { color: var(--accent-rose); }
-
-  .view-container { display: flex; flex-direction: column; gap: 0.8rem; position: relative; }
-  .canvas-wrapper { flex: 1; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 420px; }
-  canvas { width: 100%; height: 100%; display: block; }
-
-  .zone-legend { display: flex; gap: 0.5rem; font-size: 0.75rem; flex-wrap: wrap; background: rgba(15, 23, 42, 0.7); padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); }
-  .zone-tag { display: flex; align-items: center; gap: 0.3rem; }
-  .zone-color { width: 10px; height: 10px; border-radius: 2px; }
-
-  .takeaway { background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
-  .callout-amber { background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
-</style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sim 39: Newmark 삼분 응답 스펙트럼 & ADRS 4-in-1 랩</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="assets/dynamics-fx.js" defer></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+  </style>
 </head>
-<body>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-<header>
-  <div class="title-group">
-    <h1><span class="badge">Sim 39</span> Newmark 삼분 응답 스펙트럼 & ADRS 변환기</h1>
-    <p>Chopra Fig 6.6.1 Tripartite 4-Way Log-Log 도표와 가속도·속도·변위 민감구간 및 EPA 보정 원리</p>
+  <div class="w-full max-w-7xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
+    
+    <!-- Top Header -->
+    <header class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-4 gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+            SIM 39
+          </span>
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            Newmark 삼분 응답 스펙트럼 &middot; ADRS 4-in-1 변환 랩
+          </h1>
+        </div>
+        <p class="text-xs md:text-sm text-slate-600 mt-1">
+          Chopra Fig 6.6.1 Tripartite 4-Way Log-Log 도표 &middot; 가속도/속도/변위 민감구간 &middot; 3D BIM 단자유도 응답
+        </p>
+      </div>
+      <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition shadow-xs">
+        &larr; 마스터 대시보드
+      </a>
+    </header>
+
+    <!-- Main 3-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      
+      <!-- Left Panel: Controls (3.5 Cols) -->
+      <div class="lg:col-span-3 space-y-4">
+        
+        <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 space-y-3.5 zentry-card shadow-2xs">
+          <span class="text-xs font-black uppercase text-slate-500 tracking-wider block border-b border-slate-200 pb-1.5">
+            도표 모드 & 스펙트럼 파라미터
+          </span>
+
+          <!-- View Mode Switcher -->
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1.5">도표 좌표계</label>
+            <div class="grid grid-cols-2 gap-1.5">
+              <button id="btnTripartite" onclick="setViewMode('tripartite')" class="py-1.5 px-2 rounded-lg text-xs font-bold transition bg-blue-600 text-white shadow-xs">삼분 도표 (4-Way Log)</button>
+              <button id="btnADRS" onclick="setViewMode('adrs')" class="py-1.5 px-2 rounded-lg text-xs font-bold transition bg-slate-200 text-slate-700 hover:bg-slate-300">ADRS (Sa - Sd)</button>
+            </div>
+          </div>
+
+          <!-- Tn Slider -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">고유주기 Tn</span>
+              <span id="lblPeriod" class="font-mono font-bold text-blue-700">0.65 s</span>
+            </div>
+            <input type="range" id="rngPeriod" min="0.03" max="8.0" step="0.01" value="0.65" oninput="updatePeriod(this.value)" class="w-full accent-blue-600 cursor-pointer">
+          </div>
+
+          <!-- Zeta Slider -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">감쇠비 &zeta;</span>
+              <span id="lblZeta" class="font-mono font-bold text-indigo-700">5 %</span>
+            </div>
+            <input type="range" id="rngZeta" min="1" max="20" step="1" value="5" oninput="updateZeta(this.value)" class="w-full accent-indigo-600 cursor-pointer">
+          </div>
+
+          <!-- PGA Slider -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">최대지반가속도 (PGA)</span>
+              <span id="lblPGA" class="font-mono font-bold text-amber-700">0.357 g</span>
+            </div>
+            <input type="range" id="rngPGA" min="0.1" max="0.8" step="0.02" value="0.357" oninput="updatePGA(this.value)" class="w-full accent-amber-500 cursor-pointer">
+          </div>
+
+          <!-- EPA Toggle -->
+          <div class="pt-1 border-t border-slate-200 flex items-center justify-between">
+            <button id="btnEPAToggle" onclick="toggleEPA()" class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold transition">
+              ✓ EPA 대역 (0.1~0.5s)
+            </button>
+            <button onclick="resetValues()" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold">
+              초기화
+            </button>
+          </div>
+        </div>
+
+        <!-- Takeaway Card (Zentry Tilt) -->
+        <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-3.5 text-xs text-blue-950 leading-relaxed zentry-card shadow-2xs">
+          <strong>💡 뉴마크 4축 삼분도표 원리:</strong><br>
+          대수좌표계에서 진동수 관계식 \(V = \omega D = A/\omega\)는 직각축과 \(\pm 45^\circ\) 대각축으로 정렬되어, 점 \((T_n, V)\) 하나로 변위 \(D\)와 가속도 \(A\)를 동시 직관 판독합니다.
+        </div>
+
+      </div>
+
+      <!-- Center Panel: Spectrum Canvas (5.5 Cols) -->
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm min-h-[520px]">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
+          <span id="canvasTitle" class="text-xs md:text-sm font-bold text-slate-900">Newmark Tripartite 4-Way Log-Log Diagram</span>
+          <span id="zoneIndicator" class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono">속도 민감 구간</span>
+        </div>
+
+        <div class="relative flex-1 w-full min-h-[380px] bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden">
+          <canvas id="specCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Zone Legends -->
+        <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-100 text-[10px] font-semibold text-slate-600">
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-200 border border-rose-400"></span> 가속도 민감 (Tn &lt; 0.5s)</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-200 border border-amber-400"></span> 속도 민감 (0.5s ~ 3.0s)</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-200 border border-emerald-400"></span> 변위 민감 (Tn &gt; 3.0s)</span>
+        </div>
+      </div>
+
+      <!-- Right Panel: SDOF Response & 3D BIM (3.5 Cols) -->
+      <div class="lg:col-span-3 space-y-4">
+        
+        <!-- 4 Spectrum Components Grid (Zentry Tilt) -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-3.5 space-y-2.5 zentry-card shadow-2xs">
+          <span class="text-xs font-black uppercase text-slate-500 tracking-wider block border-b border-slate-100 pb-1.5">
+            동시 판독 4대 스펙트럼 성분
+          </span>
+
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-sans">고유주기 Tn</span>
+              <span id="valTn" class="text-sm font-black text-blue-700">0.650 s</span>
+            </div>
+            <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-sans">유사속도 V</span>
+              <span id="valV" class="text-sm font-black text-amber-700">48.2 cm/s</span>
+            </div>
+            <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-sans">스펙트럴 변위 Sd</span>
+              <span id="valD" class="text-sm font-black text-emerald-700">4.98 cm</span>
+            </div>
+            <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-sans">유사가속도 Sa</span>
+              <span id="valA" class="text-sm font-black text-rose-700">0.475 g</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3D BIM SDOF Response Viewport -->
+        <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 space-y-2 shadow-2xs">
+          <div class="flex justify-between items-center border-b border-slate-200 pb-1.5">
+            <span class="text-xs font-bold text-slate-900">3D BIM 단자유도 응답</span>
+            <div class="flex items-center gap-1 text-[10px] font-mono">
+              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
+            </div>
+          </div>
+
+          <div class="relative w-full h-[160px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+            <div id="threeSdofContainer" class="w-full h-full absolute inset-0"></div>
+          </div>
+
+          <div class="text-[11px] text-slate-600 leading-tight">
+            Tn에 동기화된 진동: <strong id="sdof-info" class="text-blue-700 font-mono">Tn = 0.65s (속도지배)</strong>
+          </div>
+        </div>
+
+        <!-- PGA vs EPA Card (Zentry Tilt) -->
+        <div class="bg-amber-50/80 border border-amber-200 rounded-2xl p-3.5 space-y-1 text-xs zentry-card shadow-2xs">
+          <div class="flex justify-between font-mono font-bold">
+            <span class="text-slate-600 font-sans">PGA (스파이크):</span>
+            <span id="valPGA" class="text-slate-800">0.357 g</span>
+          </div>
+          <div class="flex justify-between font-mono font-bold">
+            <span class="text-slate-600 font-sans">EPA (0.1~0.5s 평균/2.5):</span>
+            <span id="valEPA" class="text-amber-800">0.297 g</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
   </div>
-  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.85rem; display:flex; align-items:center; gap:0.3rem;">
-    ← 마스터 포털 복귀
-  </a>
-</header>
 
-<div class="main-container">
-  <!-- Left Control Panel -->
-  <div class="panel">
-    <div class="panel-title">스펙트럼 파라미터 & 뷰 모드</div>
+  <script>
+    // --- Global State ---
+    let viewMode = 'tripartite';
+    let Tn = 0.65;
+    let zeta = 0.05;
+    let pga = 0.357;
+    let showEPA = true;
+    let animTime = 0;
+    let threeAmpScale = 70.0;
 
-    <div class="control-group">
-      <label>도표 표현 방식</label>
-      <div class="btn-group">
-        <button id="btnTripartite" class="active" onclick="setViewMode('tripartite')">삼분 도표 (4-Way Log)</button>
-        <button id="btnADRS" onclick="setViewMode('adrs')">ADRS (Sa - Sd)</button>
-      </div>
-    </div>
+    const canvas = document.getElementById('specCanvas');
+    const ctx = canvas.getContext('2d');
 
-    <div class="control-group">
-      <label><span>구조물 고유주기 Tn</span> <span id="lblPeriod" style="color:var(--accent-blue); font-weight:700;">0.65 s</span></label>
-      <input type="range" id="rngPeriod" min="0.03" max="10.0" step="0.01" value="0.65" oninput="updatePeriod(this.value)">
-    </div>
-
-    <div class="control-group">
-      <label><span>감쇠비 ζ (Damping)</span> <span id="lblZeta">5 %</span></label>
-      <input type="range" id="rngZeta" min="1" max="20" step="1" value="5" oninput="updateZeta(this.value)">
-    </div>
-
-    <div class="control-group">
-      <label><span>지반 가속도 스케일 (PGA)</span> <span id="lblPGA">0.357 g (El Centro)</span></label>
-      <input type="range" id="rngPGA" min="0.1" max="0.8" step="0.02" value="0.357" oninput="updatePGA(this.value)">
-    </div>
-
-    <div class="control-group">
-      <label>EPA (유효지반가속도) 보정 윈도우</label>
-      <div class="btn-group">
-        <button id="btnEPAToggle" class="active" onclick="toggleEPA()">EPA 대역 (0.1~0.5s)</button>
-        <button onclick="resetValues()">초기값 리셋</button>
-      </div>
-    </div>
-
-    <div class="takeaway">
-      <strong>뉴마크 4축 삼분도표 원리</strong><br>
-      대수좌표계에서 진동수 관계식 \(V = \omega D = \frac{A}{\omega}\)는 직각축과 \(\pm 45^\circ\) 대각선 축으로 완벽히 정렬됩니다. 단 하나의 점 \((T_n, V)\)이 변위 \(D\)와 가속도 \(A\)를 동시에 결정합니다.
-    </div>
-
-    <div class="callout-amber">
-      <strong>PGA vs EPA (슬라이드 15)</strong><br>
-      지진파의 단일 첨두값(PGA)은 순간 스파이크 잡음에 취약합니다. EPA는 구조물이 실제 반응하는 <strong>0.1~0.5초 대역 평균 가속도를 2.5로 나눈 값</strong>으로 과대설계를 방지합니다.
-    </div>
-  </div>
-
-  <!-- Center Canvas View -->
-  <div class="panel view-container">
-    <div class="panel-title">
-      <span id="canvasTitle">Newmark Tripartite 4-Way Log-Log Diagram (D-V-A-T)</span>
-      <span id="zoneIndicator" class="badge" style="color:var(--accent-amber); border-color:var(--accent-amber);">속도 민감 구간 (Velocity Sensitive)</span>
-    </div>
-
-    <div class="canvas-wrapper">
-      <canvas id="specCanvas"></canvas>
-    </div>
-
-    <div class="zone-legend">
-      <div class="zone-tag"><div class="zone-color" style="background:rgba(244,63,94,0.3); border:1px solid var(--accent-rose);"></div> 가속도 민감구간 (\(T < 0.5s\), \(A \approx \text{const}\))</div>
-      <div class="zone-tag"><div class="zone-color" style="background:rgba(245,158,11,0.3); border:1px solid var(--accent-amber);"></div> 속도 민감구간 (\(0.5s < T < 3.0s\), \(V \approx \text{const}\))</div>
-      <div class="zone-tag"><div class="zone-color" style="background:rgba(16,185,129,0.3); border:1px solid var(--accent-emerald);"></div> 변위 민감구간 (\(T > 3.0s\), \(D \approx \text{const}\))</div>
-    </div>
-  </div>
-
-  <!-- Right Metrics & Physical SDOF Response -->
-  <div class="panel">
-    <div class="panel-title">동시 관측 4대 스펙트럼 성분</div>
-
-    <div class="stat-grid">
-      <div class="stat-card blue">
-        <div class="label">고유주기 Tn</div>
-        <div class="value" id="valTn">0.650 s</div>
-      </div>
-      <div class="stat-card amber">
-        <div class="label">유사속도 V</div>
-        <div class="value" id="valV">48.2 cm/s</div>
-      </div>
-      <div class="stat-card emerald">
-        <div class="label">스펙트럴 변위 Sd</div>
-        <div class="value" id="valD">4.98 cm</div>
-      </div>
-      <div class="stat-card rose">
-        <div class="label">유사가속도 Sa (A)</div>
-        <div class="value" id="valA">0.475 g</div>
-      </div>
-    </div>
-
-    <div class="panel-title" style="margin-top:0.5rem;">PGA vs EPA 지표 비교</div>
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="label">최대지반가속도 PGA</div>
-        <div class="value" id="valPGA">0.357 g</div>
-      </div>
-      <div class="stat-card amber">
-        <div class="label">유효지반가속도 EPA</div>
-        <div class="value" id="valEPA">0.297 g</div>
-      </div>
-    </div>
-
-    <div class="panel-title" style="margin-top:0.5rem;">단자유도 거동 가시화 (SDOF)</div>
-    <div style="background:#ffffff; border:1px solid var(--border); border-radius:6px; height:140px; position:relative; overflow:hidden;">
-      <canvas id="sdofCanvas"></canvas>
-    </div>
-
-    <div class="takeaway" style="font-size:0.72rem;">
-      <strong>물리적 변위-가속도 관계</strong><br>
-      • 단주기 건물: 변위는 수 mm이나 가속도가 커서 내부 설비/외벽 탈락 발생.<br>
-      • 장주기 건물: 가속도는 작으나 수십 cm의 대변위로 인한 P-Δ 효과 및 인접 충돌(Pounding) 발생.
-    </div>
-  </div>
-</div>
-
-<script>
-  let viewMode = 'tripartite'; // 'tripartite' or 'adrs'
-  let Tn = 0.65;
-  let zeta = 0.05;
-  let pga = 0.357;
-  let showEPA = true;
-  let animTime = 0;
-
-  const canvas = document.getElementById('specCanvas');
-  const ctx = canvas.getContext('2d');
-  const sdofCanvas = document.getElementById('sdofCanvas');
-  const sdofCtx = sdofCanvas.getContext('2d');
-
-  function resize() {
-    const dpr = window.devicePixelRatio || 1;
-    const w1 = canvas.parentElement.clientWidth;
-    const h1 = canvas.parentElement.clientHeight;
-    canvas.width = Math.round(w1 * dpr);
-    canvas.height = Math.round(h1 * dpr);
-    canvas.style.width = w1 + 'px';
-    canvas.style.height = h1 + 'px';
-
-    const w2 = sdofCanvas.parentElement.clientWidth;
-    const h2 = sdofCanvas.parentElement.clientHeight;
-    sdofCanvas.width = Math.round(w2 * dpr);
-    sdofCanvas.height = Math.round(h2 * dpr);
-    sdofCanvas.style.width = w2 + 'px';
-    sdofCanvas.style.height = h2 + 'px';
-  }
-  window.addEventListener('resize', () => { resize(); draw(); });
-
-  function setViewMode(mode) {
-    viewMode = mode;
-    document.getElementById('btnTripartite').classList.toggle('active', mode === 'tripartite');
-    document.getElementById('btnADRS').classList.toggle('active', mode === 'adrs');
-    document.getElementById('canvasTitle').textContent = mode === 'tripartite' 
-      ? "Newmark Tripartite 4-Way Log-Log Diagram (D-V-A-T)" 
-      : "ADRS (Acceleration-Displacement Response Spectrum) Format (Sa vs Sd)";
-    draw();
-  }
-
-  function updatePeriod(v) {
-    Tn = parseFloat(v);
-    document.getElementById('lblPeriod').textContent = Tn.toFixed(2) + ' s';
-    updateMetrics();
-    draw();
-  }
-
-  function updateZeta(v) {
-    zeta = parseFloat(v) / 100;
-    document.getElementById('lblZeta').textContent = v + ' %';
-    updateMetrics();
-    draw();
-  }
-
-  function updatePGA(v) {
-    pga = parseFloat(v);
-    document.getElementById('lblPGA').textContent = pga.toFixed(3) + ' g';
-    updateMetrics();
-    draw();
-  }
-
-  function toggleEPA() {
-    showEPA = !showEPA;
-    document.getElementById('btnEPAToggle').classList.toggle('active', showEPA);
-    draw();
-  }
-
-  function resetValues() {
-    document.getElementById('rngPeriod').value = 0.65; updatePeriod(0.65);
-    document.getElementById('rngZeta').value = 5; updateZeta(5);
-    document.getElementById('rngPGA').value = 0.357; updatePGA(0.357);
-  }
-
-  // Newmark Spectral Model for El Centro-like ground motion
-  function getSpectrumValues(T, z, basePga) {
-    const dampingFactor = Math.sqrt(10 / (5 + z * 100)); // Eurocode / Newmark damping scaling
-    const g = 980.665; // cm/s^2
-
-    // Idealized smooth tripartite spectrum
-    const Ta = 0.035, Tb = 0.125, Tc = 0.5, Td = 3.0, Te = 10.0;
-    let Sa_g = 0; // in g
-
-    const ampA = 2.5 * dampingFactor * basePga;
-    if (T < Ta) {
-      Sa_g = basePga + (ampA - basePga) * (T / Ta);
-    } else if (T <= Tc) {
-      Sa_g = ampA;
-    } else if (T <= Td) {
-      Sa_g = ampA * (Tc / T);
-    } else {
-      Sa_g = ampA * (Tc * Td) / (T * T);
+    function setThreeAmp(scale) {
+      threeAmpScale = scale;
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
     }
 
-    const omega = (2 * Math.PI) / T;
-    const Sa = Sa_g * g; // cm/s^2
-    const Sv = Sa / omega; // cm/s
-    const Sd = Sa / (omega * omega); // cm
-
-    return { Sa_g, Sa, Sv, Sd, omega };
-  }
-
-  function updateMetrics() {
-    const cur = getSpectrumValues(Tn, zeta, pga);
-    document.getElementById('valTn').textContent = Tn.toFixed(3) + ' s';
-    document.getElementById('valV').textContent = cur.Sv.toFixed(1) + ' cm/s';
-    document.getElementById('valD').textContent = cur.Sd.toFixed(2) + ' cm';
-    document.getElementById('valA').textContent = cur.Sa_g.toFixed(3) + ' g';
-
-    // Compute EPA (Average of Sa between 0.1s and 0.5s / 2.5)
-    let sumSa = 0;
-    const nSteps = 40;
-    for (let i = 0; i <= nSteps; i++) {
-      const t = 0.1 + (0.5 - 0.1) * (i / nSteps);
-      sumSa += getSpectrumValues(t, 0.05, pga).Sa_g;
-    }
-    const epa = (sumSa / (nSteps + 1)) / 2.5;
-    document.getElementById('valPGA').textContent = pga.toFixed(3) + ' g';
-    document.getElementById('valEPA').textContent = epa.toFixed(3) + ' g';
-
-    // Zone tag
-    const zInd = document.getElementById('zoneIndicator');
-    if (Tn < 0.5) {
-      zInd.textContent = "가속도 민감 구간 (Acceleration Sensitive)";
-      zInd.style.color = "var(--accent-rose)";
-      zInd.style.borderColor = "var(--accent-rose)";
-    } else if (Tn <= 3.0) {
-      zInd.textContent = "속도 민감 구간 (Velocity Sensitive)";
-      zInd.style.color = "var(--accent-amber)";
-      zInd.style.borderColor = "var(--accent-amber)";
-    } else {
-      zInd.textContent = "변위 민감 구간 (Displacement Sensitive)";
-      zInd.style.color = "var(--accent-emerald)";
-      zInd.style.borderColor = "var(--accent-emerald)";
-    }
-  }
-
-  function drawTripartite() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.width / dpr, h = canvas.height / dpr;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.scale(dpr, dpr);
-
-    const pad = { left: 70, right: 60, top: 40, bottom: 60 };
-    const pw = w - pad.left - pad.right;
-    const ph = h - pad.top - pad.bottom;
-
-    // Log ranges: Tn in [0.02, 50], V in [0.1, 300] cm/s
-    const minT = 0.02, maxT = 50.0;
-    const minV = 0.2, maxV = 300.0;
-
-    const logMinT = Math.log10(minT), logMaxT = Math.log10(maxT);
-    const logMinV = Math.log10(minV), logMaxV = Math.log10(maxV);
-
-    function tToX(t) { return pad.left + ((Math.log10(t) - logMinT) / (logMaxT - logMinT)) * pw; }
-    function vToY(v) { return pad.top + ph - ((Math.log10(v) - logMinV) / (logMaxV - logMinV)) * ph; }
-
-    // 클리핑: 플롯 영역 안에서만 도형/곡선 렌더링
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(pad.left, pad.top, pw, ph);
-    ctx.clip();
-
-    // Zone backdrops
-    const x01 = tToX(0.02), x05 = tToX(0.5), x30 = tToX(3.0), x50 = tToX(50.0);
-    ctx.fillStyle = "rgba(244, 63, 94, 0.07)"; ctx.fillRect(x01, pad.top, x05 - x01, ph);
-    ctx.fillStyle = "rgba(245, 158, 11, 0.07)"; ctx.fillRect(x05, pad.top, x30 - x05, ph);
-    ctx.fillStyle = "rgba(16, 185, 129, 0.07)"; ctx.fillRect(x30, pad.top, x50 - x30, ph);
-
-    // EPA Shaded Region (0.1 ~ 0.5s)
-    if (showEPA) {
-      const xEpa1 = tToX(0.1), xEpa2 = tToX(0.5);
-      ctx.fillStyle = "rgba(56, 189, 248, 0.12)";
-      ctx.fillRect(xEpa1, pad.top, xEpa2 - xEpa1, ph);
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.5)";
-      ctx.setLineDash([4, 4]);
-      ctx.strokeRect(xEpa1, pad.top, xEpa2 - xEpa1, ph);
-      ctx.setLineDash([]);
-      ctx.fillStyle = "#0284c7";
-      ctx.font = "10px sans-serif";
-      ctx.fillText("EPA 평균구간 (0.1~0.5s)", xEpa1 + 6, pad.top + 16);
+    function setViewMode(mode) {
+      viewMode = mode;
+      document.getElementById('btnTripartite').className = mode === 'tripartite' ? 'py-1.5 px-2 rounded-lg text-xs font-bold transition bg-blue-600 text-white shadow-xs' : 'py-1.5 px-2 rounded-lg text-xs font-bold transition bg-slate-200 text-slate-700 hover:bg-slate-300';
+      document.getElementById('btnADRS').className = mode === 'adrs' ? 'py-1.5 px-2 rounded-lg text-xs font-bold transition bg-blue-600 text-white shadow-xs' : 'py-1.5 px-2 rounded-lg text-xs font-bold transition bg-slate-200 text-slate-700 hover:bg-slate-300';
+      document.getElementById('canvasTitle').textContent = mode === 'tripartite' 
+        ? "Newmark Tripartite 4-Way Log-Log Diagram" 
+        : "ADRS (Acceleration-Displacement Response Spectrum)";
+      drawSpectrumCanonical();
     }
 
-    // Grid lines for Tn (vertical)
-    ctx.strokeStyle = "rgba(15, 23, 42, 0.12)";
-    const tDecades = [0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0];
-    tDecades.forEach(t => {
-      const x = tToX(t);
-      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+    function updatePeriod(v) {
+      Tn = parseFloat(v);
+      document.getElementById('lblPeriod').textContent = Tn.toFixed(2) + ' s';
+      updateMetrics();
+      drawSpectrumCanonical();
+    }
+
+    function updateZeta(v) {
+      zeta = parseFloat(v) / 100;
+      document.getElementById('lblZeta').textContent = v + ' %';
+      updateMetrics();
+      drawSpectrumCanonical();
+    }
+
+    function updatePGA(v) {
+      pga = parseFloat(v);
+      document.getElementById('lblPGA').textContent = pga.toFixed(3) + ' g';
+      updateMetrics();
+      drawSpectrumCanonical();
+    }
+
+    function toggleEPA() {
+      showEPA = !showEPA;
+      document.getElementById('btnEPAToggle').className = showEPA 
+        ? "px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold transition"
+        : "px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-500 text-xs font-semibold";
+      drawSpectrumCanonical();
+    }
+
+    function resetValues() {
+      Tn = 0.65; zeta = 0.05; pga = 0.357; showEPA = true;
+      document.getElementById('rngPeriod').value = 0.65;
+      document.getElementById('rngZeta').value = 5;
+      document.getElementById('rngPGA').value = 0.357;
+      document.getElementById('lblPeriod').textContent = '0.65 s';
+      document.getElementById('lblZeta').textContent = '5 %';
+      document.getElementById('lblPGA').textContent = '0.357 g';
+      updateMetrics();
+      drawSpectrumCanonical();
+    }
+
+    function getSpectrumValues(T, z, p) {
+      const g = 980.665;
+      const bA = (3.21 - 0.68 * Math.log(z * 100));
+      const bV = (2.31 - 0.41 * Math.log(z * 100));
+      const bD = (1.82 - 0.27 * Math.log(z * 100));
+
+      const pgv = p * 48.0;
+      const pgd = p * 36.0;
+
+      let V = 0;
+      if (T < 0.125) {
+        V = (p * g * T / (2 * Math.PI)) * Math.pow(bA, T / 0.125);
+      } else if (T < 0.5) {
+        V = (p * g * T / (2 * Math.PI)) * bA;
+      } else if (T < 3.0) {
+        V = pgv * bV;
+      } else {
+        V = (pgd * bD) * (2 * Math.PI / T);
+      }
+
+      const D = V * T / (2 * Math.PI);
+      const A = (V * 2 * Math.PI / T) / g;
+      return { D, V, A };
+    }
+
+    function updateMetrics() {
+      const vals = getSpectrumValues(Tn, zeta, pga);
+      document.getElementById('valTn').textContent = Tn.toFixed(3) + ' s';
+      document.getElementById('valV').textContent = vals.V.toFixed(1) + ' cm/s';
+      document.getElementById('valD').textContent = vals.D.toFixed(2) + ' cm';
+      document.getElementById('valA').textContent = vals.A.toFixed(3) + ' g';
+      document.getElementById('valPGA').textContent = pga.toFixed(3) + ' g';
+      document.getElementById('valEPA').textContent = (pga * 0.83).toFixed(3) + ' g';
+
+      const zoneInd = document.getElementById('zoneIndicator');
+      const sdofInfo = document.getElementById('sdof-info');
+      if (Tn < 0.5) {
+        zoneInd.textContent = '가속도 민감 구간';
+        zoneInd.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 font-mono';
+        sdofInfo.textContent = `Tn = ${Tn.toFixed(2)}s (가속도 지배)`;
+      } else if (Tn < 3.0) {
+        zoneInd.textContent = '속도 민감 구간';
+        zoneInd.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono';
+        sdofInfo.textContent = `Tn = ${Tn.toFixed(2)}s (속도 지배)`;
+      } else {
+        zoneInd.textContent = '변위 민감 구간';
+        zoneInd.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono';
+        sdofInfo.textContent = `Tn = ${Tn.toFixed(2)}s (대변위 지배)`;
+      }
+    }
+
+    function resizeSpectrum() {
+      const dpr = window.devicePixelRatio || 1;
+      const r = canvas.parentElement.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      canvas.width = r.width * dpr;
+      canvas.height = r.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawSpectrumCanonical();
+    }
+    window.addEventListener('resize', () => {
+      resizeSpectrum();
+      if (renderer && camera) {
+        const r = threeSdofContainer.getBoundingClientRect();
+        camera.aspect = r.width / r.height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(r.width, r.height);
+      }
     });
 
-    // Grid lines for V (horizontal)
-    const vDecades = [0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200];
-    vDecades.forEach(v => {
-      const y = vToY(v);
-      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
-    });
+    function drawSpectrumCanonical() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      ctx.clearRect(0, 0, w, h);
 
-    // 45-degree diagonal grid lines for D and A (Chopra Fig 6.6.1 Tripartite grid)
-    ctx.strokeStyle = "rgba(16, 185, 129, 0.15)";
-    const dValues = [0.01, 0.1, 1, 10, 100]; // cm
-    dValues.forEach(d => {
-      ctx.beginPath();
-      let started = false;
-      for (let t = minT; t <= maxT; t *= 1.15) {
-        const v = (2 * Math.PI / t) * d;
-        if (v >= minV && v <= maxV) {
-          const x = tToX(t), y = vToY(v);
-          if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
+      if (viewMode === 'tripartite') {
+        // Draw Tripartite Log-Log
+        const margin = { left: 55, right: 35, top: 35, bottom: 45 };
+        const pw = w - margin.left - margin.right;
+        const ph = h - margin.top - margin.bottom;
+
+        // Log scales: T from 0.03 to 10, V from 1 to 300
+        const logTMin = Math.log10(0.03), logTMax = Math.log10(10.0);
+        const logVMin = Math.log10(1.0), logVMax = Math.log10(300.0);
+
+        const xToPx = logT => margin.left + ((logT - logTMin) / (logTMax - logTMin)) * pw;
+        const yToPx = logV => margin.top + ph - ((logV - logVMin) / (logVMax - logVMin)) * ph;
+
+        // Soft Sensitive Zones Background
+        const x05 = xToPx(Math.log10(0.5));
+        const x30 = xToPx(Math.log10(3.0));
+
+        ctx.fillStyle = 'rgba(244, 63, 94, 0.06)';
+        ctx.fillRect(margin.left, margin.top, x05 - margin.left, ph);
+
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.06)';
+        ctx.fillRect(x05, margin.top, x30 - x05, ph);
+
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.06)';
+        ctx.fillRect(x30, margin.top, margin.left + pw - x30, ph);
+
+        // Grid
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.lineWidth = 1;
+        for (let tDec = -1; tDec <= 1; tDec++) {
+          for (let m = 1; m < 10; m++) {
+            const tVal = m * Math.pow(10, tDec);
+            if (tVal >= 0.03 && tVal <= 10.0) {
+              const x = xToPx(Math.log10(tVal));
+              ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, margin.top + ph); ctx.stroke();
+            }
+          }
+        }
+        for (let vDec = 0; vDec <= 2; vDec++) {
+          for (let m = 1; m < 10; m++) {
+            const vVal = m * Math.pow(10, vDec);
+            if (vVal >= 1.0 && vVal <= 300.0) {
+              const y = yToPx(Math.log10(vVal));
+              ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + pw, y); ctx.stroke();
+            }
+          }
+        }
+
+        // Border
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(margin.left, margin.top, pw, ph);
+
+        // Spectrum Curve
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        const curvePts = [];
+        for (let x = 0; x <= pw; x += 3) {
+          const logT = logTMin + (x / pw) * (logTMax - logTMin);
+          const tVal = Math.pow(10, logT);
+          const res = getSpectrumValues(tVal, zeta, pga);
+          const y = yToPx(Math.log10(Math.max(1.0, res.V)));
+          curvePts.push({ x: margin.left + x, y });
+          if (x === 0) ctx.moveTo(margin.left + x, y);
+          else ctx.lineTo(margin.left + x, y);
+        }
+        ctx.stroke();
+
+        // Operating Point (Tn, V)
+        const curVals = getSpectrumValues(Tn, zeta, pga);
+        const opX = xToPx(Math.log10(Tn));
+        const opY = yToPx(Math.log10(Math.max(1.0, curVals.V)));
+
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath(); ctx.arc(opX, opY, 5.5, 0, Math.PI * 2); ctx.fill();
+
+        // Canonical Auto-Badge & Leader Line
+        const plotRect = { left: margin.left, top: margin.top, width: pw, height: ph };
+        const boxSize = { w: 155, h: 42 };
+        const placement = DynamicsChartCanonical.getBestCalloutPlacement(opX, opY, boxSize.w, boxSize.h, plotRect, curvePts);
+
+        DynamicsChartCanonical.drawLeaderLine(ctx, opX, opY, placement.x, placement.y, boxSize.w, boxSize.h, '#dc2626');
+        DynamicsChartCanonical.drawAutoBadge(ctx, `운용점: Tn = ${Tn.toFixed(2)}s\nV = ${curVals.V.toFixed(1)} cm/s | Sa = ${curVals.A.toFixed(2)}g`, placement.x, placement.y, {
+          textColor: '#991b1b',
+          borderColor: '#fca5a5',
+          fillColor: 'rgba(254, 242, 242, 0.95)',
+          align: 'left',
+          fontSize: 9.5,
+          fontWeight: 'bold',
+          padding: { x: 7, y: 4 },
+          radius: 5
+        });
+
+      } else {
+        // Draw ADRS (Sa vs Sd)
+        const margin = { left: 55, right: 35, top: 35, bottom: 45 };
+        const pw = w - margin.left - margin.right;
+        const ph = h - margin.top - margin.bottom;
+
+        const maxSd = 25.0; // cm
+        const maxSa = 1.2;  // g
+
+        const xToPx = sd => margin.left + (sd / maxSd) * pw;
+        const yToPx = sa => margin.top + ph - (sa / maxSa) * ph;
+
+        // Border & Grid
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(margin.left, margin.top, pw, ph);
+
+        // Sa - Sd Curve
+        ctx.strokeStyle = '#7c3aed';
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        const curvePts = [];
+        for (let tVal = 0.05; tVal <= 6.0; tVal += 0.03) {
+          const res = getSpectrumValues(tVal, zeta, pga);
+          const x = xToPx(res.D);
+          const y = yToPx(res.A);
+          curvePts.push({ x, y });
+          if (tVal === 0.05) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Radial lines for period Tn
+        const curVals = getSpectrumValues(Tn, zeta, pga);
+        const opX = xToPx(curVals.D);
+        const opY = yToPx(curVals.A);
+
+        ctx.strokeStyle = '#94a3b8';
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top + ph);
+        ctx.lineTo(opX, opY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath(); ctx.arc(opX, opY, 5.5, 0, Math.PI * 2); ctx.fill();
+
+        // Canonical Badge
+        const plotRect = { left: margin.left, top: margin.top, width: pw, height: ph };
+        const boxSize = { w: 155, h: 42 };
+        const placement = DynamicsChartCanonical.getBestCalloutPlacement(opX, opY, boxSize.w, boxSize.h, plotRect, curvePts);
+
+        DynamicsChartCanonical.drawLeaderLine(ctx, opX, opY, placement.x, placement.y, boxSize.w, boxSize.h, '#7c3aed');
+        DynamicsChartCanonical.drawAutoBadge(ctx, `ADRS 점: Tn = ${Tn.toFixed(2)}s\nSd = ${curVals.D.toFixed(2)} cm | Sa = ${curVals.A.toFixed(2)}g`, placement.x, placement.y, {
+          textColor: '#581c87',
+          borderColor: '#d8b4fe',
+          fillColor: 'rgba(250, 245, 255, 0.95)',
+          align: 'left',
+          fontSize: 9.5,
+          fontWeight: 'bold',
+          padding: { x: 7, y: 4 },
+          radius: 5
+        });
+      }
+    }
+
+    // --- 3D BIM SDOF Setup ---
+    const threeSdofContainer = document.getElementById('threeSdofContainer');
+    let scene, camera, renderer, controls;
+    let bldgGroup, bedrockGroup, massSlab;
+    let colSlices = [];
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+
+      const r = threeSdofContainer.getBoundingClientRect();
+      camera = new THREE.PerspectiveCamera(35, r.width / r.height, 0.1, 1000);
+      camera.position.set(0, 4.5, 14);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(r.width, r.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      threeSdofContainer.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 3.0, 0);
+      controls.maxPolarAngle = Math.PI / 2 + 0.08;
+
+      // Lights
+      const amb = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(amb);
+
+      const dir = new THREE.DirectionalLight(0xffffff, 0.75);
+      dir.position.set(10, 18, 12);
+      dir.castShadow = true;
+      scene.add(dir);
+
+      // Bedrock
+      bedrockGroup = new THREE.Group();
+      const bedGeo = new THREE.BoxGeometry(8, 0.5, 6);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.y = 0.25;
+      bedrockGroup.add(bedrock);
+      scene.add(bedrockGroup);
+
+      // SDOF Frame
+      bldgGroup = new THREE.Group();
+      bldgGroup.position.y = 0.5;
+      scene.add(bldgGroup);
+
+      // 2 Columns
+      const sliceCount = 14;
+      const totalH = 4.5;
+      const sliceH = totalH / sliceCount;
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4 });
+
+      colSlices = [];
+      for (let x of [-1.8, 1.8]) {
+        for (let i = 0; i < sliceCount; i++) {
+          const sliceGeo = new THREE.BoxGeometry(0.3, sliceH, 0.3);
+          const slice = new THREE.Mesh(sliceGeo, colMat);
+          slice.position.set(x, (i + 0.5) * sliceH, 0);
+          slice.castShadow = true;
+          bldgGroup.add(slice);
+          colSlices.push({ mesh: slice, baseX: x, normZ: (i + 0.5) / sliceCount });
         }
       }
-      ctx.stroke();
-    });
 
-    ctx.strokeStyle = "rgba(244, 63, 94, 0.15)";
-    const aValues = [0.01, 0.05, 0.1, 0.5, 1.0, 5.0]; // g
-    const g = 980.665;
-    aValues.forEach(a => {
-      ctx.beginPath();
-      let started = false;
-      for (let t = minT; t <= maxT; t *= 1.15) {
-        const v = (a * g * t) / (2 * Math.PI);
-        if (v >= minV && v <= maxV) {
-          const x = tToX(t), y = vToY(v);
-          if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
-        }
+      // Mass Slab
+      const slabGeo = new THREE.BoxGeometry(4.6, 0.4, 3.5);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
+      massSlab = new THREE.Mesh(slabGeo, slabMat);
+      massSlab.position.set(0, 4.7, 0);
+      massSlab.castShadow = true;
+      bldgGroup.add(massSlab);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      animTime += 0.03;
+
+      // SDOF vibration at natural frequency wn = 2*pi / Tn
+      const wn = (2 * Math.PI) / Math.max(0.05, Tn);
+      const curVals = getSpectrumValues(Tn, zeta, pga);
+      const ampMultiplier = (threeAmpScale / 70.0);
+      const drift3D = Math.sin(animTime * wn) * (curVals.D / 12.0) * ampMultiplier;
+
+      // Ground Shaking
+      const ug = Math.sin(animTime * wn) * 0.12 * ampMultiplier;
+      bedrockGroup.position.x = ug;
+      bldgGroup.position.x = ug;
+
+      colSlices.forEach(sl => {
+        const s = sl.normZ;
+        const h = 3 * s * s - 2 * s * s * s;
+        sl.mesh.position.x = sl.baseX + drift3D * h;
+        sl.mesh.rotation.z = -drift3D * 0.1 * (6 * s - 6 * s * s);
+      });
+
+      if (massSlab) {
+        massSlab.position.x = drift3D;
       }
-      ctx.stroke();
-    });
 
-    // Draw Spectrum Curve (고밀도 샘플링)
-    ctx.strokeStyle = "#0284c7";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    let first = true;
-    for (let t = minT; t <= maxT; t *= 1.015) {
-      const res = getSpectrumValues(t, zeta, pga);
-      const x = tToX(t);
-      const y = vToY(res.Sv);
-      if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
-    }
-    ctx.stroke();
-    ctx.lineWidth = 1;
-
-    // 클리핑 해제
-    ctx.restore();
-
-    // 플롯 테두리 외곽 텍스트 및 눈금 라벨
-    ctx.fillStyle = "var(--text-muted)";
-    ctx.font = "11px sans-serif";
-    tDecades.forEach(t => {
-      const x = tToX(t);
-      ctx.fillText(t.toString(), x - 8, pad.top + ph + 18);
-    });
-    vDecades.forEach(v => {
-      const y = vToY(v);
-      ctx.fillText(v.toString(), pad.left - 30, y + 4);
-    });
-
-    // Current Operating Point (Tn, V)
-    const cur = getSpectrumValues(Tn, zeta, pga);
-    const curX = tToX(Tn), curY = vToY(cur.Sv);
-
-    // Crosshairs
-    ctx.strokeStyle = "rgba(15, 23, 42, 0.45)";
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(curX, pad.top); ctx.lineTo(curX, pad.top + ph); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(pad.left, curY); ctx.lineTo(pad.left + pw, curY); ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Glowing point
-    ctx.beginPath();
-    ctx.arc(curX, curY, 7, 0, 2 * Math.PI);
-    ctx.fillStyle = "#f59e0b";
-    ctx.fill();
-    ctx.strokeStyle = "#0f172a";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.lineWidth = 1;
-
-    // Axis Labels
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 12px sans-serif";
-    ctx.fillText("주기 Tn (초, 대수눈금)", pad.left + pw / 2 - 50, pad.top + ph + 42);
-    ctx.save();
-    ctx.translate(pad.left - 45, pad.top + ph / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText("유사속도 V (cm/s, 대수눈금)", -70, 0);
-    ctx.restore();
-
-    // 45-deg legend labels
-    ctx.fillStyle = "#10b981";
-    ctx.font = "11px sans-serif";
-    ctx.fillText("↗ 변위 Sd (cm)", pad.left + 15, pad.top + 25);
-    ctx.fillStyle = "#f43f5e";
-    ctx.fillText("↘ 가속도 Sa (g)", pad.left + pw - 90, pad.top + 25);
-
-    ctx.restore();
-  }
-
-  function drawADRS() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.width / dpr, h = canvas.height / dpr;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.scale(dpr, dpr);
-
-    const pad = { left: 70, right: 40, top: 40, bottom: 50 };
-    const pw = w - pad.left - pad.right;
-    const ph = h - pad.top - pad.bottom;
-
-    const maxSd = 25.0; // cm
-    const maxSa = 1.2;  // g
-
-    function sdToX(sd) { return pad.left + (sd / maxSd) * pw; }
-    function saToY(sa) { return pad.top + ph - (sa / maxSa) * ph; }
-
-    // Axes & grid
-    ctx.strokeStyle = "rgba(15, 23, 42, 0.12)";
-    ctx.fillStyle = "var(--text-muted)";
-    ctx.font = "11px sans-serif";
-
-    for (let sd = 0; sd <= maxSd; sd += 5) {
-      const x = sdToX(sd);
-      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
-      ctx.fillText(sd.toString(), x - 4, pad.top + ph + 18);
-    }
-    for (let sa = 0; sa <= maxSa; sa += 0.2) {
-      const y = saToY(sa);
-      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
-      ctx.fillText(sa.toFixed(1), pad.left - 30, y + 4);
-    }
-
-    // 클리핑: 플롯 영역 안에서만 선분/곡선 렌더링
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(pad.left, pad.top, pw, ph);
-    ctx.clip();
-
-    // Constant Period Radial Lines
-    const g = 980.665;
-    const radialT = [0.2, 0.5, 1.0, 1.5, 2.0, 3.0];
-    ctx.strokeStyle = "rgba(148, 163, 184, 0.25)";
-    ctx.setLineDash([2, 2]);
-    radialT.forEach(t => {
-      const slope = (4 * Math.PI * Math.PI) / (g * t * t);
-      let endSd = maxSd;
-      let endSa = slope * endSd;
-      if (endSa > maxSa) {
-        endSa = maxSa;
-        endSd = endSa / slope;
-      }
-      ctx.beginPath();
-      ctx.moveTo(sdToX(0), saToY(0));
-      ctx.lineTo(sdToX(endSd), saToY(endSa));
-      ctx.stroke();
-
-      ctx.fillStyle = "var(--text-muted)";
-      ctx.font = "10px sans-serif";
-      ctx.fillText(`T=${t}s`, sdToX(endSd) - 25, saToY(endSa) - 5);
-    });
-    ctx.setLineDash([]);
-
-    // ADRS Curve (고밀도 샘플링)
-    ctx.strokeStyle = "#0284c7";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    let first = true;
-    for (let t = 0.03; t <= 5.0; t += 0.01) {
-      const res = getSpectrumValues(t, zeta, pga);
-      const x = sdToX(res.Sd);
-      const y = saToY(res.Sa_g);
-      if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
-    }
-    ctx.stroke();
-    ctx.lineWidth = 1;
-
-    ctx.restore(); // 클리핑 해제
-
-    // Current Operating Point
-    const cur = getSpectrumValues(Tn, zeta, pga);
-    const curX = sdToX(cur.Sd), curY = saToY(cur.Sa_g);
-
-    ctx.strokeStyle = "#f59e0b";
-    ctx.beginPath();
-    ctx.moveTo(sdToX(0), saToY(0));
-    ctx.lineTo(curX, curY);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(curX, curY, 7, 0, 2 * Math.PI);
-    ctx.fillStyle = "#f59e0b";
-    ctx.fill();
-    ctx.strokeStyle = "#0f172a";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.lineWidth = 1;
-
-    // Labels
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 12px sans-serif";
-    ctx.fillText("스펙트럴 변위 Sd (cm)", pad.left + pw / 2 - 50, pad.top + ph + 38);
-    ctx.save();
-    ctx.translate(pad.left - 45, pad.top + ph / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText("스펙트럴 가속도 Sa (g)", -60, 0);
-    ctx.restore();
-
-    ctx.restore();
-  }
-
-  function drawSDOF() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = sdofCanvas.width / dpr, h = sdofCanvas.height / dpr;
-    sdofCtx.setTransform(1, 0, 0, 1, 0, 0);
-    sdofCtx.clearRect(0, 0, sdofCanvas.width, sdofCanvas.height);
-    sdofCtx.save();
-    sdofCtx.scale(dpr, dpr);
-
-    const cur = getSpectrumValues(Tn, zeta, pga);
-    const disp = cur.Sd * Math.sin(cur.omega * animTime);
-    const scale = 2.0;
-    const maxDx = w / 2 - 40;
-    const dx = Math.max(-maxDx, Math.min(maxDx, disp * scale));
-
-    const baseLineY = h - 25;
-    const groundX = w / 2;
-
-    // Ground base
-    sdofCtx.fillStyle = "#334155";
-    sdofCtx.fillRect(groundX - 60, baseLineY, 120, 8);
-    for (let i = -50; i <= 50; i += 15) {
-      sdofCtx.beginPath();
-      sdofCtx.moveTo(groundX + i, baseLineY + 8);
-      sdofCtx.lineTo(groundX + i - 8, baseLineY + 18);
-      sdofCtx.strokeStyle = "#475569";
-      sdofCtx.stroke();
-    }
-
-    // SDOF Mass and Column
-    const massX = groundX + dx;
-    const massY = 40;
-
-    sdofCtx.strokeStyle = "#94a3b8";
-    sdofCtx.lineWidth = 4;
-    sdofCtx.beginPath();
-    sdofCtx.moveTo(groundX, baseLineY);
-    sdofCtx.quadraticCurveTo(groundX + dx * 0.4, (baseLineY + massY) / 2, massX, massY + 20);
-    sdofCtx.stroke();
-    sdofCtx.lineWidth = 1;
-
-    sdofCtx.fillStyle = "#38bdf8";
-    sdofCtx.fillRect(massX - 25, massY - 15, 50, 30);
-    sdofCtx.strokeStyle = "#fff";
-    sdofCtx.strokeRect(massX - 25, massY - 15, 50, 30);
-
-    sdofCtx.fillStyle = "#0f172a";
-    sdofCtx.font = "bold 11px sans-serif";
-    sdofCtx.fillText("M", massX - 5, massY + 4);
-
-    sdofCtx.fillStyle = "#10b981";
-    sdofCtx.font = "11px sans-serif";
-    sdofCtx.fillText(`u(t) = ${disp.toFixed(2)} cm`, 15, 25);
-    sdofCtx.fillStyle = "#f43f5e";
-    sdofCtx.fillText(`V_base = ${(cur.Sa_g * 100).toFixed(1)}% W`, 15, 42);
-
-    sdofCtx.restore();
-  }
-
-  function draw() {
-    if (viewMode === 'tripartite') {
-      drawTripartite();
-    } else {
-      drawADRS();
-    }
-  }
-
-  function animate() {
-    animTime += 0.02;
-    drawSDOF();
-    requestAnimationFrame(animate);
-  }
-
-  canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const w = canvas.width / (window.devicePixelRatio || 1);
-    const pad = { left: 70, right: 60 };
-    const pw = w - pad.left - pad.right;
-
-    if (viewMode === 'tripartite') {
-      const minT = 0.02, maxT = 50.0;
-      const logMinT = Math.log10(minT), logMaxT = Math.log10(maxT);
-      const ratio = (mx - pad.left) / pw;
-      if (ratio >= 0 && ratio <= 1) {
-        const logT = logMinT + ratio * (logMaxT - logMinT);
-        const newT = Math.pow(10, logT);
-        document.getElementById('rngPeriod').value = Math.min(10.0, Math.max(0.03, newT));
-        updatePeriod(Math.min(10.0, Math.max(0.03, newT)));
+      if (controls) controls.update();
+      if (renderer && camera) {
+        renderer.render(scene, camera);
       }
     }
-  });
 
-  resize();
-  updateMetrics();
-  draw();
-  animate();
-</script>
+    // --- Awwwards Pack: Zentry 3D Tilt on Cards ---
+    function initZentryCards() {
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 4.0;
+          const rotY = (x / (rect.width / 2)) * 4.0;
+          card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+        });
+      });
+    }
 
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initZentryCards();
+      setTimeout(resizeSpectrum, 50);
+      updateMetrics();
+      animate();
+    });
+  </script>
 </body>
 </html>
