@@ -6,75 +6,85 @@
 <title>Sim 40: KDS 구조해석법 선정 매트릭스 & 지반·비정형성 판정기</title>
 <style>
   :root {
-    --bg-dark: #f8fafc;
+    --bg-dark: #faf8f5;
     --card-bg: #ffffff;
     --border: #cbd5e1;
+    --border-dark: #0f172a;
     --text-main: #0f172a;
     --text-muted: #64748b;
     --accent-blue: #0284c7;
-    --accent-amber: #f59e0b;
-    --accent-emerald: #10b981;
-    --accent-rose: #f43f5e;
-    --accent-purple: #a855f7;
+    --accent-amber: #d97706;
+    --accent-emerald: #059669;
+    --accent-rose: #e11d48;
+    --accent-purple: #7c3aed;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
-  header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
-  .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
-  .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
+  body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+  
+  header { background: #ffffff; border-bottom: 2px solid var(--border-dark); padding: 0.6rem 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+  .title-group h1 { font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
+  .title-group p { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem; }
+  .badge { background: rgba(2, 132, 199, 0.12); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 800; border: 1.5px solid var(--accent-blue); }
 
-  .main-container { flex: 1; display: grid; grid-template-columns: 340px 1fr 320px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
+  .main-container { flex: 1; display: grid; grid-template-columns: 330px 1fr 310px; gap: 0.75rem; padding: 0.75rem; height: calc(100vh - 58px); min-height: 720px; }
   @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
 
-  .panel { background: #ffffff; border: 1.5px solid #0f172a; box-shadow: 0 4px 0 #0f172a; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
-  .panel-title { font-size: 0.95rem; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .panel { background: #ffffff; border: 2px solid var(--border-dark); box-shadow: 0 4px 0 var(--border-dark); border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.65rem; overflow-y: auto; }
+  .panel-title { font-size: 0.88rem; font-weight: 800; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center; }
 
-  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
-  .control-group label { font-size: 0.82rem; font-weight: 600; color: #334155; display: flex; justify-content: space-between; align-items: center; }
-  .control-group label span:last-child { font-weight: 700; color: #0284c7; }
-  select, input[type="number"] { background: #ffffff; border: 1.5px solid #94a3b8; color: #0f172a; padding: 0.45rem 0.6rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; width: 100%; transition: border-color 0.15s, box-shadow 0.15s; }
-  select:focus, input[type="number"]:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2); }
-  select option { background: #ffffff; color: #0f172a; }
-  input[type="range"] { accent-color: #0284c7; cursor: pointer; }
+  .control-group { display: flex; flex-direction: column; gap: 0.35rem; }
+  .control-group label { font-size: 0.8rem; font-weight: 700; color: #334155; display: flex; justify-content: space-between; align-items: center; }
+  .control-group label span:last-child { font-weight: 800; color: var(--accent-blue); font-family: monospace; }
   
-  .checkbox-list { display: flex; flex-direction: column; gap: 0.5rem; background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1.5px solid #cbd5e1; }
-  .checkbox-item { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.82rem; color: #0f172a; cursor: pointer; padding: 0.35rem 0.5rem; border-radius: 6px; transition: background 0.15s; }
+  select, input[type="number"] { background: #ffffff; border: 1.5px solid #94a3b8; color: #0f172a; padding: 0.4rem 0.55rem; border-radius: 6px; font-size: 0.82rem; font-weight: 600; width: 100%; transition: border-color 0.15s, box-shadow 0.15s; }
+  select:focus, input[type="number"]:focus { border-color: var(--accent-blue); outline: none; box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2); }
+  select option { background: #ffffff; color: #0f172a; }
+  input[type="range"] { accent-color: var(--accent-blue); cursor: pointer; height: 6px; }
+  
+  .checkbox-list { display: flex; flex-direction: column; gap: 0.45rem; background: #f8fafc; padding: 0.65rem; border-radius: 8px; border: 1.5px solid var(--border); }
+  .checkbox-item { display: flex; align-items: flex-start; gap: 0.55rem; font-size: 0.8rem; color: #0f172a; cursor: pointer; padding: 0.3rem 0.45rem; border-radius: 6px; transition: background 0.15s; }
   .checkbox-item:hover { background: #f1f5f9; }
-  .checkbox-item input { margin-top: 0.2rem; accent-color: var(--accent-rose); width: 16px; height: 16px; }
-  .checkbox-item strong { color: #0f172a; font-weight: 700; }
-  .checkbox-item small { color: #64748b; font-size: 0.75rem; line-height: 1.35; display: block; margin-top: 0.1rem; }
+  .checkbox-item input { margin-top: 0.2rem; accent-color: var(--accent-rose); width: 16px; height: 16px; cursor: pointer; }
+  .checkbox-item strong { color: #0f172a; font-weight: 800; }
+  .checkbox-item small { color: #64748b; font-size: 0.72rem; line-height: 1.35; display: block; margin-top: 0.1rem; }
 
-  .decision-box { padding: 1.2rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.6rem; border: 2px solid; text-align: center; }
-  .decision-box.static-ok { background: rgba(16, 185, 129, 0.1); border-color: var(--accent-emerald); }
-  .decision-box.dynamic-req { background: rgba(244, 63, 94, 0.12); border-color: var(--accent-rose); }
-  .decision-title { font-size: 1.25rem; font-weight: 800; }
-  .decision-sub { font-size: 0.85rem; line-height: 1.45; font-weight: 600; color: #1e293b; }
+  .decision-box { padding: 0.85rem 1rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.4rem; border: 2px solid; text-align: center; }
+  .decision-box.static-ok { background: rgba(5, 150, 105, 0.08); border-color: var(--accent-emerald); }
+  .decision-box.dynamic-req { background: rgba(225, 29, 72, 0.08); border-color: var(--accent-rose); }
+  .decision-title { font-size: 1.15rem; font-weight: 800; }
+  .decision-sub { font-size: 0.8rem; line-height: 1.4; font-weight: 600; color: #1e293b; }
 
-  .sdc-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 6px; font-weight: 800; font-size: 1rem; }
+  .sdc-badge { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 6px; font-weight: 800; font-size: 0.95rem; }
   .sdc-A { background: rgba(56, 189, 248, 0.15); color: #0284c7; border: 1.5px solid #0284c7; }
   .sdc-B { background: rgba(16, 185, 129, 0.15); color: #059669; border: 1.5px solid #059669; }
   .sdc-C { background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1.5px solid #d97706; }
   .sdc-D { background: rgba(244, 63, 94, 0.15); color: #e11d48; border: 1.5px solid #e11d48; }
 
-  .code-table-container { background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1.5px solid #cbd5e1; }
-  .code-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; background: #ffffff; }
-  .code-table th, .code-table td { border: 1px solid #cbd5e1; padding: 0.45rem 0.6rem; text-align: left; }
+  /* 3D BIM Viewport Container */
+  .building-view { flex: 1; background: #faf8f5; border: 2px solid var(--border-dark); border-radius: 8px; position: relative; overflow: hidden; min-height: 350px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.03); }
+  #threeBimContainer { width: 100%; height: 100%; display: block; }
+
+  .bim-hud { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.92); backdrop-filter: blur(4px); padding: 0.35rem 0.65rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.75rem; font-weight: 700; color: #334155; display: flex; align-items: center; gap: 0.5rem; z-index: 10; pointer-events: none; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .bim-hud-controls { position: absolute; bottom: 8px; left: 10px; background: rgba(255,255,255,0.92); backdrop-filter: blur(4px); padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.7rem; color: #64748b; font-weight: 600; pointer-events: none; z-index: 10; }
+
+  /* Code Table Container */
+  .code-table-container { background: #f8fafc; padding: 0.65rem; border-radius: 8px; border: 1.5px solid var(--border); }
+  .code-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; background: #ffffff; }
+  .code-table th, .code-table td { border: 1px solid var(--border); padding: 0.4rem 0.55rem; text-align: left; }
   .code-table th { background: #f1f5f9; color: #0f172a; font-weight: 700; }
   .code-table td { color: #1e293b; font-weight: 500; }
   .code-table tr.highlight td { background: #fef3c7; font-weight: 700; color: #92400e; border-color: #fcd34d; }
   .code-table tr.row-req td { background: #ffe4e6; color: #9f1239; font-weight: 700; border-color: #fecdd3; }
   .code-table tr.row-ok td { background: #ecfdf5; color: #065f46; font-weight: 700; border-color: #a7f3d0; }
 
-  .takeaway { background: #f8fafc; border: 1.5px solid #cbd5e1; border-left: 4px solid var(--accent-rose); padding: 0.75rem 0.9rem; border-radius: 0 8px 8px 0; color: #1e293b; font-size: 0.78rem; line-height: 1.45; }
+  .takeaway { background: #f8fafc; border: 1.5px solid var(--border); border-left: 4px solid var(--accent-rose); padding: 0.65rem 0.8rem; border-radius: 0 8px 8px 0; color: #1e293b; font-size: 0.75rem; line-height: 1.45; }
   .takeaway strong { color: #0f172a; }
-
-  .building-view { flex: 1; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; position: relative; overflow: hidden; min-height: 380px; }
-  canvas { width: 100%; height: 100%; display: block; }
 </style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-  <script src="assets/dynamics-fx.js" defer></script>
+<link rel="stylesheet" href="assets/dynamics-fx.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body>
 
@@ -83,7 +93,7 @@
     <h1><span class="badge">Sim 40</span> KDS 해석법 선정기 & 지반·비정형성 매트릭스</h1>
     <p>KDS 41 17 00 표 7.1-1: 내진설계범주(SDC A~D) 판정과 비정형성에 따른 동적해석 의무화 진단</p>
   </div>
-  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.85rem;">← 마스터 포털 복귀</a>
+  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.82rem; font-weight:600;">← 마스터 포털 복귀</a>
 </header>
 
 <div class="main-container">
@@ -131,52 +141,62 @@
       </div>
     </div>
 
-    <div class="panel-title" style="margin-top:0.5rem;">2. 비정형성 체크리스트 (Irregularities)</div>
+    <div class="panel-title" style="margin-top:0.35rem;">2. 비정형성 체크리스트 (Irregularities)</div>
 
     <div class="checkbox-list">
       <label class="checkbox-item">
         <input type="checkbox" id="chkSoftStory" onchange="recalculate()">
-        <span><strong>[V-1] 강성 비정형 (Soft Story)</strong><br><small style="color:var(--text-muted);">1층 필로티 등 하부 강성이 상부층 대비 70% 미만</small></span>
+        <span><strong>[V-1] 강성 비정형 (Soft Story)</strong><small>1층 필로티 등 하부 강성이 상부층 대비 70% 미만</small></span>
       </label>
       <label class="checkbox-item">
         <input type="checkbox" id="chkMass" onchange="recalculate()">
-        <span><strong>[V-2] 중량/질량 비정형</strong><br><small style="color:var(--text-muted);">특정 층 질량이 인접 층의 150% 초과 (기계실 등)</small></span>
+        <span><strong>[V-2] 중량/질량 비정형</strong><small>특정 층 질량이 인접 층의 150% 초과 (중간층 기계실 등)</small></span>
       </label>
       <label class="checkbox-item">
         <input type="checkbox" id="chkSetback" onchange="recalculate()">
-        <span><strong>[V-3] 기하학적 비정형 (Setback)</strong><br><small style="color:var(--text-muted);">수평 치수 단차 130% 초과 셋백</small></span>
+        <span><strong>[V-3] 기하학적 비정형 (Setback)</strong><small>수평 치수 단차 130% 초과 타워 셋백 단차</small></span>
       </label>
       <label class="checkbox-item">
         <input type="checkbox" id="chkDiscontinuity" onchange="recalculate()">
-        <span><strong>[V-4] 면내 내력요소 불연속</strong><br><small style="color:var(--text-muted);">상부 전단벽이 하부 기둥/전이보에서 꺾임</small></span>
+        <span><strong>[V-4] 면내 내력요소 불연속</strong><small>상부 전단벽이 하부 전이보/전이슬래브에서 단절</small></span>
       </label>
       <label class="checkbox-item">
         <input type="checkbox" id="chkTorsion" onchange="recalculate()">
-        <span><strong>[H-1] 평면 비틀림 비정형</strong><br><small style="color:var(--text-muted);">최대 층간변위가 평균 변위의 1.2배 초과</small></span>
+        <span><strong>[H-1] 평면 비틀림 비정형</strong><small>최대 층간변위가 평균 변위의 1.2배 초과 (편심 비틀림)</small></span>
       </label>
     </div>
   </div>
 
   <!-- Center Visualization & Decision -->
-  <div class="panel" style="display:flex; flex-direction:column; gap:0.8rem;">
+  <div class="panel" style="display:flex; flex-direction:column; gap:0.65rem;">
     <!-- Big Decision Banner -->
     <div id="decisionBox" class="decision-box static-ok">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:0.8rem; color:var(--text-muted);">KDS 41 17 00 해석법 적용 판정</span>
+        <span style="font-size:0.78rem; font-weight:600; color:var(--text-muted);">KDS 41 17 00 해석법 적용 판정</span>
         <span id="sdcBadge" class="sdc-badge sdc-D">내진설계범주 SDC D</span>
       </div>
       <div id="decisionTitle" class="decision-title" style="color:var(--accent-emerald);">등가정적해석법 적용 가능 (Pass)</div>
       <div id="decisionReason" class="decision-sub">SDC D에서 높이 70m 미만의 정형 구조물 요건을 충족합니다.</div>
     </div>
 
-    <!-- 3D Building Sketch -->
-    <div class="building-view">
-      <canvas id="bldgCanvas"></canvas>
+    <!-- 3D BIM Interactive Building Viewport -->
+    <div class="building-view" id="bimContainer">
+      <div class="bim-hud">
+        <span id="bimStatusBadge">🏢 3D BIM 구조 모델링</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span id="bimStoriesBadge" style="color:#0284c7;">15층 (45.0m)</span>
+      </div>
+
+      <div class="bim-hud-controls">
+        🖱️ 좌클릭: 3D 궤도 회전 &middot; 우클릭: 패닝 &middot; 휠: 줌
+      </div>
+
+      <div id="threeBimContainer"></div>
     </div>
 
     <!-- Code Rule Reference Table -->
     <div class="code-table-container">
-      <div style="font-size:0.82rem; font-weight:700; color:#0f172a; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.4rem;">
+      <div style="font-size:0.8rem; font-weight:700; color:#0f172a; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
         <span>📋</span> KDS 41 17 00 [표 7.1-1] 내진설계범주별 해석방법 규준
       </div>
       <table class="code-table">
@@ -196,30 +216,30 @@
 
   <!-- Right Details & Design Acceleration -->
   <div class="panel">
-    <div class="panel-title">설계 가속도 계수 산출 근거</div>
+    <div class="panel-title">3. 설계 가속도 계수 산출 근거</div>
 
-    <div style="display:flex; flex-direction:column; gap:0.6rem;">
-      <div style="background:#f8fafc; padding:0.75rem; border-radius:8px; border:1.5px solid #cbd5e1;">
-        <div style="font-size:0.78rem; font-weight:600; color:#475569;">단주기 설계스펙트럼 가속도 SDS</div>
-        <div style="font-size:1.25rem; font-weight:800; color:#0284c7; margin:0.2rem 0;" id="valSDS">0.550 g</div>
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+      <div style="background:#f8fafc; padding:0.65rem 0.8rem; border-radius:8px; border:1.5px solid var(--border);">
+        <div style="font-size:0.75rem; font-weight:600; color:#475569;">단주기 설계스펙트럼 가속도 SDS</div>
+        <div style="font-size:1.25rem; font-weight:800; color:#0284c7; margin:0.15rem 0;" id="valSDS">0.550 g</div>
         <div style="font-size:0.72rem; color:#64748b; font-family:monospace;">SDS = 2/3 × 2.5 × S × Fa</div>
       </div>
 
-      <div style="background:#f8fafc; padding:0.75rem; border-radius:8px; border:1.5px solid #cbd5e1;">
-        <div style="font-size:0.78rem; font-weight:600; color:#475569;">1초주기 설계스펙트럼 가속도 SD1</div>
-        <div style="font-size:1.25rem; font-weight:800; color:#d97706; margin:0.2rem 0;" id="valSD1">0.220 g</div>
+      <div style="background:#f8fafc; padding:0.65rem 0.8rem; border-radius:8px; border:1.5px solid var(--border);">
+        <div style="font-size:0.75rem; font-weight:600; color:#475569;">1초주기 설계스펙트럼 가속도 SD1</div>
+        <div style="font-size:1.25rem; font-weight:800; color:#d97706; margin:0.15rem 0;" id="valSD1">0.220 g</div>
         <div style="font-size:0.72rem; color:#64748b; font-family:monospace;">SD1 = 2/3 × S × Fv</div>
       </div>
     </div>
 
-    <div class="panel-title" style="margin-top:0.5rem;">엔지니어링 핵심 교훈 (슬라이드 2~6)</div>
+    <div class="panel-title" style="margin-top:0.35rem;">엔지니어링 핵심 교훈 (슬라이드 2~6)</div>
 
-    <div class="takeaway" style="font-size:0.78rem; line-height:1.5;">
+    <div class="takeaway" style="font-size:0.75rem; line-height:1.45;">
       <strong>⚠️ 필로티 연약층(Soft Story)의 함정</strong><br>
       건물 높이가 15m에 불과한 4~5층 소형 건물이라도, 1층에 필로티(V-1)가 있는 순간 <strong>SDC D에서 등가정적해석이 원천 금지</strong>되며 반드시 동적해석(모드스펙트럼/시간이력)을 수행해야 합니다.
     </div>
 
-    <div class="takeaway" style="font-size:0.78rem; line-height:1.5; border-left-color:var(--accent-amber);">
+    <div class="takeaway" style="font-size:0.75rem; line-height:1.45; border-left-color:var(--accent-amber);">
       <strong>정형 vs 비정형의 경계</strong><br>
       SDC C에서는 70m/21층 미만 정형, 20m/6층 미만 비정형까지 등가정적이 허용되지만, SDC D에서는 주요 비정형(V-1,2,3, H-1)이 하나라도 감지되면 즉시 동적해석으로 강제 전환됩니다.
     </div>
@@ -227,23 +247,377 @@
 </div>
 
 <script>
+  // =========================================================================
+  // State
+  // =========================================================================
   let nStories = 15;
   let bldgHeight = 45.0;
+  let animTime = 0;
 
-  const canvas = document.getElementById('bldgCanvas');
-  const ctx = canvas.getContext('2d');
+  // Active irregularity flags
+  let isSoft = false;
+  let isMass = false;
+  let isSetback = false;
+  let isDiscontinuity = false;
+  let isTorsion = false;
 
-  function resize() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.parentElement.clientWidth;
-    const h = canvas.parentElement.clientHeight;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
+  // Three.js Instances
+  let scene, camera, renderer, controls;
+  let buildingGroup, foundationGroup, annotationGroup;
+  let slabMeshes = [], columnMeshes = [];
+  let torsionRingMesh = null;
+
+  const container = document.getElementById('threeBimContainer');
+
+  // Floor Plate Badge Texture
+  function createFloorTexture(label, isSpecial = false) {
+    const cvs = document.createElement('canvas');
+    cvs.width = 256; cvs.height = 64;
+    const c = cvs.getContext('2d');
+    c.fillStyle = isSpecial ? '#991b1b' : '#0f172a';
+    c.fillRect(0, 0, 256, 64);
+    c.fillStyle = '#ffffff';
+    c.font = 'bold 32px sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(label, 128, 32);
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.anisotropy = 4;
+    return tex;
   }
-  window.addEventListener('resize', () => { resize(); recalculate(); });
 
+  // 3D Callout Sprite
+  function createCalloutSprite(text, color = '#e11d48') {
+    const cvs = document.createElement('canvas');
+    cvs.width = 460; cvs.height = 80;
+    const c = cvs.getContext('2d');
+    c.fillStyle = '#ffffff';
+    c.strokeStyle = color;
+    c.lineWidth = 4;
+    c.beginPath();
+    c.roundRect(6, 6, 448, 68, 12);
+    c.fill();
+    c.stroke();
+    c.fillStyle = color;
+    c.font = 'bold 26px sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(text, 230, 40);
+    const tex = new THREE.CanvasTexture(cvs);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(4.4, 0.8, 1);
+    return sprite;
+  }
+
+  // =========================================================================
+  // 1. Three.js Scene Setup (Gate 1, 2, 8, 10)
+  // =========================================================================
+  function initThree() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xfaf8f5); // Gate 8 Clean Light Background
+    scene.fog = new THREE.Fog(0xfaf8f5, 30, 110);
+
+    const w = container.parentElement.clientWidth || 600;
+    const h = container.parentElement.clientHeight || 360;
+
+    camera = new THREE.PerspectiveCamera(36, w / h, 0.1, 250);
+    camera.position.set(16, 15, 24);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+    renderer.setSize(w, h);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.target.set(0, 7.5, 0);
+    controls.maxPolarAngle = Math.PI / 2 + 0.05;
+    controls.minDistance = 8;
+    controls.maxDistance = 60;
+
+    // Gate 2: Anti-Blowout Studio Lighting
+    const ambient = new THREE.AmbientLight(0xffffff, 0.90);
+    scene.add(ambient);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.82);
+    keyLight.position.set(18, 28, 22);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.40);
+    fillLight.position.set(-20, 15, 12);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.28);
+    rimLight.position.set(0, 18, -22);
+    scene.add(rimLight);
+
+    // Ground Plane & Grid
+    const groundGeo = new THREE.PlaneGeometry(80, 80);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85, metalness: 0.05 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const grid = new THREE.GridHelper(60, 60, 0xcbd5e1, 0xe2e8f0);
+    grid.position.y = 0.01;
+    scene.add(grid);
+
+    buildingGroup = new THREE.Group();
+    foundationGroup = new THREE.Group();
+    annotationGroup = new THREE.Group();
+
+    scene.add(foundationGroup);
+    scene.add(buildingGroup);
+    scene.add(annotationGroup);
+
+    rebuildBimBuilding();
+  }
+
+  // =========================================================================
+  // 2. 3D BIM Building Construction
+  // =========================================================================
+  function rebuildBimBuilding() {
+    // Clear previous geometries
+    while (buildingGroup.children.length > 0) {
+      const obj = buildingGroup.children.pop();
+      if (obj.geometry) obj.geometry.dispose();
+      buildingGroup.remove(obj);
+    }
+    while (foundationGroup.children.length > 0) {
+      const obj = foundationGroup.children.pop();
+      if (obj.geometry) obj.geometry.dispose();
+      foundationGroup.remove(obj);
+    }
+    while (annotationGroup.children.length > 0) {
+      const obj = annotationGroup.children.pop();
+      annotationGroup.remove(obj);
+    }
+    slabMeshes = [];
+    columnMeshes = [];
+    torsionRingMesh = null;
+
+    const baseW = 5.6;
+    const baseD = 4.6;
+    const floorH = 1.0;
+    const totalH = nStories * floorH;
+    const blackLineMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 }); // Gate 1
+
+    // 1. Foundation Slab
+    const fGeo = new THREE.BoxGeometry(baseW + 1.2, 0.35, baseD + 1.2);
+    const fMesh = new THREE.Mesh(fGeo, new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.6 }));
+    fMesh.position.set(0, 0.175, 0);
+    fMesh.receiveShadow = true;
+    fMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(fGeo), blackLineMat));
+    foundationGroup.add(fMesh);
+
+    // Elevation CAD tag at foundation
+    const glTag = createCalloutSprite("▼ GL ±0.00", "#475569");
+    glTag.scale.set(2.4, 0.5, 1);
+    glTag.position.set(baseW / 2 + 1.8, 0.3, baseD / 2);
+    annotationGroup.add(glTag);
+
+    // 2. Floor Slabs & Special Conditions
+    const standardSlabMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.35, metalness: 0.15 }); // Royal Blue
+    const massSlabMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.35, metalness: 0.2 }); // Heavy Amber
+    const transferSlabMat = new THREE.MeshStandardMaterial({ color: 0xdb2777, roughness: 0.35, metalness: 0.2 }); // Magenta
+    const standardColMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+    const softColMat = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.3 }); // Red Piloti Columns
+
+    const mechFloor = Math.max(2, Math.floor(nStories / 2));
+    const setbackStart = Math.floor(nStories * 0.6);
+
+    for (let s = 1; s <= nStories; s++) {
+      let curW = baseW;
+      let curD = baseD;
+
+      // [V-3] Setback: Top 40% floors shrink
+      if (isSetback && s >= setbackStart) {
+        curW = baseW * 0.62;
+        curD = baseD * 0.62;
+      }
+
+      // Material choice
+      let curMat = standardSlabMat;
+      let slabThick = 0.26;
+
+      if (isMass && s === mechFloor) {
+        curMat = massSlabMat;
+        slabThick = 0.50; // Heavy thick slab
+      } else if (isDiscontinuity && s === 2) {
+        curMat = transferSlabMat; // Transfer girder floor
+        slabThick = 0.44;
+      }
+
+      const sGeo = new THREE.BoxGeometry(curW, slabThick, curD);
+      const sMesh = new THREE.Mesh(sGeo, curMat);
+      sMesh.castShadow = true;
+      sMesh.receiveShadow = true;
+      sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sGeo), blackLineMat));
+
+      // Floor Plate Label on front face (1F, 5F, 10F, etc. and Roof)
+      if (s === 1 || s % 5 === 0 || s === nStories) {
+        const lbl = s === nStories ? `Roof (${nStories}F)` : `${s}F`;
+        const bTex = createFloorTexture(lbl, isMass && s === mechFloor);
+        const bGeo = new THREE.PlaneGeometry(1.0, 0.24);
+        const bMesh = new THREE.Mesh(bGeo, new THREE.MeshBasicMaterial({ map: bTex, transparent: true }));
+        bMesh.position.set(0, 0, curD / 2 + 0.02);
+        sMesh.add(bMesh);
+      }
+
+      const y = s * floorH;
+      sMesh.position.set(0, y, 0);
+      buildingGroup.add(sMesh);
+
+      slabMeshes.push({
+        mesh: sMesh,
+        baseY: y,
+        story: s,
+        curW: curW,
+        curD: curD
+      });
+
+      // Columns supporting floor 's' from floor 's-1'
+      const colThick = 0.22;
+      const isPilotiStory = (isSoft && s === 1);
+      const curColMat = isPilotiStory ? softColMat : standardColMat;
+      const colActualThick = isPilotiStory ? 0.16 : colThick; // Soft story slender columns
+
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+        const cGeo = new THREE.BoxGeometry(colActualThick, floorH, colActualThick);
+        const cMesh = new THREE.Mesh(cGeo, curColMat);
+        cMesh.position.set(cx * (curW / 2 - 0.22), y - floorH / 2, cz * (curD / 2 - 0.22));
+        cMesh.castShadow = true;
+        cMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(cGeo), blackLineMat));
+        buildingGroup.add(cMesh);
+
+        columnMeshes.push({
+          mesh: cMesh,
+          story: s,
+          isPiloti: isPilotiStory,
+          baseX: cx * (curW / 2 - 0.22),
+          baseZ: cz * (curD / 2 - 0.22),
+          baseY: y - floorH / 2
+        });
+      });
+
+      // [V-4] In-plane Shear Wall Discontinuity: Discontinuous Shear Core above 2F
+      if (isDiscontinuity && s > 2) {
+        const wallGeo = new THREE.BoxGeometry(0.18, floorH - slabThick, curD * 0.45);
+        const wallMesh = new THREE.Mesh(wallGeo, new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.5 }));
+        wallMesh.position.set(0, y - floorH / 2, 0);
+        wallMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(wallGeo), blackLineMat));
+        buildingGroup.add(wallMesh);
+      }
+    }
+
+    // 3. 3D Callout Annotations for Active Irregularities
+    if (isSoft) {
+      const softTag = createCalloutSprite("⚠️ V-1 필로티 연약층 (Soft Story)", "#e11d48");
+      softTag.position.set(baseW / 2 + 2.8, 0.7, baseD / 2);
+      annotationGroup.add(softTag);
+    }
+
+    if (isMass) {
+      const massTag = createCalloutSprite("⚠️ V-2 기계실 중량 비정형 (+150%)", "#d97706");
+      massTag.position.set(baseW / 2 + 2.8, mechFloor * floorH, baseD / 2);
+      annotationGroup.add(massTag);
+    }
+
+    if (isSetback) {
+      const sbTag = createCalloutSprite("📐 V-3 기하학적 셋백 (-38% 폭)", "#0284c7");
+      sbTag.position.set(baseW / 2 + 2.8, setbackStart * floorH, baseD / 2);
+      annotationGroup.add(sbTag);
+    }
+
+    if (isDiscontinuity) {
+      const discTag = createCalloutSprite("⚠️ V-4 전단벽 불연속 / 전이보", "#db2777");
+      discTag.position.set(baseW / 2 + 2.8, 2 * floorH + 0.3, baseD / 2);
+      annotationGroup.add(discTag);
+    }
+
+    if (isTorsion) {
+      const torTag = createCalloutSprite("🔄 H-1 평면 비틀림 비정형 (RZ)", "#7c3aed");
+      torTag.position.set(0, totalH + 1.6, 0);
+      annotationGroup.add(torTag);
+
+      // Rotating Torsion Ring on Roof
+      const tRingGeo = new THREE.TorusGeometry(baseW * 0.45, 0.08, 12, 32, Math.PI * 1.6);
+      const tRingMat = new THREE.MeshBasicMaterial({ color: 0x7c3aed });
+      torsionRingMesh = new THREE.Mesh(tRingGeo, tRingMat);
+      torsionRingMesh.rotation.x = Math.PI / 2;
+      torsionRingMesh.position.set(0, totalH + 0.4, 0);
+      annotationGroup.add(torsionRingMesh);
+    }
+
+    // Adjust Camera Framing dynamically
+    const targetY = totalH * 0.48;
+    controls.target.set(0, targetY, 0);
+    const camDist = Math.max(16, totalH * 0.85 + 10);
+    camera.position.set(camDist * 0.65, targetY + totalH * 0.25 + 4, camDist * 0.85);
+    camera.lookAt(0, targetY, 0);
+
+    // Update HUD
+    document.getElementById('bimStoriesBadge').textContent = `${nStories}층 (${bldgHeight.toFixed(1)}m)`;
+  }
+
+  // =========================================================================
+  // 3. Dynamic Seismic Motion Solver (Gate 5 Authentic Physics)
+  // =========================================================================
+  function update3DAnimation(t) {
+    const totalH = nStories * 1.0;
+    const omega = 2.2;
+    const baseSway = Math.sin(t * omega);
+
+    slabMeshes.forEach(({ mesh, baseY, story }) => {
+      // Normal cantilever 1st mode sway
+      let dispX = 0.28 * Math.pow(story / nStories, 1.25) * baseSway;
+
+      // Soft story amplifies 1st floor shear displacement
+      if (isSoft) {
+        if (story === 1) dispX += 0.22 * baseSway;
+        else dispX += 0.22 * baseSway;
+      }
+
+      mesh.position.x = dispX;
+
+      // Torsional Twist
+      if (isTorsion) {
+        mesh.rotation.y = 0.06 * (story / nStories) * Math.sin(t * omega * 1.3);
+      } else {
+        mesh.rotation.y = 0;
+      }
+    });
+
+    // Column translations
+    columnMeshes.forEach(({ mesh, story, isPiloti, baseX }) => {
+      let dispX = 0.28 * Math.pow((story - 0.5) / nStories, 1.25) * baseSway;
+      if (isSoft) dispX += 0.22 * baseSway;
+      mesh.position.x = baseX + dispX;
+
+      if (isTorsion) {
+        mesh.rotation.y = 0.06 * (story / nStories) * Math.sin(t * omega * 1.3);
+      } else {
+        mesh.rotation.y = 0;
+      }
+    });
+
+    if (torsionRingMesh) {
+      torsionRingMesh.rotation.z -= 0.03;
+    }
+  }
+
+  // =========================================================================
+  // 4. KDS Analysis Method Rules & Logic
+  // =========================================================================
   function updateStories(v) {
     nStories = parseInt(v);
     document.getElementById('lblStories').textContent = nStories + '층';
@@ -271,7 +645,7 @@
     else if (soil === 'S3') { Fa = 1.4; Fv = 1.6; }
     else if (soil === 'S4') { Fa = 1.3; Fv = 1.8; }
     else if (soil === 'S5') { Fa = 1.2; Fv = 2.4; }
-    else if (soil === 'S6') { Fa = 1.0; Fv = 1.0; } // Site response needed
+    else if (soil === 'S6') { Fa = 1.0; Fv = 1.0; }
 
     const SDS = (2/3) * 2.5 * S * Fa;
     const SD1 = (2/3) * S * Fv;
@@ -291,7 +665,6 @@
     else if (SD1 < 0.20) sdc1s = 'C';
     else sdc1s = 'D';
 
-    // Strict priority: D > C > B > A
     const ranks = { 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
     let sdc = (ranks[sdcShort] >= ranks[sdc1s]) ? sdcShort : sdc1s;
 
@@ -303,15 +676,15 @@
     sdcBadge.textContent = `내진설계범주 SDC ${sdc}`;
     sdcBadge.className = `sdc-badge sdc-${sdc}`;
 
-    // Irregularity checks
-    const hasSoftStory = document.getElementById('chkSoftStory').checked;
-    const hasMass = document.getElementById('chkMass').checked;
-    const hasSetback = document.getElementById('chkSetback').checked;
-    const hasDiscontinuity = document.getElementById('chkDiscontinuity').checked;
-    const hasTorsion = document.getElementById('chkTorsion').checked;
+    // Read Irregularity Checkboxes
+    isSoft = document.getElementById('chkSoftStory').checked;
+    isMass = document.getElementById('chkMass').checked;
+    isSetback = document.getElementById('chkSetback').checked;
+    isDiscontinuity = document.getElementById('chkDiscontinuity').checked;
+    isTorsion = document.getElementById('chkTorsion').checked;
 
-    const hasAnyIrreg = hasSoftStory || hasMass || hasSetback || hasDiscontinuity || hasTorsion;
-    const hasMajorIrreg = hasSoftStory || hasMass || hasSetback || hasTorsion; // V-1,2,3 or H-1
+    const hasAnyIrreg = isSoft || isMass || isSetback || isDiscontinuity || isTorsion;
+    const hasMajorIrreg = isSoft || isMass || isSetback || isTorsion; // V-1,2,3 or H-1
 
     // Analysis procedure logic (KDS 7.1)
     let staticAllowed = true;
@@ -348,12 +721,10 @@
           failReason = "SDC D에서 높이 70m를 초과하므로 동적해석법이 의무화됩니다.";
         }
       } else {
-        // Has irregularity in SDC D
         if (hasMajorIrreg) {
           staticAllowed = false;
           failReason = "SDC D에서 주요 비정형(V-1 연약층, V-2 질량, V-3 셋백, H-1 비틀림)이 감지되어 등가정적해석이 불가하며 동적해석법이 의무입니다.";
         } else {
-          // only discontinuity (V-4), allowed if <= 5 stories and <= 20m
           if (nStories <= 5 && bldgHeight <= 20) {
             staticAllowed = true;
             failReason = "SDC D에서 기타 비정형(V-4)을 가지나 5층 이하 및 20m 이하이므로 등가정적해석이 허용됩니다.";
@@ -383,7 +754,7 @@
     }
 
     updateTable(sdc, staticAllowed);
-    drawBuilding(hasSoftStory, hasMass, hasSetback, hasDiscontinuity, hasTorsion);
+    rebuildBimBuilding();
   }
 
   function updateTable(sdc, isStaticOk) {
@@ -407,109 +778,32 @@
     `;
   }
 
-  function drawBuilding(soft, mass, setback, discont, torsion) {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.width / dpr, h = canvas.height / dpr;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.scale(dpr, dpr);
+  // =========================================================================
+  // 5. Main Render Loop
+  // =========================================================================
+  function handleResize() {
+    if (!camera || !renderer) return;
+    const w = container.parentElement.clientWidth || 600;
+    const h = container.parentElement.clientHeight || 360;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+  window.addEventListener('resize', handleResize);
 
-    const btmY = h - 35;
-    const topY = 45;
-    const totalAvailH = btmY - topY;
-    const storyH = Math.min(22, totalAvailH / nStories);
+  function animate() {
+    requestAnimationFrame(animate);
+    animTime += 0.03;
 
-    const midX = w / 2 - 20;
-    const bldgW = 140;
-
-    // Ground line & foundation
-    ctx.fillStyle = "#0f172a";
-    ctx.fillRect(midX - 110, btmY, 220, 4);
-    ctx.fillStyle = "#64748b";
-    ctx.font = "bold 10px monospace";
-    ctx.fillText("▼ GL ±0.00", midX - 110, btmY + 16);
-
-    for (let s = 0; s < nStories; s++) {
-      const curY = btmY - (s + 1) * storyH;
-      let curW = bldgW;
-      let curLeft = midX - bldgW / 2;
-
-      // Setback simulation (top 40% floors shrink)
-      if (setback && s >= Math.floor(nStories * 0.6)) {
-        curW = bldgW * 0.65;
-        curLeft = midX - curW / 2;
-      }
-
-      // Default floor color
-      ctx.fillStyle = "#334155";
-      if (soft && s === 0) {
-        // Soft story (story 1)
-        ctx.fillStyle = "#ffe4e6";
-      } else if (mass && s === Math.floor(nStories / 2)) {
-        // Heavy mechanical floor
-        ctx.fillStyle = "#fef3c7";
-      }
-      ctx.fillRect(curLeft, curY, curW, storyH);
-
-      // Floor slab outline
-      ctx.strokeStyle = "#0f172a";
-      ctx.lineWidth = 1.2;
-      ctx.strokeRect(curLeft, curY, curW, storyH);
-
-      // Soft story columns
-      if (soft && s === 0) {
-        ctx.strokeStyle = "#e11d48";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(curLeft + 15, curY); ctx.lineTo(curLeft + 15, curY + storyH);
-        ctx.moveTo(curLeft + curW - 15, curY); ctx.lineTo(curLeft + curW - 15, curY + storyH);
-        ctx.stroke();
-        ctx.lineWidth = 1.2;
-
-        ctx.fillStyle = "#be123c";
-        ctx.font = "bold 11px sans-serif";
-        ctx.fillText("⚠️ V-1 Soft Story (필로티)", curLeft + curW + 12, curY + storyH / 2 + 4);
-      }
-
-      // Mass label
-      if (mass && s === Math.floor(nStories / 2)) {
-        ctx.fillStyle = "#b45309";
-        ctx.font = "bold 11px sans-serif";
-        ctx.fillText("⚠️ V-2 Heavy Mass (+150%)", curLeft + curW + 12, curY + storyH / 2 + 4);
-      }
-    }
-
-    // Setback label
-    if (setback) {
-      const sbY = btmY - (Math.floor(nStories * 0.6) + 1) * storyH;
-      ctx.fillStyle = "#0284c7";
-      ctx.font = "bold 11px sans-serif";
-      ctx.fillText("📐 V-3 Setback (-35% 축소)", midX + bldgW / 2 + 12, sbY + 12);
-    }
-
-    // Torsion rotation mark
-    if (torsion) {
-      ctx.strokeStyle = "#7c3aed";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(midX, topY - 18, 18, 0.2 * Math.PI, 1.8 * Math.PI);
-      ctx.stroke();
-      ctx.fillStyle = "#6d28d9";
-      ctx.font = "bold 12px sans-serif";
-      ctx.fillText("🔄 H-1 평면 비틀림 비정형 (RZ)", midX - 70, topY - 24);
-    }
-
-    // Story height indicators
-    ctx.fillStyle = "#475569";
-    ctx.font = "bold 10px monospace";
-    ctx.fillText(`${nStories}F (${bldgHeight.toFixed(1)}m)`, midX - bldgW / 2 - 60, topY + 10);
-    ctx.fillText("1F", midX - bldgW / 2 - 24, btmY - 5);
-
-    ctx.restore();
+    update3DAnimation(animTime);
+    controls.update();
+    renderer.render(scene, camera);
   }
 
-  resize();
+  // Boot
+  initThree();
   recalculate();
+  animate();
 </script>
 
 </body>
