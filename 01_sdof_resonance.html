@@ -7,7 +7,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="assets/dynamics-fx.js" defer></script>
   <style>
@@ -17,32 +19,22 @@
       font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
     }
-    .grid-cyber {
-      background-image: linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
-                        linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
-      background-size: 24px 24px;
-    }
-    . {
-      box-shadow: 0 0 30px -5px rgba(6, 182, 212, 0.15);
-    }
-    . {
-      animation: neonPulse 1.2s infinite alternate;
-    }
-    @keyframes neonPulse {
-      from { box-shadow: 0 0 8px rgba(239, 68, 68, 0.2); }
-      to { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
     }
   </style>
 </head>
 <body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-  <div id="sim-app-container" class="w-full max-w-6xl bg-white border-2 border-slate-900 rounded-3xl p-5 md:p-8 shadow-xl space-y-6">
+  <div id="sim-app-container" class="w-full max-w-6xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
     
     <!-- Top Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5">
-      <div class="space-y-1.5">
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/30">
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
             CHOPRA §3 FOUNDATION
           </span>
           <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
@@ -54,112 +46,134 @@
         </p>
       </div>
 
-      <div class="flex items-center gap-2.5">
-        <button id="btn-play" onclick="togglePlay()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-200 text-white text-xs font-bold transition shadow-lg  flex items-center gap-1.5">
+      <div class="flex items-center gap-2">
+        <button id="btn-play" onclick="togglePlay()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
           <span id="play-icon">⏸</span>
           <span id="play-text">일시정지</span>
         </button>
-        <button onclick="resetSim()" class="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold transition">
+        <button onclick="resetSim()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold transition">
           초기화
         </button>
       </div>
     </div>
 
     <!-- Main Canvas Area (Laboratory Oscilloscope) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
       
       <!-- 1. Physical Frame Canvas (5 Cols) -->
-      <div class="lg:col-span-5 bg-white border-2 border-slate-900 rounded-2xl p-4 flex flex-col justify-between relative min-h-[390px]">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-2.5">
+      <div class="lg:col-span-5 bg-slate-50/70 border border-slate-200 rounded-2xl p-4 flex flex-col justify-between relative min-h-[420px]">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
           <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-slate-300 animate-pulse"></span>
-            <span class="text-xs font-bold text-slate-900">1자유도 전단 골조 변위</span>
+            <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+            <span class="text-xs font-bold text-slate-900">1자유도 구조 골조 거동</span>
           </div>
-          <span class="text-[11px] font-mono text-slate-400">f<sub>n</sub> = 1.00 Hz (T<sub>n</sub> = 1.00 s)</span>
+          <div class="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-xs font-semibold">
+            <button id="btnFrame3D" onclick="switchFrameView('3D')" class="px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs">🏢 3D BIM</button>
+            <button id="btnFrame2D" onclick="switchFrameView('2D')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📊 2D</button>
+          </div>
         </div>
 
-        <div class="relative flex-1 w-full my-2 min-h-[250px]">
-          <canvas id="frameCanvas" class="w-full h-full block"></canvas>
+        <!-- Frame Viewport -->
+        <div class="relative flex-1 w-full my-2 min-h-[290px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          
+          <!-- 3D BIM Container -->
+          <div id="threeFrameContainer" class="w-full h-full absolute inset-0">
+            <!-- 3D HUD -->
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2 py-1 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1 flex-wrap">
+              <span>🖱️ 3D</span>
+              <span class="text-slate-300">|</span>
+              <span class="font-bold text-slate-800">증폭:</span>
+              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
+            </div>
+          </div>
+
+          <!-- 2D Canvas Container -->
+          <div id="frame2DContainer" class="w-full h-full absolute inset-0 bg-white" style="display: none;">
+            <canvas id="frameCanvas" class="w-full h-full block"></canvas>
+          </div>
+
         </div>
 
-        <div class="flex justify-between items-center text-xs text-slate-400 pt-2 border-t border-slate-200 font-mono">
+        <div class="flex justify-between items-center text-xs text-slate-500 pt-1.5 border-t border-slate-200 font-mono">
           <span class="text-slate-900 font-bold">
-            변위 u(t): <span id="disp-val" class="font-mono text-white text-sm">0.0 mm</span>
+            변위 u(t): <span id="disp-val" class="font-mono text-blue-700 text-sm">0.0 mm</span>
           </span>
-          <span class="text-[11px] text-slate-500">Hermite 3차 곡률 응력 컨투어</span>
+          <span class="text-[11px] text-slate-500">f<sub>n</sub> = 1.00 Hz (T<sub>n</sub> = 1.00 s)</span>
         </div>
       </div>
 
       <!-- 2. Realtime Waveform Plot Canvas (7 Cols) -->
-      <div class="lg:col-span-7 bg-white border-2 border-slate-900 rounded-2xl p-4 flex flex-col justify-between min-h-[390px] relative overflow-hidden">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-2.5">
+      <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between min-h-[420px] relative overflow-hidden shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
           <span class="text-xs font-bold text-slate-900">실시간 변위 이력 u(t) 및 가진 외력 p(t) 오실로스코프</span>
           <div class="flex items-center gap-3 text-[11px] font-mono font-medium">
-            <span class="flex items-center gap-1.5 text-slate-900">
-              <span class="w-2 h-2 rounded-full bg-slate-300 inline-block shadow-sm shadow-cyan-400"></span> u(t) 응답
+            <span class="flex items-center gap-1.5 text-blue-700 font-bold">
+              <span class="w-2 h-2 rounded-full bg-blue-600 inline-block"></span> u(t) 응답
             </span>
-            <span class="flex items-center gap-1.5 text-amber-400">
-              <span class="w-2 h-2 rounded-full bg-amber-400 inline-block shadow-sm shadow-amber-400"></span> p(t) 외력
+            <span class="flex items-center gap-1.5 text-amber-600 font-bold">
+              <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> p(t) 외력
             </span>
           </div>
         </div>
 
-        <div class="relative flex-1 w-full my-2 h-[260px]">
+        <div class="relative flex-1 w-full my-2 min-h-[290px] bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden">
           <canvas id="plotCanvas" class="w-full h-full block"></canvas>
         </div>
 
-        <div class="flex justify-between items-center text-xs text-slate-400 pt-2 border-t border-slate-200 font-mono">
+        <div class="flex justify-between items-center text-xs text-slate-500 pt-1.5 border-t border-slate-100 font-mono">
           <span>가진 주파수 &omega; = <span id="omega-text" class="text-slate-900 font-bold">6.28 rad/s</span></span>
-          <span id="phase-diff" class="text-amber-400 font-bold">위상차 &theta; &asymp; 90&deg; (공진 위상 지연)</span>
+          <span id="phase-diff" class="text-amber-700 font-bold">위상차 &theta; &asymp; 90&deg; (공진 위상 지연)</span>
         </div>
       </div>
 
     </div>
 
     <!-- Parameter Controls & Telemetry Panel -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-200 text-xs">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-100 text-xs">
       
-      <!-- Damping Ratio -->
-      <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-900">
+      <!-- Damping Ratio Card (Zentry Tilt) -->
+      <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200 zentry-card shadow-2xs">
         <div class="flex justify-between text-slate-700 mb-2 font-medium">
           <span class="font-bold text-slate-900">감쇠비 &zeta; (Damping Ratio)</span>
-          <span id="zeta-text" class="font-mono font-bold text-slate-900">0.05 (5%)</span>
+          <span id="zeta-text" class="font-mono font-bold text-blue-700">0.05 (5%)</span>
         </div>
         <input id="slider-zeta" type="range" min="0" max="0.30" step="0.01" value="0.05" oninput="updateParams()"
-               class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+               class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
         <div class="flex justify-between text-[11px] font-mono text-slate-500 mt-2">
           <span>비감쇠 (0%)</span>
-          <span class="text-slate-900 font-semibold">RC 일반 (5%)</span>
+          <span class="text-blue-700 font-bold">RC 일반 (5%)</span>
           <span>고감쇠 (30%)</span>
         </div>
       </div>
 
-      <!-- Frequency Ratio -->
-      <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-900">
+      <!-- Frequency Ratio Card (Zentry Tilt) -->
+      <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200 zentry-card shadow-2xs">
         <div class="flex justify-between text-slate-700 mb-2 font-medium">
           <span class="font-bold text-slate-900">진동수비 &beta; = &omega;/&omega;<sub>n</sub></span>
-          <span id="ratio-text" class="font-mono font-bold text-amber-400">1.00 (공진)</span>
+          <span id="ratio-text" class="font-mono font-bold text-amber-700">1.00 (공진)</span>
         </div>
         <input id="slider-ratio" type="range" min="0.2" max="2.0" step="0.02" value="1.00" oninput="updateParams()"
                class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500">
         <div class="flex justify-between text-[11px] font-mono text-slate-500 mt-2">
           <span>준정적 (0.2)</span>
-          <span class="text-amber-400 font-bold">공진 (1.0)</span>
+          <span class="text-amber-700 font-bold">공진 (1.0)</span>
           <span>면진 (2.0)</span>
         </div>
       </div>
 
-      <!-- DAF Output -->
-      <div id="daf-panel" class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-900 flex flex-col justify-between transition-all duration-300">
-        <div class="flex justify-between text-slate-300 font-medium">
+      <!-- DAF Output Card (Zentry Tilt) -->
+      <div id="daf-panel" class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200 flex flex-col justify-between zentry-card shadow-2xs transition-all duration-300">
+        <div class="flex justify-between text-slate-700 font-medium">
           <span class="font-bold text-slate-900">동적증폭계수 (DAF / R<sub>d</sub>)</span>
-          <span id="daf-text" class="font-mono font-black text-amber-400 text-base">10.00x</span>
+          <span id="daf-text" class="font-mono font-black text-amber-700 text-base">10.00x</span>
         </div>
-        <p id="regime-text" class="text-xs text-slate-400 mt-1.5 font-medium font-mono">
-          영역: <span class="text-red-400 font-bold">공진 피크 대역 (&omega; &asymp; &omega;n)</span>
+        <p id="regime-text" class="text-xs text-slate-500 mt-1 font-medium font-mono">
+          영역: <span class="text-red-600 font-bold">공진 피크 대역 (&omega; &asymp; &omega;n)</span>
         </p>
         <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-2">
-          <div id="daf-bar" class="h-full bg-gradient-to-r from-cyan-500 to-amber-500 transition-all duration-200" style="width: 100%;"></div>
+          <div id="daf-bar" class="h-full bg-gradient-to-r from-blue-600 to-amber-500 transition-all duration-200" style="width: 100%;"></div>
         </div>
       </div>
 
@@ -168,6 +182,7 @@
   </div>
 
   <script>
+    // --- Global State ---
     let isRunning = true;
     let u = 0, v = 0, t = 0;
     const dt = 0.016;
@@ -175,6 +190,8 @@
     let zeta = 0.05;
     let beta = 1.0;
     let p0 = 35;
+    let threeAmpScale = 70.0;
+    let currentFrameView = '3D';
 
     const historyU = [];
     const historyP = [];
@@ -185,16 +202,53 @@
     const plotCanvas = document.getElementById('plotCanvas');
     const pctx = plotCanvas.getContext('2d');
 
+    function setThreeAmp(scale) {
+      threeAmpScale = scale;
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+    }
+
+    function switchFrameView(view) {
+      currentFrameView = view;
+      const b3d = document.getElementById('btnFrame3D');
+      const b2d = document.getElementById('btnFrame2D');
+      const c3d = document.getElementById('threeFrameContainer');
+      const c2d = document.getElementById('frame2DContainer');
+
+      if (view === '3D') {
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        b2d.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'block';
+        c2d.style.display = 'none';
+      } else {
+        b2d.className = 'px-2 py-0.5 rounded text-xs font-bold transition bg-white text-blue-700 shadow-xs';
+        b3d.className = 'px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        c3d.style.display = 'none';
+        c2d.style.display = 'block';
+        resizeCanvases();
+      }
+    }
+
     function resizeCanvases() {
       [frameCanvas, plotCanvas].forEach(c => {
         const rect = c.parentElement.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
         c.width = rect.width * window.devicePixelRatio;
         c.height = rect.height * window.devicePixelRatio;
       });
-      fctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-      pctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      fctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      pctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
     }
-    window.addEventListener('resize', resizeCanvases);
+    window.addEventListener('resize', () => {
+      resizeCanvases();
+      if (renderer && camera) {
+        const r = threeFrameContainer.getBoundingClientRect();
+        camera.aspect = r.width / r.height;
+        camera.updateProjectionMatrix;
+        renderer.setSize(r.width, r.height);
+      }
+    });
 
     function updateParams() {
       zeta = parseFloat(document.getElementById('slider-zeta').value);
@@ -213,20 +267,16 @@
 
       const reg = document.getElementById('regime-text');
       const phase = document.getElementById('phase-diff');
-      const dafPanel = document.getElementById('daf-panel');
 
       if (Math.abs(beta - 1.0) < 0.08) {
-        reg.innerHTML = '영역: <span class="text-red-400 font-bold">공진 피크 대역 (&omega; &asymp; &omega;n)</span>';
+        reg.innerHTML = '영역: <span class="text-red-600 font-bold">공진 피크 대역 (&omega; &asymp; &omega;n)</span>';
         phase.textContent = '위상차 \u03b8 \u2248 90\u00b0 (외력과 90도 지연)';
-        dafPanel.classList.add('', 'border-red-500/50');
       } else if (beta < 0.7) {
-        reg.innerHTML = '영역: <span class="text-slate-900 font-bold">강성 지배 대역 (Stiffness controlled)</span>';
+        reg.innerHTML = '영역: <span class="text-blue-700 font-bold">강성 지배 대역 (Stiffness controlled)</span>';
         phase.textContent = '위상차 \u03b8 \u2248 0\u00b0 (외력과 동위상 거동)';
-        dafPanel.classList.remove('', 'border-red-500/50');
       } else {
-        reg.innerHTML = '영역: <span class="text-emerald-400 font-bold">질량 지배 / 면진 대역 (Mass isolated)</span>';
+        reg.innerHTML = '영역: <span class="text-emerald-700 font-bold">질량 지배 / 면진 대역 (Mass isolated)</span>';
         phase.textContent = '위상차 \u03b8 \u2248 180\u00b0 (외력과 역위상 거동)';
-        dafPanel.classList.remove('', 'border-red-500/50');
       }
     }
 
@@ -235,8 +285,8 @@
       document.getElementById('play-text').textContent = isRunning ? '일시정지' : '재개';
       document.getElementById('play-icon').textContent = isRunning ? '⏸' : '▶';
       document.getElementById('btn-play').className = isRunning ? 
-        'px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-200 text-white text-xs font-bold transition shadow-lg  flex items-center gap-1.5' : 
-        'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg  flex items-center gap-1.5';
+        'px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5' : 
+        'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5';
     }
 
     function resetSim() {
@@ -270,70 +320,143 @@
       document.getElementById('disp-val').textContent = `${(u * 1.5).toFixed(1)} mm`;
     }
 
-    function drawFrame() {
+    // --- 3D BIM SDOF Setup ---
+    const threeFrameContainer = document.getElementById('threeFrameContainer');
+    let scene, camera, renderer, controls;
+    let bldgGroup, bedrockGroup, roofSlab, damperCylinder;
+    let leftColSlices = [], rightColSlices = [];
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+
+      const r = threeFrameContainer.getBoundingClientRect();
+      camera = new THREE.PerspectiveCamera(36, r.width / r.height, 0.1, 1000);
+      camera.position.set(0, 5.5, 18);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(r.width, r.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      threeFrameContainer.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 4.0, 0);
+      controls.maxPolarAngle = Math.PI / 2 + 0.08;
+
+      // Lights
+      const amb = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(amb);
+
+      const dir = new THREE.DirectionalLight(0xffffff, 0.75);
+      dir.position.set(12, 20, 15);
+      dir.castShadow = true;
+      scene.add(dir);
+
+      const fill = new THREE.DirectionalLight(0xe0f2fe, 0.35);
+      fill.position.set(-12, 10, -10);
+      scene.add(fill);
+
+      // Bedrock Foundation
+      bedrockGroup = new THREE.Group();
+      const bedGeo = new THREE.BoxGeometry(10, 0.6, 7);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.y = 0.3;
+      bedrock.receiveShadow = true;
+      bedrockGroup.add(bedrock);
+      scene.add(bedrockGroup);
+
+      // SDOF Frame Group
+      bldgGroup = new THREE.Group();
+      bldgGroup.position.y = 0.6;
+      scene.add(bldgGroup);
+
+      build3DSDOFFrame();
+    }
+
+    function build3DSDOFFrame() {
+      // 2 Flexible Columns segmented into 16 slices
+      const sliceCount = 16;
+      const totalH = 6.0;
+      const sliceH = totalH / sliceCount;
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4 });
+
+      leftColSlices = [];
+      rightColSlices = [];
+
+      for (let i = 0; i < sliceCount; i++) {
+        const sliceGeo = new THREE.BoxGeometry(0.35, sliceH, 0.35);
+        
+        const leftSlice = new THREE.Mesh(sliceGeo, colMat);
+        leftSlice.position.set(-2.5, (i + 0.5) * sliceH, 0);
+        leftSlice.castShadow = true;
+        bldgGroup.add(leftSlice);
+        leftColSlices.push({ mesh: leftSlice, baseX: -2.5, normZ: (i + 0.5) / sliceCount });
+
+        const rightSlice = new THREE.Mesh(sliceGeo, colMat);
+        rightSlice.position.set(2.5, (i + 0.5) * sliceH, 0);
+        rightSlice.castShadow = true;
+        bldgGroup.add(rightSlice);
+        rightColSlices.push({ mesh: rightSlice, baseX: 2.5, normZ: (i + 0.5) / sliceCount });
+      }
+
+      // Roof Slab (Floor Mass m)
+      const slabGeo = new THREE.BoxGeometry(6.2, 0.5, 4.5);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
+      roofSlab = new THREE.Mesh(slabGeo, slabMat);
+      roofSlab.position.set(0, 6.25, 0);
+      roofSlab.castShadow = true;
+      bldgGroup.add(roofSlab);
+
+      // Viscous Damper (Diagonal)
+      const damperMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.5, roughness: 0.3 });
+      const cylGeo = new THREE.CylinderGeometry(0.12, 0.12, 4.0, 16);
+      damperCylinder = new THREE.Mesh(cylGeo, damperMat);
+      damperCylinder.position.set(0, 3.0, 0);
+      damperCylinder.rotation.z = Math.PI / 4;
+      bldgGroup.add(damperCylinder);
+    }
+
+    function drawFrame2D() {
       const w = frameCanvas.width / window.devicePixelRatio;
       const h = frameCanvas.height / window.devicePixelRatio;
       fctx.clearRect(0, 0, w, h);
 
       const cx = w * 0.5;
-      const baseY = h - 45;
-      const topY = 65;
-      const bay = Math.min(180, w * 0.52);
+      const baseY = h - 35;
+      const topY = 55;
+      const bay = Math.min(160, w * 0.52);
       const halfBay = bay / 2;
 
       const dispPx = u * 2.2;
       const roofX = cx + dispPx;
 
       // Base Support Foundation
-      fctx.strokeStyle = '#0f172a';
-      fctx.lineWidth = 2.5;
+      fctx.strokeStyle = '#cbd5e1';
+      fctx.lineWidth = 2;
       fctx.beginPath();
-      fctx.moveTo(cx - halfBay - 25, baseY);
-      fctx.lineTo(cx + halfBay + 25, baseY);
+      fctx.moveTo(cx - halfBay - 20, baseY);
+      fctx.lineTo(cx + halfBay + 20, baseY);
       fctx.stroke();
 
-      // Hatch lines
-      fctx.strokeStyle = '#64748b';
-      fctx.lineWidth = 1.5;
-      for (let x = cx - halfBay - 20; x <= cx + halfBay + 20; x += 12) {
-        fctx.beginPath();
-        fctx.moveTo(x, baseY);
-        fctx.lineTo(x - 6, baseY + 8);
-        fctx.stroke();
-      }
-
-      // Dynamic Stress Color based on displacement
-      const stressRatio = Math.min(1, Math.abs(u) / 25);
-      const colGlow = stressRatio > 0.6 ? '#f59e0b' : '#38bdf8';
-
-      // Left & Right Columns with Hermite double curvature
-      fctx.save();
-      fctx.shadowColor = colGlow;
-      fctx.shadowBlur = 6 + stressRatio * 10;
-      fctx.strokeStyle = colGlow;
-      fctx.lineWidth = 4;
+      // Left & Right Columns
+      fctx.strokeStyle = '#2563eb';
+      fctx.lineWidth = 3.5;
       fctx.lineCap = 'round';
       drawHermiteCol(fctx, cx - halfBay, baseY, roofX - halfBay, topY);
       drawHermiteCol(fctx, cx + halfBay, baseY, roofX + halfBay, topY);
-      fctx.restore();
 
-      // Top Slab (Floor Mass)
-      const sw = bay + 34;
-      const sh = 16;
-      fctx.save();
+      // Floor Slab
+      const sw = bay + 30;
+      const sh = 14;
       fctx.fillStyle = '#0f172a';
-      fctx.strokeStyle = '#0f172a';
-      fctx.lineWidth = 1.5;
-      fctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      fctx.shadowBlur = 8;
-      fctx.beginPath();
-      fctx.rect(roofX - sw/2, topY - sh/2, sw, sh);
-      fctx.fill();
-      fctx.stroke();
-      fctx.restore();
+      fctx.fillRect(roofX - sw/2, topY - sh/2, sw, sh);
 
       fctx.fillStyle = '#ffffff';
-      fctx.font = 'bold 10px Pretendard, monospace';
+      fctx.font = 'bold 9px Pretendard, monospace';
       fctx.textAlign = 'center';
       fctx.textBaseline = 'middle';
       fctx.fillText('Floor Slab (Mass m)', roofX, topY);
@@ -341,7 +464,7 @@
 
     function drawHermiteCol(ctx, x0, y0, x1, y1) {
       ctx.beginPath();
-      const steps = 20;
+      const steps = 18;
       for (let i = 0; i <= steps; i++) {
         const s = i / steps;
         const h = 3 * s * s - 2 * s * s * s;
@@ -353,83 +476,76 @@
       ctx.stroke();
     }
 
-    function drawPlot() {
+    function drawPlotCanonical() {
       const w = plotCanvas.width / window.devicePixelRatio;
       const h = plotCanvas.height / window.devicePixelRatio;
       pctx.clearRect(0, 0, w, h);
 
       const midY = h / 2;
 
-      // Fine Grid
-      pctx.strokeStyle = 'rgba(15, 23, 42, 0.08)';
+      // Soft Grid
+      pctx.strokeStyle = '#f1f5f9';
       pctx.lineWidth = 1;
-      for (let y = 30; y < h; y += 30) {
+      for (let y = 25; y < h; y += 25) {
         pctx.beginPath(); pctx.moveTo(0, y); pctx.lineTo(w, y); pctx.stroke();
       }
-      pctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
+      pctx.strokeStyle = '#e2e8f0';
       pctx.beginPath(); pctx.moveTo(0, midY); pctx.lineTo(w, midY); pctx.stroke();
 
-      // 1. Force p(t) (Amber trace) & 2. Displacement u(t) with strict clipping
-      pctx.save();
-      pctx.beginPath();
-      pctx.rect(0, 0, w - 70, h);
-      pctx.clip();
-
-      pctx.shadowColor = '#f59e0b';
-      pctx.shadowBlur = 4;
-      pctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
+      // Force p(t) (Amber)
+      pctx.strokeStyle = 'rgba(217, 119, 6, 0.45)';
       pctx.lineWidth = 1.5;
+      pctx.setLineDash([2, 2]);
       pctx.beginPath();
       for (let i = 0; i < historyP.length; i++) {
-        const x = (i / maxHistory) * (w - 70);
+        const x = (i / maxHistory) * (w - 65);
         const y = Math.max(5, Math.min(h - 5, midY - (historyP[i] / p0) * (h * 0.35)));
         if (i === 0) pctx.moveTo(x, y);
         else pctx.lineTo(x, y);
       }
       pctx.stroke();
+      pctx.setLineDash([]);
 
-      // 2. Displacement u(t) (Glowing Cyan Laser)
-      pctx.shadowColor = '#06b6d4';
-      pctx.shadowBlur = 8;
-      pctx.strokeStyle = '#0284c7';
+      // Displacement u(t) (Blue)
+      pctx.strokeStyle = '#2563eb';
       pctx.lineWidth = 2.5;
       pctx.beginPath();
+      const uCurve = [];
       for (let i = 0; i < historyU.length; i++) {
-        const x = (i / maxHistory) * (w - 70);
-        const y = Math.max(5, Math.min(h - 5, midY - (historyU[i] / (p0 * 0.5)) * (h * 0.4)));
+        const x = (i / maxHistory) * (w - 65);
+        const y = Math.max(5, Math.min(h - 5, midY - (historyU[i] / (p0 * 0.5)) * (h * 0.38)));
+        uCurve.push({ x, y });
         if (i === 0) pctx.moveTo(x, y);
         else pctx.lineTo(x, y);
       }
       pctx.stroke();
-      pctx.restore();
 
-      // 3. Polar Phase Vector Clock in corner
-      drawPhaseDial(pctx, w - 38, midY, 26);
+      // Phase Clock
+      drawPhaseDial(pctx, w - 34, midY, 24);
     }
 
     function drawPhaseDial(ctx, cx, cy, radius) {
       ctx.save();
       ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Phase calculation
       const phaseAngle = Math.atan2(2 * zeta * beta, 1 - beta * beta);
 
-      // Force Vector (0 deg baseline)
-      ctx.strokeStyle = '#f59e0b';
+      // Force Vector (0 deg)
+      ctx.strokeStyle = '#d97706';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(cx + Math.cos(0) * (radius - 5), cy - Math.sin(0) * (radius - 5));
       ctx.stroke();
 
-      // Response Vector (lagging by phaseAngle)
-      ctx.strokeStyle = '#22d3ee';
+      // Response Vector (lag)
+      ctx.strokeStyle = '#2563eb';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
@@ -445,18 +561,65 @@
 
     function loop() {
       stepPhysics();
-      drawFrame();
-      drawPlot();
+
+      if (currentFrameView === '2D') {
+        drawFrame2D();
+      } else if (renderer && camera) {
+        controls.update();
+        const ampMultiplier = (threeAmpScale / 70.0);
+        const drift3D = (u * 0.08) * ampMultiplier;
+
+        // Animate Columns
+        leftColSlices.forEach(sl => {
+          const s = sl.normZ;
+          const h = 3 * s * s - 2 * s * s * s;
+          sl.mesh.position.x = sl.baseX + drift3D * h;
+          sl.mesh.rotation.z = -drift3D * 0.1 * (6 * s - 6 * s * s);
+        });
+
+        rightColSlices.forEach(sl => {
+          const s = sl.normZ;
+          const h = 3 * s * s - 2 * s * s * s;
+          sl.mesh.position.x = sl.baseX + drift3D * h;
+          sl.mesh.rotation.z = -drift3D * 0.1 * (6 * s - 6 * s * s);
+        });
+
+        if (roofSlab) {
+          roofSlab.position.x = drift3D;
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      drawPlotCanonical();
       requestAnimationFrame(loop);
     }
 
-    setTimeout(() => {
-      resizeCanvases();
+    // --- Awwwards Pack: Zentry 3D Tilt & Damping on Cards ---
+    function initZentryCards() {
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 5.0;
+          const rotY = (x / (rect.width / 2)) * 5.0;
+          card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+        });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initZentryCards();
+      setTimeout(resizeCanvases, 50);
       updateParams();
       loop();
-
-
-    }, 50);
+    });
   </script>
 </body>
 </html>
