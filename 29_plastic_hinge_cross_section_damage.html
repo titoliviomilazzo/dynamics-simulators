@@ -331,6 +331,21 @@
     pointer-events: none;
     z-index: 10;
   }
+  .bim-hud-metric {
+    position: absolute;
+    bottom: 6px;
+    right: 8px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(4px);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    font-size: 9.5px;
+    color: #0f172a;
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 10;
+  }
 
   /* HUD Box */
   .hud-box {
@@ -531,7 +546,7 @@
             </div>
             <div class="bim-view-buttons">
               <button class="bim-btn active" id="btnBimCage" onclick="setBimCameraView('cage')">🔩 3D 배근망</button>
-              <button class="bim-btn" id="btnBimSpall" onclick="setBimCameraView('spall')">🔬 입체 손상</button>
+              <button class="bim-btn" id="btnBimSpall" onclick="setBimCameraView('spall')">💥 입체 손상</button>
               <button class="bim-btn" id="btnBimMacro" onclick="setBimCameraView('macro')">🏢 3D 골조</button>
             </div>
           </div>
@@ -543,6 +558,9 @@
             </div>
             <div class="bim-hud-controls">
               🖱️ 3D 오르빗: 좌클릭 회전 &middot; 휠 줌 &middot; 우클릭 이동
+            </div>
+            <div class="bim-hud-metric" id="bimDamageMetric">
+              &theta;/&theta;<sub>y</sub> = 1.00 &middot; 잔존강도 100%
             </div>
             <div id="threeBimContainer"></div>
           </div>
@@ -699,14 +717,16 @@ let bimBeamMeshes = [];
 let bimBaseHingeMeshes = [];
 let bimLateralArrow = null;
 
-// Detail Column Base Meshes
-let detailCoverMesh = null;
-let detailCoreMesh = null;
+// Detail Column Base Meshes (True 3D Volumetric Damage & Clamped Base)
 let detailFootingMesh = null;
-let detailRebarMeshes = []; // 8 longitudinal bars
-let detailTieMeshes = [];   // 7 horizontal tie hoops
-let detailSpallFragments = []; // Spalled concrete debris
-let detailBuckledBarMesh = null; // S-buckling replacement mesh for compressed bar
+let detailCoreSlices = [];       // 3 slices of plastic hinge confined core
+let detailCompCoverMesh = null;  // Compression face cover block (+X face)
+let detailShellSlices = [];      // Tension (-X) and side (+/-Z) cover shells
+let detailUpperSlices = [];      // 4 slices of upper column shaft
+let detailRebarMeshes = [];      // 8 longitudinal rebars (clamped base, S-buckling)
+let detailTieMeshes = [];        // 7 tie hoops (intact + ruptured burst hoops)
+let detailRubbleMeshes = [];     // 20 polyhedral concrete rubble chunks with black edges
+let detailLpBracket = null;      // 3D plastic hinge length bracket
 
 let bimCalloutSprite = null;
 
@@ -865,12 +885,14 @@ function buildMacroStructure() {
     const yBot = (s - 1) * floorH;
     const colLen = floorH - slabThick;
 
-    // Columns
+    // Columns (Origin at base: no footing penetration!)
     colXCoords.forEach((cx, ix) => {
       colZCoords.forEach((cz, iz) => {
         const cGeo = new THREE.BoxGeometry(colThick, colLen, colThick);
+        cGeo.translate(0, colLen / 2, 0); // Pivot at column base
         const cMesh = new THREE.Mesh(cGeo, colMat);
-        cMesh.position.set(cx, yBot + colLen / 2 + (s === 1 ? 0.28 : 0), cz);
+        const colBaseY = (s === 1 ? 0.28 : yBot);
+        cMesh.position.set(cx, colBaseY, cz);
         cMesh.castShadow = true;
         cMesh.receiveShadow = true;
         cMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(cGeo), blackLineMat));
@@ -881,10 +903,11 @@ function buildMacroStructure() {
           story: s,
           baseX: cx,
           baseZ: cz,
-          baseY: yBot + colLen / 2 + (s === 1 ? 0.28 : 0)
+          baseY: colBaseY,
+          colLen: colLen
         });
 
-        // Plastic Hinge at base
+        // Plastic Hinge indicator at base
         if (s === 1) {
           const hGeo = new THREE.SphereGeometry(0.24, 16, 16);
           const hMat = new THREE.MeshStandardMaterial({
@@ -940,7 +963,7 @@ function buildMacroStructure() {
 }
 
 // -------------------------------------------------------------------------
-// 2. DETAILED 3D COLUMN BASE & REBAR CAGE MODEL
+// 2. DETAILED 3D COLUMN BASE & REBAR CAGE MODEL (TRUE 3D VOLUMETRIC DAMAGE)
 // -------------------------------------------------------------------------
 function buildDetailColumnBase() {
   while (bimDetailGroup.children.length > 0) {
@@ -951,7 +974,11 @@ function buildDetailColumnBase() {
 
   detailRebarMeshes = [];
   detailTieMeshes = [];
-  detailSpallFragments = [];
+  detailRubbleMeshes = [];
+  detailCoreSlices = [];
+  detailUpperSlices = [];
+  detailShellSlices = [];
+  detailCompCoverMesh = null;
 
   const blackLineMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 }); // Gate 1
 
@@ -959,9 +986,11 @@ function buildDetailColumnBase() {
   const footH = 0.42;
   const colSize = 1.2;
   const colHeight = 3.2;
-  const coreSize = 0.90;
+  const coreSize = 0.88;
+  const lpHeight = 0.96;
+  const shaftHeight = colHeight - lpHeight; // 2.24m
 
-  // 1. Foundation Footing
+  // 1. Foundation Footing (Clamped Base: column sits flat at y = footH)
   const footGeo = new THREE.BoxGeometry(footSize, footH, footSize);
   const footMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.65 });
   detailFootingMesh = new THREE.Mesh(footGeo, footMat);
@@ -971,46 +1000,112 @@ function buildDetailColumnBase() {
   detailFootingMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(footGeo), blackLineMat));
   bimDetailGroup.add(detailFootingMesh);
 
-  // 2. Outer Concrete Cover Box (Frosted / Solid)
-  const coverGeo = new THREE.BoxGeometry(colSize, colHeight, colSize);
-  const coverMat = new THREE.MeshStandardMaterial({
+  // 2. Plastic Hinge Confined Core (3 vertical slices: y from footH to footH + lpHeight)
+  const nCoreSlices = 3;
+  const coreSliceH = lpHeight / nCoreSlices; // 0.32m each
+  const coreMat = new THREE.MeshStandardMaterial({
+    color: 0x475569,
+    roughness: 0.85
+  });
+
+  for (let j = 0; j < nCoreSlices; j++) {
+    const cGeo = new THREE.BoxGeometry(coreSize, coreSliceH, coreSize);
+    cGeo.translate(0, coreSliceH / 2, 0); // Origin at bottom of slice
+    const cMesh = new THREE.Mesh(cGeo, coreMat);
+    const sliceBaseY = footH + j * coreSliceH;
+    cMesh.position.set(0, sliceBaseY, 0);
+    cMesh.castShadow = true;
+    cMesh.receiveShadow = true;
+    cMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(cGeo), blackLineMat));
+    bimDetailGroup.add(cMesh);
+    detailCoreSlices.push({ mesh: cMesh, index: j, baseY: sliceBaseY, height: coreSliceH });
+  }
+
+  // 3. Plastic Hinge Compression-Side Cover Block (+X face, y from footH to footH + lpHeight)
+  // Thickness 0.16m, Width 1.20m, Height 0.96m. Intact in Elastic/IO, bulges in LS, spalls away in CP/E
+  const compCoverThick = (colSize - coreSize) / 2; // 0.16m
+  const compGeo = new THREE.BoxGeometry(compCoverThick, lpHeight, colSize);
+  compGeo.translate(0, lpHeight / 2, 0); // Origin at bottom face
+  const compMat = new THREE.MeshStandardMaterial({
     color: 0x94a3b8,
-    roughness: 0.4,
+    roughness: 0.45,
+    metalness: 0.05
+  });
+  detailCompCoverMesh = new THREE.Mesh(compGeo, compMat);
+  detailCompCoverMesh.position.set(coreSize / 2 + compCoverThick / 2, footH, 0);
+  detailCompCoverMesh.castShadow = true;
+  detailCompCoverMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(compGeo), blackLineMat));
+  bimDetailGroup.add(detailCompCoverMesh);
+
+  // 4. Plastic Hinge Tension (-X) & Side Cover Shells (Transparent in Cage, Cutaway in Spall)
+  // Tension Cover (-X face)
+  const tenCoverGeo = new THREE.BoxGeometry(compCoverThick, lpHeight, colSize);
+  tenCoverGeo.translate(0, lpHeight / 2, 0);
+  const shellMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    roughness: 0.45,
     transparent: true,
     opacity: 0.28,
     depthWrite: false
   });
-  detailCoverMesh = new THREE.Mesh(coverGeo, coverMat);
-  detailCoverMesh.position.set(0, footH + colHeight / 2, 0);
-  detailCoverMesh.castShadow = true;
-  detailCoverMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(coverGeo), blackLineMat));
-  bimDetailGroup.add(detailCoverMesh);
+  const tenCoverMesh = new THREE.Mesh(tenCoverGeo, shellMat.clone());
+  tenCoverMesh.position.set(-(coreSize / 2 + compCoverThick / 2), footH, 0);
+  tenCoverMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(tenCoverGeo), blackLineMat));
+  bimDetailGroup.add(tenCoverMesh);
+  detailShellSlices.push({ mesh: tenCoverMesh, isTension: true });
 
-  // 3. Inner Confined Core Concrete Box
-  const coreGeo = new THREE.BoxGeometry(coreSize, colHeight, coreSize);
-  const coreMat = new THREE.MeshStandardMaterial({
-    color: 0x475569,
-    roughness: 0.7,
+  // Side Front Cover (+Z)
+  const sideFrontGeo = new THREE.BoxGeometry(coreSize, lpHeight, compCoverThick);
+  sideFrontGeo.translate(0, lpHeight / 2, 0);
+  const sideFrontMesh = new THREE.Mesh(sideFrontGeo, shellMat.clone());
+  sideFrontMesh.position.set(0, footH, coreSize / 2 + compCoverThick / 2);
+  sideFrontMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sideFrontGeo), blackLineMat));
+  bimDetailGroup.add(sideFrontMesh);
+  detailShellSlices.push({ mesh: sideFrontMesh, isTension: false });
+
+  // Side Back Cover (-Z)
+  const sideBackGeo = new THREE.BoxGeometry(coreSize, lpHeight, compCoverThick);
+  sideBackGeo.translate(0, lpHeight / 2, 0);
+  const sideBackMesh = new THREE.Mesh(sideBackGeo, shellMat.clone());
+  sideBackMesh.position.set(0, footH, -(coreSize / 2 + compCoverThick / 2));
+  sideBackMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sideBackGeo), blackLineMat));
+  bimDetailGroup.add(sideBackMesh);
+  detailShellSlices.push({ mesh: sideBackMesh, isTension: false });
+
+  // 5. Upper Column Shaft (y from footH + lpHeight to footH + colHeight, 4 slices)
+  const nShaftSlices = 4;
+  const shaftSliceH = shaftHeight / nShaftSlices; // 0.56m each
+  const upperShaftMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    roughness: 0.45,
     transparent: true,
-    opacity: 0.35
+    opacity: 0.28,
+    depthWrite: false
   });
-  detailCoreMesh = new THREE.Mesh(coreGeo, coreMat);
-  detailCoreMesh.position.set(0, footH + colHeight / 2, 0);
-  detailCoreMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(coreGeo), new THREE.LineBasicMaterial({ color: 0x334155 })));
-  bimDetailGroup.add(detailCoreMesh);
 
-  // 4. 8 Longitudinal Rebars (D25 mm scaled to 3D cylinders)
-  const ro = coreSize / 2 - 0.05;
-  const barR = 0.038;
+  for (let k = 0; k < nShaftSlices; k++) {
+    const sGeo = new THREE.BoxGeometry(colSize, shaftSliceH, colSize);
+    sGeo.translate(0, shaftSliceH / 2, 0); // Origin at bottom of slice
+    const sMesh = new THREE.Mesh(sGeo, upperShaftMat.clone());
+    const sliceBaseY = footH + lpHeight + k * shaftSliceH;
+    sMesh.position.set(0, sliceBaseY, 0);
+    sMesh.castShadow = true;
+    sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sGeo), blackLineMat));
+    bimDetailGroup.add(sMesh);
+    detailUpperSlices.push({ mesh: sMesh, index: k, baseY: sliceBaseY, height: shaftSliceH });
+  }
+
+  // 6. 8 Longitudinal Rebars (Fixed Base anchored at y = footH with zero slope)
+  const ro = coreSize / 2 - 0.05; // 0.39m
   const rebarCoords = [
-    { x: -ro, z: -ro, name: 'TL' },
-    { x: 0,   z: -ro, name: 'TM' },
-    { x: ro,  z: -ro, name: 'TR' },
-    { x: -ro, z: 0,   name: 'ML' },
-    { x: ro,  z: 0,   name: 'MR' },
-    { x: -ro, z: ro,  name: 'BL' },
-    { x: 0,   z: ro,  name: 'BM' },
-    { x: ro,  z: ro,  name: 'BR' }
+    { x:  ro, z: -ro, name: 'TR', comp: true,  corner: true  },
+    { x:  ro, z:   0, name: 'MR', comp: true,  corner: false },
+    { x:  ro, z:  ro, name: 'BR', comp: true,  corner: true  },
+    { x:   0, z: -ro, name: 'TM', comp: false, corner: false },
+    { x:   0, z:  ro, name: 'BM', comp: false, corner: false },
+    { x: -ro, z: -ro, name: 'TL', comp: false, corner: true  },
+    { x: -ro, z:   0, name: 'ML', comp: false, corner: false },
+    { x: -ro, z:  ro, name: 'BL', comp: false, corner: true  }
   ];
 
   const rebarMat = new THREE.MeshStandardMaterial({
@@ -1019,87 +1114,165 @@ function buildDetailColumnBase() {
     metalness: 0.55
   });
 
-  rebarCoords.forEach((pt, idx) => {
-    const bGeo = new THREE.CylinderGeometry(barR, barR, colHeight, 16);
-    const bMesh = new THREE.Mesh(bGeo, rebarMat.clone());
-    bMesh.position.set(pt.x, footH + colHeight / 2, pt.z);
-    bMesh.castShadow = true;
-    bimDetailGroup.add(bMesh);
+  rebarCoords.forEach(pt => {
+    // Initial straight tube from footH to footH + colHeight
+    const pts = [
+      new THREE.Vector3(pt.x, footH, pt.z),
+      new THREE.Vector3(pt.x, footH + colHeight / 2, pt.z),
+      new THREE.Vector3(pt.x, footH + colHeight, pt.z)
+    ];
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const geo = new THREE.TubeGeometry(curve, 18, 0.034, 8, false);
+    const mesh = new THREE.Mesh(geo, rebarMat.clone());
+    mesh.castShadow = true;
+    bimDetailGroup.add(mesh);
 
     detailRebarMeshes.push({
-      mesh: bMesh,
+      mesh: mesh,
       baseX: pt.x,
       baseZ: pt.z,
-      isCompression: (pt.x > 0), // Compressed side during rightward drift (+X)
-      isCornerComp: (pt.x > 0 && pt.z > 0)
+      isCompression: pt.comp,
+      isCorner: pt.corner
     });
   });
 
-  // 5. 7 Horizontal Tie Hoops with 135-deg Seismic Hooks
+  // 7. 7 Transverse Tie Hoops with 135-deg Seismic Hooks & Ruptured Meshes
   const nTies = 7;
-  const tieStep = (colHeight - 0.3) / nTies;
-  const hoopHalf = coreSize / 2 - 0.02;
+  const hoopHalf = coreSize / 2 - 0.02; // 0.42m
 
   for (let i = 0; i < nTies; i++) {
-    const tieY = footH + 0.25 + i * tieStep;
+    const tieY = footH + 0.16 + i * 0.44;
     const tieGroup = new THREE.Group();
     tieGroup.position.set(0, tieY, 0);
 
-    // Build rectangular hoop out of thin tubes
+    // A. Normal Intact Closed Hoop with 135-deg Hook
     const hoopPoints = [
       new THREE.Vector3(-hoopHalf, 0, -hoopHalf),
-      new THREE.Vector3(hoopHalf, 0, -hoopHalf),
-      new THREE.Vector3(hoopHalf, 0, hoopHalf),
-      new THREE.Vector3(-hoopHalf, 0, hoopHalf),
+      new THREE.Vector3( hoopHalf, 0, -hoopHalf),
+      new THREE.Vector3( hoopHalf, 0,  hoopHalf),
+      new THREE.Vector3(-hoopHalf, 0,  hoopHalf),
       new THREE.Vector3(-hoopHalf, 0, -hoopHalf),
-      // 135-deg hook at top-right corner
-      new THREE.Vector3(hoopHalf - 0.14, 0, -hoopHalf + 0.14)
+      new THREE.Vector3( hoopHalf - 0.12, 0, -hoopHalf + 0.12) // 135-deg hook
     ];
-
     const hoopCurve = new THREE.CatmullRomCurve3(hoopPoints, false, 'catmullrom', 0.0);
-    const hoopGeo = new THREE.TubeGeometry(hoopCurve, 32, 0.02, 8, false);
+    const hoopGeo = new THREE.TubeGeometry(hoopCurve, 32, 0.018, 8, false);
     const hoopMat = new THREE.MeshStandardMaterial({
       color: 0x2563eb,
       roughness: 0.3,
       metalness: 0.4
     });
-    const hoopMesh = new THREE.Mesh(hoopGeo, hoopMat);
-    hoopMesh.castShadow = true;
-    tieGroup.add(hoopMesh);
+    const intactMesh = new THREE.Mesh(hoopGeo, hoopMat);
+    intactMesh.castShadow = true;
+    tieGroup.add(intactMesh);
+
+    // B. Ruptured / Burst Hoop (for lowest 2 ties in CP/E plastic hinge zone)
+    let rupturedMesh = null;
+    if (i <= 1) {
+      // The compression side (+X) wire ruptures open and curls outwards
+      const rupPoints1 = [
+        new THREE.Vector3(-hoopHalf, 0,  hoopHalf),
+        new THREE.Vector3(-hoopHalf, 0, -hoopHalf),
+        new THREE.Vector3( hoopHalf, 0, -hoopHalf),
+        new THREE.Vector3( hoopHalf + 0.16, 0, -0.14) // Burst severed tip
+      ];
+      const rupPoints2 = [
+        new THREE.Vector3( hoopHalf + 0.16, 0,  0.14), // Burst severed tip
+        new THREE.Vector3( hoopHalf, 0,  hoopHalf),
+        new THREE.Vector3(-hoopHalf, 0,  hoopHalf)
+      ];
+      const rupCurve1 = new THREE.CatmullRomCurve3(rupPoints1, false, 'catmullrom', 0.0);
+      const rupCurve2 = new THREE.CatmullRomCurve3(rupPoints2, false, 'catmullrom', 0.0);
+      const rupGeo1 = new THREE.TubeGeometry(rupCurve1, 24, 0.018, 8, false);
+      const rupGeo2 = new THREE.TubeGeometry(rupCurve2, 16, 0.018, 8, false);
+
+      const rupMat = new THREE.MeshStandardMaterial({
+        color: 0xdc2626,
+        roughness: 0.3,
+        metalness: 0.4
+      });
+      const rMesh1 = new THREE.Mesh(rupGeo1, rupMat);
+      const rMesh2 = new THREE.Mesh(rupGeo2, rupMat);
+      const rupGroup = new THREE.Group();
+      rupGroup.add(rMesh1);
+      rupGroup.add(rMesh2);
+      rupGroup.visible = false;
+      tieGroup.add(rupGroup);
+      rupturedMesh = rupGroup;
+    }
 
     bimDetailGroup.add(tieGroup);
-    detailTieMeshes.push({ group: tieGroup, mesh: hoopMesh, index: i, baseY: tieY });
+    detailTieMeshes.push({
+      group: tieGroup,
+      intactMesh: intactMesh,
+      rupturedMesh: rupturedMesh,
+      index: i,
+      baseY: tieY
+    });
   }
 
-  // 6. Spalled Concrete Debris Fragments (Initially hidden, revealed on LS/CP)
-  for (let k = 0; k < 12; k++) {
-    const chunkGeo = new THREE.DodecahedronGeometry(0.08 + (k % 3) * 0.04);
-    const chunkMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.85 });
-    const chunkMesh = new THREE.Mesh(chunkGeo, chunkMat);
-    chunkMesh.position.set(
-      colSize / 2 + 0.15 + (k % 4) * 0.08,
-      footH + 0.15 + Math.floor(k / 4) * 0.25,
-      -0.35 + (k % 3) * 0.35
-    );
-    chunkMesh.visible = false;
-    bimDetailGroup.add(chunkMesh);
-    detailSpallFragments.push(chunkMesh);
-  }
+  // 8. 20 Realistic Polyhedral Concrete Rubble Chunks (Gate 1 Black Edges, Piled on Footing)
+  const rubbleDefs = [
+    // Layer 1: Ground contact on footing surface (y = 0.42m + radius)
+    { x: 0.56, y: 0.46, z: -0.38, r: 0.07, rx: 0.3, ry: 0.8 },
+    { x: 0.66, y: 0.47, z: -0.18, r: 0.09, rx: 0.7, ry: 0.2 },
+    { x: 0.60, y: 0.46, z:  0.05, r: 0.08, rx: 0.1, ry: 0.5 },
+    { x: 0.72, y: 0.48, z:  0.28, r: 0.10, rx: 0.9, ry: 0.4 },
+    { x: 0.54, y: 0.45, z:  0.42, r: 0.07, rx: 0.4, ry: 0.6 },
+    { x: 0.80, y: 0.47, z: -0.42, r: 0.08, rx: 0.5, ry: 0.3 },
+    { x: 0.86, y: 0.46, z: -0.12, r: 0.08, rx: 0.2, ry: 0.7 },
+    { x: 0.90, y: 0.49, z:  0.18, r: 0.11, rx: 0.8, ry: 0.9 },
+    { x: 0.82, y: 0.47, z:  0.36, r: 0.09, rx: 0.6, ry: 0.1 },
+    { x: 0.98, y: 0.46, z: -0.28, r: 0.08, rx: 0.3, ry: 0.4 },
+    { x: 1.04, y: 0.48, z:  0.02, r: 0.10, rx: 0.1, ry: 0.8 },
+    { x: 0.96, y: 0.46, z:  0.26, r: 0.07, rx: 0.7, ry: 0.5 },
+    // Layer 2: Stacked rubble debris
+    { x: 0.62, y: 0.55, z: -0.26, r: 0.08, rx: 0.4, ry: 0.2 },
+    { x: 0.68, y: 0.57, z: -0.04, r: 0.09, rx: 0.6, ry: 0.5 },
+    { x: 0.64, y: 0.56, z:  0.22, r: 0.08, rx: 0.8, ry: 0.3 },
+    { x: 0.76, y: 0.59, z: -0.16, r: 0.09, rx: 0.2, ry: 0.7 },
+    { x: 0.80, y: 0.61, z:  0.10, r: 0.10, rx: 0.5, ry: 0.8 },
+    { x: 0.74, y: 0.57, z:  0.32, r: 0.08, rx: 0.9, ry: 0.1 },
+    // Layer 3: Crest rocks
+    { x: 0.70, y: 0.67, z: -0.08, r: 0.08, rx: 0.3, ry: 0.6 },
+    { x: 0.73, y: 0.68, z:  0.12, r: 0.07, rx: 0.7, ry: 0.4 }
+  ];
 
-  // 7. Plastic Hinge Zone Bracket in 3D
-  const lpLineMat = new THREE.LineDashedMaterial({ color: 0xea580c, dashSize: 0.1, gapSize: 0.06, linewidth: 2 });
+  const rubbleMat = new THREE.MeshStandardMaterial({
+    color: 0xcbd5e1,
+    roughness: 0.90
+  });
+
+  rubbleDefs.forEach((def, idx) => {
+    const rGeo = (idx % 2 === 0)
+      ? new THREE.DodecahedronGeometry(def.r)
+      : new THREE.TetrahedronGeometry(def.r * 1.3);
+    const rMesh = new THREE.Mesh(rGeo, rubbleMat.clone());
+    rMesh.position.set(def.x, def.y, def.z);
+    rMesh.rotation.set(def.rx, def.ry, 0);
+    rMesh.castShadow = true;
+    rMesh.receiveShadow = true;
+    // Gate 1: Black Edges
+    rMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(rGeo), blackLineMat));
+    rMesh.visible = false;
+    bimDetailGroup.add(rMesh);
+    detailRubbleMeshes.push({ mesh: rMesh, index: idx, basePos: { x: def.x, y: def.y, z: def.z } });
+  });
+
+  // 9. Plastic Hinge Zone Bracket in 3D (Lp = 0.96m)
+  const lpLineMat = new THREE.LineDashedMaterial({ color: 0xea580c, dashSize: 0.08, gapSize: 0.05, linewidth: 2 });
   const lpPoints = [
-    new THREE.Vector3(colSize / 2 + 0.22, footH, 0),
-    new THREE.Vector3(colSize / 2 + 0.32, footH, 0),
-    new THREE.Vector3(colSize / 2 + 0.32, footH + 1.2, 0),
-    new THREE.Vector3(colSize / 2 + 0.22, footH + 1.2, 0)
+    new THREE.Vector3(colSize / 2 + 0.28, footH, 0),
+    new THREE.Vector3(colSize / 2 + 0.38, footH, 0),
+    new THREE.Vector3(colSize / 2 + 0.38, footH + lpHeight, 0),
+    new THREE.Vector3(colSize / 2 + 0.28, footH + lpHeight, 0)
   ];
   const lpGeo = new THREE.BufferGeometry().setFromPoints(lpPoints);
   const lpLine = new THREE.Line(lpGeo, lpLineMat);
   lpLine.computeLineDistances();
   bimDetailGroup.add(lpLine);
+  detailLpBracket = lpLine;
 
-  // 8. Dynamic 3D Callout Sprite
+  // 10. Dynamic 3D Callout Sprite
   bimCalloutSprite = createCalloutSprite("🟢 IO (즉시거주)", "#059669", "미세 균열 / 탄성 회복 한계");
   bimCalloutSprite.position.set(0, footH + colHeight + 0.45, 0);
   bimAnnotationGroup.add(bimCalloutSprite);
@@ -1123,19 +1296,30 @@ function setBimCameraView(mode) {
   } else if (mode === 'cage') {
     bimMacroGroup.visible = false;
     bimDetailGroup.visible = true;
-    detailCoverMesh.material.transparent = true;
-    detailCoverMesh.material.opacity = 0.28;
-    detailCoverMesh.material.depthWrite = false;
-    cameraBim.position.set(2.8, 2.3, 3.4);
-    controlsBim.target.set(0, 1.3, 0);
+    // Transparent frosted cover to inspect rebar cage
+    detailUpperSlices.forEach(s => {
+      s.mesh.material.transparent = true;
+      s.mesh.material.opacity = 0.24;
+      s.mesh.material.depthWrite = false;
+    });
+    detailShellSlices.forEach(s => {
+      s.mesh.material.transparent = true;
+      s.mesh.material.opacity = 0.24;
+      s.mesh.material.depthWrite = false;
+    });
+    cameraBim.position.set(2.9, 2.4, 3.5);
+    controlsBim.target.set(0, 1.4, 0);
   } else if (mode === 'spall') {
     bimMacroGroup.visible = false;
     bimDetailGroup.visible = true;
-    detailCoverMesh.material.transparent = false;
-    detailCoverMesh.material.opacity = 1.0;
-    detailCoverMesh.material.depthWrite = true;
-    cameraBim.position.set(1.9, 1.4, 2.4);
-    controlsBim.target.set(0.3, 0.75, 0);
+    // Solid concrete for upper intact column shaft
+    detailUpperSlices.forEach(s => {
+      s.mesh.material.transparent = false;
+      s.mesh.material.opacity = 1.0;
+      s.mesh.material.depthWrite = true;
+    });
+    cameraBim.position.set(2.1, 1.45, 2.3);
+    controlsBim.target.set(0.32, 0.78, 0);
   }
 
   cameraBim.lookAt(controlsBim.target);
@@ -1147,7 +1331,7 @@ function setBimCameraView(mode) {
 }
 
 // -------------------------------------------------------------------------
-// 4. REAL-TIME 3D BIM UPDATE LOGIC
+// 4. REAL-TIME 3D BIM UPDATE LOGIC (TRUE 3D VOLUMETRIC DAMAGE & CLAMPED BASE)
 // -------------------------------------------------------------------------
 function update3DBim() {
   if (!sceneBim) return;
@@ -1156,7 +1340,7 @@ function update3DBim() {
   const bb = computeBackbone(th);
   const curQ = bb.q;
 
-  // Hinge Status
+  // Hinge Status & KDS 41 Performance Level
   let hColor = 0x64748b;
   let hStatusText = "⚪ 탄성 (Elastic)";
   let hSubText = "균열 전무 / 100% 탄성 복원";
@@ -1183,11 +1367,19 @@ function update3DBim() {
     hSubText = "띠철근 파단 / 압축 주철근 폭발적 좌굴";
   }
 
-  // Update HUD Header
-  document.getElementById('bimHingeStatus').textContent = hStatusText;
-  document.getElementById('bimHingeStatus').style.color = `#${hColor.toString(16).padStart(6, '0')}`;
+  // Update HUD Header & Bottom-Right Metric
+  const statusEl = document.getElementById('bimHingeStatus');
+  if (statusEl) {
+    statusEl.textContent = hStatusText;
+    statusEl.style.color = `#${hColor.toString(16).padStart(6, '0')}`;
+  }
+  const metricEl = document.getElementById('bimDamageMetric');
+  if (metricEl) {
+    const qPct = Math.max(0, Math.min(150, curQ * 100)).toFixed(0);
+    metricEl.innerHTML = `&theta;/&theta;<sub>y</sub> = ${th.toFixed(2)} &middot; 잔존강도 ${qPct}%`;
+  }
 
-  // 1. MACRO FRAME UPDATE
+  // 1. MACRO FRAME UPDATE (Story 1 Column Fixed Base at Footing)
   if (bimMacroGroup.visible) {
     const maxSway = Math.min(th, 6.5) * 0.18;
     bimSlabMeshes.forEach(({ mesh, story }) => {
@@ -1196,11 +1388,12 @@ function update3DBim() {
     bimBeamMeshes.forEach(({ mesh, story, baseX }) => {
       mesh.position.x = baseX + Math.pow(story / 2.0, 1.25) * maxSway;
     });
-    bimColumnMeshes.forEach(({ mesh, story, baseX }) => {
+    bimColumnMeshes.forEach(({ mesh, story, baseX, baseY, colLen }) => {
       const driftTop = Math.pow(story / 2.0, 1.25) * maxSway;
       const driftBot = Math.pow((story - 1) / 2.0, 1.25) * maxSway;
-      mesh.position.x = baseX + (driftTop + driftBot) / 2.0;
-      mesh.rotation.z = -(driftTop - driftBot) / 2.4;
+      mesh.position.x = baseX + driftBot;
+      mesh.position.y = baseY;
+      mesh.rotation.z = -(driftTop - driftBot) / colLen;
     });
     bimBaseHingeMeshes.forEach(({ mesh }) => {
       mesh.material.color.setHex(hColor);
@@ -1214,74 +1407,178 @@ function update3DBim() {
     }
   }
 
-  // 2. DETAIL COLUMN BASE UPDATE
+  // 2. DETAIL COLUMN BASE UPDATE (Fixed Base Clamped at y = footH: slope(0) = 0)
   if (bimDetailGroup.visible) {
-    const isSpalled = th > getLS();
-    const isBuckled = th > getCP();
-    const driftAngle = Math.min(th, 6.0) * 0.045;
+    const footH = 0.42;
+    const H = 3.20;
+    const lpHeight = 0.96;
+    const maxTipSway = Math.min(th, 6.0) * 0.068; // Max ~0.41m
 
-    // Flexural Curvature Sway on Column Body
-    detailCoverMesh.rotation.z = -driftAngle;
-    detailCoreMesh.rotation.z = -driftAngle;
+    // A. Confined Core Slices (Cantilever Curvature, Fixed Base at Footing)
+    detailCoreSlices.forEach(({ mesh, baseY, height, index }) => {
+      const midY = baseY + height / 2;
+      const xi = (midY - footH) / H;
+      // Fixed base condition: x(0) = 0, alpha(0) = 0
+      const xSway = maxTipSway * (1.0 - Math.cos(Math.PI * 0.5 * xi));
+      const alpha = maxTipSway * (Math.PI / (2 * H)) * Math.sin(Math.PI * 0.5 * xi);
+      mesh.position.x = xSway;
+      mesh.position.y = baseY;
+      mesh.rotation.z = -alpha;
+    });
 
-    // Cover Concrete Appearance
-    if (currentBimView === 'spall') {
-      if (isBuckled) {
-        detailCoverMesh.material.color.setHex(0xdc2626);
-        detailCoverMesh.material.wireframe = true;
-      } else if (isSpalled) {
-        detailCoverMesh.material.color.setHex(0xd97706);
-        detailCoverMesh.material.wireframe = false;
+    // B. Compression-Side Cover Concrete Block (+X face)
+    const isCracking = (th > getIO() && th <= getLS());
+    const isSpalled = (th > getLS());
+    const isBuckled = (th > getCP());
+
+    if (detailCompCoverMesh) {
+      if (isSpalled) {
+        // True Volumetric Loss: Concrete cover has fallen away completely!
+        detailCompCoverMesh.visible = false;
       } else {
-        detailCoverMesh.material.color.setHex(0xf1f5f9);
-        detailCoverMesh.material.wireframe = false;
+        detailCompCoverMesh.visible = true;
+        const midY = footH + lpHeight / 2;
+        const xi = (midY - footH) / H;
+        const xSway = maxTipSway * (1.0 - Math.cos(Math.PI * 0.5 * xi));
+        const alpha = maxTipSway * (Math.PI / (2 * H)) * Math.sin(Math.PI * 0.5 * xi);
+
+        // Outward bulge & crack warning in LS
+        const xBulge = isCracking ? 0.045 : 0;
+        detailCompCoverMesh.position.x = (0.88 / 2 + 0.16 / 2) + xSway + xBulge;
+        detailCompCoverMesh.position.y = footH;
+        detailCompCoverMesh.rotation.z = -alpha;
+
+        if (isCracking) {
+          detailCompCoverMesh.material.color.setHex(0xd97706); // Cracking warning
+        } else {
+          detailCompCoverMesh.material.color.setHex(0x94a3b8);
+        }
       }
-    } else {
-      detailCoverMesh.material.wireframe = false;
-      detailCoverMesh.material.color.setHex(isBuckled ? 0xfca5a5 : 0x94a3b8);
     }
 
-    // Spall Debris
-    detailSpallFragments.forEach((chunk, i) => {
-      chunk.visible = isSpalled;
-      if (isBuckled) {
-        chunk.position.x = 1.2 / 2 + 0.25 + (i % 4) * 0.12;
-      }
+    // C. Non-Compression Cover Shell Slices
+    detailShellSlices.forEach(({ mesh, isTension }) => {
+      const midY = footH + lpHeight / 2;
+      const xi = (midY - footH) / H;
+      const xSway = maxTipSway * (1.0 - Math.cos(Math.PI * 0.5 * xi));
+      const alpha = maxTipSway * (Math.PI / (2 * H)) * Math.sin(Math.PI * 0.5 * xi);
+      mesh.position.x = (isTension ? -(0.88 / 2 + 0.16 / 2) : 0) + xSway;
+      mesh.position.y = footH;
+      mesh.rotation.z = -alpha;
     });
 
-    // 8 Rebars Update
+    // D. Upper Intact Column Shaft Slices (Above Plastic Hinge: y >= footH + lpHeight)
+    detailUpperSlices.forEach(({ mesh, baseY, height }) => {
+      const midY = baseY + height / 2;
+      const xi = (midY - footH) / H;
+      const xSway = maxTipSway * (1.0 - Math.cos(Math.PI * 0.5 * xi));
+      const alpha = maxTipSway * (Math.PI / (2 * H)) * Math.sin(Math.PI * 0.5 * xi);
+      mesh.position.x = xSway;
+      mesh.position.y = baseY;
+      mesh.rotation.z = -alpha;
+    });
+
+    // E. 8 Longitudinal Rebars (Clamped Base at Footing + Inelastic S-Buckling Outwards)
     detailRebarMeshes.forEach(rb => {
-      rb.mesh.rotation.z = -driftAngle;
+      const pts = [];
+      const nPts = 18;
+      for (let k = 0; k <= nPts; k++) {
+        const s = k / nPts;
+        const y = footH + s * H;
+        const xi = s;
+        // Clamped cantilever curvature: x(0)=0, dx/dy(0)=0
+        const xSway = maxTipSway * (1.0 - Math.cos(Math.PI * 0.5 * xi));
 
-      let rCol = 0x1e3a8a;
+        let xBuckle = 0;
+        let zBuckle = 0;
+        // S-Buckling on compression rebars
+        if (rb.isCompression && th > getLS()) {
+          if (y >= footH && y <= footH + lpHeight) {
+            const eta = (y - footH) / lpHeight;
+            const buckleAmp = isBuckled
+              ? 0.08 + Math.min(0.20, (th - getCP()) * 0.09)
+              : (th - getLS()) * 0.035;
+            xBuckle = buckleAmp * Math.pow(Math.sin(Math.PI * eta), 2);
+            if (rb.baseZ !== 0) {
+              zBuckle = Math.sign(rb.baseZ) * xBuckle * 0.32;
+            }
+          }
+        }
+        pts.push(new THREE.Vector3(rb.baseX + xSway + xBuckle, y, rb.baseZ + zBuckle));
+      }
+
+      const curve = new THREE.CatmullRomCurve3(pts);
+      rb.mesh.geometry.dispose();
+      rb.mesh.geometry = new THREE.TubeGeometry(curve, 18, 0.034, 8, false);
+
+      // Rebar stress & failure colors
       if (rb.isCompression && isBuckled) {
-        rCol = 0xdc2626; // Buckled red
-        // S-buckling displacement bulge
-        const buckleShift = Math.min(0.24, (th - getCP()) * 0.09);
-        rb.mesh.position.x = rb.baseX + buckleShift;
-        rb.mesh.scale.set(1.4, 1.0, 1.4);
+        rb.mesh.material.color.setHex(0xdc2626); // Crimson red
+        rb.mesh.material.emissive.setHex(0xdc2626);
+        rb.mesh.material.emissiveIntensity = 0.60;
       } else if (rb.isCompression && isSpalled) {
-        rCol = 0xea580c;
-        rb.mesh.position.x = rb.baseX;
-        rb.mesh.scale.set(1.1, 1.0, 1.1);
+        rb.mesh.material.color.setHex(0xea580c); // Yielding orange
+        rb.mesh.material.emissive.setHex(0xea580c);
+        rb.mesh.material.emissiveIntensity = 0.35;
+      } else if (!rb.isCompression && th > getIO()) {
+        rb.mesh.material.color.setHex(0x0284c7); // Yielding tension blue
+        rb.mesh.material.emissive.setHex(0x0284c7);
+        rb.mesh.material.emissiveIntensity = 0.20;
       } else {
-        rb.mesh.position.x = rb.baseX;
-        rb.mesh.scale.set(1.0, 1.0, 1.0);
+        rb.mesh.material.color.setHex(0x1e3a8a); // Elastic steel blue
+        rb.mesh.material.emissive.setHex(0x000000);
+        rb.mesh.material.emissiveIntensity = 0.0;
       }
-      rb.mesh.material.color.setHex(rCol);
     });
 
-    // Tie Hoops Update
+    // F. Transverse Tie Hoops (Swaying + Lowest 2 Ties Rupturing Open)
     detailTieMeshes.forEach(t => {
-      t.group.rotation.z = -driftAngle;
-      if (t.index <= 2 && isBuckled) {
-        t.mesh.material.color.setHex(0xdc2626); // Broken ties
-        t.mesh.scale.set(1.18, 1.0, 1.18);
+      const xi = (t.baseY - footH) / H;
+      const xSway = maxTipSway * (1.0 - Math.cos(Math.PI * 0.5 * xi));
+      const alpha = maxTipSway * (Math.PI / (2 * H)) * Math.sin(Math.PI * 0.5 * xi);
+      t.group.position.x = xSway;
+      t.group.rotation.z = -alpha;
+
+      if (t.index <= 1 && t.rupturedMesh) {
+        if (isBuckled) {
+          t.intactMesh.visible = false;
+          t.rupturedMesh.visible = true; // Burst open!
+        } else {
+          t.intactMesh.visible = true;
+          t.rupturedMesh.visible = false;
+          t.intactMesh.material.color.setHex(isSpalled ? 0xea580c : 0x2563eb);
+        }
       } else {
-        t.mesh.material.color.setHex(0x2563eb);
-        t.mesh.scale.set(1.0, 1.0, 1.0);
+        t.intactMesh.material.color.setHex(0x2563eb);
       }
     });
+
+    // G. 20 Concrete Rubble Chunks (Accumulating on Footing Surface under Compression Face)
+    detailRubbleMeshes.forEach((r, idx) => {
+      if (!isSpalled) {
+        r.mesh.visible = false;
+      } else if (!isBuckled && idx >= 6) {
+        // In LS: only first 6 small chunks visible
+        r.mesh.visible = false;
+      } else {
+        // In CP & E: all 20 polyhedral rubble rocks visible and piled up
+        r.mesh.visible = true;
+        // Dynamic jitter scattering during strong earthquake drift
+        if (isBuckled) {
+          const scatter = Math.min(0.12, (th - getCP()) * 0.03);
+          r.mesh.position.x = r.basePos.x + (idx % 3) * scatter;
+        } else {
+          r.mesh.position.x = r.basePos.x;
+        }
+      }
+    });
+
+    // H. Plastic Hinge Bracket
+    if (detailLpBracket) {
+      const xiLp = lpHeight / H;
+      const xLp = maxTipSway * (1.0 - Math.cos(Math.PI * 0.5 * xiLp));
+      detailLpBracket.position.x = xLp * 0.4;
+    }
   }
 
   // 3. 3D CALLOUT SPRITE UPDATE
@@ -1295,8 +1592,8 @@ function update3DBim() {
       bimCalloutSprite.position.set(0, 0.42 + 3.2 + 0.45, 0);
       bimCalloutSprite.scale.set(2.4, 0.48, 1);
     } else {
-      bimCalloutSprite.position.set(0.2, 0.42 + 2.0, 0);
-      bimCalloutSprite.scale.set(1.8, 0.36, 1);
+      bimCalloutSprite.position.set(0.35, 0.42 + 2.1, 0);
+      bimCalloutSprite.scale.set(2.0, 0.40, 1);
     }
     bimAnnotationGroup.add(bimCalloutSprite);
   }
