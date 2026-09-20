@@ -305,6 +305,8 @@
 </style>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body>
@@ -414,26 +416,49 @@
             <i class="fa-solid fa-microchip text-blue-600"></i>
             <span>SDOF 정밀 질량-스프링 감쇠기 수치 시뮬레이션</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <!-- View Mode Switcher: 3D BIM vs 2D CAD -->
+            <div style="display: inline-flex; align-items: center; gap: 2px; background: #e2e8f0; padding: 2px; border-radius: 8px; font-size: 11px; font-weight: 700;">
+              <button id="btnSdof3D" onclick="switchSdofView('3D')" style="padding: 3px 8px; border-radius: 6px; border: none; background: #fff; color: #2563eb; cursor: pointer; font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">🏢 3D BIM</button>
+              <button id="btnSdof2D" onclick="switchSdofView('2D')" style="padding: 3px 8px; border-radius: 6px; border: none; background: transparent; color: #475569; cursor: pointer; font-weight: 700;">📊 2D 기구학</button>
+            </div>
             <!-- Ghost Cart Toggle -->
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; font-weight: 600; cursor: pointer; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <input type="checkbox" id="chkGhost" checked style="accent-color: #2563eb;">
-              <span>정확해 고스트 수레 비교</span>
+            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #475569; font-weight: 600; cursor: pointer; background: #f8fafc; padding: 3px 8px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <input type="checkbox" id="chkGhost" checked style="accent-color: #2563eb;" onchange="toggleGhostCart(this.checked)">
+              <span>정확해 고스트 수레</span>
             </label>
             <!-- Speed controls -->
-            <div style="display: inline-flex; align-items: center; gap: 4px; background: #f1f5f9; padding: 3px 6px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 11px; font-family: monospace;">
+            <div style="display: inline-flex; align-items: center; gap: 3px; background: #f1f5f9; padding: 2px 5px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 11px; font-family: monospace;">
               <span style="color: #64748b; margin-right: 2px;">속도:</span>
-              <button onclick="setSimSpeed(0.25)" class="btn-speed" data-s="0.25" style="padding: 2px 6px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #475569;">0.25x</button>
-              <button onclick="setSimSpeed(0.5)" class="btn-speed" data-s="0.5" style="padding: 2px 6px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #475569;">0.5x</button>
-              <button onclick="setSimSpeed(1.0)" class="btn-speed" data-s="1.0" style="padding: 2px 6px; border-radius: 4px; border: none; background: #2563eb; color: #fff; cursor: pointer; font-weight: bold;">1.0x</button>
-              <button onclick="setSimSpeed(2.0)" class="btn-speed" data-s="2.0" style="padding: 2px 6px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #475569;">2.0x</button>
+              <button onclick="setSimSpeed(0.25)" class="btn-speed" data-s="0.25" style="padding: 2px 5px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #475569;">0.25x</button>
+              <button onclick="setSimSpeed(0.5)" class="btn-speed" data-s="0.5" style="padding: 2px 5px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #475569;">0.5x</button>
+              <button onclick="setSimSpeed(1.0)" class="btn-speed" data-s="1.0" style="padding: 2px 5px; border-radius: 4px; border: none; background: #2563eb; color: #fff; cursor: pointer; font-weight: bold;">1.0x</button>
+              <button onclick="setSimSpeed(2.0)" class="btn-speed" data-s="2.0" style="padding: 2px 5px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #475569;">2.0x</button>
             </div>
             <div style="font-size: 12px; color: #64748b; font-family: monospace; font-weight: bold; min-width: 130px; text-align: right;" id="animTime">
               t = 0.00 s
             </div>
           </div>
         </div>
-        <canvas id="sdofCanvas"></canvas>
+
+        <!-- SDOF Viewport Container -->
+        <div style="position: relative; width: 100%; height: 260px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; background: #faf8f5;">
+          <!-- 3D BIM Container -->
+          <div id="threeSdofContainer" style="position: absolute; inset: 0; width: 100%; height: 100%; background: #faf8f5;">
+            <div style="position: absolute; bottom: 8px; left: 8px; font-size: 10px; font-family: monospace; color: #475569; background: rgba(255,255,255,0.92); padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; z-index: 10; display: flex; align-items: center; gap: 6px;">
+              <span>🖱️ 3D 회전/줌</span>
+              <span style="color: #cbd5e1;">|</span>
+              <span style="color: #2563eb; font-weight: bold;">파란색: Newmark 수치해 수레</span>
+              <span style="color: #cbd5e1;">|</span>
+              <span style="color: #0284c7; font-weight: bold;">반투명: 정확해(Exact) 고스트</span>
+            </div>
+          </div>
+
+          <!-- 2D Canvas Container -->
+          <div id="sdof2DContainer" style="position: absolute; inset: 0; width: 100%; height: 100%; background: #faf8f5; display: none;">
+            <canvas id="sdofCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+          </div>
+        </div>
       </div>
 
       <!-- 하단 시간이력 변위 비교 플롯 캔버스 -->
@@ -567,8 +592,10 @@ let isPlaying = true;
 let animCurrentTime = 0.0;
 let lastTimestamp = 0;
 
-let timeHistory = []; // {t, u_exact, u_num, isDiverged}
-let fineExactHistory = []; // {t, u} smooth analytical reference
+let timeHistory = [];      // Discrete calculation nodes {t, u_exact, u_num, v_num, a_num, isDiverged}
+let fineTimeHistory = [];  // High-resolution continuous trajectory (1200 points)
+let fineExactHistory = []; // High-resolution analytical reference
+let exactMapGlobal = {};
 let uMax = 1.0;
 let isDiverged = false;
 let divergedStepIndex = -1;
@@ -602,27 +629,584 @@ const sdofCtx = sdofCanvas.getContext('2d');
 const plotCanvas = document.getElementById('plotCanvas');
 const plotCtx = plotCanvas.getContext('2d');
 
+// --- 3D BIM SDOF Rig State ---
+let currentSdofView = '3D';
+const threeSdofContainer = document.getElementById('threeSdofContainer');
+let threeScene, threeCamera, threeRenderer, threeControls;
+let threeCartGroup, threeGhostCartGroup, threeSpringMesh, threeDamperCyl, threeDamperRod, threeDamperPistonHead;
+let threeCartBodyMesh;
+let threeWheelMeshes = [];
+let threeGhostWheelMeshes = [];
+let threeWheelAngle = 0;
+let threeGhostWheelAngle = 0;
+
+// Parametric Helical Spring Curve Class for Three.js
+class HelicalSpringCurve extends THREE.Curve {
+  constructor(start, end, radius, coils) {
+    super();
+    this.start = start.clone();
+    this.end = end.clone();
+    this.radius = radius;
+    this.coils = coils;
+  }
+  getPoint(t, optionalTarget = new THREE.Vector3()) {
+    const point = optionalTarget;
+    point.lerpVectors(this.start, this.end, t);
+    const angle = t * Math.PI * 2 * this.coils;
+    point.y += Math.cos(angle) * this.radius;
+    point.z += Math.sin(angle) * this.radius;
+    return point;
+  }
+}
+
+function switchSdofView(view) {
+  currentSdofView = view;
+  const b3d = document.getElementById('btnSdof3D');
+  const b2d = document.getElementById('btnSdof2D');
+  const c3d = document.getElementById('threeSdofContainer');
+  const c2d = document.getElementById('sdof2DContainer');
+
+  if (view === '3D') {
+    b3d.style.background = '#fff';
+    b3d.style.color = '#2563eb';
+    b3d.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+    b2d.style.background = 'transparent';
+    b2d.style.color = '#475569';
+    b2d.style.boxShadow = 'none';
+    c3d.style.display = 'block';
+    c2d.style.display = 'none';
+    if (threeRenderer && threeCamera && threeSdofContainer) {
+      const r = threeSdofContainer.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        threeCamera.aspect = r.width / r.height;
+        threeCamera.updateProjectionMatrix();
+        threeRenderer.setSize(r.width, r.height);
+      }
+    }
+  } else {
+    b2d.style.background = '#fff';
+    b2d.style.color = '#2563eb';
+    b2d.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+    b3d.style.background = 'transparent';
+    b3d.style.color = '#475569';
+    b3d.style.boxShadow = 'none';
+    c3d.style.display = 'none';
+    c2d.style.display = 'block';
+    resizeCanvases();
+  }
+}
+
+function toggleGhostCart(checked) {
+  if (threeGhostCartGroup) {
+    threeGhostCartGroup.visible = checked;
+  }
+}
+
 function resizeCanvases() {
   const dpr = window.devicePixelRatio || 1;
   const sdofWrapper = sdofCanvas.parentElement;
   const plotWrapper = plotCanvas.parentElement;
 
-  const sw = sdofWrapper.clientWidth - 32;
-  const sh = 175;
-  sdofCanvas.width = sw * dpr;
-  sdofCanvas.height = sh * dpr;
-  sdofCanvas.style.width = sw + 'px';
-  sdofCanvas.style.height = sh + 'px';
+  if (sdofWrapper) {
+    const sw = sdofWrapper.clientWidth;
+    const sh = sdofWrapper.clientHeight || 260;
+    sdofCanvas.width = sw * dpr;
+    sdofCanvas.height = sh * dpr;
+    sdofCanvas.style.width = sw + 'px';
+    sdofCanvas.style.height = sh + 'px';
+  }
 
-  const pw = plotWrapper.clientWidth - 32;
-  const ph = 380;
-  plotCanvas.width = pw * dpr;
-  plotCanvas.height = ph * dpr;
-  plotCanvas.style.width = pw + 'px';
-  plotCanvas.style.height = ph + 'px';
+  if (plotWrapper) {
+    const pw = plotWrapper.clientWidth - 32;
+    const ph = 380;
+    plotCanvas.width = pw * dpr;
+    plotCanvas.height = ph * dpr;
+    plotCanvas.style.width = pw + 'px';
+    plotCanvas.style.height = ph + 'px';
+  }
+
+  if (threeRenderer && threeCamera && threeSdofContainer) {
+    const r = threeSdofContainer.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) {
+      threeCamera.aspect = r.width / r.height;
+      threeCamera.updateProjectionMatrix();
+      threeRenderer.setSize(r.width, r.height);
+    }
+  }
 }
 window.addEventListener('resize', resizeCanvases);
 
+// --- 3D BIM Scene Initialization ---
+function initThreeSdof() {
+  if (!threeSdofContainer) return;
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color(0xfaf8f5); // Warm off-white (미색)
+
+  const r = threeSdofContainer.getBoundingClientRect();
+  const width = r.width || 800;
+  const height = r.height || 260;
+
+  threeCamera = new THREE.PerspectiveCamera(34, width / height, 0.1, 1000);
+  threeCamera.position.set(2.8, 5.0, 12.8);
+
+  threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  threeRenderer.setSize(width, height);
+  threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  threeRenderer.shadowMap.enabled = true;
+  threeRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  threeSdofContainer.appendChild(threeRenderer.domElement);
+
+  threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+  threeControls.enableDamping = true;
+  threeControls.dampingFactor = 0.05;
+  threeControls.target.set(0.6, 1.4, 0);
+  threeControls.maxPolarAngle = Math.PI / 2 + 0.04;
+  threeControls.minDistance = 5;
+  threeControls.maxDistance = 25;
+
+  // Studio Lighting (Multi-point bright architectural illumination)
+  const ambLight = new THREE.AmbientLight(0xffffff, 1.25);
+  threeScene.add(ambLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.05);
+  dirLight.position.set(10, 18, 12);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 40;
+  dirLight.shadow.camera.left = -12;
+  dirLight.shadow.camera.right = 12;
+  dirLight.shadow.camera.top = 12;
+  dirLight.shadow.camera.bottom = -12;
+  dirLight.shadow.bias = 0.0005;
+  threeScene.add(dirLight);
+
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  fillLight.position.set(-12, 14, 10);
+  threeScene.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.45);
+  rimLight.position.set(0, 10, -12);
+  threeScene.add(rimLight);
+
+  // 1. Bedrock Plinth (Bright Pure White Surface Plate)
+  const bedGeo = new THREE.BoxGeometry(13.4, 0.45, 6.4);
+  const bedMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45, metalness: 0.10 });
+  const bedrock = new THREE.Mesh(bedGeo, bedMat);
+  bedrock.position.set(0.5, 0.225, 0);
+  bedrock.receiveShadow = true;
+  threeScene.add(bedrock);
+
+  const bedEdgeGeo = new THREE.EdgesGeometry(bedGeo);
+  bedrock.add(new THREE.LineSegments(bedEdgeGeo, new THREE.LineBasicMaterial({ color: 0xcbd5e1 })));
+
+  // 4 Leveling Mount Pads at corners
+  const padGeo = new THREE.CylinderGeometry(0.35, 0.45, 0.25, 16);
+  const padMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
+  for (let px of [-5.8, 6.8]) {
+    for (let pz of [-2.8, 2.8]) {
+      const pad = new THREE.Mesh(padGeo, padMat);
+      pad.position.set(px, 0.125, pz);
+      pad.castShadow = true;
+      pad.receiveShadow = true;
+      threeScene.add(pad);
+    }
+  }
+
+  // 2. Left Reaction Buttress Wall (Bright Pure Architectural Concrete)
+  const wallGeo = new THREE.BoxGeometry(1.4, 3.4, 4.4);
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35, metalness: 0.05 });
+  const wall = new THREE.Mesh(wallGeo, wallMat);
+  wall.position.set(-4.9, 1.925, 0);
+  wall.castShadow = true;
+  wall.receiveShadow = true;
+  threeScene.add(wall);
+
+  // Steel Anchor Faceplate on Wall
+  const faceplateGeo = new THREE.BoxGeometry(0.12, 3.0, 3.8);
+  const faceplateMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
+  const faceplate = new THREE.Mesh(faceplateGeo, faceplateMat);
+  faceplate.position.set(-4.14, 1.925, 0);
+  threeScene.add(faceplate);
+
+  // Wall Anchor Bolts
+  const boltGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.18, 12);
+  const boltMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
+  boltGeo.rotateZ(Math.PI / 2);
+  for (let by of [0.8, 1.5, 2.2, 2.9]) {
+    for (let bz of [-1.6, 1.6]) {
+      const b = new THREE.Mesh(boltGeo, boltMat);
+      b.position.set(-4.06, by, bz);
+      threeScene.add(b);
+    }
+  }
+
+  // Wall Clevis Brackets for Spring & Damper
+  function createClevisBracket(x, y, z) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    const bp = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.55, 0.55), faceplateMat);
+    group.add(bp);
+    const earGeo = new THREE.BoxGeometry(0.4, 0.35, 0.08);
+    const ear1 = new THREE.Mesh(earGeo, faceplateMat);
+    ear1.position.set(0.2, 0, -0.16);
+    group.add(ear1);
+    const ear2 = new THREE.Mesh(earGeo, faceplateMat);
+    ear2.position.set(0.2, 0, 0.16);
+    group.add(ear2);
+    const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.44, 16), boltMat);
+    pin.position.set(0.28, 0, 0);
+    group.add(pin);
+    return group;
+  }
+  threeScene.add(createClevisBracket(-4.08, 1.55, -0.85)); // Wall Spring Clevis
+  threeScene.add(createClevisBracket(-4.08, 1.55, 0.85));  // Wall Damper Clevis
+
+  // 3. Precision Stainless Linear Guideway (LM Rails - Mirror Chrome)
+  for (let z of [-1.2, 1.2]) {
+    const railGeo = new THREE.BoxGeometry(9.6, 0.12, 0.20);
+    const railMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.15 });
+    const rail = new THREE.Mesh(railGeo, railMat);
+    rail.position.set(0.5, 0.51, z);
+    rail.receiveShadow = true;
+    threeScene.add(rail);
+
+    for (let rx = -3.5; rx <= 4.5; rx += 1.2) {
+      const rBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.05, 8), boltMat);
+      rBolt.position.set(rx, 0.57, z);
+      threeScene.add(rBolt);
+    }
+
+    const bumperGeo = new THREE.BoxGeometry(0.25, 0.35, 0.28);
+    const bumperMat = new THREE.MeshStandardMaterial({ color: 0xf87171, roughness: 0.3 });
+    const bumperL = new THREE.Mesh(bumperGeo, bumperMat);
+    bumperL.position.set(-4.1, 0.65, z);
+    threeScene.add(bumperL);
+    const bumperR = new THREE.Mesh(bumperGeo, bumperMat);
+    bumperR.position.set(5.1, 0.65, z);
+    threeScene.add(bumperR);
+  }
+
+  // 4. MAIN SDOF NUMERICAL CART (Bright Cerulean Blue & White)
+  threeCartGroup = new THREE.Group();
+  threeCartGroup.position.set(1.30, 0, 0);
+
+  const chassisGeo = new THREE.BoxGeometry(2.4, 0.18, 2.9);
+  const chassisMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.25, roughness: 0.3 });
+  const chassis = new THREE.Mesh(chassisGeo, chassisMat);
+  chassis.position.set(0, 0.66, 0);
+  chassis.castShadow = true;
+  threeCartGroup.add(chassis);
+
+  const pillowGeo = new THREE.BoxGeometry(0.48, 0.16, 0.32);
+  const pillowMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.25, roughness: 0.3 });
+  for (let px of [-0.75, 0.75]) {
+    for (let pz of [-1.2, 1.2]) {
+      const pb = new THREE.Mesh(pillowGeo, pillowMat);
+      pb.position.set(px, 0.54, pz);
+      threeCartGroup.add(pb);
+    }
+  }
+
+  threeWheelMeshes = [];
+  const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.10, 24);
+  wheelGeo.rotateX(Math.PI / 2);
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.35, roughness: 0.15 });
+  const hubMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
+  for (let wx of [-0.75, 0.75]) {
+    for (let wz of [-1.2, 1.2]) {
+      const wGroup = new THREE.Group();
+      wGroup.position.set(wx, 0.54, wz);
+
+      const wMesh = new THREE.Mesh(wheelGeo, wheelMat);
+      wGroup.add(wMesh);
+
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.12, 16), hubMat);
+      hub.rotation.x = Math.PI / 2;
+      wGroup.add(hub);
+
+      const spokeGeo = new THREE.BoxGeometry(0.30, 0.02, 0.11);
+      const spoke = new THREE.Mesh(spokeGeo, new THREE.MeshBasicMaterial({ color: 0x94a3b8 }));
+      wGroup.add(spoke);
+
+      threeCartGroup.add(wGroup);
+      threeWheelMeshes.push(wGroup);
+    }
+  }
+
+  // Main Mass Block (Bright Cerulean Blue)
+  const massGeo = new THREE.BoxGeometry(2.1, 1.35, 2.4);
+  const massMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.25, roughness: 0.3 });
+  threeCartBodyMesh = new THREE.Mesh(massGeo, massMat);
+  threeCartBodyMesh.position.set(0, 1.425, 0);
+  threeCartBodyMesh.castShadow = true;
+  threeCartGroup.add(threeCartBodyMesh);
+
+  // Counterweight Slabs on Top
+  const slabGeo = new THREE.BoxGeometry(1.8, 0.14, 2.0);
+  const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.15, roughness: 0.25 });
+  const slab1 = new THREE.Mesh(slabGeo, slabMat);
+  slab1.position.set(0, 2.17, 0);
+  slab1.castShadow = true;
+  threeCartGroup.add(slab1);
+
+  const slab2 = new THREE.Mesh(slabGeo, slabMat);
+  slab2.position.set(0, 2.31, 0);
+  slab2.castShadow = true;
+  threeCartGroup.add(slab2);
+
+  // Top Hex Studs
+  for (let bx of [-0.75, 0.75]) {
+    for (let bz of [-0.85, 0.85]) {
+      const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.14, 8), boltMat);
+      tb.position.set(bx, 2.44, bz);
+      threeCartGroup.add(tb);
+    }
+  }
+
+  // Front Clevis Brackets on Cart
+  function createCartClevis(x, y, z) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    const earGeo = new THREE.BoxGeometry(0.35, 0.35, 0.08);
+    const ear1 = new THREE.Mesh(earGeo, faceplateMat);
+    ear1.position.set(-0.15, 0, -0.15);
+    group.add(ear1);
+    const ear2 = new THREE.Mesh(earGeo, faceplateMat);
+    ear2.position.set(-0.15, 0, 0.15);
+    group.add(ear2);
+    const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.42, 16), boltMat);
+    pin.position.set(-0.25, 0, 0);
+    group.add(pin);
+    return group;
+  }
+  threeCartGroup.add(createCartClevis(-1.05, 1.55, -0.85)); // Spring clevis on cart
+  threeCartGroup.add(createCartClevis(-1.05, 1.55, 0.85));  // Damper clevis on cart
+
+  // Cart Nameplate
+  const plateGeo = new THREE.BoxGeometry(1.6, 0.5, 0.04);
+  const plateMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.25, roughness: 0.3 });
+  const nameplate = new THREE.Mesh(plateGeo, plateMat);
+  nameplate.position.set(0, 1.45, 1.22);
+  threeCartGroup.add(nameplate);
+
+  const ledGeo = new THREE.BoxGeometry(1.4, 0.18, 0.05);
+  const ledMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+  const ledBezel = new THREE.Mesh(ledGeo, ledMat);
+  ledBezel.position.set(0, 1.35, 1.23);
+  threeCartGroup.add(ledBezel);
+
+  threeScene.add(threeCartGroup);
+
+  // 5. GHOST CART (Exact Analytical Holographic Ghost)
+  threeGhostCartGroup = new THREE.Group();
+  threeGhostCartGroup.position.set(1.30, 0, -0.35); // Slight Z-offset for high-clarity comparison
+
+  const ghostChassisMat = new THREE.MeshStandardMaterial({
+    color: 0x0284c7,
+    metalness: 0.2,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.35
+  });
+  const ghostChassis = new THREE.Mesh(chassisGeo, ghostChassisMat);
+  ghostChassis.position.set(0, 0.66, 0);
+  threeGhostCartGroup.add(ghostChassis);
+
+  const ghostMassMat = new THREE.MeshStandardMaterial({
+    color: 0x0284c7,
+    metalness: 0.2,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.38
+  });
+  const ghostBody = new THREE.Mesh(massGeo, ghostMassMat);
+  ghostBody.position.set(0, 1.425, 0);
+  threeGhostCartGroup.add(ghostBody);
+
+  const ghostSlabMat = new THREE.MeshStandardMaterial({
+    color: 0xe0f2fe,
+    metalness: 0.2,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.42
+  });
+  const ghostSlab = new THREE.Mesh(slabGeo, ghostSlabMat);
+  ghostSlab.position.set(0, 2.17, 0);
+  threeGhostCartGroup.add(ghostSlab);
+
+  threeGhostWheelMeshes = [];
+  const ghostWheelMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0.3,
+    roughness: 0.2,
+    transparent: true,
+    opacity: 0.40
+  });
+  for (let wx of [-0.75, 0.75]) {
+    for (let wz of [-1.2, 1.2]) {
+      const gw = new THREE.Mesh(wheelGeo, ghostWheelMat);
+      gw.position.set(wx, 0.54, wz);
+      threeGhostCartGroup.add(gw);
+      threeGhostWheelMeshes.push(gw);
+    }
+  }
+  threeScene.add(threeGhostCartGroup);
+
+  // 6. TRUE 3D HELICAL COIL SPRING (Metallic Sky Blue)
+  const springStart = new THREE.Vector3(-3.8, 1.55, -0.85);
+  const springEnd = new THREE.Vector3(0.0, 1.55, -0.85);
+  const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.28, 10);
+  const springGeo = new THREE.TubeGeometry(springCurve, 120, 0.045, 10, false);
+  const springMat = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    metalness: 0.3,
+    roughness: 0.2,
+  });
+  threeSpringMesh = new THREE.Mesh(springGeo, springMat);
+  threeSpringMesh.castShadow = true;
+  threeScene.add(threeSpringMesh);
+
+  // 7. INDUSTRIAL HYDRAULIC DAMPER (Bright Aluminum + Amber Window + Gold Wiper)
+  const cylLen = 1.70;
+  const cylGeo = new THREE.CylinderGeometry(0.18, 0.18, cylLen, 24);
+  cylGeo.rotateZ(Math.PI / 2);
+  const cylMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.25, roughness: 0.3 });
+  threeDamperCyl = new THREE.Mesh(cylGeo, cylMat);
+  threeDamperCyl.position.set(-2.95, 1.55, 0.85);
+  threeDamperCyl.castShadow = true;
+  threeScene.add(threeDamperCyl);
+
+  // Amber Oil Window
+  const glassGeo = new THREE.CylinderGeometry(0.175, 0.175, 1.1, 24);
+  glassGeo.rotateZ(Math.PI / 2);
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    metalness: 0.05,
+    roughness: 0.05,
+    transparent: true,
+    opacity: 0.60
+  });
+  const damperGlass = new THREE.Mesh(glassGeo, glassMat);
+  damperGlass.position.set(-2.95, 1.55, 0.85);
+  threeScene.add(damperGlass);
+
+  // Gold Wiper Nut (front at X = -1.96m)
+  const wiperGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.14, 24);
+  wiperGeo.rotateZ(Math.PI / 2);
+  const wiperMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.4, roughness: 0.25 });
+  const wiper = new THREE.Mesh(wiperGeo, wiperMat);
+  wiper.position.set(-2.03, 1.55, 0.85);
+  threeScene.add(wiper);
+
+  // Damper Chrome Piston Rod & Internal Head
+  const rodLen = 3.6;
+  const rodGeo = new THREE.CylinderGeometry(0.075, 0.075, rodLen, 24);
+  rodGeo.rotateZ(Math.PI / 2);
+  const rodMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.1 });
+  threeDamperRod = new THREE.Mesh(rodGeo, rodMat);
+  threeDamperRod.position.set(-1.47, 1.55, 0.85);
+  threeDamperRod.castShadow = true;
+  threeScene.add(threeDamperRod);
+
+  const pHeadGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.14, 20);
+  pHeadGeo.rotateZ(Math.PI / 2);
+  const pHeadMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.4, roughness: 0.25 });
+  threeDamperPistonHead = new THREE.Mesh(pHeadGeo, pHeadMat);
+  threeDamperPistonHead.position.set(-2.95, 1.55, 0.85);
+  threeScene.add(threeDamperPistonHead);
+}
+
+function renderThreeSdof(motion) {
+  if (!threeRenderer || !threeCamera) return;
+  threeControls.update();
+
+  const maxLeft = 1.35;
+  const maxRight = 2.20;
+  const refAmp = Math.max(1.0, Math.min(5.0, uMax));
+
+  // 1. Numerical Cart Motion
+  const rawShift = (motion.u_num / refAmp) * 1.1;
+  let stroke = 0;
+  if (rawShift >= 0) {
+    stroke = maxRight * Math.tanh(rawShift / maxRight);
+  } else {
+    stroke = -maxLeft * Math.tanh(Math.abs(rawShift) / maxLeft);
+  }
+  const cartCenterX = 1.30 + stroke;
+
+  if (threeCartGroup) {
+    threeCartGroup.position.x = cartCenterX;
+
+    if (motion.isDiv) {
+      // Divergence visual alarm: violent jitter and alert red color
+      threeCartGroup.position.y = (Math.random() - 0.5) * 0.06;
+      threeCartGroup.rotation.z = (Math.random() - 0.5) * 0.04;
+      if (threeCartBodyMesh) {
+        threeCartBodyMesh.material.color.setHex(0xef4444);
+      }
+    } else {
+      threeCartGroup.position.y = 0;
+      threeCartGroup.rotation.z = -0.015 * Math.tanh((motion.a_num || 0) / 40.0);
+      if (threeCartBodyMesh) {
+        threeCartBodyMesh.material.color.setHex(0x3b82f6);
+      }
+    }
+  }
+
+  // 2. Ghost Cart (Exact Analytical) Motion
+  if (threeGhostCartGroup) {
+    const rawGhost = (motion.u_exact / refAmp) * 1.1;
+    let ghostStroke = 0;
+    if (rawGhost >= 0) {
+      ghostStroke = maxRight * Math.tanh(rawGhost / maxRight);
+    } else {
+      ghostStroke = -maxLeft * Math.tanh(Math.abs(rawGhost) / maxLeft);
+    }
+    threeGhostCartGroup.position.x = 1.30 + ghostStroke;
+  }
+
+  // 3. Smooth Wheel Rotation
+  if (threeWheelMeshes && threeWheelMeshes.length > 0) {
+    const wheelR = 0.18;
+    const dTheta = ((motion.v_num || 0) * 0.016 * simSpeed) / wheelR;
+    threeWheelAngle += dTheta;
+    for (let w of threeWheelMeshes) {
+      w.rotation.z = threeWheelAngle;
+    }
+  }
+  if (threeGhostWheelMeshes && threeGhostWheelMeshes.length > 0) {
+    const wheelR = 0.18;
+    threeGhostWheelAngle += ((motion.v_num || 0) * 0.016 * simSpeed) / wheelR;
+    for (let gw of threeGhostWheelMeshes) {
+      gw.rotation.z = threeGhostWheelAngle;
+    }
+  }
+
+  // 4. Dynamic Spring Update (Zero collision)
+  if (threeSpringMesh) {
+    const springStart = new THREE.Vector3(-3.8, 1.55, -0.85);
+    const springEnd = new THREE.Vector3(cartCenterX - 1.30, 1.55, -0.85);
+    const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.28, 10);
+    threeSpringMesh.geometry.dispose();
+    threeSpringMesh.geometry = new THREE.TubeGeometry(springCurve, 120, 0.045, 10, false);
+  }
+
+  // 5. Dynamic Damper Piston Update
+  if (threeDamperRod && threeDamperPistonHead) {
+    const cartClevisX = cartCenterX - 1.30;
+    const pHeadX = -2.95 + stroke * 0.38;
+    threeDamperPistonHead.position.x = pHeadX;
+
+    const rodLength = Math.max(0.4, cartClevisX - pHeadX);
+    const rodMidX = (pHeadX + cartClevisX) / 2;
+    threeDamperRod.position.x = rodMidX;
+    threeDamperRod.scale.set(rodLength / 3.6, 1, 1);
+  }
+
+  threeRenderer.render(threeScene, threeCamera);
+}
 
 function updateUIValues() {
   valTn.textContent = Tn.toFixed(2) + ' s';
@@ -676,7 +1260,7 @@ function updateUIValues() {
     }
   }
 
-  // 주기 신장비 (대략적 근사: T_num / T_n ≈ 1 + (π² / 12) * (Δt/Tₙ)² for avg acc)
+  // 주기 신장비
   let elong = 1.0;
   if (method === 'avg') {
     elong = 1.0 + (Math.PI * Math.PI / 12.0) * Math.pow(dtRatio, 2);
@@ -693,15 +1277,14 @@ function getExcitationForce(t, m) {
   if (excitation === 'free') {
     return 0.0;
   } else if (excitation === 'sine') {
-    const omegaEx = (2.0 * Math.PI / Tn) * 0.9; // 공진 인접 가진
+    const omegaEx = (2.0 * Math.PI / Tn) * 0.9;
     return 5.0 * m * Math.sin(omegaEx * t);
   } else if (excitation === 'elcentro') {
-    // el centro 0.02s 선형보간
     const idx = t / EL_CENTRO_DT;
     const i = Math.floor(idx);
     if (i >= EL_CENTRO_DATA.length - 1) return 0.0;
     const frac = idx - i;
-    const ag = (EL_CENTRO_DATA[i] * (1 - frac) + EL_CENTRO_DATA[i+1] * frac) * 9.81; // m/s2
+    const ag = (EL_CENTRO_DATA[i] * (1 - frac) + EL_CENTRO_DATA[i+1] * frac) * 9.81;
     return -m * ag;
   }
   return 0.0;
@@ -724,10 +1307,89 @@ function getExactAtTime(t, m, wn, wd, k, u0, v0, exactMap) {
   }
 }
 
+// ================= CONTINUOUS NEWMARK TRAJECTORY EVALUATOR =================
+// Evaluates continuous physical motion at ANY time t without piecewise-linear zigzags
+function getNewmarkContinuousMotion(t) {
+  if (!timeHistory || timeHistory.length === 0) {
+    return { u_num: 0, v_num: 0, a_num: 0, u_exact: 0, isDiv: false };
+  }
+  const dt = dtRatio * Tn;
+  const clampedT = Math.max(0, Math.min(totalT, t));
+  const idx = clampedT / dt;
+  const i = Math.floor(idx);
+
+  // Exact analytical solution at continuous time t
+  const wn = 2.0 * Math.PI / Tn;
+  const wd = wn * Math.sqrt(Math.max(0.0001, 1.0 - zeta * zeta));
+  const k = wn * wn;
+  const u0 = (excitation === 'free') ? 1.0 : 0.0;
+  const u_exact = getExactAtTime(clampedT, 1.0, wn, wd, k, u0, 0.0, exactMapGlobal);
+
+  if (i >= timeHistory.length - 1) {
+    const last = timeHistory[timeHistory.length - 1];
+    return {
+      u_num: last.u_num,
+      v_num: last.v_num || 0,
+      a_num: last.a_num || 0,
+      u_exact: u_exact,
+      isDiv: isDiverged
+    };
+  }
+
+  const s0 = timeHistory[i];
+  const s1 = timeHistory[i + 1];
+  const tau = clampedT - i * dt;
+  const isDiv = isDiverged && (divergedStepIndex >= 0 && i >= divergedStepIndex);
+
+  let u_cont = s0.u_num;
+  let v_cont = s0.v_num || 0;
+  let a_cont = s0.a_num || 0;
+
+  if (isDiv) {
+    // Smooth exponential harmonic explosion for divergence
+    const divProgress = Math.max(0, clampedT - (divergedStepIndex * dt));
+    const divFreq = (2.0 * Math.PI / dt) * 0.5;
+    const divAmp = Math.min(12.0, Math.exp(Math.min(5.0, divProgress * 3.2)));
+    u_cont = divAmp * Math.sin(divFreq * divProgress);
+    v_cont = divAmp * divFreq * Math.cos(divFreq * divProgress);
+  } else if (method === 'linear') {
+    // Exact Linear Acceleration intra-step cubic polynomial:
+    // a(tau) = a0 + (tau/dt)*(a1 - a0)
+    // v(tau) = v0 + a0*tau + 0.5*((a1 - a0)/dt)*tau^2
+    // u(tau) = u0 + v0*tau + 0.5*a0*tau^2 + (1/6)*((a1 - a0)/dt)*tau^3
+    const da = (s1.a_num - s0.a_num) / dt;
+    a_cont = s0.a_num + da * tau;
+    v_cont = s0.v_num + s0.a_num * tau + 0.5 * da * tau * tau;
+    u_cont = s0.u_num + s0.v_num * tau + 0.5 * s0.a_num * tau * tau + (1.0 / 6.0) * da * tau * tau * tau;
+  } else if (method === 'avg') {
+    // Exact Average Acceleration intra-step quadratic polynomial:
+    // a_avg = 0.5*(a0 + a1)
+    // v(tau) = v0 + a_avg*tau
+    // u(tau) = u0 + v0*tau + 0.5*a_avg*tau^2
+    const aAvg = 0.5 * (s0.a_num + s1.a_num);
+    a_cont = aAvg;
+    v_cont = s0.v_num + aAvg * tau;
+    u_cont = s0.u_num + s0.v_num * tau + 0.5 * aAvg * tau * tau;
+  } else {
+    // Central Difference: Cubic Hermite spline
+    const s = tau / dt;
+    const s2 = s * s;
+    const s3 = s2 * s;
+    const h00 = 2 * s3 - 3 * s2 + 1;
+    const h10 = s3 - 2 * s2 + s;
+    const h01 = -2 * s3 + 3 * s2;
+    const h11 = s3 - s2;
+    u_cont = h00 * s0.u_num + h10 * dt * s0.v_num + h01 * s1.u_num + h11 * dt * s1.v_num;
+    v_cont = ( (6*s2 - 6*s)*s0.u_num + (3*s2 - 4*s + 1)*dt*s0.v_num + (-6*s2 + 6*s)*s1.u_num + (3*s2 - 2*s)*dt*s1.v_num ) / dt;
+  }
+
+  return { u_num: u_cont, v_num: v_cont, a_num: a_cont, u_exact, isDiv };
+}
+
 // 해석 시뮬레이션 계산
 function computeSimulation() {
   const dt = dtRatio * Tn;
-  const m = 1.0; // kg 단위화
+  const m = 1.0;
   const wn = 2.0 * Math.PI / Tn;
   const k = m * wn * wn;
   const c = 2.0 * m * wn * zeta;
@@ -735,11 +1397,11 @@ function computeSimulation() {
 
   const nSteps = Math.ceil(totalT / dt);
   timeHistory = [];
+  fineTimeHistory = [];
   fineExactHistory = [];
   isDiverged = false;
   divergedStepIndex = -1;
 
-  // Newmark 파라미터
   let gamma = 0.5;
   let beta = 0.25;
   if (method === 'linear') {
@@ -747,7 +1409,6 @@ function computeSimulation() {
     beta = 1.0 / 6.0;
   }
 
-  // 초기조건
   let u0 = (excitation === 'free') ? 1.0 : 0.0;
   let v0 = 0.0;
   let p0 = getExcitationForce(0.0, m);
@@ -756,13 +1417,11 @@ function computeSimulation() {
   let u_num = u0;
   let v_num = v0;
   let a_num = a0;
-
-  // 중앙차분법용 과거 스텝 u_{-1}
   let u_prev = u0 - dt * v0 + (dt * dt / 2.0) * a0;
 
   uMax = 0.0;
+  exactMapGlobal = {};
 
-  let exactMap = {};
   if (excitation === 'elcentro') {
     const dt_ref = 0.0005;
     const nRef = Math.ceil(totalT / dt_ref);
@@ -773,7 +1432,7 @@ function computeSimulation() {
     const a_coeff_e = m / (b_e * dt_ref) + (g_e * c) / b_e;
     const b_coeff_e = m / (2.0 * b_e);
 
-    exactMap[0] = 0.0;
+    exactMapGlobal[0] = 0.0;
     for (let s = 0; s < nRef; s++) {
       const cur_t = s * dt_ref;
       const t_next = (s + 1) * dt_ref;
@@ -785,37 +1444,15 @@ function computeSimulation() {
       u_e += du;
       v_e += dv;
       a_e = (p_next - c * v_e - k * u_e) / m;
-      exactMap[Math.round(t_next * 2000)] = u_e;
+      exactMapGlobal[Math.round(t_next * 2000)] = u_e;
     }
   }
 
-  // 고해상도 연속 정확해 기준선 생성 (800 포인트)
-  const nFine = 800;
-  for (let j = 0; j <= nFine; j++) {
-    const tf = (j / nFine) * totalT;
-    fineExactHistory.push({ t: tf, u: getExactAtTime(tf, m, wn, wd, k, u0, v0, exactMap) });
-  }
-
+  // Discrete Step Simulation
   for (let i = 0; i <= nSteps; i++) {
     const t = i * dt;
+    const u_exact = getExactAtTime(t, m, wn, wd, k, u0, v0, exactMapGlobal);
 
-    // 정확해 계산 (자유진동에 대해 닫힌해, 기타는 미세시간 적분 근사)
-    let u_exact = 0.0;
-    if (excitation === 'free') {
-      u_exact = Math.exp(-zeta * wn * t) * (u0 * Math.cos(wd * t) + ((v0 + zeta * wn * u0) / wd) * Math.sin(wd * t));
-    } else if (excitation === 'sine') {
-      const w_force = (2.0 * Math.PI / Tn) * 0.9;
-      const r = w_force / wn;
-      const F0 = 5.0 * m;
-      const DAF = 1.0 / Math.sqrt(Math.pow(1 - r * r, 2) + Math.pow(2 * zeta * r, 2));
-      const phi = Math.atan2(2 * zeta * r, 1 - r * r);
-      u_exact = (F0 / k) * DAF * Math.sin(w_force * t - phi);
-    } else {
-      const idx = Math.round(t * 2000);
-      u_exact = exactMap[idx] !== undefined ? exactMap[idx] : 0.0;
-    }
-
-    // 발산 검출 (발산되어도 시각적 폭발 그래프를 위해 제한값으로 기록)
     if (!isDiverged && (Math.abs(u_num) > 25.0 || isNaN(u_num))) {
       isDiverged = true;
       divergedStepIndex = i;
@@ -827,6 +1464,8 @@ function computeSimulation() {
       t: t,
       u_exact: u_exact,
       u_num: recordedNum,
+      v_num: v_num,
+      a_num: a_num,
       isDiverged: isDiverged
     });
 
@@ -834,7 +1473,6 @@ function computeSimulation() {
       uMax = Math.abs(u_num);
     }
 
-    // 다음 스텝 계산
     if (i < nSteps) {
       const t_next = (i + 1) * dt;
       const p_next = getExcitationForce(t_next, m);
@@ -859,10 +1497,26 @@ function computeSimulation() {
         const p_hat = getExcitationForce(t, m) - (k - 2.0 * m / (dt * dt)) * u_num - (m / (dt * dt) - c / (2.0 * dt)) * u_prev;
         const u_next = p_hat / m_hat;
 
+        v_num = (u_next - u_prev) / (2.0 * dt);
+        a_num = (u_next - 2.0 * u_num + u_prev) / (dt * dt);
         u_prev = u_num;
         u_num = u_next;
       }
     }
+  }
+
+  // High-Resolution Sampling: Generate 1200 points continuous trajectory for silky smooth plotting
+  fineTimeHistory = [];
+  const nPlotPts = 1200;
+  for (let j = 0; j <= nPlotPts; j++) {
+    const tj = (j / nPlotPts) * totalT;
+    const mot = getNewmarkContinuousMotion(tj);
+    fineTimeHistory.push({
+      t: tj,
+      u_num: mot.u_num,
+      u_exact: mot.u_exact,
+      isDiverged: mot.isDiv
+    });
   }
 
   metricUmax.textContent = isDiverged ? '발산 (DIVERGED)' : uMax.toFixed(3) + ' m';
@@ -870,21 +1524,7 @@ function computeSimulation() {
 
 // 60FPS 부드러운 연속 시간 보간 함수 (수레 및 지시선 끊김 현상 원천 방지)
 function getInterpolatedMotion(t) {
-  if (!timeHistory || timeHistory.length === 0) return { u_num: 0, u_exact: 0, isDiv: false };
-  const dt = dtRatio * Tn;
-  const index = t / dt;
-  const i = Math.floor(index);
-  if (i >= timeHistory.length - 1) {
-    const last = timeHistory[timeHistory.length - 1];
-    return { u_num: last.u_num, u_exact: last.u_exact, isDiv: isDiverged };
-  }
-  const frac = index - i;
-  const p0 = timeHistory[i];
-  const p1 = timeHistory[i + 1];
-  const u_num = p0.u_num * (1 - frac) + p1.u_num * frac;
-  const u_exact = p0.u_exact * (1 - frac) + p1.u_exact * frac;
-  const isDiv = isDiverged && (divergedStepIndex >= 0 && i >= divergedStepIndex);
-  return { u_num, u_exact, isDiv };
+  return getNewmarkContinuousMotion(t);
 }
 
 // 속도 제어
@@ -902,13 +1542,17 @@ function setSimSpeed(s) {
   });
 }
 
-// 캔버스 드로잉 - 상단 고품격 CAD SDOF 모션 렌더러
+// 캔버스 드로잉 - 2D 고품격 CAD SDOF 모션 렌더러
 function drawSDOF(motion) {
+  if (!sdofCtx) return;
   const dpr = window.devicePixelRatio || 1;
   const w = sdofCanvas.width / dpr;
   const h = sdofCanvas.height / dpr;
   sdofCtx.setTransform(1, 0, 0, 1, 0, 0);
-  sdofCtx.clearRect(0, 0, sdofCanvas.width, sdofCanvas.height);
+
+  // Warm off-white background (미색)
+  sdofCtx.fillStyle = '#faf8f5';
+  sdofCtx.fillRect(0, 0, sdofCanvas.width, sdofCanvas.height);
   sdofCtx.save();
   sdofCtx.scale(dpr, dpr);
 
@@ -917,16 +1561,16 @@ function drawSDOF(motion) {
 
   // 1. 기초 바닥 콘크리트 및 해칭
   const groundY = h - 34;
-  sdofCtx.fillStyle = '#f8fafc';
+  sdofCtx.fillStyle = '#f1f5f9';
   sdofCtx.fillRect(0, groundY, w, h - groundY);
-  sdofCtx.strokeStyle = '#94a3b8';
+  sdofCtx.strokeStyle = '#cbd5e1';
   sdofCtx.lineWidth = 1.5;
   sdofCtx.beginPath();
   sdofCtx.moveTo(0, groundY);
   sdofCtx.lineTo(w, groundY);
   sdofCtx.stroke();
 
-  sdofCtx.strokeStyle = '#cbd5e1';
+  sdofCtx.strokeStyle = '#e2e8f0';
   sdofCtx.lineWidth = 1;
   for (let x = 10; x < w; x += 16) {
     sdofCtx.beginPath();
@@ -935,44 +1579,43 @@ function drawSDOF(motion) {
     sdofCtx.stroke();
   }
 
-  // 2. 정밀 스테인리스 LM 리니어 레일 (LM Guideway)
+  // 2. 정밀 스테인리스 LM 리니어 레일 (LM Guideway - Bright Chrome)
   const wallX = 65;
   const railTop = groundY - 8;
   const railH = 8;
   const railGrad = sdofCtx.createLinearGradient(0, railTop, 0, groundY);
-  railGrad.addColorStop(0, '#94a3b8');
+  railGrad.addColorStop(0, '#ffffff');
   railGrad.addColorStop(0.3, '#f1f5f9');
-  railGrad.addColorStop(0.7, '#cbd5e1');
-  railGrad.addColorStop(1, '#64748b');
+  railGrad.addColorStop(0.7, '#e2e8f0');
+  railGrad.addColorStop(1, '#cbd5e1');
   sdofCtx.fillStyle = railGrad;
   sdofCtx.fillRect(wallX + 15, railTop, w - wallX - 35, railH);
-  sdofCtx.strokeStyle = '#475569';
+  sdofCtx.strokeStyle = '#94a3b8';
   sdofCtx.lineWidth = 1;
   sdofCtx.strokeRect(wallX + 15, railTop, w - wallX - 35, railH);
 
   // 레일 양단 고무 스토퍼 (Bumpers)
-  sdofCtx.fillStyle = '#dc2626';
+  sdofCtx.fillStyle = '#f87171';
   sdofCtx.fillRect(wallX + 15, railTop - 6, 8, 14);
   sdofCtx.fillRect(w - 28, railTop - 6, 8, 14);
 
-  // 3. 좌측 3D 콘크리트 고정 앵커 벽체 (Reaction Pier)
+  // 3. 좌측 3D 콘크리트 고정 앵커 벽체 (Reaction Pier - Bright Concrete)
   const wallW = 30;
   const wallGrad = sdofCtx.createLinearGradient(wallX - wallW, 0, wallX, 0);
-  wallGrad.addColorStop(0, '#475569');
-  wallGrad.addColorStop(0.4, '#94a3b8');
-  wallGrad.addColorStop(0.8, '#cbd5e1');
-  wallGrad.addColorStop(1, '#64748b');
+  wallGrad.addColorStop(0, '#e2e8f0');
+  wallGrad.addColorStop(0.5, '#f8fafc');
+  wallGrad.addColorStop(1, '#e2e8f0');
   sdofCtx.fillStyle = wallGrad;
   sdofCtx.fillRect(wallX - wallW, 16, wallW, groundY - 16);
-  sdofCtx.strokeStyle = '#334155';
+  sdofCtx.strokeStyle = '#94a3b8';
   sdofCtx.lineWidth = 2;
   sdofCtx.strokeRect(wallX - wallW, 16, wallW, groundY - 16);
 
   // 댐퍼 & 수레 기하학적 치수 정의 (절대 충돌 방지 제약)
   const cylStartX = wallX + 15;
   const cylLen = 100;
-  const cylEndX = cylStartX + cylLen; // 180
-  const minClearance = 50; // 댐퍼와 수레 사이 최소 안전 이격거리 (피스톤 로드 가시영역)
+  const cylEndX = cylStartX + cylLen;
+  const minClearance = 45;
   const massW = 90;
   const massH = 58;
   const massY = groundY - massH - 12;
@@ -981,13 +1624,13 @@ function drawSDOF(motion) {
 
   // 벽면 앵커 브래킷 & 힌지 핀
   function drawAnchorPin(yCenter) {
-    sdofCtx.fillStyle = '#1e293b';
+    sdofCtx.fillStyle = '#e2e8f0';
     sdofCtx.fillRect(wallX - 4, yCenter - 12, 6, 24);
-    sdofCtx.fillStyle = '#334155';
+    sdofCtx.fillStyle = '#f1f5f9';
     sdofCtx.beginPath();
     sdofCtx.roundRect(wallX + 2, yCenter - 8, 10, 16, 2);
     sdofCtx.fill();
-    sdofCtx.fillStyle = '#f8fafc';
+    sdofCtx.fillStyle = '#ffffff';
     sdofCtx.beginPath();
     sdofCtx.arc(wallX + 7, yCenter, 3, 0, Math.PI * 2);
     sdofCtx.fill();
@@ -997,11 +1640,10 @@ function drawSDOF(motion) {
 
   // 평형점 (중립점) 및 스트로크 스케일링
   const eqX = Math.max(380, w * 0.46);
-  const minCartLeft = cylEndX + minClearance; // 180 + 50 = 230
-  const maxNegativeStroke = eqX - (minCartLeft + massW / 2); // 좌측 허용 최대 스트로크
+  const minCartLeft = cylEndX + minClearance;
+  const maxNegativeStroke = eqX - (minCartLeft + massW / 2);
+  const refAmp = Math.max(1.0, Math.min(5.0, uMax));
 
-  const refAmp = Math.max(1.0, Math.min(4.0, uMax));
-  
   // (A) 고스트 정확해 수레 렌더링 (옵션)
   if (showGhost) {
     const ghostRatio = Math.max(-1.0, Math.min(1.5, u_exact / refAmp));
@@ -1035,15 +1677,14 @@ function drawSDOF(motion) {
   const massCenterX = Math.max(minCartCenter, Math.min(maxCartCenter, eqX + numShift));
   const cartLeft = massCenterX - massW / 2;
 
-  // 4. 상단 3D 듀얼 패스 나선형 스프링 (Helical Coil Spring)
+  // 4. 상단 3D 듀얼 패스 나선형 스프링 (Metallic Sky Blue)
   const springStartX = wallX + 12;
   const springEndX = cartLeft - 10;
   const springSpan = springEndX - springStartX;
   const numTurns = 9;
   const pitch = (springSpan - 16) / numTurns;
 
-  // 리드선
-  sdofCtx.strokeStyle = '#2563eb';
+  sdofCtx.strokeStyle = '#38bdf8';
   sdofCtx.lineWidth = 3;
   sdofCtx.lineCap = 'round';
   sdofCtx.beginPath();
@@ -1051,8 +1692,8 @@ function drawSDOF(motion) {
   sdofCtx.lineTo(springStartX + 8, springY);
   sdofCtx.stroke();
 
-  // 후면 코일 (어두운 그림자)
-  sdofCtx.strokeStyle = '#1d4ed8';
+  // 후면 코일
+  sdofCtx.strokeStyle = '#2563eb';
   sdofCtx.lineWidth = 2.8;
   sdofCtx.beginPath();
   for (let i = 0; i < numTurns; i++) {
@@ -1062,8 +1703,12 @@ function drawSDOF(motion) {
   }
   sdofCtx.stroke();
 
-  // 전면 코일 (밝은 하이라이트)
-  sdofCtx.strokeStyle = '#38bdf8';
+  // 전면 코일 (하이라이트)
+  const springGrad = sdofCtx.createLinearGradient(0, springY - 11, 0, springY + 11);
+  springGrad.addColorStop(0, '#bae6fd');
+  springGrad.addColorStop(0.4, '#38bdf8');
+  springGrad.addColorStop(1, '#2563eb');
+  sdofCtx.strokeStyle = springGrad;
   sdofCtx.lineWidth = 3.2;
   sdofCtx.beginPath();
   for (let i = 0; i < numTurns; i++) {
@@ -1073,111 +1718,103 @@ function drawSDOF(motion) {
   }
   sdofCtx.stroke();
 
-  sdofCtx.strokeStyle = '#2563eb';
+  sdofCtx.strokeStyle = '#38bdf8';
   sdofCtx.lineWidth = 3;
   sdofCtx.beginPath();
   sdofCtx.moveTo(springStartX + 8 + numTurns * pitch, springY);
   sdofCtx.lineTo(springEndX, springY);
   sdofCtx.stroke();
 
-  // 5. 하단 정밀 유압식 점성감쇠기 (Hydraulic Viscous Damper)
+  // 5. 하단 정밀 유압식 점성감쇠기 (Bright Anodized Aluminum)
   const cylH = 20;
   const cylGrad = sdofCtx.createLinearGradient(0, damperY - cylH/2, 0, damperY + cylH/2);
-  cylGrad.addColorStop(0, '#1e293b');
-  cylGrad.addColorStop(0.3, '#64748b');
-  cylGrad.addColorStop(0.7, '#334155');
-  cylGrad.addColorStop(1, '#0f172a');
+  cylGrad.addColorStop(0, '#ffffff');
+  cylGrad.addColorStop(0.3, '#f1f5f9');
+  cylGrad.addColorStop(0.7, '#e2e8f0');
+  cylGrad.addColorStop(1, '#cbd5e1');
   sdofCtx.fillStyle = cylGrad;
   sdofCtx.beginPath();
   sdofCtx.roundRect(cylStartX, damperY - cylH/2, cylLen, cylH, 4);
   sdofCtx.fill();
-  sdofCtx.strokeStyle = '#0f172a';
+  sdofCtx.strokeStyle = '#94a3b8';
   sdofCtx.lineWidth = 1.2;
   sdofCtx.stroke();
 
-  // 투명 오일 점검창 (Amber Fluid Window)
+  // 투명 오일 점검창 (Golden Amber Fluid Window)
   const winX = cylStartX + 12;
   const winW = cylLen - 24;
   const winH = cylH - 6;
-  sdofCtx.fillStyle = 'rgba(217, 119, 6, 0.40)';
+  sdofCtx.fillStyle = 'rgba(251, 191, 36, 0.45)';
   sdofCtx.fillRect(winX, damperY - winH/2, winW, winH);
-  sdofCtx.strokeStyle = '#78350f';
+  sdofCtx.strokeStyle = '#d97706';
   sdofCtx.lineWidth = 1;
   sdofCtx.strokeRect(winX, damperY - winH/2, winW, winH);
 
-  // 피스톤 헤드 (내부 오리피스 홀)
+  // 피스톤 헤드
   const pMinX = winX + 6;
   const pMaxX = winX + winW - 6;
   const pHeadX = pMinX + ((numRatio + 1.0) / 2.5) * (pMaxX - pMinX);
-  sdofCtx.fillStyle = '#475569';
+  sdofCtx.fillStyle = '#d97706';
   sdofCtx.fillRect(pHeadX - 4, damperY - winH/2, 8, winH);
-  sdofCtx.fillStyle = '#f59e0b';
+  sdofCtx.fillStyle = '#fef3c7';
   sdofCtx.fillRect(pHeadX - 2, damperY - 3, 4, 2);
 
   // 피스톤 로드 (고광택 크롬 로드)
   const rodGrad = sdofCtx.createLinearGradient(0, damperY - 3, 0, damperY + 3);
-  rodGrad.addColorStop(0, '#94a3b8');
-  rodGrad.addColorStop(0.4, '#ffffff');
+  rodGrad.addColorStop(0, '#ffffff');
+  rodGrad.addColorStop(0.4, '#f8fafc');
   rodGrad.addColorStop(0.8, '#cbd5e1');
-  rodGrad.addColorStop(1, '#475569');
+  rodGrad.addColorStop(1, '#94a3b8');
   sdofCtx.fillStyle = rodGrad;
   sdofCtx.fillRect(pHeadX + 4, damperY - 3.5, cartLeft - 10 - (pHeadX + 4), 7);
-  sdofCtx.strokeStyle = '#334155';
+  sdofCtx.strokeStyle = '#94a3b8';
   sdofCtx.lineWidth = 1;
   sdofCtx.strokeRect(pHeadX + 4, damperY - 3.5, cartLeft - 10 - (pHeadX + 4), 7);
 
   // 황동 와이퍼 씰
-  sdofCtx.fillStyle = '#d97706';
+  sdofCtx.fillStyle = '#f59e0b';
   sdofCtx.fillRect(cylEndX - 5, damperY - cylH/2, 5, cylH);
 
-  // 6. 메인 수레 차체 (Precision Machined Cart)
+  // 6. 메인 수레 차체 (Bright Cerulean Blue & White)
   const cartGrad = sdofCtx.createLinearGradient(0, massY, 0, massY + massH);
   if (isDiv) {
-    cartGrad.addColorStop(0, '#ef4444');
-    cartGrad.addColorStop(0.5, '#dc2626');
-    cartGrad.addColorStop(1, '#991b1b');
+    cartGrad.addColorStop(0, '#f87171');
+    cartGrad.addColorStop(0.5, '#ef4444');
+    cartGrad.addColorStop(1, '#dc2626');
   } else {
-    cartGrad.addColorStop(0, '#3b82f6');
-    cartGrad.addColorStop(0.5, '#2563eb');
-    cartGrad.addColorStop(1, '#1d4ed8');
+    cartGrad.addColorStop(0, '#60a5fa');
+    cartGrad.addColorStop(0.5, '#3b82f6');
+    cartGrad.addColorStop(1, '#2563eb');
   }
 
   sdofCtx.save();
-  sdofCtx.shadowColor = isDiv ? 'rgba(220, 38, 38, 0.6)' : 'rgba(37, 99, 235, 0.35)';
-  sdofCtx.shadowBlur = isDiv ? 16 : 8;
+  sdofCtx.shadowColor = isDiv ? 'rgba(239, 68, 68, 0.45)' : 'rgba(37, 99, 235, 0.25)';
+  sdofCtx.shadowBlur = isDiv ? 14 : 6;
   sdofCtx.fillStyle = cartGrad;
   sdofCtx.beginPath();
   sdofCtx.roundRect(cartLeft, massY, massW, massH, 8);
   sdofCtx.fill();
-  sdofCtx.strokeStyle = isDiv ? '#fca5a5' : '#bfdbfe';
+  sdofCtx.strokeStyle = isDiv ? '#fca5a5' : '#93c5fd';
   sdofCtx.lineWidth = 2;
   sdofCtx.stroke();
   sdofCtx.restore();
 
-  // 수레 전면 연결 브래킷
-  function drawCartMount(yCenter) {
-    sdofCtx.fillStyle = '#1e293b';
-    sdofCtx.beginPath();
-    sdofCtx.roundRect(cartLeft - 10, yCenter - 7, 10, 14, 2);
-    sdofCtx.fill();
-    sdofCtx.fillStyle = '#e2e8f0';
-    sdofCtx.beginPath();
-    sdofCtx.arc(cartLeft - 5, yCenter, 2.5, 0, Math.PI * 2);
-    sdofCtx.fill();
-  }
-  drawCartMount(springY);
-  drawCartMount(damperY);
+  // 상부 화이트 슬래브
+  sdofCtx.fillStyle = '#ffffff';
+  sdofCtx.fillRect(cartLeft + 8, massY + 4, massW - 16, 10);
+  sdofCtx.strokeStyle = '#cbd5e1';
+  sdofCtx.strokeRect(cartLeft + 8, massY + 4, massW - 16, 10);
 
-  // 볼베어링 휠 캐리지
+  // 볼베어링 휠 캐리지 (크롬 휠)
   function drawWheel(wx) {
-    sdofCtx.fillStyle = '#0f172a';
+    sdofCtx.fillStyle = '#ffffff';
     sdofCtx.beginPath();
     sdofCtx.arc(wx, groundY - 6, 6, 0, Math.PI * 2);
     sdofCtx.fill();
     sdofCtx.strokeStyle = '#94a3b8';
     sdofCtx.lineWidth = 1.5;
     sdofCtx.stroke();
-    sdofCtx.fillStyle = '#f1f5f9';
+    sdofCtx.fillStyle = '#e2e8f0';
     sdofCtx.beginPath();
     sdofCtx.arc(wx, groundY - 6, 2.5, 0, Math.PI * 2);
     sdofCtx.fill();
@@ -1187,22 +1824,22 @@ function drawSDOF(motion) {
 
   // 수레 텍스트 텔레메트리
   sdofCtx.fillStyle = '#ffffff';
-  sdofCtx.font = 'bold 12px Pretendard, sans-serif';
+  sdofCtx.font = 'bold 11px Pretendard, sans-serif';
   sdofCtx.textAlign = 'center';
-  sdofCtx.fillText('질량 m = 1.0 ton', massCenterX, massY + 22);
+  sdofCtx.fillText('질량 m = 1.0 ton', massCenterX, massY + 28);
 
-  sdofCtx.font = 'bold 11px monospace';
-  sdofCtx.fillStyle = isDiv ? '#fef08a' : '#93c5fd';
-  sdofCtx.fillText(`u(t) = ${(u_num >= 0 ? '+' : '') + u_num.toFixed(3)} m`, massCenterX, massY + 42);
+  sdofCtx.font = 'bold 10px monospace';
+  sdofCtx.fillStyle = isDiv ? '#fef08a' : '#ffffff';
+  sdofCtx.fillText(`u(t) = ${(u_num >= 0 ? '+' : '') + u_num.toFixed(3)} m`, massCenterX, massY + 45);
 
   if (isDiv) {
-    sdofCtx.fillStyle = '#fee2e2';
+    sdofCtx.fillStyle = '#dc2626';
     sdofCtx.font = 'bold 9px Pretendard';
     sdofCtx.fillText('⚠️ 발산 폭발!', massCenterX, massY - 6);
   }
 
   // 중앙 원점 평형선 가이드
-  sdofCtx.strokeStyle = '#94a3b8';
+  sdofCtx.strokeStyle = '#cbd5e1';
   sdofCtx.lineWidth = 1;
   sdofCtx.setLineDash([3, 3]);
   sdofCtx.beginPath();
@@ -1217,8 +1854,9 @@ function drawSDOF(motion) {
   sdofCtx.restore();
 }
 
-// 캔버스 드로잉 - 하단 시간-변위 정밀 비교 플롯
+// 캔버스 드로잉 - 하단 시간-변위 정밀 비교 플롯 (고해상도 연속 곡선 & 이산 노드 점)
 function drawPlot(currT) {
+  if (!plotCtx) return;
   const dpr = window.devicePixelRatio || 1;
   const w = plotCanvas.width / dpr;
   const h = plotCanvas.height / dpr;
@@ -1282,22 +1920,20 @@ function drawPlot(currT) {
   plotCtx.lineTo(w - padRight, yZero);
   plotCtx.stroke();
 
-  // 클리핑 영역 설정: 그래프 곡선이 축 경계를 절대 벗어나지 않도록 방어
+  // 클리핑 영역 설정
   plotCtx.save();
   plotCtx.beginPath();
   plotCtx.rect(padLeft, padTop, plotW, plotH);
   plotCtx.clip();
 
-  // (1) 정확해 곡선 (고밀도 800포인트 스무스 곡선)
+  // (1) 정확해 곡선 (1200포인트 고밀도 스무스 곡선)
   plotCtx.strokeStyle = '#94a3b8';
   plotCtx.lineWidth = 1.8;
   plotCtx.beginPath();
   let firstExact = true;
-  const exactPoints = (fineExactHistory && fineExactHistory.length > 0) ? fineExactHistory : timeHistory;
-  for (let pt of exactPoints) {
+  for (let pt of fineTimeHistory) {
     const x = padLeft + (pt.t / totalT) * plotW;
-    const uVal = pt.u !== undefined ? pt.u : pt.u_exact;
-    const clampedU = Math.max(-yLimit, Math.min(yLimit, uVal));
+    const clampedU = Math.max(-yLimit, Math.min(yLimit, pt.u_exact));
     const y = yZero - (clampedU / yLimit) * (plotH / 2);
     if (firstExact) {
       plotCtx.moveTo(x, y);
@@ -1308,12 +1944,12 @@ function drawPlot(currT) {
   }
   plotCtx.stroke();
 
-  // (2) Newmark 수치해 곡선 (수렴 시 청색, 발산 시 폭발 적색)
+  // (2) Newmark 수치해 곡선 (1200포인트 고해상도 연속 궤적 - 지그재그 완전 제거!)
   plotCtx.strokeStyle = isDiverged ? '#dc2626' : '#2563eb';
-  plotCtx.lineWidth = 2.2;
+  plotCtx.lineWidth = 2.4;
   plotCtx.beginPath();
   let firstNum = true;
-  for (let pt of timeHistory) {
+  for (let pt of fineTimeHistory) {
     const x = padLeft + (pt.t / totalT) * plotW;
     const clampedU = Math.max(-yLimit, Math.min(yLimit, pt.u_num));
     const y = yZero - (clampedU / yLimit) * (plotH / 2);
@@ -1326,23 +1962,27 @@ function drawPlot(currT) {
   }
   plotCtx.stroke();
 
-  // (2-1) 수치 계산 스텝 마커 점 (이산 Δt 시점 시각화)
+  // (3) 이산 계산 스텝 마커 점 (Newmark 실제 계산 노드 시각화)
   if (timeHistory.length <= 150) {
-    plotCtx.fillStyle = isDiverged ? '#dc2626' : '#2563eb';
     for (let pt of timeHistory) {
       const x = padLeft + (pt.t / totalT) * plotW;
       const clampedU = Math.max(-yLimit, Math.min(yLimit, pt.u_num));
       const y = yZero - (clampedU / yLimit) * (plotH / 2);
+
+      plotCtx.fillStyle = isDiverged ? '#dc2626' : '#2563eb';
       plotCtx.beginPath();
-      plotCtx.arc(x, y, 2.5, 0, Math.PI * 2);
+      plotCtx.arc(x, y, 3.2, 0, Math.PI * 2);
       plotCtx.fill();
+      plotCtx.strokeStyle = '#ffffff';
+      plotCtx.lineWidth = 1.5;
+      plotCtx.stroke();
     }
   }
 
   // 클리핑 해제
   plotCtx.restore();
 
-  // (3) 현재 재생 시점 수직 가이드라인 & 엠버 헤드
+  // (4) 현재 재생 시점 수직 가이드라인 & 엠버 헤드
   const currX = padLeft + (currT / totalT) * plotW;
   plotCtx.strokeStyle = '#f59e0b';
   plotCtx.lineWidth = 2;
@@ -1369,7 +2009,7 @@ function drawPlot(currT) {
   plotCtx.restore();
 }
 
-// 부드러운 60FPS 애니메이션 루프
+// 60FPS 부드러운 애니메이션 루프
 function animate(timestamp) {
   if (!lastTimestamp) lastTimestamp = timestamp;
   const elapsed = (timestamp - lastTimestamp) / 1000.0;
@@ -1384,9 +2024,14 @@ function animate(timestamp) {
 
   animTime.textContent = `t = ${animCurrentTime.toFixed(2)} s / ${totalT.toFixed(1)} s`;
 
-  const motion = getInterpolatedMotion(animCurrentTime);
+  const motion = getNewmarkContinuousMotion(animCurrentTime);
 
-  drawSDOF(motion);
+  if (currentSdofView === '3D') {
+    renderThreeSdof(motion);
+  } else {
+    drawSDOF(motion);
+  }
+
   drawPlot(animCurrentTime);
 
   requestAnimationFrame(animate);
@@ -1469,10 +2114,13 @@ btnReset.addEventListener('click', () => {
 });
 
 // 초기화 실행
-resizeCanvases();
-updateUIValues();
-computeSimulation();
-requestAnimationFrame(animate);
+window.addEventListener('DOMContentLoaded', () => {
+  resizeCanvases();
+  initThreeSdof();
+  updateUIValues();
+  computeSimulation();
+  requestAnimationFrame(animate);
+});
 </script>
 
 </body>
