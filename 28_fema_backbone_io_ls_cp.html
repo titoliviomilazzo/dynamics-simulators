@@ -313,10 +313,15 @@
     display: flex;
     align-items: center;
     gap: 10px;
-  }
-</style>
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+  </style>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
   <script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body>
@@ -1375,9 +1380,29 @@ function drawMicroDual() {
   }
 }
 
+// Awwwards Pack: Zentry 3D Tilt on Cards
+function initZentryCards() {
+  const cards = document.querySelectorAll('.panel, .canvas-card, .hud-box, .bottom-insight');
+  cards.forEach(card => {
+    card.classList.add('zentry-card');
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      const rotX = -(y / (rect.height / 2)) * 3.5;
+      const rotY = (x / (rect.width / 2)) * 3.5;
+      card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+    });
+  });
+}
+
 // INIT
 window.addEventListener('load', () => {
   updateParams();
+  initZentryCards();
 });
 window.addEventListener('resize', () => {
   drawBackbone();

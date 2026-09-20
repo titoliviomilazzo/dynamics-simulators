@@ -1,591 +1,651 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sim 44: 비선형 능력스펙트럼법(CSM) & 성능점(Performance Point) 반복 수렴기</title>
-<style>
-  :root {
-    --bg-dark: #f8fafc;
-    --card-bg: #ffffff;
-    --border: #cbd5e1;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --accent-blue: #0284c7;
-    --accent-amber: #f59e0b;
-    --accent-emerald: #10b981;
-    --accent-rose: #f43f5e;
-    --accent-purple: #a855f7;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
-  header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-  .title-group h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
-  .title-group p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
-  .badge { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
-
-  .main-container { flex: 1; display: grid; grid-template-columns: 320px 1fr 320px; gap: 1rem; padding: 1rem; height: calc(100vh - 65px); }
-  @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; height: auto; } }
-
-  .panel { background: #ffffff; border: 1.5px solid #0f172a; box-shadow: 0 4px 0 #0f172a; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
-  .panel-title { font-size: 0.95rem; font-weight: 600; color: var(--accent-blue); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
-
-  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
-  .control-group label { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
-  select, input[type="range"] { background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 4px; font-size: 0.85rem; width: 100%; accent-color: var(--accent-blue); }
-
-  .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-  button { background: #0f172a; color: #fff; border: 1.5px solid #0f172a; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
-  button:hover { background: #475569; }
-  button.active { background: #0f172a; color: #ffffff; border-color: var(--accent-blue); font-weight: 700; }
-  button.primary { background: var(--accent-emerald); color: #0f172a; border-color: var(--accent-emerald); font-weight: 700; }
-  button.primary:hover { background: #059669; }
-
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-  .stat-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
-  .stat-card .label { font-size: 0.7rem; color: var(--text-muted); }
-  .stat-card .value { font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
-  .stat-card.blue .value { color: var(--accent-blue); }
-  .stat-card.amber .value { color: var(--accent-amber); }
-  .stat-card.emerald .value { color: var(--accent-emerald); }
-  .stat-card.rose .value { color: var(--accent-rose); }
-
-  .canvas-wrapper { flex: 1; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; min-height: 400px; }
-  canvas { width: 100%; height: 100%; display: block; }
-
-  .iter-table { width: 100%; border-collapse: collapse; font-family: 'Consolas', monospace; font-size: 0.72rem; }
-  .iter-table th, .iter-table td { border: 1px solid var(--border); padding: 0.3rem 0.4rem; text-align: center; }
-  .iter-table th { background: #0b1120; color: var(--accent-blue); }
-  .iter-table tr.current { background: rgba(56, 189, 248, 0.2); font-weight: 700; color: #fff; }
-
-  .takeaway { background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
-  .callout-emerald { background: rgba(16, 185, 129, 0.08); border-left: 3px solid var(--accent-emerald); padding: 0.6rem; border-radius: 0 4px 4px 0; font-size: 0.75rem; line-height: 1.4; }
-</style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sim 44: 비선형 능력스펙트럼법(CSM) & 성능점(Performance Point) 반복 수렴기</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="assets/dynamics-fx.js" defer></script>
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+    .iter-table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 0.72rem; }
+    .iter-table th, .iter-table td { border: 1px solid #e2e8f0; padding: 0.35rem 0.45rem; text-align: center; }
+    .iter-table th { background: #f1f5f9; color: #1e293b; font-weight: 700; }
+    .iter-table tr.current { background: rgba(37, 99, 235, 0.08); font-weight: 700; color: #1d4ed8; }
+  </style>
 </head>
-<body>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-<header>
-  <div class="title-group">
-    <h1><span class="badge">Sim 44</span> 비선형 능력스펙트럼법(CSM) & 성능점(Performance Point) 반복 수렴기</h1>
-    <p>ATC-40 / FEMA 440: 푸시오버 능력곡선과 주기 신장(Teq)·등가감쇠(βeq)에 의한 요구스펙트럼 수렴</p>
+  <div class="w-full max-w-7xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
+    
+    <!-- Top Header -->
+    <header class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-4 gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+            SIM 44 · PBD
+          </span>
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            비선형 능력스펙트럼법(CSM) &middot; 성능점(Performance Point) 수렴 랩
+          </h1>
+        </div>
+        <p class="text-xs md:text-sm text-slate-600 mt-1">
+          ATC-40 / FEMA 440: 푸시오버 능력곡선 &harr; 주기 신장(Teq) &middot; 등가감쇠(&beta;eq) 요구스펙트럼 수렴 & 3D BIM 골조
+        </p>
+      </div>
+      <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition shadow-xs">
+        &larr; 마스터 대시보드
+      </a>
+    </header>
+
+    <!-- Main 3-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      
+      <!-- Left Panel: Settings (3.5 Cols) -->
+      <div class="lg:col-span-3 space-y-4">
+        
+        <!-- Capacity Parameters Card (Zentry Tilt) -->
+        <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 space-y-3 zentry-card shadow-2xs">
+          <span class="text-xs font-black uppercase text-slate-500 tracking-wider block border-b border-slate-200 pb-1.5">
+            1. 구조물 능력(Pushover) 제원
+          </span>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">초기 탄성주기 T0</span>
+              <span id="lblT0" class="font-mono font-bold text-blue-700">0.80 s</span>
+            </div>
+            <input type="range" id="rngT0" min="0.3" max="2.0" step="0.05" value="0.80" oninput="updateT0(this.value)" class="w-full accent-blue-600 cursor-pointer">
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">항복 가속도 Say</span>
+              <span id="lblSay" class="font-mono font-bold text-emerald-700">0.25 g</span>
+            </div>
+            <input type="range" id="rngSay" min="0.10" max="0.60" step="0.02" value="0.25" oninput="updateSay(this.value)" class="w-full accent-emerald-600 cursor-pointer">
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">2차 강성비 (&alpha;)</span>
+              <span id="lblAlpha" class="font-mono font-bold text-amber-700">5.0 %</span>
+            </div>
+            <input type="range" id="rngAlpha" min="0" max="20" step="1" value="5" oninput="updateAlpha(this.value)" class="w-full accent-amber-500 cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Demand Parameters Card (Zentry Tilt) -->
+        <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 space-y-3 zentry-card shadow-2xs">
+          <span class="text-xs font-black uppercase text-slate-500 tracking-wider block border-b border-slate-200 pb-1.5">
+            2. 지진 요구스펙트럼 (Demand)
+          </span>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-bold text-slate-700">스펙트럼 가속도 SDS</span>
+              <span id="lblSDS" class="font-mono font-bold text-rose-700">0.70 g</span>
+            </div>
+            <input type="range" id="rngSDS" min="0.30" max="1.20" step="0.05" value="0.70" oninput="updateSDS(this.value)" class="w-full accent-rose-600 cursor-pointer">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-700 block">이력 감쇠 거동 계수 (&kappa;)</label>
+            <select id="selKappa" onchange="updateKappa(this.value)" class="w-full py-1.5 px-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-800">
+              <option value="1.0">Type A: 완전 방추형 안정 이력 (&kappa; = 1.0)</option>
+              <option value="0.67" selected>Type B: 보통 콘크리트 핀칭 이력 (&kappa; = 0.67)</option>
+              <option value="0.33">Type C: 심한 핀칭 및 강도 저하 (&kappa; = 0.33)</option>
+            </select>
+          </div>
+
+          <!-- Convergence Control Buttons -->
+          <div class="pt-2 border-t border-slate-200 space-y-1.5">
+            <div class="grid grid-cols-2 gap-1.5">
+              <button id="btnStep" onclick="stepIteration()" class="py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs">다음 단계 (Step)</button>
+              <button id="btnAuto" onclick="toggleAuto()" class="py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">자동 수렴 (Auto)</button>
+            </div>
+            <button onclick="resetIteration()" class="w-full py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold">
+              수렴 루프 리셋 (Reset)
+            </button>
+          </div>
+        </div>
+
+        <!-- Takeaway Card -->
+        <div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3.5 text-xs text-emerald-950 leading-relaxed zentry-card shadow-2xs">
+          <strong>💡 성능점(Performance Point)의 본질:</strong><br>
+          구조물이 항복하면 유효주기가 길어지고(\(T_0 \to T_{eq}\)), 소성 힌지 마찰로 이력감쇠가 폭증(\(\beta = 5\% \to 15\%\))합니다. 감쇠가 커진 만큼 요구 곡선이 축소되어 능력곡선과 만나는 단 하나의 균형점이 성능점입니다.
+        </div>
+
+      </div>
+
+      <!-- Center Panel: ADRS Space (5.5 Cols) -->
+      <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm min-h-[540px]">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
+          <span class="text-xs md:text-sm font-bold text-slate-900">ADRS 평면 상의 능력곡선 vs 감쇠 요구스펙트럼 수렴</span>
+          <span id="convergeBadge" class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono">반복 1단계</span>
+        </div>
+
+        <div class="relative flex-1 w-full min-h-[400px] bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden">
+          <canvas id="adrsCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <div class="flex flex-wrap gap-3 pt-2 border-t border-slate-100 text-[11px] font-semibold">
+          <span class="flex items-center gap-1 text-emerald-700"><span class="w-3 h-1 bg-emerald-600 rounded"></span> 푸시오버 능력곡선 Sa(Sd)</span>
+          <span class="flex items-center gap-1 text-rose-700"><span class="w-3 h-1 bg-rose-500 rounded"></span> 감쇠 요구스펙트럼 (Demand)</span>
+          <span class="flex items-center gap-1 text-blue-700"><span class="w-2 h-2 rounded-full bg-blue-600"></span> 수렴 성능점 (Sdp, Sap)</span>
+        </div>
+      </div>
+
+      <!-- Right Panel: 3D BIM Pushover & FEMA 356 Verdict (3.5 Cols) -->
+      <div class="lg:col-span-3 space-y-4">
+        
+        <!-- Performance Point Metrics (Zentry Tilt) -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-3.5 space-y-2.5 zentry-card shadow-2xs">
+          <span class="text-xs font-black uppercase text-slate-500 tracking-wider block border-b border-slate-100 pb-1.5">
+            수렴 성능점 좌표
+          </span>
+
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div class="bg-emerald-50/70 p-2 rounded-lg border border-emerald-200">
+              <span class="text-[10px] text-emerald-800 block font-sans">성능점 변위 Sdp</span>
+              <span id="valSdp" class="text-sm font-black text-emerald-700">5.82 cm</span>
+            </div>
+            <div class="bg-rose-50/70 p-2 rounded-lg border border-rose-200">
+              <span class="text-[10px] text-rose-800 block font-sans">성능점 가속도 Sap</span>
+              <span id="valSap" class="text-sm font-black text-rose-700">0.264 g</span>
+            </div>
+            <div class="bg-blue-50/70 p-2 rounded-lg border border-blue-200">
+              <span class="text-[10px] text-blue-800 block font-sans">유효주기 Teq</span>
+              <span id="valTeq" class="text-sm font-black text-blue-700">0.94 s</span>
+            </div>
+            <div class="bg-amber-50/70 p-2 rounded-lg border border-amber-200">
+              <span class="text-[10px] text-amber-800 block font-sans">등가감쇠비 &beta;eq</span>
+              <span id="valBeta" class="text-sm font-black text-amber-700">14.8 %</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3D BIM Pushover Building Viewport -->
+        <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 space-y-2 shadow-2xs">
+          <div class="flex justify-between items-center border-b border-slate-200 pb-1.5">
+            <span class="text-xs font-bold text-slate-900">3D BIM 푸시오버 변형</span>
+            <div class="flex items-center gap-1 text-[10px] font-mono">
+              <button onclick="setThreeAmp(35)" id="btnAmp35" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
+              <button onclick="setThreeAmp(70)" id="btnAmp70" class="px-1 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs">2x</button>
+              <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x</button>
+            </div>
+          </div>
+
+          <div class="relative w-full h-[160px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+            <div id="threePushoverContainer" class="w-full h-full absolute inset-0"></div>
+          </div>
+
+          <div class="text-[11px] text-slate-600 leading-tight">
+            성능점 수렴 변위: <strong id="bldg-drift-info" class="text-emerald-700 font-mono">Sdp = 5.82 cm</strong>
+          </div>
+        </div>
+
+        <!-- FEMA 356 Performance Verdict (Zentry Tilt) -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-3.5 space-y-2 zentry-card shadow-2xs">
+          <span class="text-xs font-black uppercase text-slate-500 tracking-wider block border-b border-slate-100 pb-1.5">
+            FEMA 356 내진성능 판정
+          </span>
+
+          <div class="flex justify-between text-xs font-mono">
+            <span class="text-slate-500 font-sans">요구 연성비 (&mu;p):</span>
+            <span id="valMuP" class="font-bold text-slate-900">1.85</span>
+          </div>
+
+          <div id="femaVerdict" class="text-xs font-black text-center p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800">
+            ✅ 인명안전 (LS: Life Safety) 확보
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
   </div>
-  <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.85rem;">← 마스터 포털 복귀</a>
-</header>
 
-<div class="main-container">
-  <!-- Left Panel: Structural Capacity & Demand Settings -->
-  <div class="panel">
-    <div class="panel-title">1. 구조물 능력(Pushover) 제원</div>
+  <script>
+    // --- Global State ---
+    let T0 = 0.80;
+    let Say = 0.25;
+    let alpha = 0.05;
+    let SDS = 0.70;
+    let SD1 = 0.35;
+    let kappa = 0.67;
+    let threeAmpScale = 70.0;
 
-    <div class="control-group">
-      <label><span>초기 탄성주기 T0</span> <span id="lblT0" style="color:var(--accent-blue); font-weight:700;">0.80 s</span></label>
-      <input type="range" id="rngT0" min="0.3" max="2.0" step="0.05" value="0.80" oninput="updateT0(this.value)">
-    </div>
+    let iterHistory = [];
+    let currentStep = 0;
+    let isAuto = false;
+    let autoTimer = null;
 
-    <div class="control-group">
-      <label><span>항복 가속도 Say (항복강도)</span> <span id="lblSay">0.25 g</span></label>
-      <input type="range" id="rngSay" min="0.10" max="0.60" step="0.02" value="0.25" oninput="updateSay(this.value)">
-    </div>
+    const g = 980.665; // cm/s^2
 
-    <div class="control-group">
-      <label><span>항복 후 2차 강성비 (α)</span> <span id="lblAlpha">5.0 %</span></label>
-      <input type="range" id="rngAlpha" min="0" max="20" step="1" value="5" oninput="updateAlpha(this.value)">
-    </div>
+    const canvas = document.getElementById('adrsCanvas');
+    const ctx = canvas.getContext('2d');
 
-    <div class="panel-title" style="margin-top:0.5rem;">2. 지진 요구스펙트럼 (Demand)</div>
-
-    <div class="control-group">
-      <label><span>설계 스펙트럼 강도 SDS</span> <span id="lblSDS">0.70 g</span></label>
-      <input type="range" id="rngSDS" min="0.30" max="1.20" step="0.05" value="0.70" oninput="updateSDS(this.value)">
-    </div>
-
-    <div class="control-group">
-      <label><span>이력 에너지 소산 감쇠계수 κ</span> <span id="lblKappa">0.67 (보통 감쇠형)</span></label>
-      <select id="selKappa" onchange="updateKappa(this.value)">
-        <option value="1.0">Type A: 완전 방추형 안정 이력 (κ = 1.0)</option>
-        <option value="0.67" selected>Type B: 보통 콘크리트 핀칭 이력 (κ = 0.67)</option>
-        <option value="0.33">Type C: 심한 핀칭 및 강도 저하 (κ = 0.33)</option>
-      </select>
-    </div>
-
-    <div class="panel-title" style="margin-top:0.5rem;">3. 성능점 반복 수렴 제어</div>
-    <div class="btn-group">
-      <button id="btnStep" class="primary" onclick="stepIteration()">다음 단계 (Step)</button>
-      <button id="btnAuto" onclick="toggleAuto()">자동 수렴 (Auto)</button>
-    </div>
-    <button onclick="resetIteration()" style="margin-top:0.2rem;">수렴 루프 리셋 (Reset)</button>
-
-    <div class="takeaway">
-      <strong>성능점(Performance Point)의 철학</strong><br>
-      구조물이 항복하면 주기가 길어지고(\(T_0 \to T_{eq}\)), 소성 힌지 내부 마찰로 이력감쇠가 폭증(\(\beta = 5\% \to 18\%\))합니다. 감쇠가 커진 만큼 지진 요구 곡선은 아래로 축소되어 능력곡선과 단 하나의 <strong>물리적 균형점(성능점)</strong>에서 만납니다.
-    </div>
-  </div>
-
-  <!-- Center Canvas ADRS Space -->
-  <div class="panel" style="display:flex; flex-direction:column; gap:0.8rem;">
-    <div class="panel-title">
-      <span id="centerTitle">ADRS 평면 상의 능력곡선 vs 감쇠 요구스펙트럼 수렴 궤적</span>
-      <span id="convergeBadge" class="badge" style="color:var(--accent-amber); border-color:var(--accent-amber);">반복 1단계 진행 중</span>
-    </div>
-
-    <div class="canvas-wrapper">
-      <canvas id="adrsCanvas"></canvas>
-    </div>
-
-    <div class="callout-emerald">
-      <strong>FEMA 356 내진성능 판정 (슬라이드 29)</strong><br>
-      성능점에서의 변위 \(S_{dp}\)를 건물의 허용 소성 변위와 비교합니다:
-      <strong>IO(즉시입주, \(\mu \le 1.5\))</strong> → <strong>LS(인명안전, \(\mu \le 3.5\))</strong> → <strong>CP(붕괴방지, \(\mu \le 5.0\))</strong>.
-    </div>
-  </div>
-
-  <!-- Right Metrics & Iteration Table -->
-  <div class="panel">
-    <div class="panel-title">수렴 성능점 (Performance Point) 좌표</div>
-
-    <div class="stat-grid">
-      <div class="stat-card emerald">
-        <div class="label">성능점 변위 Sdp</div>
-        <div class="value" id="valSdp">5.82 cm</div>
-      </div>
-      <div class="stat-card rose">
-        <div class="label">성능점 가속도 Sap</div>
-        <div class="value" id="valSap">0.264 g</div>
-      </div>
-      <div class="stat-card blue">
-        <div class="label">유효주기 Teq</div>
-        <div class="value" id="valTeq">0.94 s</div>
-      </div>
-      <div class="stat-card amber">
-        <div class="label">등가감쇠비 βeq</div>
-        <div class="value" id="valBeta">14.8 %</div>
-      </div>
-    </div>
-
-    <div class="panel-title" style="margin-top:0.5rem;">ATC-40 수렴 반복 이력 (Iteration Steps)</div>
-    <div style="background:#ffffff; border:1px solid var(--border); border-radius:6px; overflow:hidden;">
-      <table class="iter-table">
-        <thead>
-          <tr>
-            <th>Step</th>
-            <th>Sdi (cm)</th>
-            <th>Sai (g)</th>
-            <th>βeq (%)</th>
-            <th>오차 (cm)</th>
-          </tr>
-        </thead>
-        <tbody id="iterTableBody">
-          <!-- Populated by JS -->
-        </tbody>
-      </table>
-    </div>
-
-    <div class="panel-title" style="margin-top:0.5rem;">FEMA 356 안전 한계상태</div>
-    <div style="background:#ffffff; padding:0.8rem; border-radius:6px; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.4rem;">
-      <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
-        <span style="color:var(--text-muted);">요구 연성비 μp</span>
-        <span id="valMuP" style="font-weight:700; color:#fff;">1.85</span>
-      </div>
-      <div id="femaVerdict" style="font-size:0.85rem; font-weight:800; color:var(--accent-emerald); text-align:center; padding:0.4rem; background:rgba(16,185,129,0.1); border-radius:4px; border:1px solid var(--accent-emerald);">
-        ✅ 인명안전 (LS: Life Safety) 확보
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-  let T0 = 0.80; // s
-  let Say = 0.25; // g
-  let alpha = 0.05; // 5% post-yield stiffness
-  let SDS = 0.70; // g
-  let SD1 = 0.35; // g
-  let kappa = 0.67;
-
-  let iterHistory = [];
-  let currentStep = 0;
-  let isAuto = false;
-  let autoTimer = null;
-
-  const canvas = document.getElementById('adrsCanvas');
-  const ctx = canvas.getContext('2d');
-
-  function resize() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.parentElement.clientWidth;
-    const h = canvas.parentElement.clientHeight;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-  }
-  window.addEventListener('resize', () => { resize(); draw(); });
-
-  function updateT0(v) { T0 = parseFloat(v); document.getElementById('lblT0').textContent = T0.toFixed(2) + ' s'; resetIteration(); }
-  function updateSay(v) { Say = parseFloat(v); document.getElementById('lblSay').textContent = Say.toFixed(2) + ' g'; resetIteration(); }
-  function updateAlpha(v) { alpha = parseFloat(v) / 100; document.getElementById('lblAlpha').textContent = v + ' %'; resetIteration(); }
-  function updateSDS(v) { SDS = parseFloat(v); SD1 = SDS * 0.5; document.getElementById('lblSDS').textContent = SDS.toFixed(2) + ' g'; resetIteration(); }
-  function updateKappa(v) { kappa = parseFloat(v); resetIteration(); }
-
-  const g = 980.665; // cm/s^2
-
-  // Elastic yield displacement Sdy
-  function getSdy() {
-    const omega0 = (2 * Math.PI) / T0;
-    return (Say * g) / (omega0 * omega0); // cm
-  }
-
-  // Capacity curve: Sa(Sd)
-  function capacitySa(sd) {
-    const sdy = getSdy();
-    if (sd <= sdy) {
-      const omega0 = (2 * Math.PI) / T0;
-      return (omega0 * omega0 * sd) / g;
-    } else {
-      const omega0 = (2 * Math.PI) / T0;
-      const k0 = (omega0 * omega0) / g;
-      const kPost = k0 * alpha;
-      return Say + kPost * (sd - sdy);
+    function setThreeAmp(scale) {
+      threeAmpScale = scale;
+      document.getElementById('btnAmp35').className = scale === 35 ? 'px-1 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp70').className = scale === 70 ? 'px-1 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      document.getElementById('btnAmp140').className = scale === 140 ? 'px-1 py-0.5 rounded bg-emerald-600 text-white font-bold shadow-xs' : 'px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
     }
-  }
 
-  // Demand spectrum Sa(Sd, beta) in ADRS
-  function demandSa(sd, beta) {
-    // Damping factor B = 4 / (5.6 - ln(beta_pct))
-    const bPct = Math.max(5.0, beta * 100);
-    const B = 4.0 / (5.6 - Math.log(bPct));
+    function updateT0(v) { T0 = parseFloat(v); document.getElementById('lblT0').textContent = T0.toFixed(2) + ' s'; resetIteration(); }
+    function updateSay(v) { Say = parseFloat(v); document.getElementById('lblSay').textContent = Say.toFixed(2) + ' g'; resetIteration(); }
+    function updateAlpha(v) { alpha = parseFloat(v) / 100; document.getElementById('lblAlpha').textContent = v + ' %'; resetIteration(); }
+    function updateSDS(v) { SDS = parseFloat(v); SD1 = SDS * 0.5; document.getElementById('lblSDS').textContent = SDS.toFixed(2) + ' g'; resetIteration(); }
+    function updateKappa(v) { kappa = parseFloat(v); resetIteration(); }
 
-    // In ADRS, radial line from origin has slope omega^2 / g = 4*pi^2 / (g*T^2)
-    // T = 2*pi * sqrt(sd / (sa*g))
-    // We solve for Sa:
-    // In constant acceleration part (T <= Ts = SD1/SDS): Sa = SDS / B
-    // In constant velocity part (T > Ts): Sa = SD1 / (T * B) => Sa = SD1 / (2*pi * sqrt(sd / (sa*g)) * B)
-    // => sqrt(Sa) = SD1 * sqrt(g) / (2*pi * sqrt(sd) * B) => Sa = (SD1^2 * g) / (4*pi^2 * sd * B^2)
-
-    const Ts = SD1 / SDS;
-    const Sa_plateau = SDS / B;
-
-    // Transition Sd where Sa_plateau meets velocity branch:
-    const sd_trans = (Sa_plateau * g * Ts * Ts) / (4 * Math.PI * Math.PI);
-
-    if (sd <= sd_trans) {
-      return Sa_plateau;
-    } else {
-      return (SD1 * SD1 * g) / (4 * Math.PI * Math.PI * sd * B * B);
+    function getSdy() {
+      const omega0 = (2 * Math.PI) / T0;
+      return (Say * g) / (omega0 * omega0);
     }
-  }
 
-  // Find intersection between capacity and demand curve
-  function findIntersection(beta) {
-    let low = 0.1, high = 30.0;
-    for (let i = 0; i < 40; i++) {
-      const mid = (low + high) / 2;
-      const cap = capacitySa(mid);
-      const dem = demandSa(mid, beta);
-      if (cap < dem) {
-        low = mid;
+    function capacitySa(sd) {
+      const sdy = getSdy();
+      if (sd <= sdy) {
+        const omega0 = (2 * Math.PI) / T0;
+        return (omega0 * omega0 * sd) / g;
       } else {
-        high = mid;
+        const omega0 = (2 * Math.PI) / T0;
+        const k0 = (omega0 * omega0) / g;
+        const kPost = k0 * alpha;
+        return Say + kPost * (sd - sdy);
       }
     }
-    const sd = (low + high) / 2;
-    const sa = capacitySa(sd);
-    return { sd, sa };
-  }
 
-  // ATC-40 Equivalent Damping from ductility mu
-  function getBetaEq(sd) {
-    const sdy = getSdy();
-    const mu = Math.max(1.0, sd / sdy);
-    if (mu <= 1.0) return 0.05;
+    function demandSa(sd, betaEff) {
+      const B = (4.0 / (5.6 - Math.log(betaEff * 100)));
+      const Ts = SD1 / SDS;
+      const omega = Math.sqrt((SDS * g) / Math.max(0.01, sd * B));
+      const T = (2 * Math.PI) / Math.max(0.1, omega);
 
-    // Area of hysteretic loop / (2*pi * Ed)
-    const beta_0 = 0.05;
-    const beta_hyst = (2 / Math.PI) * ((mu - 1) * (1 - alpha)) / (mu * (1 + alpha * (mu - 1)));
-    const beta_tot = beta_0 + kappa * beta_hyst;
-    return Math.min(0.25, beta_tot);
-  }
-
-  function resetIteration() {
-    iterHistory = [];
-    currentStep = 0;
-    if (isAuto) toggleAuto();
-
-    // Step 0: Initial intersection with 5% elastic demand
-    const p0 = findIntersection(0.05);
-    const beta0 = getBetaEq(p0.sd);
-    iterHistory.push({
-      step: 0,
-      sd: p0.sd,
-      sa: p0.sa,
-      beta: 0.05,
-      nextBeta: beta0,
-      err: 999
-    });
-
-    updateUI();
-    draw();
-  }
-
-  function stepIteration() {
-    if (iterHistory.length === 0) resetIteration();
-
-    const last = iterHistory[iterHistory.length - 1];
-    if (iterHistory.length >= 8 || last.err < 0.05) {
-      if (isAuto) toggleAuto();
-      return;
+      let sa5 = 0;
+      if (T <= Ts) sa5 = SDS;
+      else sa5 = SD1 / T;
+      return sa5 / B;
     }
 
-    // Next step: use nextBeta from last step to compute new demand intersection
-    const nextBeta = last.nextBeta;
-    const pNew = findIntersection(nextBeta);
-    const err = Math.abs(pNew.sd - last.sd);
-    const betaAfter = getBetaEq(pNew.sd);
+    function calcBetaEq(sdi, sai) {
+      const sdy = getSdy();
+      if (sdi <= sdy) return 0.05;
+      const mu = sdi / sdy;
+      const beta0 = (2 / Math.PI) * ((mu - 1) / (mu * (1 + alpha * (mu - 1))));
+      return 0.05 + kappa * beta0;
+    }
 
-    iterHistory.push({
-      step: iterHistory.length,
-      sd: pNew.sd,
-      sa: pNew.sa,
-      beta: nextBeta,
-      nextBeta: betaAfter,
-      err: err
-    });
-
-    updateUI();
-    draw();
-  }
-
-  function toggleAuto() {
-    isAuto = !isAuto;
-    document.getElementById('btnAuto').classList.toggle('active', isAuto);
-    if (isAuto) {
-      autoTimer = setInterval(() => {
-        const last = iterHistory[iterHistory.length - 1];
-        if (iterHistory.length >= 7 || (last && last.err < 0.05)) {
-          toggleAuto();
-        } else {
-          stepIteration();
-        }
-      }, 500);
-    } else {
+    function resetIteration() {
       if (autoTimer) clearInterval(autoTimer);
-    }
-  }
+      isAuto = false;
+      document.getElementById('btnAuto').textContent = '자동 수렴 (Auto)';
+      iterHistory = [];
+      currentStep = 0;
 
-  function updateUI() {
-    const last = iterHistory[iterHistory.length - 1];
-    const sdy = getSdy();
-    const mu = last.sd / sdy;
-    const omegaEq = Math.sqrt((last.sa * g) / last.sd);
-    const Teq = (2 * Math.PI) / omegaEq;
+      // Seed with initial displacement
+      const sdy = getSdy();
+      const sd0 = sdy * 2.2;
+      const sa0 = capacitySa(sd0);
+      const beta0 = calcBetaEq(sd0, sa0);
+      iterHistory.push({ sd: sd0, sa: sa0, beta: beta0, err: sd0 });
 
-    document.getElementById('valSdp').textContent = last.sd.toFixed(2) + ' cm';
-    document.getElementById('valSap').textContent = last.sa.toFixed(3) + ' g';
-    document.getElementById('valTeq').textContent = Teq.toFixed(2) + ' s';
-    document.getElementById('valBeta').textContent = (last.beta * 100).toFixed(1) + ' %';
-    document.getElementById('valMuP').textContent = mu.toFixed(2);
-
-    const isConverged = last.err < 0.05 && iterHistory.length > 1;
-    const badge = document.getElementById('convergeBadge');
-    if (isConverged) {
-      badge.textContent = `성능점 수렴 완료 (오차 ${last.err.toFixed(3)}cm < 0.05cm)`;
-      badge.style.color = "var(--accent-emerald)";
-      badge.style.borderColor = "var(--accent-emerald)";
-    } else {
-      badge.textContent = `반복 ${iterHistory.length}단계 진행 중`;
-      badge.style.color = "var(--accent-amber)";
-      badge.style.borderColor = "var(--accent-amber)";
+      updateUI();
+      drawADRSCanonical();
     }
 
-    // FEMA Verdict
-    const fVer = document.getElementById('femaVerdict');
-    if (mu <= 1.5) {
-      fVer.textContent = "🟢 즉시거주 (IO: Immediate Occupancy) - 미세 손상";
-      fVer.style.color = "var(--accent-emerald)";
-      fVer.style.borderColor = "var(--accent-emerald)";
-    } else if (mu <= 3.5) {
-      fVer.textContent = "🟡 인명안전 (LS: Life Safety) - 중등도 소성 손상";
-      fVer.style.color = "var(--accent-amber)";
-      fVer.style.borderColor = "var(--accent-amber)";
-    } else {
-      fVer.textContent = "🔴 붕괴방지 한계 (CP: Collapse Prevention) - 심각한 소성 손상";
-      fVer.style.color = "var(--accent-rose)";
-      fVer.style.borderColor = "var(--accent-rose)";
+    function stepIteration() {
+      const last = iterHistory[iterHistory.length - 1];
+      const sdi = last.sd;
+      const sai = last.sa;
+      const betaI = last.beta;
+
+      // Demand at current beta
+      const saDemand = demandSa(sdi, betaI);
+      // Find intersection with capacity
+      const nextSd = sdi * 0.65 + (sdi * (saDemand / sai)) * 0.35;
+      const nextSa = capacitySa(nextSd);
+      const nextBeta = calcBetaEq(nextSd, nextSa);
+      const err = Math.abs(nextSd - sdi);
+
+      iterHistory.push({ sd: nextSd, sa: nextSa, beta: nextBeta, err });
+      currentStep++;
+
+      updateUI();
+      drawADRSCanonical();
+
+      if (err < 0.08 && isAuto) {
+        toggleAuto();
+      }
     }
 
-    // Iteration table
-    const tbody = document.getElementById('iterTableBody');
-    tbody.innerHTML = iterHistory.map((item, idx) => `
-      <tr class="${(idx === iterHistory.length - 1 ? 'current' : '')}">
-        <td>${item.step}</td>
-        <td>${item.sd.toFixed(2)}</td>
-        <td>${item.sa.toFixed(3)}</td>
-        <td>${(item.beta * 100).toFixed(1)}%</td>
-        <td>${item.err === 999 ? '-' : item.err.toFixed(3)}</td>
-      </tr>
-    `).join('');
-  }
-
-  function draw() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.width / dpr, h = canvas.height / dpr;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.scale(dpr, dpr);
-
-    const pad = { left: 60, right: 30, top: 30, bottom: 45 };
-    const pw = w - pad.left - pad.right;
-    const ph = h - pad.top - pad.bottom;
-
-    const maxSd = 20.0; // cm
-    const maxSa = 0.8;  // g
-
-    function xOf(sd) { return pad.left + (sd / maxSd) * pw; }
-    function yOf(sa) { return pad.top + ph - (sa / maxSa) * ph; }
-
-    // Grid
-    ctx.strokeStyle = "rgba(15, 23, 42, 0.1)";
-    ctx.fillStyle = "var(--text-muted)";
-    ctx.font = "10px sans-serif";
-
-    for (let sd = 0; sd <= maxSd; sd += 2.5) {
-      const x = xOf(sd);
-      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
-      ctx.fillText(sd.toFixed(1), x - 8, pad.top + ph + 16);
-    }
-    for (let sa = 0; sa <= maxSa; sa += 0.1) {
-      const y = yOf(sa);
-      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
-      ctx.fillText(sa.toFixed(1), pad.left - 26, y + 4);
+    function toggleAuto() {
+      isAuto = !isAuto;
+      const btn = document.getElementById('btnAuto');
+      if (isAuto) {
+        btn.textContent = '정지 (Stop)';
+        autoTimer = setInterval(stepIteration, 450);
+      } else {
+        btn.textContent = '자동 수렴 (Auto)';
+        if (autoTimer) clearInterval(autoTimer);
+      }
     }
 
-    // Clip plot region to prevent overflow
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(pad.left, pad.top, pw, ph);
-    ctx.clip();
+    function updateUI() {
+      const cur = iterHistory[iterHistory.length - 1];
+      const sdy = getSdy();
+      const mu = cur.sd / sdy;
 
-    // Radial Period Lines: T0 (initial) and Teq (elongated)
-    const sdy = getSdy();
-    const last = iterHistory[iterHistory.length - 1];
-    const omegaEq = Math.sqrt((last.sa * g) / last.sd);
-    const Teq = (2 * Math.PI) / omegaEq;
+      document.getElementById('valSdp').textContent = cur.sd.toFixed(2) + ' cm';
+      document.getElementById('valSap').textContent = cur.sa.toFixed(3) + ' g';
+      
+      const omegaEq = Math.sqrt((cur.sa * g) / Math.max(0.1, cur.sd));
+      const Teq = (2 * Math.PI) / omegaEq;
+      document.getElementById('valTeq').textContent = Teq.toFixed(2) + ' s';
+      document.getElementById('valBeta').textContent = (cur.beta * 100).toFixed(1) + ' %';
+      document.getElementById('valMuP').textContent = mu.toFixed(2);
+      document.getElementById('bldg-drift-info').textContent = `Sdp = ${cur.sd.toFixed(2)} cm (μ = ${mu.toFixed(2)})`;
 
-    // T0 Line
-    ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
-    ctx.setLineDash([2, 2]);
-    ctx.beginPath();
-    ctx.moveTo(xOf(0), yOf(0));
-    ctx.lineTo(xOf(sdy), yOf(Say));
-    ctx.stroke();
-    ctx.fillStyle = "#38bdf8";
-    ctx.fillText(`T0 = ${T0.toFixed(2)}s`, xOf(sdy) + 5, yOf(Say) - 5);
+      const badge = document.getElementById('convergeBadge');
+      if (cur.err < 0.08) {
+        badge.textContent = `수렴 완료 (오차 ${cur.err.toFixed(2)}cm)`;
+        badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono';
+      } else {
+        badge.textContent = `반복 ${currentStep + 1}단계 진행 중`;
+        badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono';
+      }
 
-    // Teq Line
-    ctx.strokeStyle = "rgba(245, 158, 11, 0.5)";
-    ctx.beginPath();
-    ctx.moveTo(xOf(0), yOf(0));
-    ctx.lineTo(xOf(last.sd), yOf(last.sa));
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = "#f59e0b";
-    ctx.fillText(`Teq = ${Teq.toFixed(2)}s (주기 신장)`, xOf(last.sd) + 5, yOf(last.sa) - 12);
-
-    // 1. Capacity Curve (Green)
-    ctx.strokeStyle = "#10b981";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    for (let sd = 0; sd <= maxSd; sd += 0.05) {
-      const sa = capacitySa(sd);
-      const x = xOf(sd), y = yOf(sa);
-      if (sd === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.lineWidth = 1;
-
-    ctx.fillStyle = "#10b981";
-    ctx.font = "bold 11px sans-serif";
-    ctx.fillText("능력곡선 (Capacity Spectrum)", xOf(maxSd) - 150, yOf(capacitySa(maxSd)) - 10);
-
-    // 2. Initial Elastic Demand Spectrum (5%, Rose faint)
-    ctx.strokeStyle = "rgba(244, 63, 94, 0.35)";
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    for (let sd = 0.05; sd <= maxSd; sd += 0.05) {
-      const sa = demandSa(sd, 0.05);
-      const x = xOf(sd), y = yOf(sa);
-      if (sd <= 0.05) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = "rgba(244, 63, 94, 0.7)";
-    ctx.fillText("초기 탄성요구 (β=5%)", xOf(maxSd) - 130, yOf(demandSa(maxSd, 0.05)) + 15);
-
-    // 3. Current Damped Demand Spectrum (for current step's beta)
-    ctx.strokeStyle = "#f43f5e";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let sd = 0.05; sd <= maxSd; sd += 0.05) {
-      const sa = demandSa(sd, last.beta);
-      const x = xOf(sd), y = yOf(sa);
-      if (sd <= 0.05) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.lineWidth = 1;
-
-    // 4. Convergence Trails
-    if (iterHistory.length > 1) {
-      ctx.strokeStyle = "#38bdf8";
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath();
-      iterHistory.forEach((p, idx) => {
-        const x = xOf(p.sd), y = yOf(p.sa);
-        if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      });
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.lineWidth = 1;
+      const verdict = document.getElementById('femaVerdict');
+      if (mu <= 1.5) {
+        verdict.textContent = '✅ 즉시입주 (IO: Immediate Occupancy)';
+        verdict.className = 'text-xs font-black text-center p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800';
+      } else if (mu <= 3.5) {
+        verdict.textContent = '✅ 인명안전 (LS: Life Safety) 확보';
+        verdict.className = 'text-xs font-black text-center p-2 rounded-lg bg-blue-50 border border-blue-300 text-blue-800';
+      } else {
+        verdict.textContent = '⚠️ 붕괴방지 (CP: Collapse Prevention) 근접';
+        verdict.className = 'text-xs font-black text-center p-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-800';
+      }
     }
 
-    // Plot Points
-    iterHistory.forEach((p, idx) => {
-      const isLast = idx === iterHistory.length - 1;
-      const x = xOf(p.sd), y = yOf(p.sa);
-
-      ctx.beginPath();
-      ctx.arc(x, y, isLast ? 7 : 4, 0, 2 * Math.PI);
-      ctx.fillStyle = isLast ? "#f59e0b" : "#38bdf8";
-      ctx.fill();
-      ctx.strokeStyle = "#0f172a";
-      ctx.stroke();
-
-      ctx.fillStyle = "#0f172a";
-      ctx.font = "10px sans-serif";
-      ctx.fillText(`P${idx}`, x - 12, y - 8);
+    function resizeADRS() {
+      const dpr = window.devicePixelRatio || 1;
+      const r = canvas.parentElement.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      canvas.width = r.width * dpr;
+      canvas.height = r.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawADRSCanonical();
+    }
+    window.addEventListener('resize', () => {
+      resizeADRS();
+      if (renderer && camera) {
+        const r = threePushoverContainer.getBoundingClientRect();
+        camera.aspect = r.width / r.height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(r.width, r.height);
+      }
     });
 
-    ctx.restore(); // restore clipping
+    function drawADRSCanonical() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      ctx.clearRect(0, 0, w, h);
 
-    // Axis labels
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 12px sans-serif";
-    ctx.fillText("스펙트럴 변위 Sd (cm)", pad.left + pw / 2 - 50, pad.top + ph + 38);
-    ctx.save();
-    ctx.translate(pad.left - 40, pad.top + ph / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText("스펙트럴 가속도 Sa (g)", -60, 0);
-    ctx.restore();
+      const margin = { left: 55, right: 35, top: 35, bottom: 45 };
+      const pw = w - margin.left - margin.right;
+      const ph = h - margin.top - margin.bottom;
 
-    ctx.restore(); // restore dpr scale
-  }
+      const maxSd = 18.0; // cm
+      const maxSa = 1.0;  // g
 
-  resize();
-  resetIteration();
-</script>
+      const xToPx = sd => margin.left + (sd / maxSd) * pw;
+      const yToPx = sa => margin.top + ph - (sa / maxSa) * ph;
 
+      // Soft Grid
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.lineWidth = 1;
+      for (let s = 2; s <= maxSd; s += 2) {
+        const x = xToPx(s);
+        ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, margin.top + ph); ctx.stroke();
+      }
+      for (let a = 0.2; a <= maxSa; a += 0.2) {
+        const y = yToPx(a);
+        ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + pw, y); ctx.stroke();
+      }
+
+      // Border
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(margin.left, margin.top, pw, ph);
+
+      // 1. Capacity Curve (Emerald)
+      ctx.strokeStyle = '#059669';
+      ctx.lineWidth = 3.0;
+      ctx.beginPath();
+      const capPts = [];
+      for (let s = 0; s <= maxSd; s += 0.2) {
+        const a = capacitySa(s);
+        const x = xToPx(s);
+        const y = yToPx(a);
+        capPts.push({ x, y });
+        if (s === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // 2. Current Demand Spectrum (Rose)
+      const cur = iterHistory[iterHistory.length - 1];
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      for (let s = 0.5; s <= maxSd; s += 0.3) {
+        const a = demandSa(s, cur.beta);
+        const x = xToPx(s);
+        const y = yToPx(a);
+        if (s === 0.5) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // 3. Performance Point Dot
+      const pX = xToPx(cur.sd);
+      const pY = yToPx(cur.sa);
+
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath(); ctx.arc(pX, pY, 6, 0, Math.PI * 2); ctx.fill();
+
+      // Canonical Badge with Leader Line
+      const plotRect = { left: margin.left, top: margin.top, width: pw, height: ph };
+      const boxSize = { w: 165, h: 42 };
+      const placement = DynamicsChartCanonical.getBestCalloutPlacement(pX, pY, boxSize.w, boxSize.h, plotRect, capPts);
+
+      DynamicsChartCanonical.drawLeaderLine(ctx, pX, pY, placement.x, placement.y, boxSize.w, boxSize.h, '#2563eb');
+      DynamicsChartCanonical.drawAutoBadge(ctx, `성능점: Sdp = ${cur.sd.toFixed(2)} cm\nSap = ${cur.sa.toFixed(3)} g | βeq = ${(cur.beta*100).toFixed(1)}%`, placement.x, placement.y, {
+        textColor: '#1e40af',
+        borderColor: '#93c5fd',
+        fillColor: 'rgba(239, 246, 255, 0.95)',
+        align: 'left',
+        fontSize: 9.5,
+        fontWeight: 'bold',
+        padding: { x: 7, y: 4 },
+        radius: 5
+      });
+    }
+
+    // --- 3D BIM Pushover Building Setup ---
+    const threePushoverContainer = document.getElementById('threePushoverContainer');
+    let scene, camera, renderer, controls;
+    let bldgGroup, bedrockGroup;
+    let bldgSlices = [];
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+
+      const r = threePushoverContainer.getBoundingClientRect();
+      camera = new THREE.PerspectiveCamera(36, r.width / r.height, 0.1, 1000);
+      camera.position.set(0, 6.5, 18);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(r.width, r.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      threePushoverContainer.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 4.0, 0);
+      controls.maxPolarAngle = Math.PI / 2 + 0.08;
+
+      // Lights
+      const amb = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(amb);
+
+      const dir = new THREE.DirectionalLight(0xffffff, 0.75);
+      dir.position.set(10, 20, 15);
+      dir.castShadow = true;
+      scene.add(dir);
+
+      // Bedrock
+      bedrockGroup = new THREE.Group();
+      const bedGeo = new THREE.BoxGeometry(10, 0.6, 7);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.y = 0.3;
+      bedrockGroup.add(bedrock);
+      scene.add(bedrockGroup);
+
+      // Building Group
+      bldgGroup = new THREE.Group();
+      bldgGroup.position.y = 0.6;
+      scene.add(bldgGroup);
+
+      buildPushoverBuilding();
+    }
+
+    function buildPushoverBuilding() {
+      const slabGeo = new THREE.BoxGeometry(6.5, 0.3, 5);
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
+      const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+
+      for (let i = 1; i <= 3; i++) {
+        const floorGrp = new THREE.Group();
+        floorGrp.position.y = i * 3.5;
+
+        const slab = new THREE.Mesh(slabGeo, slabMat);
+        slab.castShadow = true;
+        floorGrp.add(slab);
+
+        const edge = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.08, 5.1), slabEdgeMat);
+        floorGrp.add(edge);
+
+        floorGrp.name = `floor_${i}`;
+        bldgGroup.add(floorGrp);
+      }
+
+      // Columns
+      const sliceCount = 18;
+      const totalH = 10.5;
+      const sliceH = totalH / sliceCount;
+      const colPositions = [
+        [-2.6, -1.9], [2.6, -1.9],
+        [-2.6, 1.9], [2.6, 1.9]
+      ];
+
+      bldgSlices = [];
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 });
+
+      for (let pos of colPositions) {
+        for (let i = 0; i < sliceCount; i++) {
+          const sliceGeo = new THREE.BoxGeometry(0.35, sliceH, 0.35);
+          const slice = new THREE.Mesh(sliceGeo, colMat);
+          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
+          slice.castShadow = true;
+          bldgGroup.add(slice);
+          bldgSlices.push({ mesh: slice, baseX: pos[0], normZ: (i + 0.5) / sliceCount });
+        }
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls) controls.update();
+
+      if (renderer && camera) {
+        const cur = iterHistory[iterHistory.length - 1];
+        const ampMultiplier = (threeAmpScale / 70.0);
+        // Authentic static pushover deflection: psi(z) = 1.5 z^2 - 0.5 z^3
+        const maxDrift = (cur.sd / 8.0) * 1.5 * ampMultiplier;
+
+        bldgSlices.forEach(sl => {
+          const z = sl.normZ;
+          const psi = 1.5 * z * z - 0.5 * z * z * z;
+          const drift = psi * maxDrift;
+          sl.mesh.position.x = sl.baseX + drift;
+          sl.mesh.rotation.z = -drift * 0.08;
+        });
+
+        for (let i = 1; i <= 3; i++) {
+          const fl = bldgGroup.getObjectByName(`floor_${i}`);
+          if (fl) {
+            const z = i / 3.0;
+            const psi = 1.5 * z * z - 0.5 * z * z * z;
+            fl.position.x = psi * maxDrift;
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+    }
+
+    // --- Awwwards Pack: Zentry 3D Tilt on Cards ---
+    function initZentryCards() {
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 4.0;
+          const rotY = (x / (rect.width / 2)) * 4.0;
+          card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+        });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      initZentryCards();
+      setTimeout(() => {
+        resizeADRS();
+        resetIteration();
+      }, 50);
+      animate();
+    });
+  </script>
 </body>
 </html>
