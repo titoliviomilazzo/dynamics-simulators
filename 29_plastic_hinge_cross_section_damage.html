@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>29. 기둥 밑둥 소성힌지 단면 200배 줌인 손상역학 시뮬레이터</title>
+<title>29. 기둥 밑둥 소성힌지 단면 200배 줌인 손상역학 & 3D BIM 입체 파괴 시뮬레이터</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <style>
   :root {
     --bg-main: #f8fafc;
     --bg-card: #ffffff;
     --border-color: #e2e8f0;
+    --border-dark: #0f172a;
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #94a3b8;
@@ -27,49 +28,49 @@
     background-color: var(--bg-main);
     color: var(--text-primary);
     line-height: 1.5;
-    padding: 14px 18px;
+    padding: 10px 14px;
     display: flex;
     justify-content: center;
   }
   .app-container {
     width: 100%;
-    max-width: 1460px;
+    max-width: 1540px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
   header {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    padding: 12px 18px;
-    border-radius: 12px;
+    padding: 10px 16px;
+    border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
   .header-left h1 {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.02em;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
   .header-left p {
-    font-size: 12.5px;
+    font-size: 12px;
     color: var(--text-secondary);
     margin-top: 2px;
   }
   .nav-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     background: #f1f5f9;
-    padding: 6px 14px;
+    padding: 5px 12px;
     border-radius: 9999px;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 600;
     color: var(--accent-indigo);
     text-decoration: none;
@@ -77,41 +78,43 @@
     transition: all 0.15s;
   }
   .nav-badge:hover { background: #e2e8f0; }
+
   .grid-layout {
     display: grid;
-    grid-template-columns: 380px 1fr;
-    gap: 14px;
+    grid-template-columns: 360px 1fr;
+    gap: 12px;
   }
-  @media (max-width: 1100px) {
+  @media (max-width: 1160px) {
     .grid-layout { grid-template-columns: 1fr; }
   }
+
   .panel {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 15px;
+    border-radius: 10px;
+    padding: 13px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .section-title {
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
   }
   .preset-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    margin-bottom: 12px;
+    gap: 5px;
+    margin-bottom: 9px;
   }
   .preset-btn {
-    padding: 6px 4px;
-    font-size: 11px;
+    padding: 5px 3px;
+    font-size: 10.5px;
     font-weight: 700;
     text-align: center;
     border-radius: 6px;
@@ -127,14 +130,14 @@
     color: #ffffff;
     border-color: var(--accent-indigo);
   }
-  .form-group { margin-bottom: 10px; }
+  .form-group { margin-bottom: 8px; }
   .form-label {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
   .form-val {
     font-family: monospace;
@@ -143,35 +146,28 @@
   }
   input[type=range] {
     width: 100%;
-    height: 6px;
+    height: 5px;
     background: #e2e8f0;
     border-radius: 4px;
     outline: none;
-    -webkit-appearance: none;
+    accent-color: var(--accent-indigo);
   }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    background: var(--accent-indigo);
-    cursor: pointer;
-  }
-  .btn-group { display: flex; gap: 8px; margin-top: 8px; }
+
+  .btn-group { display: flex; gap: 6px; margin-top: 6px; }
   .action-btn {
     flex: 1;
-    padding: 7px;
+    padding: 6px;
     border-radius: 6px;
     border: 1px solid #cbd5e1;
     background: #ffffff;
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
     transition: all 0.15s;
   }
   .action-btn:hover { background: #f1f5f9; }
@@ -181,68 +177,75 @@
     border-color: var(--accent-indigo);
   }
   .action-btn.primary:hover { background: #4338ca; }
+
   .metrics-card {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 10px 12px;
-    margin-top: 12px;
+    padding: 8px 10px;
+    margin-top: 9px;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 5px;
   }
   .metric-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 12px;
+    font-size: 11.5px;
   }
   .metric-name { color: var(--text-secondary); }
   .metric-val { font-family: monospace; font-weight: 700; color: var(--text-primary); }
   .status-badge {
-    padding: 3px 9px;
+    padding: 2px 7px;
     border-radius: 9999px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     display: inline-block;
     text-align: center;
   }
+
   .right-container {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
+
   .canvas-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 12px 14px;
+    border-radius: 10px;
+    padding: 10px 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     display: flex;
     flex-direction: column;
+    position: relative;
   }
   .canvas-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 6px;
   }
   .canvas-title {
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-primary);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
   .canvas-legend {
     display: flex;
-    gap: 10px;
-    font-size: 11px;
+    gap: 8px;
+    font-size: 10.5px;
     font-weight: 600;
   }
   .legend-item { display: flex; align-items: center; gap: 4px; }
-  .legend-color { width: 9px; height: 9px; border-radius: 2px; }
+  .legend-color { width: 8px; height: 8px; border-radius: 2px; }
+
   canvas {
     width: 100%;
     display: block;
@@ -250,36 +253,108 @@
     border-radius: 6px;
     border: 1px solid #f1f5f9;
   }
-  .dual-bottom-grid {
+
+  /* 2x2 Hero Layout */
+  .hero-dual-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr 1.05fr;
+    gap: 10px;
   }
-  @media (max-width: 900px) {
-    .dual-bottom-grid { grid-template-columns: 1fr; }
+  @media (max-width: 1280px) {
+    .hero-dual-grid { grid-template-columns: 1fr; }
   }
+
+  /* 3D BIM Viewport Container */
+  .bim-viewport-box {
+    width: 100%;
+    height: 275px;
+    background: #faf8f5;
+    border: 1.5px solid var(--border-dark);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  #threeBimContainer {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .bim-hud-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(4px);
+    padding: 3px 7px;
+    border-radius: 5px;
+    border: 1px solid #0f172a;
+    font-size: 10px;
+    font-weight: 700;
+    color: #0f172a;
+    z-index: 10;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .bim-view-buttons {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+  }
+  .bim-btn {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #0f172a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .bim-btn:hover { background: #0f172a; color: #ffffff; }
+  .bim-btn.active { background: #4f46e5; color: #ffffff; border-color: #4f46e5; }
+  .bim-hud-controls {
+    position: absolute;
+    bottom: 6px;
+    left: 8px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(4px);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    font-size: 9.5px;
+    color: #475569;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* HUD Box */
   .hud-box {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 10px 12px;
+    padding: 9px 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     height: 100%;
   }
   .hud-tag-banner {
-    padding: 7px 10px;
+    padding: 6px 8px;
     border-radius: 6px;
     font-weight: 700;
-    font-size: 12.5px;
+    font-size: 11px;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
   .hud-row {
-    font-size: 11.5px;
-    line-height: 1.45;
+    font-size: 11px;
+    line-height: 1.35;
   }
   .hud-label {
     font-weight: 700;
@@ -289,7 +364,7 @@
   .hud-desc { color: var(--text-secondary); }
   .progress-track {
     width: 100%;
-    height: 7px;
+    height: 6px;
     background: #e2e8f0;
     border-radius: 9999px;
     overflow: hidden;
@@ -302,19 +377,23 @@
     background: #ffffff;
     border: 1px solid var(--border-color);
     border-left: 4px solid var(--accent-indigo);
-    border-radius: 12px;
-    padding: 10px 16px;
-    font-size: 12px;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 11.5px;
     color: var(--text-secondary);
-    line-height: 1.55;
+    line-height: 1.5;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 </style>
-  <link rel="stylesheet" href="assets/dynamics-fx.css">
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-  <script src="assets/dynamics-fx.js" defer></script>
+<link rel="stylesheet" href="assets/dynamics-fx.css">
+<!-- Three.js & OrbitControls for 3D BIM -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="assets/dynamics-chart-canonical.js"></script>
+<script src="assets/dynamics-fx.js" defer></script>
 </head>
 <body>
 <div class="app-container">
@@ -323,9 +402,9 @@
   <header>
     <div class="header-left">
       <h1>
-        <span>29. 기둥 밑둥 소성힌지 단면 200배 줌인 손상역학 시뮬레이터</span>
+        <span>29. 기둥 밑둥 소성힌지 단면 200배 줌인 손상역학 & 3D BIM 입체 파괴 시뮬레이터</span>
       </h1>
-      <p>지진 횡변위 시 기둥 하부 소성힌지 구간에서 일어나는 4단계 파괴(미세균열 → 피복콘크리트 탈락 → 띠철근 파단 → 주철근 S자 좌굴)를 물리적으로 해부합니다.</p>
+      <p>지진 횡변위 시 기둥 하부 소성힌지 구간에서 일어나는 4단계 파괴(미세균열 → 피복콘크리트 탈락 → 띠철근 파단 → 주철근 S자 좌굴)를 3D BIM 골조 및 3차원 배근 케이지로 물리적으로 해부합니다.</p>
     </div>
     <a href="index.html" class="nav-badge">
       <span>← 마스터 대시보드</span>
@@ -351,7 +430,7 @@
         <button class="preset-btn" onclick="setPreset(getPointE())" style="color:#dc2626;font-weight:bold">8. 좌굴 E<br><span style="font-size:9px">철근좌굴 6.0</span></button>
       </div>
 
-      <div class="section-title" style="margin-top:12px">
+      <div class="section-title" style="margin-top:9px">
         <span>⚙️ 소성 회전각 제어 (Plastic Rotation)</span>
       </div>
 
@@ -368,7 +447,7 @@
         <button class="action-btn" onclick="resetAll()">🔄 초기화</button>
       </div>
 
-      <div class="section-title" style="margin-top:16px">
+      <div class="section-title" style="margin-top:12px">
         <span>📐 기둥 단면 및 배근 제원 (KDS 41)</span>
       </div>
 
@@ -421,41 +500,71 @@
       </div>
     </div>
 
-    <!-- RIGHT VISUALIZATION PANELS -->
+    <!-- RIGHT CONTAINER (MAIN VISUALIZATION: 2x2 DUAL HERO GRID) -->
     <div class="right-container">
 
-      <!-- TOP: 200X ZOOMED-IN PLASTIC HINGE CROSS SECTION CANVAS -->
-      <div class="canvas-card">
-        <div class="canvas-header">
-          <div class="canvas-title">
-            <span>🔬 기둥 밑둥 입면 및 단면 200배 줌인: 파괴 메커니즘 현미경</span>
-          </div>
-          <div class="canvas-legend">
-            <div class="legend-item"><div class="legend-color" style="background:#64748b"></div><span>비파쇄 코어</span></div>
-            <div class="legend-item"><div class="legend-color" style="background:#cbd5e1"></div><span>탈락 피복</span></div>
-            <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>주철근(D25)</span></div>
-            <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>좌굴 철근</span></div>
-            <div class="legend-item"><div class="legend-color" style="background:#ea580c"></div><span>띠철근 파단</span></div>
-          </div>
-        </div>
-        <canvas id="sectionCanvas" height="260"></canvas>
-      </div>
+      <!-- TOP ROW: 200X CROSS-SECTION MICROSCOPE (LEFT) + 3D BIM REBAR CAGE / BUILDING (RIGHT) -->
+      <div class="hero-dual-grid">
 
-      <!-- BOTTOM: DUAL VIEW (ELEVATION REBAR BUCKLING + DAMAGE HUD) -->
-      <div class="dual-bottom-grid">
-
-        <!-- ELEVATION BUCKLING CANVAS -->
+        <!-- 1. 200X ZOOMED-IN PLASTIC HINGE CROSS SECTION CANVAS -->
         <div class="canvas-card">
           <div class="canvas-header">
             <div class="canvas-title">
-              <span>🏗️ 기둥 밑둥 입면: 3차 휨곡률(Cubic) & S자 철근 좌굴</span>
+              <span>🔬 600x600 기둥 밑둥 200배 줌인 가로단면</span>
             </div>
-            <span style="font-size:11px;color:var(--text-muted)">비탄성 횡변위 렌더링</span>
+            <div class="canvas-legend">
+              <div class="legend-item"><div class="legend-color" style="background:#64748b"></div><span>코어</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#cbd5e1"></div><span>피복</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>주철근</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>좌굴</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#ea580c"></div><span>파단</span></div>
+            </div>
           </div>
-          <canvas id="elevationCanvas" height="210"></canvas>
+          <canvas id="sectionCanvas" height="275"></canvas>
         </div>
 
-        <!-- DAMAGE HUD -->
+        <!-- 2. 3D BIM BUILDING FRAME & 3D REBAR CAGE SOLID VIEWPORT -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>🏢 3D BIM 기둥 밑둥 & 3차원 배근 케이지 입체 파괴</span>
+            </div>
+            <div class="bim-view-buttons">
+              <button class="bim-btn active" id="btnBimCage" onclick="setBimCameraView('cage')">🔩 3D 배근망</button>
+              <button class="bim-btn" id="btnBimSpall" onclick="setBimCameraView('spall')">🔬 입체 손상</button>
+              <button class="bim-btn" id="btnBimMacro" onclick="setBimCameraView('macro')">🏢 3D 골조</button>
+            </div>
+          </div>
+          <div class="bim-viewport-box">
+            <div class="bim-hud-badge">
+              <span>🏢 3D BIM 파괴 해석</span>
+              <span style="color:#cbd5e1;">|</span>
+              <span id="bimHingeStatus" style="color:#059669;">IO 즉시거주</span>
+            </div>
+            <div class="bim-hud-controls">
+              🖱️ 3D 오르빗: 좌클릭 회전 &middot; 휠 줌 &middot; 우클릭 이동
+            </div>
+            <div id="threeBimContainer"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM ROW: ELEVATION REBAR BUCKLING (LEFT) + DAMAGE & DESTINY HUD (RIGHT) -->
+      <div class="hero-dual-grid" style="grid-template-columns: 1.1fr 1fr;">
+
+        <!-- 3. ELEVATION BUCKLING CANVAS -->
+        <div class="canvas-card">
+          <div class="canvas-header">
+            <div class="canvas-title">
+              <span>🏗️ 기둥 밑둥 세로입면: 3차 휨곡률 & S자 철근 좌굴</span>
+            </div>
+            <span style="font-size:10.5px;color:var(--text-secondary);font-weight:600;">비탄성 횡변위 & Lp 소성구간</span>
+          </div>
+          <canvas id="elevationCanvas" height="225"></canvas>
+        </div>
+
+        <!-- 4. DAMAGE HUD -->
         <div class="canvas-card">
           <div class="canvas-header">
             <div class="canvas-title">
@@ -465,7 +574,7 @@
           <div class="hud-box">
             <div id="hudTagBanner" class="hud-tag-banner" style="background:#dcfce7;color:#166534">
               <span id="hudTagTitle">🟢 GREEN TAG: 미세 휨 균열 (IO)</span>
-              <span id="hudDamagePct" style="font-family:monospace;font-size:13.5px">15% 손상</span>
+              <span id="hudDamagePct" style="font-family:monospace;font-size:12px">15% 손상도</span>
             </div>
 
             <div>
@@ -511,7 +620,9 @@
 </div>
 
 <script>
-// STATE
+// =========================================================================
+// STATE VARIABLES
+// =========================================================================
 let thetaNorm = 1.0;
 let axialRatio = 0.20;
 let tieSpacingRatio = 6.0;
@@ -528,15 +639,6 @@ const secCanvas = document.getElementById('sectionCanvas');
 const secCtx = secCanvas.getContext('2d');
 const eleCanvas = document.getElementById('elevationCanvas');
 const eleCtx = eleCanvas.getContext('2d');
-
-function resizeCanvas(c) {
-  const rect = c.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  c.width = rect.width * dpr;
-  c.height = rect.height * dpr;
-  const ctx = c.getContext('2d');
-  ctx.scale(dpr, dpr);
-}
 
 // ASCE 41 / FEMA LIMITS
 function getIO() { return 1.0 + 0.15 * paramA; }
@@ -581,7 +683,650 @@ function computeDissipatedEnergy(thMax) {
   return energy;
 }
 
-// UI EVENTS
+// =========================================================================
+// 3D BIM STRUCTURAL BUILDING & 3D REBAR CAGE SOLID MODEL (THREE.JS)
+// =========================================================================
+let sceneBim, cameraBim, rendererBim, controlsBim;
+const bimContainer = document.getElementById('threeBimContainer');
+
+let bimMacroGroup, bimDetailGroup, bimAnnotationGroup;
+let currentBimView = 'cage'; // 'cage', 'spall', 'macro'
+
+// Macro Building Meshes
+let bimColumnMeshes = [];
+let bimSlabMeshes = [];
+let bimBeamMeshes = [];
+let bimBaseHingeMeshes = [];
+let bimLateralArrow = null;
+
+// Detail Column Base Meshes
+let detailCoverMesh = null;
+let detailCoreMesh = null;
+let detailFootingMesh = null;
+let detailRebarMeshes = []; // 8 longitudinal bars
+let detailTieMeshes = [];   // 7 horizontal tie hoops
+let detailSpallFragments = []; // Spalled concrete debris
+let detailBuckledBarMesh = null; // S-buckling replacement mesh for compressed bar
+
+let bimCalloutSprite = null;
+
+function createCalloutSprite(text, color, subText) {
+  const cvs = document.createElement('canvas');
+  cvs.width = 460;
+  cvs.height = 90;
+  const c = cvs.getContext('2d');
+  c.fillStyle = 'rgba(255, 255, 255, 0.96)';
+  c.strokeStyle = '#0f172a';
+  c.lineWidth = 4;
+  c.beginPath();
+  c.roundRect(6, 6, 448, 78, 12);
+  c.fill();
+  c.stroke();
+
+  c.fillStyle = color;
+  c.font = 'bold 24px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(text, 230, subText ? 32 : 45);
+
+  if (subText) {
+    c.fillStyle = '#334155';
+    c.font = 'bold 16px sans-serif';
+    c.fillText(subText, 230, 60);
+  }
+
+  const tex = new THREE.CanvasTexture(cvs);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.renderOrder = 999;
+  sprite.scale.set(2.4, 0.48, 1);
+  return sprite;
+}
+
+function initThreeBIM() {
+  sceneBim = new THREE.Scene();
+  sceneBim.background = new THREE.Color(0xfaf8f5);
+  sceneBim.fog = new THREE.Fog(0xfaf8f5, 25, 80);
+
+  const w = bimContainer.clientWidth || 450;
+  const h = bimContainer.clientHeight || 275;
+
+  cameraBim = new THREE.PerspectiveCamera(36, w / h, 0.1, 200);
+  cameraBim.position.set(3.4, 2.6, 4.0);
+
+  rendererBim = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  rendererBim.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+  rendererBim.setSize(w, h);
+  rendererBim.shadowMap.enabled = true;
+  rendererBim.shadowMap.type = THREE.PCFSoftShadowMap;
+  bimContainer.appendChild(rendererBim.domElement);
+
+  controlsBim = new THREE.OrbitControls(cameraBim, rendererBim.domElement);
+  controlsBim.enableDamping = true;
+  controlsBim.dampingFactor = 0.08;
+  controlsBim.target.set(0, 1.3, 0);
+  controlsBim.maxPolarAngle = Math.PI / 2 + 0.05;
+  controlsBim.minDistance = 1.5;
+  controlsBim.maxDistance = 50;
+
+  // Studio Lighting
+  const ambient = new THREE.AmbientLight(0xffffff, 0.92);
+  sceneBim.add(ambient);
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  keyLight.position.set(16, 26, 18);
+  keyLight.castShadow = true;
+  sceneBim.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.50);
+  fillLight.position.set(-14, 12, 12);
+  sceneBim.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
+  rimLight.position.set(0, 16, -18);
+  sceneBim.add(rimLight);
+
+  // Ground Plane & Grid
+  const groundGeo = new THREE.PlaneGeometry(60, 60);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85, metalness: 0.05 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  sceneBim.add(ground);
+
+  const grid = new THREE.GridHelper(40, 40, 0xcbd5e1, 0xe2e8f0);
+  grid.position.y = 0.01;
+  sceneBim.add(grid);
+
+  bimMacroGroup = new THREE.Group();
+  bimDetailGroup = new THREE.Group();
+  bimAnnotationGroup = new THREE.Group();
+
+  sceneBim.add(bimMacroGroup);
+  sceneBim.add(bimDetailGroup);
+  sceneBim.add(bimAnnotationGroup);
+
+  buildMacroStructure();
+  buildDetailColumnBase();
+
+  setBimCameraView(currentBimView);
+  animateBimLoop();
+}
+
+// -------------------------------------------------------------------------
+// 1. MACRO 2-STORY BUILDING STRUCTURE
+// -------------------------------------------------------------------------
+function buildMacroStructure() {
+  while (bimMacroGroup.children.length > 0) {
+    const obj = bimMacroGroup.children.pop();
+    if (obj.geometry) obj.geometry.dispose();
+    bimMacroGroup.remove(obj);
+  }
+
+  bimColumnMeshes = [];
+  bimSlabMeshes = [];
+  bimBeamMeshes = [];
+  bimBaseHingeMeshes = [];
+
+  const bW = 6.4;
+  const bD = 4.4;
+  const floorH = 2.4;
+  const nStories = 2;
+  const colThick = 0.32;
+  const slabThick = 0.22;
+  const beamW = 0.26;
+  const beamH = 0.36;
+
+  const blackLineMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 }); // Gate 1
+
+  const colXCoords = [-bW / 2 + 0.45, 0, bW / 2 - 0.45];
+  const colZCoords = [-bD / 2 + 0.45, bD / 2 - 0.45];
+
+  // Foundation Footings
+  colXCoords.forEach(cx => {
+    colZCoords.forEach(cz => {
+      const footGeo = new THREE.BoxGeometry(0.85, 0.28, 0.85);
+      const footMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6 });
+      const footMesh = new THREE.Mesh(footGeo, footMat);
+      footMesh.position.set(cx, 0.14, cz);
+      footMesh.castShadow = true;
+      footMesh.receiveShadow = true;
+      footMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(footGeo), blackLineMat));
+      bimMacroGroup.add(footMesh);
+    });
+  });
+
+  const colMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+  const slabMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.35, metalness: 0.15 });
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5 });
+
+  for (let s = 1; s <= nStories; s++) {
+    const yTop = s * floorH;
+    const yBot = (s - 1) * floorH;
+    const colLen = floorH - slabThick;
+
+    // Columns
+    colXCoords.forEach((cx, ix) => {
+      colZCoords.forEach((cz, iz) => {
+        const cGeo = new THREE.BoxGeometry(colThick, colLen, colThick);
+        const cMesh = new THREE.Mesh(cGeo, colMat);
+        cMesh.position.set(cx, yBot + colLen / 2 + (s === 1 ? 0.28 : 0), cz);
+        cMesh.castShadow = true;
+        cMesh.receiveShadow = true;
+        cMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(cGeo), blackLineMat));
+        bimMacroGroup.add(cMesh);
+
+        bimColumnMeshes.push({
+          mesh: cMesh,
+          story: s,
+          baseX: cx,
+          baseZ: cz,
+          baseY: yBot + colLen / 2 + (s === 1 ? 0.28 : 0)
+        });
+
+        // Plastic Hinge at base
+        if (s === 1) {
+          const hGeo = new THREE.SphereGeometry(0.24, 16, 16);
+          const hMat = new THREE.MeshStandardMaterial({
+            color: 0x059669,
+            roughness: 0.2,
+            emissive: 0x059669,
+            emissiveIntensity: 0.3
+          });
+          const hMesh = new THREE.Mesh(hGeo, hMat);
+          hMesh.position.set(cx, 0.40, cz);
+          hMesh.castShadow = true;
+          bimMacroGroup.add(hMesh);
+
+          bimBaseHingeMeshes.push({
+            mesh: hMesh,
+            baseX: cx,
+            baseZ: cz,
+            isCritical: (ix === 0 && iz === 1)
+          });
+        }
+      });
+    });
+
+    // Slab
+    const sGeo = new THREE.BoxGeometry(bW, slabThick, bD);
+    const sMesh = new THREE.Mesh(sGeo, slabMat);
+    sMesh.position.set(0, yTop, 0);
+    sMesh.castShadow = true;
+    sMesh.receiveShadow = true;
+    sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sGeo), blackLineMat));
+    bimMacroGroup.add(sMesh);
+
+    bimSlabMeshes.push({ mesh: sMesh, story: s, baseY: yTop });
+
+    // Beams
+    colZCoords.forEach(cz => {
+      const bmGeo = new THREE.BoxGeometry(bW - 0.5, beamH, beamW);
+      const bmMesh = new THREE.Mesh(bmGeo, beamMat);
+      bmMesh.position.set(0, yTop - beamH / 2, cz);
+      bmMesh.castShadow = true;
+      bmMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(bmGeo), blackLineMat));
+      bimMacroGroup.add(bmMesh);
+
+      bimBeamMeshes.push({ mesh: bmMesh, story: s, baseX: 0, baseZ: cz, baseY: yTop - beamH / 2 });
+    });
+  }
+
+  // Lateral Pushover Force Arrow
+  const arrowDir = new THREE.Vector3(1, 0, 0);
+  const arrowOrigin = new THREE.Vector3(-bW / 2 - 1.2, nStories * floorH, 0);
+  bimLateralArrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, 1.6, 0xdc2626, 0.45, 0.35);
+  bimMacroGroup.add(bimLateralArrow);
+}
+
+// -------------------------------------------------------------------------
+// 2. DETAILED 3D COLUMN BASE & REBAR CAGE MODEL
+// -------------------------------------------------------------------------
+function buildDetailColumnBase() {
+  while (bimDetailGroup.children.length > 0) {
+    const obj = bimDetailGroup.children.pop();
+    if (obj.geometry) obj.geometry.dispose();
+    bimDetailGroup.remove(obj);
+  }
+
+  detailRebarMeshes = [];
+  detailTieMeshes = [];
+  detailSpallFragments = [];
+
+  const blackLineMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 }); // Gate 1
+
+  const footSize = 2.4;
+  const footH = 0.42;
+  const colSize = 1.2;
+  const colHeight = 3.2;
+  const coreSize = 0.90;
+
+  // 1. Foundation Footing
+  const footGeo = new THREE.BoxGeometry(footSize, footH, footSize);
+  const footMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.65 });
+  detailFootingMesh = new THREE.Mesh(footGeo, footMat);
+  detailFootingMesh.position.set(0, footH / 2, 0);
+  detailFootingMesh.castShadow = true;
+  detailFootingMesh.receiveShadow = true;
+  detailFootingMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(footGeo), blackLineMat));
+  bimDetailGroup.add(detailFootingMesh);
+
+  // 2. Outer Concrete Cover Box (Frosted / Solid)
+  const coverGeo = new THREE.BoxGeometry(colSize, colHeight, colSize);
+  const coverMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    roughness: 0.4,
+    transparent: true,
+    opacity: 0.28,
+    depthWrite: false
+  });
+  detailCoverMesh = new THREE.Mesh(coverGeo, coverMat);
+  detailCoverMesh.position.set(0, footH + colHeight / 2, 0);
+  detailCoverMesh.castShadow = true;
+  detailCoverMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(coverGeo), blackLineMat));
+  bimDetailGroup.add(detailCoverMesh);
+
+  // 3. Inner Confined Core Concrete Box
+  const coreGeo = new THREE.BoxGeometry(coreSize, colHeight, coreSize);
+  const coreMat = new THREE.MeshStandardMaterial({
+    color: 0x475569,
+    roughness: 0.7,
+    transparent: true,
+    opacity: 0.35
+  });
+  detailCoreMesh = new THREE.Mesh(coreGeo, coreMat);
+  detailCoreMesh.position.set(0, footH + colHeight / 2, 0);
+  detailCoreMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(coreGeo), new THREE.LineBasicMaterial({ color: 0x334155 })));
+  bimDetailGroup.add(detailCoreMesh);
+
+  // 4. 8 Longitudinal Rebars (D25 mm scaled to 3D cylinders)
+  const ro = coreSize / 2 - 0.05;
+  const barR = 0.038;
+  const rebarCoords = [
+    { x: -ro, z: -ro, name: 'TL' },
+    { x: 0,   z: -ro, name: 'TM' },
+    { x: ro,  z: -ro, name: 'TR' },
+    { x: -ro, z: 0,   name: 'ML' },
+    { x: ro,  z: 0,   name: 'MR' },
+    { x: -ro, z: ro,  name: 'BL' },
+    { x: 0,   z: ro,  name: 'BM' },
+    { x: ro,  z: ro,  name: 'BR' }
+  ];
+
+  const rebarMat = new THREE.MeshStandardMaterial({
+    color: 0x1e3a8a,
+    roughness: 0.35,
+    metalness: 0.55
+  });
+
+  rebarCoords.forEach((pt, idx) => {
+    const bGeo = new THREE.CylinderGeometry(barR, barR, colHeight, 16);
+    const bMesh = new THREE.Mesh(bGeo, rebarMat.clone());
+    bMesh.position.set(pt.x, footH + colHeight / 2, pt.z);
+    bMesh.castShadow = true;
+    bimDetailGroup.add(bMesh);
+
+    detailRebarMeshes.push({
+      mesh: bMesh,
+      baseX: pt.x,
+      baseZ: pt.z,
+      isCompression: (pt.x > 0), // Compressed side during rightward drift (+X)
+      isCornerComp: (pt.x > 0 && pt.z > 0)
+    });
+  });
+
+  // 5. 7 Horizontal Tie Hoops with 135-deg Seismic Hooks
+  const nTies = 7;
+  const tieStep = (colHeight - 0.3) / nTies;
+  const hoopHalf = coreSize / 2 - 0.02;
+
+  for (let i = 0; i < nTies; i++) {
+    const tieY = footH + 0.25 + i * tieStep;
+    const tieGroup = new THREE.Group();
+    tieGroup.position.set(0, tieY, 0);
+
+    // Build rectangular hoop out of thin tubes
+    const hoopPoints = [
+      new THREE.Vector3(-hoopHalf, 0, -hoopHalf),
+      new THREE.Vector3(hoopHalf, 0, -hoopHalf),
+      new THREE.Vector3(hoopHalf, 0, hoopHalf),
+      new THREE.Vector3(-hoopHalf, 0, hoopHalf),
+      new THREE.Vector3(-hoopHalf, 0, -hoopHalf),
+      // 135-deg hook at top-right corner
+      new THREE.Vector3(hoopHalf - 0.14, 0, -hoopHalf + 0.14)
+    ];
+
+    const hoopCurve = new THREE.CatmullRomCurve3(hoopPoints, false, 'catmullrom', 0.0);
+    const hoopGeo = new THREE.TubeGeometry(hoopCurve, 32, 0.02, 8, false);
+    const hoopMat = new THREE.MeshStandardMaterial({
+      color: 0x2563eb,
+      roughness: 0.3,
+      metalness: 0.4
+    });
+    const hoopMesh = new THREE.Mesh(hoopGeo, hoopMat);
+    hoopMesh.castShadow = true;
+    tieGroup.add(hoopMesh);
+
+    bimDetailGroup.add(tieGroup);
+    detailTieMeshes.push({ group: tieGroup, mesh: hoopMesh, index: i, baseY: tieY });
+  }
+
+  // 6. Spalled Concrete Debris Fragments (Initially hidden, revealed on LS/CP)
+  for (let k = 0; k < 12; k++) {
+    const chunkGeo = new THREE.DodecahedronGeometry(0.08 + (k % 3) * 0.04);
+    const chunkMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.85 });
+    const chunkMesh = new THREE.Mesh(chunkGeo, chunkMat);
+    chunkMesh.position.set(
+      colSize / 2 + 0.15 + (k % 4) * 0.08,
+      footH + 0.15 + Math.floor(k / 4) * 0.25,
+      -0.35 + (k % 3) * 0.35
+    );
+    chunkMesh.visible = false;
+    bimDetailGroup.add(chunkMesh);
+    detailSpallFragments.push(chunkMesh);
+  }
+
+  // 7. Plastic Hinge Zone Bracket in 3D
+  const lpLineMat = new THREE.LineDashedMaterial({ color: 0xea580c, dashSize: 0.1, gapSize: 0.06, linewidth: 2 });
+  const lpPoints = [
+    new THREE.Vector3(colSize / 2 + 0.22, footH, 0),
+    new THREE.Vector3(colSize / 2 + 0.32, footH, 0),
+    new THREE.Vector3(colSize / 2 + 0.32, footH + 1.2, 0),
+    new THREE.Vector3(colSize / 2 + 0.22, footH + 1.2, 0)
+  ];
+  const lpGeo = new THREE.BufferGeometry().setFromPoints(lpPoints);
+  const lpLine = new THREE.Line(lpGeo, lpLineMat);
+  lpLine.computeLineDistances();
+  bimDetailGroup.add(lpLine);
+
+  // 8. Dynamic 3D Callout Sprite
+  bimCalloutSprite = createCalloutSprite("🟢 IO (즉시거주)", "#059669", "미세 균열 / 탄성 회복 한계");
+  bimCalloutSprite.position.set(0, footH + colHeight + 0.45, 0);
+  bimAnnotationGroup.add(bimCalloutSprite);
+}
+
+// -------------------------------------------------------------------------
+// 3. CAMERA & VIEW CONTROLLER
+// -------------------------------------------------------------------------
+function setBimCameraView(mode) {
+  currentBimView = mode;
+  document.querySelectorAll('.bim-btn').forEach(b => b.classList.remove('active'));
+  if (mode === 'cage') document.getElementById('btnBimCage').classList.add('active');
+  if (mode === 'spall') document.getElementById('btnBimSpall').classList.add('active');
+  if (mode === 'macro') document.getElementById('btnBimMacro').classList.add('active');
+
+  if (mode === 'macro') {
+    bimMacroGroup.visible = true;
+    bimDetailGroup.visible = false;
+    cameraBim.position.set(13.5, 11, 16);
+    controlsBim.target.set(0, 2.6, 0);
+  } else if (mode === 'cage') {
+    bimMacroGroup.visible = false;
+    bimDetailGroup.visible = true;
+    detailCoverMesh.material.transparent = true;
+    detailCoverMesh.material.opacity = 0.28;
+    detailCoverMesh.material.depthWrite = false;
+    cameraBim.position.set(2.8, 2.3, 3.4);
+    controlsBim.target.set(0, 1.3, 0);
+  } else if (mode === 'spall') {
+    bimMacroGroup.visible = false;
+    bimDetailGroup.visible = true;
+    detailCoverMesh.material.transparent = false;
+    detailCoverMesh.material.opacity = 1.0;
+    detailCoverMesh.material.depthWrite = true;
+    cameraBim.position.set(1.9, 1.4, 2.4);
+    controlsBim.target.set(0.3, 0.75, 0);
+  }
+
+  cameraBim.lookAt(controlsBim.target);
+  controlsBim.update();
+  update3DBim();
+  if (rendererBim && sceneBim && cameraBim) {
+    rendererBim.render(sceneBim, cameraBim);
+  }
+}
+
+// -------------------------------------------------------------------------
+// 4. REAL-TIME 3D BIM UPDATE LOGIC
+// -------------------------------------------------------------------------
+function update3DBim() {
+  if (!sceneBim) return;
+
+  const th = thetaNorm;
+  const bb = computeBackbone(th);
+  const curQ = bb.q;
+
+  // Hinge Status
+  let hColor = 0x64748b;
+  let hStatusText = "⚪ 탄성 (Elastic)";
+  let hSubText = "균열 전무 / 100% 탄성 복원";
+
+  if (th <= 1.0) {
+    hColor = 0x64748b;
+    hStatusText = "⚪ 탄성 (Elastic)";
+    hSubText = "피복 콘크리트 건전 / 탄성 정상";
+  } else if (th <= getIO()) {
+    hColor = 0x059669;
+    hStatusText = "🟢 IO (즉시거주)";
+    hSubText = "인장측 미세 균열 / 철근 초기 항복";
+  } else if (th <= getLS()) {
+    hColor = 0xd97706;
+    hStatusText = "🟡 LS (인명안전)";
+    hSubText = "피복 콘크리트 박리 / 띠철근 노출";
+  } else if (th <= getCP()) {
+    hColor = 0xea580c;
+    hStatusText = "🟠 CP (붕괴방지)";
+    hSubText = "피복 전면 탈락 / 주철근 좌굴 직전";
+  } else {
+    hColor = 0xdc2626;
+    hStatusText = "🔴 E (주철근 S자 좌굴)";
+    hSubText = "띠철근 파단 / 압축 주철근 폭발적 좌굴";
+  }
+
+  // Update HUD Header
+  document.getElementById('bimHingeStatus').textContent = hStatusText;
+  document.getElementById('bimHingeStatus').style.color = `#${hColor.toString(16).padStart(6, '0')}`;
+
+  // 1. MACRO FRAME UPDATE
+  if (bimMacroGroup.visible) {
+    const maxSway = Math.min(th, 6.5) * 0.18;
+    bimSlabMeshes.forEach(({ mesh, story }) => {
+      mesh.position.x = Math.pow(story / 2.0, 1.25) * maxSway;
+    });
+    bimBeamMeshes.forEach(({ mesh, story, baseX }) => {
+      mesh.position.x = baseX + Math.pow(story / 2.0, 1.25) * maxSway;
+    });
+    bimColumnMeshes.forEach(({ mesh, story, baseX }) => {
+      const driftTop = Math.pow(story / 2.0, 1.25) * maxSway;
+      const driftBot = Math.pow((story - 1) / 2.0, 1.25) * maxSway;
+      mesh.position.x = baseX + (driftTop + driftBot) / 2.0;
+      mesh.rotation.z = -(driftTop - driftBot) / 2.4;
+    });
+    bimBaseHingeMeshes.forEach(({ mesh }) => {
+      mesh.material.color.setHex(hColor);
+      mesh.material.emissive.setHex(hColor);
+      mesh.material.emissiveIntensity = th > 1.0 ? 0.45 : 0.1;
+      mesh.scale.set(th > 1.0 ? 1.4 : 1.0, th > 1.0 ? 1.4 : 1.0, th > 1.0 ? 1.4 : 1.0);
+    });
+    if (bimLateralArrow) {
+      bimLateralArrow.position.set(-6.4 / 2 - 1.2 + maxSway, 2 * 2.4, 0);
+      bimLateralArrow.setLength(Math.max(0.4, curQ * 1.8), 0.45, 0.35);
+    }
+  }
+
+  // 2. DETAIL COLUMN BASE UPDATE
+  if (bimDetailGroup.visible) {
+    const isSpalled = th > getLS();
+    const isBuckled = th > getCP();
+    const driftAngle = Math.min(th, 6.0) * 0.045;
+
+    // Flexural Curvature Sway on Column Body
+    detailCoverMesh.rotation.z = -driftAngle;
+    detailCoreMesh.rotation.z = -driftAngle;
+
+    // Cover Concrete Appearance
+    if (currentBimView === 'spall') {
+      if (isBuckled) {
+        detailCoverMesh.material.color.setHex(0xdc2626);
+        detailCoverMesh.material.wireframe = true;
+      } else if (isSpalled) {
+        detailCoverMesh.material.color.setHex(0xd97706);
+        detailCoverMesh.material.wireframe = false;
+      } else {
+        detailCoverMesh.material.color.setHex(0xf1f5f9);
+        detailCoverMesh.material.wireframe = false;
+      }
+    } else {
+      detailCoverMesh.material.wireframe = false;
+      detailCoverMesh.material.color.setHex(isBuckled ? 0xfca5a5 : 0x94a3b8);
+    }
+
+    // Spall Debris
+    detailSpallFragments.forEach((chunk, i) => {
+      chunk.visible = isSpalled;
+      if (isBuckled) {
+        chunk.position.x = 1.2 / 2 + 0.25 + (i % 4) * 0.12;
+      }
+    });
+
+    // 8 Rebars Update
+    detailRebarMeshes.forEach(rb => {
+      rb.mesh.rotation.z = -driftAngle;
+
+      let rCol = 0x1e3a8a;
+      if (rb.isCompression && isBuckled) {
+        rCol = 0xdc2626; // Buckled red
+        // S-buckling displacement bulge
+        const buckleShift = Math.min(0.24, (th - getCP()) * 0.09);
+        rb.mesh.position.x = rb.baseX + buckleShift;
+        rb.mesh.scale.set(1.4, 1.0, 1.4);
+      } else if (rb.isCompression && isSpalled) {
+        rCol = 0xea580c;
+        rb.mesh.position.x = rb.baseX;
+        rb.mesh.scale.set(1.1, 1.0, 1.1);
+      } else {
+        rb.mesh.position.x = rb.baseX;
+        rb.mesh.scale.set(1.0, 1.0, 1.0);
+      }
+      rb.mesh.material.color.setHex(rCol);
+    });
+
+    // Tie Hoops Update
+    detailTieMeshes.forEach(t => {
+      t.group.rotation.z = -driftAngle;
+      if (t.index <= 2 && isBuckled) {
+        t.mesh.material.color.setHex(0xdc2626); // Broken ties
+        t.mesh.scale.set(1.18, 1.0, 1.18);
+      } else {
+        t.mesh.material.color.setHex(0x2563eb);
+        t.mesh.scale.set(1.0, 1.0, 1.0);
+      }
+    });
+  }
+
+  // 3. 3D CALLOUT SPRITE UPDATE
+  if (bimCalloutSprite) {
+    bimAnnotationGroup.remove(bimCalloutSprite);
+    bimCalloutSprite = createCalloutSprite(hStatusText, `#${hColor.toString(16).padStart(6, '0')}`, hSubText);
+    if (currentBimView === 'macro') {
+      bimCalloutSprite.position.set(-6.4 / 2 + 0.45, 1.75, 4.4 / 2 - 0.45);
+      bimCalloutSprite.scale.set(3.8, 0.76, 1);
+    } else if (currentBimView === 'cage') {
+      bimCalloutSprite.position.set(0, 0.42 + 3.2 + 0.45, 0);
+      bimCalloutSprite.scale.set(2.4, 0.48, 1);
+    } else {
+      bimCalloutSprite.position.set(0.2, 0.42 + 2.0, 0);
+      bimCalloutSprite.scale.set(1.8, 0.36, 1);
+    }
+    bimAnnotationGroup.add(bimCalloutSprite);
+  }
+
+  if (rendererBim && sceneBim && cameraBim) {
+    rendererBim.render(sceneBim, cameraBim);
+  }
+}
+
+function animateBimLoop() {
+  requestAnimationFrame(animateBimLoop);
+  if (controlsBim) controlsBim.update();
+  if (rendererBim && sceneBim && cameraBim) {
+    rendererBim.render(sceneBim, cameraBim);
+  }
+}
+
+function handleBimResize() {
+  if (!rendererBim || !cameraBim) return;
+  const w = bimContainer.clientWidth || 450;
+  const h = bimContainer.clientHeight || 275;
+  cameraBim.aspect = w / h;
+  cameraBim.updateProjectionMatrix();
+  rendererBim.setSize(w, h);
+}
+window.addEventListener('resize', handleBimResize);
+
+// =========================================================================
+// UI CONTROLS & EVENT HANDLERS
+// =========================================================================
 function setPreset(val) {
   thetaNorm = Math.max(0, Math.min(7.0, val));
   document.getElementById('sliderTheta').value = thetaNorm.toFixed(2);
@@ -640,13 +1385,12 @@ function animateLoop() {
   animReq = requestAnimationFrame(animateLoop);
 }
 
-// UPDATE LOGIC
+// =========================================================================
+// UPDATE LOGIC (SYNCHRONIZED MASTER DISPATCHER)
+// =========================================================================
 function updateAll() {
   document.getElementById('valTheta').innerText = thetaNorm.toFixed(2);
 
-  // Strains computation based on flexure + axial load
-  // At yield thetaNorm=1.0: eps_s = 0.002, eps_c = 0.0018
-  const eps_yield = 0.002;
   const eps_s = (0.002 * thetaNorm).toFixed(4);
   const eps_c = (0.0015 * thetaNorm * (1.0 + axialRatio * 0.8)).toFixed(4);
   const crackW = (thetaNorm <= 1.0 ? 0 : (thetaNorm - 1.0) * 0.35).toFixed(2);
@@ -660,6 +1404,7 @@ function updateAll() {
   updateHUD(thetaNorm, parseFloat(eps_c), parseFloat(eps_s));
 
   drawCrossSection();
+  update3DBim();
   drawElevation();
 }
 
@@ -688,7 +1433,7 @@ function updateHUD(th, ec, es) {
     fill.style.background = '#10b981';
     dmgDesc.innerText = '피복 콘크리트 완전 건전. 미세 균열 전무. 철근 100% 탄성 복원.';
     humanDesc.innerText = '미세 진동 감지. 사상자 0명. 전산/병원 무중단 정상 운영.';
-    tieDesc.innerText = `띠철근 간격 ${tieSpacingRatio}db 양호. 횡구속력 100% 발휘 중.`;
+    tieDesc.innerText = `띠철근 간격 ${tieSpacingRatio.toFixed(1)}db 양호. 횡구속력 100% 발휘 중.`;
   } else if (th <= io) {
     pct = Math.round(15 + ((th - 1.0) / (io - 1.0)) * 15);
     badge.style.background = '#d1fae5'; badge.style.color = '#047857'; badge.innerText = 'IO (즉시거주)';
@@ -707,13 +1452,13 @@ function updateHUD(th, ec, es) {
     dmgDesc.innerText = '피복 콘크리트 균열망 확장 및 모서리 콘크리트 미세 탈락(Spalling) 시작. 띠철근 노출.';
     humanDesc.innerText = '천장 마감재 일부 탈락. 전원 안전 대피 완료. 사망자 0명.';
     tieDesc.innerText = (tieSpacingRatio > 8.0) 
-      ? `⚠️ 띠철근 간격(${tieSpacingRatio}db) 과다로 피복 조기 탈락 가속 중!`
+      ? `⚠️ 띠철근 간격(${tieSpacingRatio.toFixed(1)}db) 과다로 피복 조기 탈락 가속 중!`
       : '띠철근이 심부 코어 콘크리트를 단단히 구속하여 취성 파괴 방어 중.';
   } else if (th <= cp) {
     pct = Math.round(65 + ((th - ls) / (cp - ls)) * 25);
     badge.style.background = '#ffedd5'; badge.style.color = '#c2410c'; badge.innerText = 'CP (붕괴방지)';
     banner.style.background = '#ffedd5'; banner.style.color = '#9a3412';
-    tagTitle.innerText = '🟠 RED TAG: 붕괴 방지 (Collapse Prevention)';
+    tagTitle.innerText = '🟠 ORANGE TAG: 붕괴 방지 (Collapse Prevention)';
     fill.style.background = '#ea580c';
     dmgDesc.innerText = '피복 콘크리트 전면 탈락! 심부 코어 콘크리트 파쇄 진행 중. 주철근 좌굴 임계점 도달.';
     humanDesc.innerText = '골조 대변형 및 비구조재 파괴. 인명 압사는 면했으나 건물 기우뚱(철거 판정).';
@@ -742,35 +1487,40 @@ function updateHUD(th, ec, es) {
   fill.style.width = `${pct}%`;
 }
 
-// DRAW 200X ZOOMED-IN CROSS SECTION
+// =========================================================================
+// 1. DRAW 200X ZOOMED-IN CROSS SECTION (CANONICAL DPR)
+// =========================================================================
 function drawCrossSection() {
-  const w = secCanvas.parentElement.clientWidth - 28;
-  const h = 260;
+  const dpr = Math.max(window.devicePixelRatio || 1, 2.0);
+  const w = secCanvas.parentElement.clientWidth - 24;
+  const h = 275;
+  secCanvas.width = Math.round(w * dpr);
+  secCanvas.height = Math.round(h * dpr);
   secCanvas.style.width = w + 'px';
   secCanvas.style.height = h + 'px';
-  resizeCanvas(secCanvas);
 
-  secCtx.clearRect(0, 0, w, h);
+  secCtx.setTransform(1, 0, 0, 1, 0, 0);
+  secCtx.clearRect(0, 0, secCanvas.width, secCanvas.height);
+  secCtx.save();
+  secCtx.scale(dpr, dpr);
 
   const cx = w / 2;
-  const cy = h / 2;
-  const colSize = Math.min(w * 0.55, 170); // 600mm x 600mm scaled
-  const coverThick = colSize * 0.12; // 40mm cover
+  const cy = h / 2 - 4;
+  const colSize = Math.min(w * 0.52, 160);
+  const coverThick = colSize * 0.12;
   const coreSize = colSize - 2 * coverThick;
 
   const left = cx - colSize / 2;
   const top = cy - colSize / 2;
 
-  // Concrete Cover Box (Damaged/Spalled based on thetaNorm)
   const isSpalled = thetaNorm > getLS();
   const isSevereSpalled = thetaNorm > getCP();
 
-  // Cover Concrete Drawing
+  // Cover Concrete Box
   secCtx.save();
   if (isSevereSpalled) {
-    // Spalled flaking pieces
-    secCtx.fillStyle = 'rgba(203, 213, 225, 0.3)';
-    secCtx.strokeStyle = '#94a3b8';
+    secCtx.fillStyle = 'rgba(203, 213, 225, 0.25)';
+    secCtx.strokeStyle = '#dc2626';
     secCtx.setLineDash([4, 4]);
   } else if (isSpalled) {
     secCtx.fillStyle = '#e2e8f0';
@@ -779,87 +1529,98 @@ function drawCrossSection() {
     secCtx.fillStyle = '#f1f5f9';
     secCtx.strokeStyle = '#64748b';
   }
-  secCtx.lineWidth = 2;
-  secCtx.strokeRect(left, top, colSize, colSize);
+  secCtx.lineWidth = 1.8;
   secCtx.fillRect(left, top, colSize, colSize);
+  secCtx.strokeRect(left, top, colSize, colSize);
   secCtx.restore();
 
   // Confined Core Concrete Box
   secCtx.save();
   secCtx.fillStyle = (thetaNorm > getCP()) ? '#cbd5e1' : '#94a3b8';
   secCtx.strokeStyle = (thetaNorm > getPeakC()) ? '#dc2626' : '#475569';
-  secCtx.lineWidth = 2;
+  secCtx.lineWidth = 1.8;
   secCtx.fillRect(cx - coreSize / 2, cy - coreSize / 2, coreSize, coreSize);
   secCtx.strokeRect(cx - coreSize / 2, cy - coreSize / 2, coreSize, coreSize);
   secCtx.restore();
 
-  // Tie Hoop Line
+  // Tie Hoop
   secCtx.save();
   const tieBroken = thetaNorm > getCP();
   secCtx.strokeStyle = tieBroken ? '#dc2626' : '#2563eb';
-  secCtx.lineWidth = 2.5;
-  if (tieBroken) secCtx.setLineDash([6, 4]);
-  secCtx.strokeRect(cx - coreSize / 2 + 4, cy - coreSize / 2 + 4, coreSize - 8, coreSize - 8);
+  secCtx.lineWidth = 2.4;
+  if (tieBroken) secCtx.setLineDash([5, 4]);
+  const hoopL = cx - coreSize / 2 + 4;
+  const hoopT = cy - coreSize / 2 + 4;
+  const hoopS = coreSize - 8;
+  secCtx.strokeRect(hoopL, hoopT, hoopS, hoopS);
+
+  // 135-deg hook detail at top-right
+  secCtx.beginPath();
+  if (tieSpacingRatio <= 6.0) {
+    secCtx.moveTo(hoopL + hoopS, hoopT + 12);
+    secCtx.lineTo(hoopL + hoopS, hoopT);
+    secCtx.lineTo(hoopL + hoopS - 14, hoopT + 14);
+  } else {
+    secCtx.moveTo(hoopL + hoopS, hoopT + 12);
+    secCtx.lineTo(hoopL + hoopS, hoopT);
+    secCtx.lineTo(hoopL + hoopS - 10, hoopT);
+  }
+  secCtx.stroke();
   secCtx.restore();
 
-  // Rebars (8 Longitudinal Bars D25)
+  // 8 Rebars
   const rOffset = coreSize / 2 - 6;
   const rebarCoords = [
-    { x: cx - rOffset, y: cy - rOffset }, // Top-Left (Compression)
-    { x: cx,           y: cy - rOffset }, // Top-Mid
-    { x: cx + rOffset, y: cy - rOffset }, // Top-Right
-    { x: cx - rOffset, y: cy },           // Mid-Left
-    { x: cx + rOffset, y: cy },           // Mid-Right
-    { x: cx - rOffset, y: cy + rOffset }, // Bot-Left (Tension)
-    { x: cx,           y: cy + rOffset }, // Bot-Mid
-    { x: cx + rOffset, y: cy + rOffset }  // Bot-Right
+    { x: cx - rOffset, y: cy - rOffset },
+    { x: cx,           y: cy - rOffset },
+    { x: cx + rOffset, y: cy - rOffset },
+    { x: cx - rOffset, y: cy },
+    { x: cx + rOffset, y: cy },
+    { x: cx - rOffset, y: cy + rOffset },
+    { x: cx,           y: cy + rOffset },
+    { x: cx + rOffset, y: cy + rOffset }
   ];
 
-  const rebarR = 6;
+  const rebarR = 5.5;
   const isBuckled = thetaNorm > getCP();
 
-  rebarCoords.forEach((rb, idx) => {
+  rebarCoords.forEach((rb) => {
     secCtx.save();
-    const isCompSide = (rb.y < cy); // Upper side under compression in positive moment
+    const isCompSide = (rb.y < cy);
     let rbCol = '#1e3a8a';
-    if (isCompSide && isBuckled) {
-      rbCol = '#dc2626'; // Buckled rebar
-    } else if (isCompSide && thetaNorm > getLS()) {
-      rbCol = '#ea580c';
-    }
+    if (isCompSide && isBuckled) rbCol = '#dc2626';
+    else if (isCompSide && thetaNorm > getLS()) rbCol = '#ea580c';
 
     secCtx.fillStyle = rbCol;
     secCtx.beginPath();
     secCtx.arc(rb.x, rb.y, rebarR, 0, Math.PI * 2);
     secCtx.fill();
     secCtx.strokeStyle = '#ffffff';
-    secCtx.lineWidth = 1.5;
+    secCtx.lineWidth = 1.3;
     secCtx.stroke();
 
-    // S-Buckling indicator for compressed rebars
     if (isCompSide && isBuckled) {
       secCtx.strokeStyle = '#dc2626';
-      secCtx.lineWidth = 2;
+      secCtx.lineWidth = 1.8;
       secCtx.beginPath();
-      secCtx.arc(rb.x, rb.y, rebarR + 4, 0, Math.PI * 2);
+      secCtx.arc(rb.x, rb.y, rebarR + 3.5, 0, Math.PI * 2);
       secCtx.stroke();
     }
     secCtx.restore();
   });
 
-  // Cracks Visualization on Section
+  // Tension Cracks on Section
   if (thetaNorm > 1.0) {
     secCtx.save();
     secCtx.strokeStyle = '#dc2626';
-    secCtx.lineWidth = Math.min(3, 0.8 + (thetaNorm - 1.0) * 0.4);
-    // Draw horizontal tension flexure cracks from bottom
-    const numCracks = Math.min(8, Math.floor(thetaNorm * 1.5));
+    secCtx.lineWidth = Math.min(2.6, 0.8 + (thetaNorm - 1.0) * 0.4);
+    const numCracks = Math.min(7, Math.floor(thetaNorm * 1.5));
     for (let k = 0; k < numCracks; k++) {
-      const crackY = cy + coreSize / 2 + 10 - k * 8;
+      const crackY = cy + coreSize / 2 + 8 - k * 7;
       secCtx.beginPath();
-      secCtx.moveTo(left + 15, crackY);
-      secCtx.lineTo(cx - 10 + (k % 2) * 20, crackY - 3);
-      secCtx.lineTo(left + colSize - 15, crackY);
+      secCtx.moveTo(left + 12, crackY);
+      secCtx.lineTo(cx - 8 + (k % 2) * 16, crackY - 2);
+      secCtx.lineTo(left + colSize - 12, crackY);
       secCtx.stroke();
     }
     secCtx.restore();
@@ -867,34 +1628,43 @@ function drawCrossSection() {
 
   // Dimension & Callouts
   secCtx.fillStyle = '#0f172a';
-  secCtx.font = 'bold 11px monospace';
+  secCtx.font = 'bold 11.5px Pretendard, sans-serif';
   secCtx.textAlign = 'left';
-  secCtx.fillText('600mm x 600mm 기둥 단면', left, top - 8);
+  secCtx.fillText('600mm × 600mm 기둥 가로단면', left, top - 8);
 
   secCtx.font = '10px Pretendard, sans-serif';
-  secCtx.fillStyle = '#64748b';
-  secCtx.fillText('압축측 (Compression): 주철근 좌굴 위험 영역', left, top + colSize + 16);
-  secCtx.fillText('인장측 (Tension): 휨 균열 개구 영역', left, top + colSize + 30);
+  secCtx.fillStyle = '#475569';
+  secCtx.fillText('압축측 (상단): 주철근 S자 좌굴 위험 영역', left, top + colSize + 15);
+  secCtx.fillText('인장측 (하단): 휨 균열 개구 영역', left, top + colSize + 28);
+
+  secCtx.restore();
 }
 
-// DRAW ELEVATION REBAR BUCKLING (3차 휨곡률 Bezier & S자 좌굴)
+// =========================================================================
+// 2. DRAW ELEVATION REBAR BUCKLING (CANONICAL DPR)
+// =========================================================================
 function drawElevation() {
-  const w = eleCanvas.parentElement.clientWidth - 28;
-  const h = 210;
+  const dpr = Math.max(window.devicePixelRatio || 1, 2.0);
+  const w = eleCanvas.parentElement.clientWidth - 24;
+  const h = 225;
+  eleCanvas.width = Math.round(w * dpr);
+  eleCanvas.height = Math.round(h * dpr);
   eleCanvas.style.width = w + 'px';
   eleCanvas.style.height = h + 'px';
-  resizeCanvas(eleCanvas);
 
-  eleCtx.clearRect(0, 0, w, h);
+  eleCtx.setTransform(1, 0, 0, 1, 0, 0);
+  eleCtx.clearRect(0, 0, eleCanvas.width, eleCanvas.height);
+  eleCtx.save();
+  eleCtx.scale(dpr, dpr);
 
-  const groundY = h - 35;
-  const colH = 120;
-  const cx = w / 2;
-  const colW = 55;
+  const groundY = h - 32;
+  const colH = 135;
+  const cx = w / 2 - 20;
+  const colW = 56;
   const topY = groundY - colH;
 
   // Ground Line
-  eleCtx.strokeStyle = '#cbd5e1';
+  eleCtx.strokeStyle = '#94a3b8';
   eleCtx.lineWidth = 2;
   eleCtx.beginPath();
   eleCtx.moveTo(20, groundY);
@@ -902,30 +1672,27 @@ function drawElevation() {
   eleCtx.stroke();
 
   // Drift
-  const maxDrift = 38;
+  const maxDrift = 42;
   const drift = (Math.min(thetaNorm, 6.0) / 6.0) * maxDrift;
   const topCX = cx + drift;
 
-  // Concrete Column Body via 3차 휨곡률 Bezier
+  // Column Concrete Body (Cubic Curvature)
   eleCtx.save();
   eleCtx.fillStyle = '#f1f5f9';
-  eleCtx.strokeStyle = '#64748b';
-  eleCtx.lineWidth = 2;
+  eleCtx.strokeStyle = '#475569';
+  eleCtx.lineWidth = 1.6;
 
   eleCtx.beginPath();
-  // Left Edge
   eleCtx.moveTo(cx - colW / 2, groundY);
   eleCtx.bezierCurveTo(cx - colW / 2, groundY - colH * 0.4, topCX - colW / 2, topY + colH * 0.4, topCX - colW / 2, topY);
-  // Top Edge
   eleCtx.lineTo(topCX + colW / 2, topY);
-  // Right Edge
   eleCtx.bezierCurveTo(topCX + colW / 2, topY + colH * 0.4, cx + colW / 2, groundY - colH * 0.4, cx + colW / 2, groundY);
   eleCtx.closePath();
   eleCtx.fill();
   eleCtx.stroke();
   eleCtx.restore();
 
-  // Ties (Hoops) in Elevation
+  // Ties in Elevation
   const numTies = 7;
   const tieStep = (colH - 20) / numTies;
   const isTieBroken = thetaNorm > getCP();
@@ -933,18 +1700,17 @@ function drawElevation() {
   for (let i = 0; i < numTies; i++) {
     const yLocal = groundY - 12 - i * tieStep;
     const t = (groundY - yLocal) / colH;
-    const shift = (3 * t * t - 2 * t * t * t) * drift; // Hermite cubic shape function
+    const shift = (3 * t * t - 2 * t * t * t) * drift;
     const xMid = cx + shift;
 
     eleCtx.save();
     if (i <= 2 && isTieBroken) {
-      // Broken tie near base
       eleCtx.strokeStyle = '#dc2626';
       eleCtx.lineWidth = 2;
       eleCtx.setLineDash([3, 3]);
     } else {
       eleCtx.strokeStyle = '#2563eb';
-      eleCtx.lineWidth = 1.8;
+      eleCtx.lineWidth = 1.6;
     }
     eleCtx.beginPath();
     eleCtx.moveTo(xMid - colW / 2 + 4, yLocal);
@@ -953,28 +1719,25 @@ function drawElevation() {
     eleCtx.restore();
   }
 
-  // Longitudinal Rebars with S-Buckling on Compression Side
+  // Longitudinal Rebars with S-Buckling
   const isBuckled = thetaNorm > getCP();
   const leftRebarX_base = cx - colW / 2 + 8;
   const rightRebarX_base = cx + colW / 2 - 8;
 
   // Right Rebar (Compression side during right drift)
   eleCtx.save();
-  eleCtx.strokeStyle = isBuckled ? '#dc2626' : '#1e3a8a';
+  eleCtx.strokeStyle = isBuckled ? '#dc2626' : (thetaNorm > getLS() ? '#ea580c' : '#1e3a8a');
   eleCtx.lineWidth = isBuckled ? 3.5 : 2.5;
   eleCtx.beginPath();
   eleCtx.moveTo(rightRebarX_base, groundY);
 
   if (isBuckled) {
-    // S-shaped inelastic buckling curve between ground and 2nd tie
     const buckleAmp = Math.min(22, (thetaNorm - getCP()) * 12);
     const bY1 = groundY - 15;
     const bY2 = groundY - 35;
     eleCtx.bezierCurveTo(rightRebarX_base + buckleAmp, bY1, rightRebarX_base - buckleAmp * 0.6, bY2, rightRebarX_base + drift * 0.35, groundY - 50);
-    // Continue up
     eleCtx.bezierCurveTo(rightRebarX_base + drift * 0.6, groundY - 80, topCX + colW / 2 - 8, topY + 20, topCX + colW / 2 - 8, topY);
   } else {
-    // Smooth bending
     eleCtx.bezierCurveTo(rightRebarX_base, groundY - colH * 0.4, topCX + colW / 2 - 8, topY + colH * 0.4, topCX + colW / 2 - 8, topY);
   }
   eleCtx.stroke();
@@ -982,7 +1745,7 @@ function drawElevation() {
 
   // Left Rebar (Tension side)
   eleCtx.save();
-  eleCtx.strokeStyle = '#1e3a8a';
+  eleCtx.strokeStyle = thetaNorm > 1.0 ? '#0284c7' : '#1e3a8a';
   eleCtx.lineWidth = 2.5;
   eleCtx.beginPath();
   eleCtx.moveTo(leftRebarX_base, groundY);
@@ -991,10 +1754,10 @@ function drawElevation() {
   eleCtx.restore();
 
   // Plastic Hinge Zone Bracket [0 ~ 1.5h]
-  const lpHeight = 55;
+  const lpHeight = 58;
   eleCtx.strokeStyle = '#ea580c';
   eleCtx.lineWidth = 1.5;
-  eleCtx.setLineDash([2, 2]);
+  eleCtx.setLineDash([3, 3]);
   eleCtx.beginPath();
   eleCtx.moveTo(cx + colW / 2 + 16, groundY);
   eleCtx.lineTo(cx + colW / 2 + 24, groundY);
@@ -1004,27 +1767,26 @@ function drawElevation() {
   eleCtx.setLineDash([]);
 
   eleCtx.fillStyle = '#ea580c';
-  eleCtx.font = 'bold 10px Pretendard, sans-serif';
+  eleCtx.font = 'bold 9.5px Pretendard, sans-serif';
   eleCtx.textAlign = 'left';
-  eleCtx.fillText(`소성힌지구간 Lp ≈ ${lpHeight}mm`, cx + colW / 2 + 28, groundY - lpHeight / 2 + 4);
+  eleCtx.fillText(`Lp 소성힌지 (≈${lpHeight * 6}mm)`, cx + colW / 2 + 28, groundY - lpHeight / 2 + 4);
 
   // Callout for Rebar Buckling
   if (isBuckled) {
     eleCtx.fillStyle = '#dc2626';
-    eleCtx.font = 'bold 11px Pretendard, sans-serif';
+    eleCtx.font = 'bold 10px Pretendard, sans-serif';
     eleCtx.textAlign = 'right';
-    eleCtx.fillText('💥 주철근 S자 비탄성 좌굴!', cx + colW / 2 - 2, groundY - 25);
+    eleCtx.fillText('💥 주철근 S자 좌굴!', cx + colW / 2 - 2, groundY - 25);
   }
+
+  eleCtx.restore();
 }
 
-// INIT
-window.addEventListener('load', () => {
-  updateParams();
-});
-window.addEventListener('resize', () => {
-  drawCrossSection();
-  drawElevation();
-});
+// =========================================================================
+// BOOTSTRAP
+// =========================================================================
+initThreeBIM();
+updateParams();
 </script>
 </body>
 </html>
