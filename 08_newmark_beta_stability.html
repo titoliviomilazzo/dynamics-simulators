@@ -445,6 +445,7 @@
         <div style="position: relative; width: 100%; height: 210px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; background: #faf8f5;">
           <!-- 3D BIM Container -->
           <div id="threeSdofContainer" style="position: absolute; inset: 0; width: 100%; height: 100%; background: #faf8f5;">
+            <div id="div3dAlert" style="display: none; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: rgba(220, 38, 38, 0.94); color: #ffffff; padding: 4px 14px; border-radius: 9999px; font-weight: 700; font-size: 11px; box-shadow: 0 2px 8px rgba(220,38,38,0.4); z-index: 20; letter-spacing: 0.02em; pointer-events: none;">💥 수치 발산 폭발 발생 (|u| → ∞)</div>
             <div style="position: absolute; bottom: 8px; left: 8px; font-size: 10px; font-family: monospace; color: #475569; background: rgba(255,255,255,0.92); padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; z-index: 10; display: flex; align-items: center; gap: 6px;">
               <span>🖱️ 3D 회전/줌</span>
               <span style="color: #cbd5e1;">|</span>
@@ -637,6 +638,7 @@ let threeCartGroup, threeGhostCartGroup, threeSpringMesh, threeDamperCyl, threeD
 let threeCartBodyMesh;
 let threeWheelMeshes = [];
 let threeGhostWheelMeshes = [];
+let threeBumperMeshes = [];
 let threeWheelAngle = 0;
 let threeGhostWheelAngle = 0;
 
@@ -898,11 +900,13 @@ function initThreeSdof() {
     bumperL.position.set(-4.1, 0.65, z);
     bumperL.add(new THREE.LineSegments(bumperEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
     threeScene.add(bumperL);
+    threeBumperMeshes.push(bumperL);
 
     const bumperR = new THREE.Mesh(bumperGeo, bumperMat);
     bumperR.position.set(5.1, 0.65, z);
     bumperR.add(new THREE.LineSegments(bumperEdgeGeo, new THREE.LineBasicMaterial({ color: 0x0f172a })));
     threeScene.add(bumperR);
+    threeBumperMeshes.push(bumperR);
   }
 
   // 4. MAIN SDOF NUMERICAL CART (Vibrant Royal Blue & Dark Steel Slabs with Black Edges)
@@ -1162,13 +1166,25 @@ function renderThreeSdof(motion) {
   const maxRight = 2.20;
   const refAmp = Math.max(1.0, Math.min(5.0, uMax));
 
+  const divAlertEl = document.getElementById('div3dAlert');
+
   // 1. Numerical Cart Motion
-  const rawShift = (motion.u_num / refAmp) * 1.1;
   let stroke = 0;
-  if (rawShift >= 0) {
-    stroke = maxRight * Math.tanh(rawShift / maxRight);
+  if (motion.isDiv) {
+    if (divAlertEl) divAlertEl.style.display = 'block';
+    // High-frequency violent chaotic oscillation slamming between limits
+    const nowMs = performance.now();
+    const divPhase = nowMs * 0.045;
+    const divWave = Math.sin(divPhase) * 1.5 + Math.sin(divPhase * 2.3) * 0.6;
+    stroke = Math.max(-maxLeft, Math.min(maxRight, divWave * 1.35));
   } else {
-    stroke = -maxLeft * Math.tanh(Math.abs(rawShift) / maxLeft);
+    if (divAlertEl) divAlertEl.style.display = 'none';
+    const rawShift = (motion.u_num / refAmp) * 1.1;
+    if (rawShift >= 0) {
+      stroke = maxRight * Math.tanh(rawShift / maxRight);
+    } else {
+      stroke = -maxLeft * Math.tanh(Math.abs(rawShift) / maxLeft);
+    }
   }
   const cartCenterX = 1.30 + stroke;
 
@@ -1176,18 +1192,30 @@ function renderThreeSdof(motion) {
     threeCartGroup.position.x = cartCenterX;
 
     if (motion.isDiv) {
-      // Divergence visual alarm: violent jitter and alert red color
-      threeCartGroup.position.y = (Math.random() - 0.5) * 0.06;
-      threeCartGroup.rotation.z = (Math.random() - 0.5) * 0.04;
+      // Divergence violent chaotic jitter and rapid alert flashing
+      const nowMs = performance.now();
+      threeCartGroup.position.y = (Math.sin(nowMs * 0.08)) * 0.09;
+      threeCartGroup.rotation.z = (Math.sin(nowMs * 0.06)) * 0.07;
+      threeCartGroup.rotation.y = (Math.cos(nowMs * 0.05)) * 0.04;
       if (threeCartBodyMesh) {
-        threeCartBodyMesh.material.color.setHex(0xdc2626);
+        const flashColor = (Math.floor(nowMs / 140) % 2 === 0) ? 0xef4444 : 0xf59e0b;
+        threeCartBodyMesh.material.color.setHex(flashColor);
       }
     } else {
       threeCartGroup.position.y = 0;
+      threeCartGroup.rotation.y = 0;
       threeCartGroup.rotation.z = -0.015 * Math.tanh((motion.a_num || 0) / 40.0);
       if (threeCartBodyMesh) {
         threeCartBodyMesh.material.color.setHex(0x2563eb);
       }
+    }
+  }
+
+  // Bumper impact flash
+  if (threeBumperMeshes && threeBumperMeshes.length > 0) {
+    const isImpact = motion.isDiv && (stroke >= maxRight * 0.85 || stroke <= -maxLeft * 0.85);
+    for (let b of threeBumperMeshes) {
+      b.material.color.setHex(isImpact ? 0xfbbf24 : 0xdc2626);
     }
   }
 
@@ -1206,7 +1234,8 @@ function renderThreeSdof(motion) {
   // 3. Smooth Wheel Rotation
   if (threeWheelMeshes && threeWheelMeshes.length > 0) {
     const wheelR = 0.18;
-    const dTheta = ((motion.v_num || 0) * 0.016 * simSpeed) / wheelR;
+    const speedMult = motion.isDiv ? 4.0 : 1.0;
+    const dTheta = ((motion.v_num || 0) * 0.016 * simSpeed * speedMult) / wheelR;
     threeWheelAngle += dTheta;
     for (let w of threeWheelMeshes) {
       w.rotation.z = threeWheelAngle;
@@ -1224,7 +1253,8 @@ function renderThreeSdof(motion) {
   if (threeSpringMesh) {
     const springStart = new THREE.Vector3(-3.8, 1.55, -0.85);
     const springEnd = new THREE.Vector3(cartCenterX - 1.30, 1.55, -0.85);
-    const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.32, 10);
+    const divSpringJitter = motion.isDiv ? Math.sin(performance.now() * 0.05) * 0.06 : 0;
+    const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.32 + divSpringJitter, 10);
     threeSpringMesh.geometry.dispose();
     threeSpringMesh.geometry = new THREE.TubeGeometry(springCurve, 120, 0.065, 10, false);
   }
@@ -1890,7 +1920,7 @@ function drawSDOF(motion) {
   sdofCtx.restore();
 }
 
-// 캔버스 드로잉 - 하단 시간-변위 정밀 비교 플롯 (고해상도 연속 곡선 & 이산 노드 점)
+// 캔버스 드로잉 - 하단 시간-변위 정밀 비교 플롯 (고해상도 연속 곡선 & 발산 폭발 시각화)
 function drawPlot(currT) {
   if (!plotCtx) return;
   const dpr = window.devicePixelRatio || 1;
@@ -1903,14 +1933,14 @@ function drawPlot(currT) {
 
   const padLeft = 65;
   const padRight = 30;
-  const padTop = 30;
-  const padBottom = 45;
+  const padTop = 26;
+  const padBottom = 38;
 
   const plotW = w - padLeft - padRight;
   const plotH = h - padTop - padBottom;
 
   let yLimit = Math.max(1.5, Math.min(5.0, uMax * 1.15));
-  if (isDiverged) yLimit = 8.0;
+  if (isDiverged) yLimit = 6.0;
 
   // 축 배경
   plotCtx.fillStyle = '#fcfdfe';
@@ -1919,32 +1949,77 @@ function drawPlot(currT) {
   plotCtx.lineWidth = 1;
   plotCtx.strokeRect(padLeft, padTop, plotW, plotH);
 
+  // 발산 폭발 구역 배경 음영 (Divergence Escape Zones at Top and Bottom)
+  const blastZoneH = 26;
+  if (isDiverged) {
+    // 상단 +∞ 발산 구역
+    const gradTop = plotCtx.createLinearGradient(0, padTop, 0, padTop + blastZoneH);
+    gradTop.addColorStop(0, 'rgba(239, 68, 68, 0.16)');
+    gradTop.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
+    plotCtx.fillStyle = gradTop;
+    plotCtx.fillRect(padLeft, padTop, plotW, blastZoneH);
+
+    // 하단 -∞ 발산 구역
+    const gradBtm = plotCtx.createLinearGradient(0, padTop + plotH - blastZoneH, 0, padTop + plotH);
+    gradBtm.addColorStop(0, 'rgba(239, 68, 68, 0.02)');
+    gradBtm.addColorStop(1, 'rgba(239, 68, 68, 0.16)');
+    plotCtx.fillStyle = gradBtm;
+    plotCtx.fillRect(padLeft, padTop + plotH - blastZoneH, plotW, blastZoneH);
+
+    // 경계 점선
+    plotCtx.strokeStyle = '#f87171';
+    plotCtx.lineWidth = 1;
+    plotCtx.setLineDash([4, 4]);
+    plotCtx.beginPath();
+    plotCtx.moveTo(padLeft, padTop + blastZoneH);
+    plotCtx.lineTo(padLeft + plotW, padTop + blastZoneH);
+    plotCtx.moveTo(padLeft, padTop + plotH - blastZoneH);
+    plotCtx.lineTo(padLeft + plotW, padTop + plotH - blastZoneH);
+    plotCtx.stroke();
+    plotCtx.setLineDash([]);
+  }
+
   // 그리드 가로선
   const yTicks = 6;
-  plotCtx.font = '11px monospace';
-  plotCtx.fillStyle = '#64748b';
+  plotCtx.font = '10px monospace';
   plotCtx.textAlign = 'right';
   for (let i = 0; i <= yTicks; i++) {
     const val = -yLimit + (2 * yLimit * i) / yTicks;
     const y = padTop + plotH - (i / yTicks) * plotH;
     plotCtx.beginPath();
+    plotCtx.strokeStyle = (i === 0 || i === yTicks) && isDiverged ? '#fca5a5' : '#e2e8f0';
     plotCtx.moveTo(padLeft, y);
     plotCtx.lineTo(w - padRight, y);
     plotCtx.stroke();
-    plotCtx.fillText(val.toFixed(1), padLeft - 8, y + 4);
+
+    if (isDiverged && i === yTicks) {
+      plotCtx.fillStyle = '#dc2626';
+      plotCtx.font = 'bold 10px monospace';
+      plotCtx.fillText('▲ +∞', padLeft - 8, y + 4);
+    } else if (isDiverged && i === 0) {
+      plotCtx.fillStyle = '#dc2626';
+      plotCtx.font = 'bold 10px monospace';
+      plotCtx.fillText('▼ -∞', padLeft - 8, y + 4);
+    } else {
+      plotCtx.fillStyle = '#64748b';
+      plotCtx.font = '10px monospace';
+      plotCtx.fillText(val.toFixed(1), padLeft - 8, y + 4);
+    }
   }
 
   // 그리드 세로선 (시간)
   const xTicks = Math.min(10, Math.floor(totalT));
   plotCtx.textAlign = 'center';
+  plotCtx.fillStyle = '#64748b';
   for (let i = 0; i <= xTicks; i++) {
     const tVal = (i / xTicks) * totalT;
     const x = padLeft + (i / xTicks) * plotW;
     plotCtx.beginPath();
+    plotCtx.strokeStyle = '#e2e8f0';
     plotCtx.moveTo(x, padTop);
     plotCtx.lineTo(x, padTop + plotH);
     plotCtx.stroke();
-    plotCtx.fillText(tVal.toFixed(0) + 's', x, padTop + plotH + 18);
+    plotCtx.fillText(tVal.toFixed(0) + 's', x, padTop + plotH + 16);
   }
 
   // Y = 0 중심 기준선
@@ -1980,32 +2055,111 @@ function drawPlot(currT) {
   }
   plotCtx.stroke();
 
-  // (2) Newmark 수치해 곡선 (1200포인트 고해상도 연속 궤적 - 지그재그 완전 제거!)
+  // (2) Newmark 수치해 곡선 (발산 시 뾰족한 탈출 피크 & 탈출 화살표)
   plotCtx.strokeStyle = isDiverged ? '#dc2626' : '#2563eb';
-  plotCtx.lineWidth = 2.4;
+  plotCtx.lineWidth = isDiverged ? 2.6 : 2.4;
   plotCtx.beginPath();
   let firstNum = true;
-  for (let pt of fineTimeHistory) {
+  const breakoutPeaks = [];
+
+  for (let idx = 0; idx < fineTimeHistory.length; idx++) {
+    const pt = fineTimeHistory[idx];
     const x = padLeft + (pt.t / totalT) * plotW;
-    const clampedU = Math.max(-yLimit, Math.min(yLimit, pt.u_num));
-    const y = yZero - (clampedU / yLimit) * (plotH / 2);
+    let uVal = pt.u_num;
+    let isTopEscape = false;
+    let isBtmEscape = false;
+
+    if (isDiverged) {
+      if (uVal >= yLimit) {
+        isTopEscape = true;
+        // 뾰족한 피크 렌더링: 평평한 평원 대신 뾰족한 바늘 피크 형성
+        uVal = yLimit;
+      } else if (uVal <= -yLimit) {
+        isBtmEscape = true;
+        uVal = -yLimit;
+      }
+    } else {
+      uVal = Math.max(-yLimit, Math.min(yLimit, uVal));
+    }
+
+    const y = yZero - (uVal / yLimit) * (plotH / 2);
+
     if (firstNum) {
       plotCtx.moveTo(x, y);
       firstNum = false;
     } else {
       plotCtx.lineTo(x, y);
     }
+
+    if (isTopEscape || isBtmEscape) {
+      // 로컬 극대점/극소점만 탈출 화살표 후보로 수집
+      const prev = fineTimeHistory[idx - 1];
+      const next = fineTimeHistory[idx + 1];
+      if (isTopEscape && (!prev || pt.u_num >= prev.u_num) && (!next || pt.u_num >= next.u_num)) {
+        breakoutPeaks.push({ x, y, type: 'top' });
+      } else if (isBtmEscape && (!prev || pt.u_num <= prev.u_num) && (!next || pt.u_num <= next.u_num)) {
+        breakoutPeaks.push({ x, y, type: 'btm' });
+      }
+    }
   }
   plotCtx.stroke();
 
-  // (3) 이산 계산 스텝 마커 점 (Newmark 실제 계산 노드 시각화)
-  if (timeHistory.length <= 150) {
+  // (3) 발산 탈출 화살표 렌더링 (평평한 천장선 오해 원천 제거 -> 위/아래 폭발 화살표)
+  if (isDiverged) {
+    let lastArrowX = -999;
+    for (let p of breakoutPeaks) {
+      if (p.x - lastArrowX > 20) {
+        lastArrowX = p.x;
+        plotCtx.fillStyle = '#dc2626';
+        plotCtx.strokeStyle = '#ffffff';
+        plotCtx.lineWidth = 1.2;
+
+        if (p.type === 'top') {
+          // 위로 탈출하는 화살표 (▲)
+          plotCtx.beginPath();
+          plotCtx.moveTo(p.x, padTop + 2);
+          plotCtx.lineTo(p.x - 5, padTop + 13);
+          plotCtx.lineTo(p.x + 5, padTop + 13);
+          plotCtx.closePath();
+          plotCtx.fill();
+          plotCtx.stroke();
+
+          // 번개/스파크 라인
+          plotCtx.strokeStyle = '#f59e0b';
+          plotCtx.lineWidth = 1.5;
+          plotCtx.beginPath();
+          plotCtx.moveTo(p.x, padTop + 13);
+          plotCtx.lineTo(p.x, padTop + blastZoneH);
+          plotCtx.stroke();
+        } else {
+          // 아래로 탈출하는 화살표 (▼)
+          plotCtx.beginPath();
+          plotCtx.moveTo(p.x, padTop + plotH - 2);
+          plotCtx.lineTo(p.x - 5, padTop + plotH - 13);
+          plotCtx.lineTo(p.x + 5, padTop + plotH - 13);
+          plotCtx.closePath();
+          plotCtx.fill();
+          plotCtx.stroke();
+
+          plotCtx.strokeStyle = '#f59e0b';
+          plotCtx.lineWidth = 1.5;
+          plotCtx.beginPath();
+          plotCtx.moveTo(p.x, padTop + plotH - 13);
+          plotCtx.lineTo(p.x, padTop + plotH - blastZoneH);
+          plotCtx.stroke();
+        }
+      }
+    }
+  }
+
+  // (4) 이산 계산 스텝 마커 점 (수렴 상태일 때만 렌더링)
+  if (!isDiverged && timeHistory.length <= 150) {
     for (let pt of timeHistory) {
       const x = padLeft + (pt.t / totalT) * plotW;
       const clampedU = Math.max(-yLimit, Math.min(yLimit, pt.u_num));
       const y = yZero - (clampedU / yLimit) * (plotH / 2);
 
-      plotCtx.fillStyle = isDiverged ? '#dc2626' : '#2563eb';
+      plotCtx.fillStyle = '#2563eb';
       plotCtx.beginPath();
       plotCtx.arc(x, y, 3.2, 0, Math.PI * 2);
       plotCtx.fill();
@@ -2018,7 +2172,7 @@ function drawPlot(currT) {
   // 클리핑 해제
   plotCtx.restore();
 
-  // (4) 현재 재생 시점 수직 가이드라인 & 엠버 헤드
+  // (5) 현재 재생 시점 수직 가이드라인 & 엠버 헤드
   const currX = padLeft + (currT / totalT) * plotW;
   plotCtx.strokeStyle = '#f59e0b';
   plotCtx.lineWidth = 2;
@@ -2027,20 +2181,34 @@ function drawPlot(currT) {
   plotCtx.lineTo(currX, padTop + plotH);
   plotCtx.stroke();
 
-  // 시간 지시 태그
   plotCtx.fillStyle = '#f59e0b';
   plotCtx.beginPath();
   plotCtx.arc(currX, padTop, 4, 0, Math.PI * 2);
   plotCtx.fill();
 
-  // 발산 경고 텍스트 오버레이
+  // (6) 발산 경고 플로팅 뱃지 (상단 중앙, 곡선 가림 최소화)
   if (isDiverged) {
-    plotCtx.fillStyle = 'rgba(220, 38, 38, 0.95)';
-    plotCtx.font = 'bold 15px Pretendard, sans-serif';
+    const bannerW = 460;
+    const bannerH = 24;
+    const bannerX = padLeft + (plotW - bannerW) / 2;
+    const bannerY = padTop + 6;
+
+    plotCtx.fillStyle = 'rgba(254, 242, 242, 0.94)';
+    plotCtx.strokeStyle = '#ef4444';
+    plotCtx.lineWidth = 1.2;
+    plotCtx.beginPath();
+    if (plotCtx.roundRect) {
+      plotCtx.roundRect(bannerX, bannerY, bannerW, bannerH, 6);
+    } else {
+      plotCtx.rect(bannerX, bannerY, bannerW, bannerH);
+    }
+    plotCtx.fill();
+    plotCtx.stroke();
+
+    plotCtx.fillStyle = '#dc2626';
+    plotCtx.font = 'bold 11px Pretendard, sans-serif';
     plotCtx.textAlign = 'center';
-    plotCtx.fillText('⚠️ 수치적 발산 폭발 발생! (DIVERGENCE DETECTED)', padLeft + plotW / 2, padTop + 35);
-    plotCtx.font = '12px Pretendard, sans-serif';
-    plotCtx.fillText('시간간격비 Δt / Tn이 한계조건을 초과하여 오차가 지수함수적으로 급격히 증폭되었습니다.', padLeft + plotW / 2, padTop + 55);
+    plotCtx.fillText('💥 수치적 발산 폭발: Δt/Tn 한계 초과로 해가 무한대(±∞)로 탈출 중!', padLeft + plotW / 2, bannerY + 16);
   }
   plotCtx.restore();
 }
