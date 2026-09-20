@@ -695,7 +695,8 @@
     const threePushoverContainer = document.getElementById('threePushoverContainer');
     let scene, camera, renderer, controls;
     let bldgGroup, bedrockGroup;
-    let bldgSlices = [];
+    let continuousColumns = [];
+    let slabMeshes = [];
 
     function initThree() {
       scene = new THREE.Scene();
@@ -748,11 +749,13 @@
     }
 
     function buildPushoverBuilding() {
+      // Slabs
       const slabGeo = new THREE.BoxGeometry(6.5, 0.3, 5);
       const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
       const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
       const slabEdgeGeo = new THREE.EdgesGeometry(slabGeo);
 
+      slabMeshes = [];
       for (let i = 1; i <= 3; i++) {
         const slab = new THREE.Mesh(slabGeo, slabMat);
         slab.position.y = i * 2.8;
@@ -760,19 +763,24 @@
         slab.receiveShadow = true;
         slab.add(new THREE.LineSegments(slabEdgeGeo, new THREE.LineBasicMaterial({ color: 0x334155 })));
         bldgGroup.add(slab);
+        slabMeshes.push({ mesh: slab, targetY: i * 2.8, floor: i });
       }
 
-      // 4 Columns segmented into 18 slices for smooth double-curvature
-      const sliceCount = 18;
+      // 4 Continuous Smooth Columns (No sliced boxes, seamless surface)
       const totalH = 8.4;
-      const sliceH = totalH / sliceCount;
+      const segmentsY = 36;
+      const colWidth = 0.38;
       const colPositions = [
         [-2.8, -2.1], [2.8, -2.1],
         [-2.8, 2.1], [2.8, 2.1]
       ];
 
-      bldgSlices = [];
-      const colMat = new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.4 });
+      continuousColumns = [];
+      const colMat = new THREE.MeshStandardMaterial({ 
+        color: 0x059669, 
+        roughness: 0.35, 
+        metalness: 0.15 
+      });
 
       for (let pos of colPositions) {
         // Footing pad
@@ -781,14 +789,25 @@
         foot.position.set(pos[0], 0.12, pos[1]);
         bldgGroup.add(foot);
 
-        for (let i = 0; i < sliceCount; i++) {
-          const sliceGeo = new THREE.BoxGeometry(0.38, sliceH, 0.38);
-          const slice = new THREE.Mesh(sliceGeo, colMat);
-          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
-          slice.castShadow = true;
-          bldgGroup.add(slice);
-          bldgSlices.push({ mesh: slice, baseX: pos[0], normY: (i + 0.5) / sliceCount });
-        }
+        // Continuous Column: BoxGeometry with vertical segments translated so base is at y=0
+        const colGeo = new THREE.BoxGeometry(colWidth, totalH, colWidth, 1, segmentsY, 1);
+        colGeo.translate(0, totalH / 2, 0);
+
+        const colMesh = new THREE.Mesh(colGeo, colMat);
+        colMesh.position.set(pos[0], 0, pos[1]);
+        colMesh.castShadow = true;
+        colMesh.receiveShadow = true;
+        bldgGroup.add(colMesh);
+
+        // Cache original vertex positions for dynamic smooth morphing
+        const origPositions = new Float32Array(colGeo.attributes.position.array);
+        continuousColumns.push({
+          mesh: colMesh,
+          geo: colGeo,
+          origPositions: origPositions,
+          baseX: pos[0],
+          totalH: totalH
+        });
       }
     }
 
@@ -801,21 +820,29 @@
       const ampMultiplier = (threeAmpScale / 70.0);
       const topDrift = (targetSd / 12.0) * 2.0 * ampMultiplier;
 
-      bldgSlices.forEach(sl => {
-        const s = sl.normY;
-        const h = 3 * s * s - 2 * s * s * s;
-        sl.mesh.position.x = sl.baseX + topDrift * h;
+      // 1. Smoothly deform continuous columns via cubic Hermite vertex interpolation
+      continuousColumns.forEach(col => {
+        const positions = col.geo.attributes.position.array;
+        const orig = col.origPositions;
+        const H = col.totalH;
+
+        for (let i = 0; i < positions.length; i += 3) {
+          const origX = orig[i];
+          const y = orig[i + 1];
+          const s = Math.max(0, Math.min(1, y / H));
+          const h = 3 * s * s - 2 * s * s * s; // Smooth cubic double curvature
+          positions[i] = origX + topDrift * h;
+        }
+
+        col.geo.attributes.position.needsUpdate = true;
+        col.geo.computeVertexNormals();
       });
 
-      // Update slab positions
-      let slabIdx = 0;
-      bldgGroup.children.forEach(child => {
-        if (child.geometry && child.geometry.type === 'BoxGeometry' && child.geometry.parameters.width === 6.5) {
-          slabIdx++;
-          const s = (slabIdx * 2.8) / 8.4;
-          const h = 3 * s * s - 2 * s * s * s;
-          child.position.x = topDrift * h;
-        }
+      // 2. Smoothly position slabs at exact column deflection height
+      slabMeshes.forEach(item => {
+        const s = (item.floor * 2.8) / 8.4;
+        const h = 3 * s * s - 2 * s * s * s;
+        item.mesh.position.x = topDrift * h;
       });
 
       if (controls) controls.update();

@@ -799,13 +799,13 @@
       bldgGroup.position.y = 0.6;
       scene.add(bldgGroup);
 
-      // 2 Columns with cubic flexural bending
-      const sliceCount = 16;
+      // 2 Continuous Smooth Columns
       const totalH = 4.8;
-      const sliceH = totalH / sliceCount;
-      const colMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 });
+      const segmentsY = 32;
+      const colWidth = 0.35;
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.35, metalness: 0.15 });
 
-      colSlices = [];
+      continuousSdofCols = [];
       for (let x of [-2.0, 2.0]) {
         // Footing pad
         const footGeo = new THREE.BoxGeometry(1.0, 0.25, 1.0);
@@ -814,14 +814,23 @@
         foot.position.set(x, 0.12, 0);
         bldgGroup.add(foot);
 
-        for (let i = 0; i < sliceCount; i++) {
-          const sliceGeo = new THREE.BoxGeometry(0.35, sliceH, 0.35);
-          const slice = new THREE.Mesh(sliceGeo, colMat);
-          slice.position.set(x, (i + 0.5) * sliceH, 0);
-          slice.castShadow = true;
-          bldgGroup.add(slice);
-          colSlices.push({ mesh: slice, baseX: x, normY: (i + 0.5) / sliceCount });
-        }
+        const colGeo = new THREE.BoxGeometry(colWidth, totalH, colWidth, 1, segmentsY, 1);
+        colGeo.translate(0, totalH / 2, 0);
+
+        const colMesh = new THREE.Mesh(colGeo, colMat);
+        colMesh.position.set(x, 0, 0);
+        colMesh.castShadow = true;
+        colMesh.receiveShadow = true;
+        bldgGroup.add(colMesh);
+
+        const origPositions = new Float32Array(colGeo.attributes.position.array);
+        continuousSdofCols.push({
+          mesh: colMesh,
+          geo: colGeo,
+          origPositions: origPositions,
+          baseX: x,
+          totalH: totalH
+        });
       }
 
       // Mass Slab (Floor Mass m)
@@ -851,11 +860,22 @@
       bedrockGroup.position.x = ug;
       bldgGroup.position.x = ug;
 
-      // Double curvature flexure
-      colSlices.forEach(sl => {
-        const s = sl.normY;
-        const h = 3 * s * s - 2 * s * s * s;
-        sl.mesh.position.x = sl.baseX + drift3D * h;
+      // Continuous smooth double curvature flexure
+      continuousSdofCols.forEach(col => {
+        const positions = col.geo.attributes.position.array;
+        const orig = col.origPositions;
+        const H = col.totalH;
+
+        for (let i = 0; i < positions.length; i += 3) {
+          const origX = orig[i];
+          const y = orig[i + 1];
+          const s = Math.max(0, Math.min(1, y / H));
+          const h = 3 * s * s - 2 * s * s * s;
+          positions[i] = origX + drift3D * h;
+        }
+
+        col.geo.attributes.position.needsUpdate = true;
+        col.geo.computeVertexNormals();
       });
 
       if (massSlab) {
