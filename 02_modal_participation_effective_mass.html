@@ -19,6 +19,8 @@
     }
   </style>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <script src="assets/dynamics-fx.js" defer></script>
 </head>
@@ -44,7 +46,7 @@
 
       <!-- Mode Selector Tabs -->
       <div class="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs font-semibold">
-        <button id="tab-m1" onclick="selectMode(1)" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white transition shadow-xs">1차 모드</button>
+        <button id="tab-m1" onclick="selectMode(1)" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white transition shadow-xs font-bold">1차 모드</button>
         <button id="tab-m2" onclick="selectMode(2)" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">2차 모드</button>
         <button id="tab-m3" onclick="selectMode(3)" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">3차 모드</button>
         <button id="tab-all" onclick="selectMode(0)" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">합성 응답</button>
@@ -54,23 +56,36 @@
     <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 py-5 items-stretch">
       
-      <!-- 1. Unified Kinematic Canvas (5 Cols) -->
-      <div class="lg:col-span-5 bg-slate-50/60 border border-slate-200 rounded-xl p-4 flex flex-col justify-between light-grid relative min-h-[420px]">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-          <span id="active-mode-label" class="font-bold text-emerald-700 text-sm">1차 모드 고유형상 거동</span>
-          <span id="mode-freq" class="text-slate-500 font-mono text-xs">T₁ = 0.65s (f₁ = 1.54 Hz)</span>
+      <!-- 1. 3D BIM & Kinematic Canvas (5 Cols) -->
+      <div class="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between relative min-h-[460px] shadow-xs">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div>
+            <span id="active-mode-label" class="font-bold text-emerald-700 text-sm">1차 모드 고유형상 거동</span>
+            <span id="mode-freq" class="text-slate-500 font-mono text-xs block mt-0.5">T₁ = 0.65s (f₁ = 1.54 Hz)</span>
+          </div>
+          <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold border border-slate-200">
+            <button id="btnView3D" onclick="switchFrameView('3D')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition bg-white text-emerald-700 shadow-xs">🏢 3D BIM</button>
+            <button id="btnView2D" onclick="switchFrameView('2D')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">📐 2D CAD</button>
+          </div>
         </div>
 
-        <div class="relative flex-1 w-full my-2 min-h-[300px]">
-          <canvas id="frameCanvas" class="w-full h-full block"></canvas>
+        <div class="relative flex-1 w-full my-2 min-h-[330px] rounded-xl overflow-hidden border border-slate-200 bg-[#faf8f5]">
+          <div id="threeFrameContainer" class="w-full h-full absolute inset-0">
+            <div id="threeHud" class="absolute bottom-2 left-2 text-[11px] font-mono text-slate-700 bg-white/95 backdrop-blur-xs px-2.5 py-1.5 rounded-lg border border-slate-300 z-10 shadow-xs flex items-center gap-2">
+              <span>🖱️ 3D 회전 / 줌 / 팬</span>
+              <span class="text-slate-300">|</span>
+              <span id="threeModeTag" class="text-emerald-700 font-bold">1차 모드 고유형상</span>
+            </div>
+          </div>
+          <canvas id="frameCanvas" class="w-full h-full block absolute inset-0" style="display: none;"></canvas>
         </div>
 
-        <div class="flex justify-between items-center text-xs text-slate-500 pt-2 border-t border-slate-200 font-medium">
+        <div class="flex justify-between items-center text-xs text-slate-500 pt-2 border-t border-slate-100 font-medium">
           <span class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>
-            단일 캔버스 절점 일체화
+            <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
+            3D BIM 3층 골조 모델링 (400t &times; 3)
           </span>
-          <span class="font-mono">Hermite 3차 이중곡률</span>
+          <span class="font-mono">Hermite 3차 이중곡률 &middot; 60FPS</span>
         </div>
       </div>
 
@@ -199,25 +214,306 @@
     let isRoofNorm = true;
     let simTime = 0;
     let amp = 35;
+    let activeFrameView = '3D';
 
     const canvas = document.getElementById('frameCanvas');
     const ctx = canvas.getContext('2d');
 
     // Exact constants from modal_RSA_3story.csv
     const modalData = {
-      1: { omega: 9.6995, period: 0.6478, phi_raw: [0.4450, 0.8019, 1.0000], freqHz: 1.54 },
-      2: { omega: 27.1773, period: 0.2312, phi_raw: [-1.2470, -0.5550, 1.0000], freqHz: 4.33 },
-      3: { omega: 39.2723, period: 0.1600, phi_raw: [1.8019, -2.2470, 1.0000], freqHz: 6.25 }
+      1: { omega: 9.6995, period: 0.6478, phi_raw: [0.4450, 0.8019, 1.0000], freqHz: 1.54, color: 0x10b981, hex: '#059669' },
+      2: { omega: 27.1773, period: 0.2312, phi_raw: [-1.2470, -0.5550, 1.0000], freqHz: 4.33, color: 0x2563eb, hex: '#2563eb' },
+      3: { omega: 39.2723, period: 0.1600, phi_raw: [1.8019, -2.2470, 1.0000], freqHz: 6.25, color: 0x8b5cf6, hex: '#7c3aed' }
     };
     let storyMasses = [400.0, 400.0, 400.0]; // tonnes
 
+    // =========================================================================
+    // 3D BIM Three.js Engine
+    // =========================================================================
+    let threeScene, threeCamera, threeRenderer, threeControls;
+    let slabMeshes = [];
+    let continuousColumns = [];
+    let baseMesh = null;
+    let threeDimGroup = null;
+    let colMaterial = null;
+
+    // 3D Architectural Text Plate Texture Generator
+    function createPlateTexture(text, bgColor = '#1e293b', textColor = '#ffffff') {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 96;
+      const pCtx = c.getContext('2d');
+
+      pCtx.fillStyle = bgColor;
+      pCtx.beginPath();
+      if (pCtx.roundRect) pCtx.roundRect(4, 4, 504, 88, 14);
+      else pCtx.rect(4, 4, 504, 88);
+      pCtx.fill();
+
+      pCtx.strokeStyle = '#38bdf8';
+      pCtx.lineWidth = 4;
+      pCtx.stroke();
+
+      pCtx.fillStyle = textColor;
+      pCtx.font = 'bold 46px Pretendard, sans-serif';
+      pCtx.textAlign = 'center';
+      pCtx.textBaseline = 'middle';
+      pCtx.fillText(text, 256, 48);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.minFilter = THREE.LinearFilter;
+      return tex;
+    }
+
+    function createCADSprite(text, color = '#0f172a', bg = 'rgba(255, 255, 255, 0.95)', border = '#cbd5e1') {
+      const c = document.createElement('canvas');
+      c.width = 384;
+      c.height = 96;
+      const tCtx = c.getContext('2d');
+      tCtx.fillStyle = bg;
+      tCtx.strokeStyle = border;
+      tCtx.lineWidth = 3;
+      if (tCtx.roundRect) tCtx.roundRect(6, 6, 372, 84, 12);
+      else tCtx.rect(6, 6, 372, 84);
+      tCtx.fill();
+      tCtx.stroke();
+
+      tCtx.fillStyle = color;
+      tCtx.font = 'bold 36px Pretendard, monospace';
+      tCtx.textAlign = 'center';
+      tCtx.textBaseline = 'middle';
+      tCtx.fillText(text, 192, 48);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.minFilter = THREE.LinearFilter;
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const sp = new THREE.Sprite(mat);
+      sp.scale.set(3.0, 0.75, 1);
+      return sp;
+    }
+
+    function initThreeFrame() {
+      const container = document.getElementById('threeFrameContainer');
+      const w = container.clientWidth || 340;
+      const h = container.clientHeight || 330;
+
+      threeScene = new THREE.Scene();
+      threeScene.background = new THREE.Color(0xfaf8f5); // Warm off-white
+
+      threeCamera = new THREE.PerspectiveCamera(34, w / h, 0.5, 300);
+      threeCamera.position.set(16, 12, 20);
+
+      threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      threeRenderer.setPixelRatio(window.devicePixelRatio || 1);
+      threeRenderer.setSize(w, h);
+      threeRenderer.shadowMap.enabled = true;
+      container.appendChild(threeRenderer.domElement);
+
+      threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+      threeControls.enableDamping = true;
+      threeControls.dampingFactor = 0.08;
+      threeControls.maxPolarAngle = Math.PI / 2 - 0.02;
+      threeControls.target.set(0, 5.0, 0);
+      threeControls.update();
+
+      // Lighting (Bright & Architectural)
+      const ambLight = new THREE.AmbientLight(0xffffff, 1.25);
+      threeScene.add(ambLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.95);
+      dirLight.position.set(16, 30, 20);
+      dirLight.castShadow = true;
+      dirLight.shadow.bias = -0.0005;
+      threeScene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.5);
+      fillLight.position.set(-16, 15, -16);
+      threeScene.add(fillLight);
+
+      // Ground subtle grid
+      const grid = new THREE.GridHelper(26, 13, 0x94a3b8, 0xe2e8f0);
+      grid.position.y = 0;
+      threeScene.add(grid);
+
+      buildThreeFrameModel();
+    }
+
+    function buildThreeFrameModel() {
+      slabMeshes = [];
+      continuousColumns = [];
+      if (threeDimGroup) threeScene.remove(threeDimGroup);
+      threeDimGroup = new THREE.Group();
+      threeScene.add(threeDimGroup);
+
+      const slabW = 6.8;
+      const slabD = 5.0;
+      const slabH = 0.40;
+      const storyH = 3.0;
+
+      // 1. 기초 매트 슬래브 (Foundation Base Slab)
+      const baseGeom = new THREE.BoxGeometry(slabW * 1.25, 0.65, slabD * 1.25);
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.35, metalness: 0.05 });
+      baseMesh = new THREE.Mesh(baseGeom, baseMat);
+      baseMesh.position.set(0, 0.325, 0);
+      baseMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(baseGeom), new THREE.LineBasicMaterial({ color: 0x94a3b8 })));
+      threeScene.add(baseMesh);
+
+      // 2. 3개 층 (1F, 2F, 3F) 슬래브
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.05 });
+      const slabEdgesMat = new THREE.LineBasicMaterial({ color: 0x64748b, linewidth: 1.5 });
+
+      // Columns material
+      const colColor = activeMode === 0 ? 0x06b6d4 : modalData[activeMode].color;
+      colMaterial = new THREE.MeshStandardMaterial({ color: colColor, roughness: 0.25, metalness: 0.15 });
+
+      const colOffsetX = slabW / 2 - 0.40;
+      const colOffsetZ = slabD / 2 - 0.40;
+      const colWidth = 0.44;
+
+      for (let s = 1; s <= 3; s++) {
+        const sGroup = new THREE.Group();
+        const slabGeom = new THREE.BoxGeometry(slabW, slabH, slabD);
+        const sMesh = new THREE.Mesh(slabGeom, slabMat);
+        sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(slabGeom), slabEdgesMat));
+        sGroup.add(sMesh);
+
+        // 3D 전면 슬래브 라벨 플레이트 (Front Face Architectural Badge: 3F (400t))
+        const plateTex = createPlateTexture(`${s}F (400t)`);
+        const plateGeo = new THREE.PlaneGeometry(3.0, 0.48);
+        const plateMat = new THREE.MeshBasicMaterial({ map: plateTex, transparent: true });
+        const plateMesh = new THREE.Mesh(plateGeo, plateMat);
+        plateMesh.position.set(0, 0, slabD / 2 + 0.02);
+        sGroup.add(plateMesh);
+
+        const yLevel = 0.65 + s * storyH;
+        sGroup.position.set(0, yLevel, 0);
+        sGroup.userData = { baseY: yLevel, story: s };
+        threeScene.add(sGroup);
+        slabMeshes.push(sGroup);
+      }
+
+      // 4 Continuous Smooth Columns (Hermite Cubic Double-Curvature)
+      const totalColH = 3 * storyH;
+      const segmentsY = 48; // 16 segments per story for ultra-smooth bending
+
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cz]) => {
+        // Footing pad
+        const footGeo = new THREE.BoxGeometry(1.2, 0.20, 1.2);
+        const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4 }));
+        foot.position.set(cx * colOffsetX, 0.75, cz * colOffsetZ);
+        foot.add(new THREE.LineSegments(new THREE.EdgesGeometry(footGeo), new THREE.LineBasicMaterial({ color: 0x94a3b8 })));
+        threeScene.add(foot);
+
+        const colGeo = new THREE.BoxGeometry(colWidth, totalColH, colWidth, 1, segmentsY, 1);
+        colGeo.translate(0, totalColH / 2, 0);
+
+        const col = new THREE.Mesh(colGeo, colMaterial);
+        col.position.set(cx * colOffsetX, 0.65, cz * colOffsetZ);
+        col.castShadow = true;
+        col.receiveShadow = true;
+        threeScene.add(col);
+
+        continuousColumns.push({
+          mesh: col,
+          geo: colGeo,
+          origPositions: new Float32Array(colGeo.attributes.position.array),
+          baseX: cx * colOffsetX,
+          totalH: totalColH
+        });
+      });
+
+      // 3. 3D CAD 표고 마커 (측면 표고 태그)
+      const elevTags = ['▼ GL ±0.00', '▼ 1F (+3.0m)', '▼ 2F (+6.0m)', '▼ 3F (+9.0m)'];
+      for (let i = 0; i <= 3; i++) {
+        const y = 0.65 + i * storyH;
+        const tag = createCADSprite(elevTags[i], i === 3 ? '#059669' : '#475569');
+        tag.scale.set(2.8, 0.7, 1);
+        tag.position.set(slabW / 2 + 1.8, y, slabD / 2);
+        threeDimGroup.add(tag);
+      }
+    }
+
+    function resizeThreeFrame() {
+      if (!threeRenderer || !threeCamera) return;
+      const container = document.getElementById('threeFrameContainer');
+      const w = container.clientWidth || 340;
+      const h = container.clientHeight || 330;
+      threeCamera.aspect = w / h;
+      threeCamera.updateProjectionMatrix();
+      threeRenderer.setSize(w, h);
+    }
+
+    function updateThreeFrameAnimation(u1_3d, u2_3d, u3_3d) {
+      if (!threeRenderer || activeFrameView !== '3D') return;
+
+      const xs = [u1_3d, u2_3d, u3_3d];
+      slabMeshes.forEach((sGroup, idx) => {
+        sGroup.position.x = xs[idx];
+      });
+
+      // 기둥 연속 곡면 이중곡률(Double-Curvature) Hermite 변형
+      const storyH = 3.0;
+      const prevXs = [0, u1_3d, u2_3d];
+
+      continuousColumns.forEach(col => {
+        const positions = col.geo.attributes.position.array;
+        const orig = col.origPositions;
+
+        for (let i = 0; i < positions.length; i += 3) {
+          const origX = orig[i];
+          const y = orig[i + 1]; // 0 ~ totalColH (9.0m)
+          const storyIdx = Math.max(0, Math.min(2, Math.floor(y / storyH)));
+          const localY = y - storyIdx * storyH;
+          const sNorm = Math.max(0, Math.min(1, localY / storyH));
+          const hermite = 3 * sNorm * sNorm - 2 * sNorm * sNorm * sNorm;
+          const storyDisp = prevXs[storyIdx] + (xs[storyIdx] - prevXs[storyIdx]) * hermite;
+
+          positions[i] = origX + storyDisp;
+        }
+        col.geo.attributes.position.needsUpdate = true;
+        col.geo.computeVertexNormals();
+      });
+
+      threeControls.update();
+      threeRenderer.render(threeScene, threeCamera);
+    }
+
+    function switchFrameView(view) {
+      activeFrameView = view;
+      document.getElementById('btnView3D').className = view === '3D' 
+        ? 'px-2.5 py-1 rounded-lg text-xs font-bold transition bg-white text-emerald-700 shadow-xs' 
+        : 'px-2.5 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+      document.getElementById('btnView2D').className = view === '2D' 
+        ? 'px-2.5 py-1 rounded-lg text-xs font-bold transition bg-white text-emerald-700 shadow-xs' 
+        : 'px-2.5 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+      
+      const container = document.getElementById('threeFrameContainer');
+      const canvas2D = document.getElementById('frameCanvas');
+      if (view === '3D') {
+        container.style.display = 'block';
+        canvas2D.style.display = 'none';
+        if (!threeRenderer) initThreeFrame();
+        resizeThreeFrame();
+      } else {
+        container.style.display = 'none';
+        canvas2D.style.display = 'block';
+        resizeCanvas();
+      }
+    }
+
+    // =========================================================================
+    // 2D CAD Canvas Drawing
+    // =========================================================================
     function resizeCanvas() {
       const rect = canvas.parentElement.getBoundingClientRect();
       canvas.width = rect.width * window.devicePixelRatio;
       canvas.height = rect.height * window.devicePixelRatio;
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     }
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      resizeThreeFrame();
+    });
 
     function updateAmp() {
       amp = parseFloat(document.getElementById('slider-amp').value);
@@ -272,14 +568,31 @@
       document.getElementById('val-meff').textContent = `${curRes.Meff.toFixed(1)} t (${((curRes.Meff/totalM)*100).toFixed(1)}%)`;
 
       const lbl = document.getElementById('active-mode-label');
+      const dot = document.getElementById('statusDot');
+      const hudTag = document.getElementById('threeModeTag');
+
       if (activeMode === 0) {
         lbl.textContent = '합성 지진 응답 (SRSS 연성 거동)';
-        lbl.className = 'font-bold text-blue-700 text-sm';
+        lbl.className = 'font-bold text-cyan-700 text-sm';
+        dot.className = 'w-2 h-2 rounded-full bg-cyan-600 inline-block';
+        hudTag.textContent = '1+2+3차 모드 합성';
+        hudTag.className = 'text-cyan-700 font-bold';
         document.getElementById('mode-freq').textContent = '1+2+3차 모드 합성';
       } else {
         lbl.textContent = `${activeMode}차 모드 고유형상 거동`;
-        lbl.className = activeMode === 1 ? 'font-bold text-emerald-700 text-sm' : (activeMode === 2 ? 'font-bold text-blue-700 text-sm' : 'font-bold text-purple-700 text-sm');
+        const colClass = activeMode === 1 ? 'text-emerald-700' : (activeMode === 2 ? 'text-blue-700' : 'text-purple-700');
+        const dotBg = activeMode === 1 ? 'bg-emerald-600' : (activeMode === 2 ? 'bg-blue-600' : 'bg-purple-600');
+        lbl.className = `font-bold ${colClass} text-sm`;
+        dot.className = `w-2 h-2 rounded-full ${dotBg} inline-block`;
+        hudTag.textContent = `${activeMode}차 모드 고유형상`;
+        hudTag.className = `${colClass} font-bold`;
         document.getElementById('mode-freq').textContent = `T${activeMode} = ${modalData[activeMode].period.toFixed(2)}s (f${activeMode} = ${modalData[activeMode].freqHz.toFixed(2)} Hz)`;
+      }
+
+      // Update 3D column color
+      if (colMaterial) {
+        const targetColor = activeMode === 0 ? 0x06b6d4 : modalData[activeMode].color;
+        colMaterial.color.setHex(targetColor);
       }
     }
 
@@ -305,21 +618,6 @@
 
     function animate(timestamp) {
       simTime += 0.02;
-      draw();
-      requestAnimationFrame(animate);
-    }
-
-    function draw() {
-      const w = canvas.width / window.devicePixelRatio;
-      const h = canvas.height / window.devicePixelRatio;
-      ctx.clearRect(0, 0, w, h);
-
-      const cx = w * 0.5;
-      const baseY = h - 45;
-      const totalH = baseY - 45;
-      const storyH = totalH / 3;
-      const bay = Math.min(160, w * 0.48);
-      const halfBay = bay / 2;
 
       let dx = [0, 0, 0];
       if (activeMode === 0) {
@@ -336,6 +634,30 @@
           dx[i] = phi[i] * q * amp;
         }
       }
+
+      // Update 3D BIM (3D world scaling factor: 0.035)
+      const scale3D = 0.035;
+      updateThreeFrameAnimation(dx[0] * scale3D, dx[1] * scale3D, dx[2] * scale3D);
+
+      // Update 2D CAD if visible
+      if (activeFrameView === '2D') {
+        draw2D(dx);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function draw2D(dx) {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const baseY = h - 45;
+      const totalH = baseY - 45;
+      const storyH = totalH / 3;
+      const bay = Math.min(160, w * 0.48);
+      const halfBay = bay / 2;
 
       // Ground Line
       ctx.strokeStyle = '#94a3b8';
@@ -419,11 +741,14 @@
       ctx.stroke();
     }
 
-    setTimeout(() => {
+    // Initialize on DOM load
+    window.addEventListener('DOMContentLoaded', () => {
+      initThreeFrame();
       resizeCanvas();
+      resizeThreeFrame();
       updateUI();
-      animate(0);
-    }, 50);
+      requestAnimationFrame(animate);
+    });
   </script>
 </body>
 </html>
