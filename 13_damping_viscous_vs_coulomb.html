@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="assets/dynamics-chart-canonical.js"></script>
   <link rel="stylesheet" href="assets/dynamics-fx.css">
   <script src="assets/dynamics-fx.js" defer></script>
@@ -27,7 +29,6 @@
       font-family: "Cambria Math", "Times New Roman", "STIX Two Math", serif;
     }
     .zentry-card {
-      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
       transform-style: preserve-3d;
       will-change: transform;
     }
@@ -57,7 +58,7 @@
 </head>
 <body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
 
-  <div id="sim-app-container" class="w-full max-w-6xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
+  <div id="sim-app-container" class="w-full max-w-7xl bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-xl space-y-5">
     
     <!-- Top Header -->
     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -71,7 +72,7 @@
           </h1>
         </div>
         <p class="text-xs md:text-sm text-slate-600 font-mono">
-          유체 전단 저항(지수함수 포락선 e^(-&zeta;&omega;ₙt)) vs 고체 접촉 마찰(선형 포락선 및 Stick 영구 정지) &middot; 엄밀 해석해
+          유체 전단 저항(지수함수 포락선 e^(-&zeta;&omega;ₙt)) vs 고체 접촉 마찰(선형 포락선 및 Stick 영구 정지) &middot; 3D WebGL 물리 리그
         </p>
       </div>
 
@@ -121,7 +122,7 @@
     <!-- Dual Comparison Cards Section -->
     <div id="dual-cards-container" class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
       
-      <!-- 1. Viscous Damping Card -->
+      <!-- 1. Viscous Damping Card (Three.js 3D WebGL Rig) -->
       <div class="zentry-card bg-white border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md space-y-4">
         <div>
           <!-- Title & Formula -->
@@ -130,9 +131,15 @@
               <span class="w-3 h-3 rounded-full bg-blue-600"></span>
               <h2 class="text-base font-bold text-slate-900 tracking-tight">점성감쇠 (Viscous Damping)</h2>
             </div>
-            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-              유체 저항
-            </span>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold">
+                <button id="btn-visc-3d" onclick="switchViscView('3D')" class="px-2 py-0.5 rounded bg-white text-blue-700 font-bold shadow-xs">🏢 3D BIM</button>
+                <button id="btn-visc-2d" onclick="switchViscView('2D')" class="px-2 py-0.5 rounded text-slate-600 hover:text-slate-900 font-bold">📊 2D</button>
+              </div>
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                유체 저항
+              </span>
+            </div>
           </div>
           <p class="text-xs font-mono text-slate-500 mt-1.5">
             <span class="math-var">m&middot;u''</span> + <span class="math-var">c&middot;u'</span> + <span class="math-var">k&middot;u</span> = 0 &middot; 지수함수 포락선 <span class="math-var">e<sup>-&zeta;&omega;ₙt</sup></span>
@@ -171,9 +178,22 @@
           </div>
         </div>
 
-        <!-- Mechanical System Canvas -->
-        <div class="relative w-full h-[120px] rounded-xl overflow-hidden border border-slate-200 bg-white">
-          <canvas id="canvas-visc-sys" class="w-full h-full block"></canvas>
+        <!-- 3D BIM Mechanical Rig Viewport -->
+        <div class="relative w-full h-[220px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <div id="three-visc-container" class="w-full h-full absolute inset-0">
+            <div class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2 py-1 rounded-lg border border-slate-300 z-10 shadow-xs flex items-center gap-1.5 flex-wrap">
+              <span>🖱️ 3D</span>
+              <span class="text-slate-300">|</span>
+              <span>변위: <span id="hud-visc-3d-u" class="font-bold text-blue-700">+100.0 mm</span></span>
+              <span class="text-slate-300">|</span>
+              <span>복원력: <span id="hud-visc-3d-fs" class="text-indigo-700 font-semibold">-39.5 N</span></span>
+              <span class="text-slate-300">|</span>
+              <span>감쇠력: <span id="hud-visc-3d-fd" class="text-amber-700 font-semibold">0.0 N</span></span>
+            </div>
+          </div>
+          <div id="canvas-visc-container" class="w-full h-full absolute inset-0 bg-white hidden">
+            <canvas id="canvas-visc-sys" class="w-full h-full block"></canvas>
+          </div>
         </div>
 
         <!-- Time History Oscilloscope Canvas -->
@@ -182,7 +202,7 @@
         </div>
       </div>
 
-      <!-- 2. Coulomb Friction Damping Card -->
+      <!-- 2. Coulomb Friction Damping Card (Three.js 3D WebGL Rig) -->
       <div class="zentry-card bg-white border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md space-y-4">
         <div>
           <!-- Title & Formula -->
@@ -191,9 +211,15 @@
               <span class="w-3 h-3 rounded-full bg-amber-500"></span>
               <h2 class="text-base font-bold text-slate-900 tracking-tight">마찰감쇠 (Coulomb Damping)</h2>
             </div>
-            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
-              고체 마찰
-            </span>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold">
+                <button id="btn-fric-3d" onclick="switchFricView('3D')" class="px-2 py-0.5 rounded bg-white text-amber-700 font-bold shadow-xs">🏢 3D BIM</button>
+                <button id="btn-fric-2d" onclick="switchFricView('2D')" class="px-2 py-0.5 rounded text-slate-600 hover:text-slate-900 font-bold">📊 2D</button>
+              </div>
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
+                고체 마찰
+              </span>
+            </div>
           </div>
           <p class="text-xs font-mono text-slate-500 mt-1.5">
             <span class="math-var">m&middot;u''</span> + <span class="math-var">k&middot;u</span> = &plusmn;<span class="math-var">&mu;N</span> &middot; 선형 포락선 및 Stick(영구정지)
@@ -232,9 +258,23 @@
           </div>
         </div>
 
-        <!-- Mechanical System Canvas -->
-        <div class="relative w-full h-[120px] rounded-xl overflow-hidden border border-slate-200 bg-white">
-          <canvas id="canvas-fric-sys" class="w-full h-full block"></canvas>
+        <!-- 3D BIM Mechanical Rig Viewport -->
+        <div class="relative w-full h-[220px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <div id="three-fric-container" class="w-full h-full absolute inset-0">
+            <div class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2 py-1 rounded-lg border border-slate-300 z-10 shadow-xs flex items-center gap-1.5 flex-wrap">
+              <span>🖱️ 3D</span>
+              <span class="text-slate-300">|</span>
+              <span>변위: <span id="hud-fric-3d-u" class="font-bold text-amber-700">+100.0 mm</span></span>
+              <span class="text-slate-300">|</span>
+              <span>복원력: <span id="hud-fric-3d-fs" class="text-indigo-700 font-semibold">-39.5 N</span></span>
+              <span class="text-slate-300">|</span>
+              <span>마찰력: <span id="hud-fric-3d-ff" class="text-red-700 font-semibold">-5.0 N</span></span>
+              <span id="hud-fric-stick-badge" class="hidden px-1.5 py-0.5 rounded bg-amber-500 text-white font-bold text-[9px] animate-pulse">🔒 STICK</span>
+            </div>
+          </div>
+          <div id="canvas-fric-container" class="w-full h-full absolute inset-0 bg-white hidden">
+            <canvas id="canvas-fric-sys" class="w-full h-full block"></canvas>
+          </div>
         </div>
 
         <!-- Time History Oscilloscope Canvas -->
@@ -334,9 +374,11 @@
     let isRunning = true;
     let simTime = 0;
     const dt = 0.016;                    // Simulation timestep: ~60fps
-    let simSpeed = 1.0;                  // 1.0x or 0.5x
+    let simSpeed = 1.0;
 
     let viewMode = 'dual';               // 'dual' or 'overlay'
+    let viscView = '3D';                 // '3D' or '2D'
+    let fricView = '3D';                 // '3D' or '2D'
 
     // Time History Buffers
     const histV = [];
@@ -346,11 +388,9 @@
     // =========================================================================
     // EXACT CLOSED-FORM ANALYTICAL PHYSICS ENGINES
     // =========================================================================
-    
-    // 1. Viscous Damping Closed-Form Solution
     function getViscousState(t, u0_val, zeta_val) {
       if (zeta_val >= 1.0) {
-        return { u: u0_val * Math.exp(-wn * t), v: -u0_val * wn * Math.exp(-wn * t), a: 0 };
+        return { u: u0_val * Math.exp(-wn * t), v: -u0_val * wn * Math.exp(-wn * t), a: 0, Fs: 0, Fd: 0 };
       }
       const wd = wn * Math.sqrt(1 - zeta_val * zeta_val);
       const expDecay = Math.exp(-zeta_val * wn * t);
@@ -362,9 +402,8 @@
       return { u, v, a, env, Fs: -k * u, Fd: -c * v };
     }
 
-    // 2. Coulomb Damping Closed-Form Piecewise Analytical Solution (Chopra §2.7)
     function getCoulombState(t, u0_val, muN_val) {
-      const uf = muN_val / k; // Characteristic friction offset (m)
+      const uf = muN_val / k;
       const halfT = Tn / 2;
       const n = Math.floor(t / halfT);
       const tLocal = t - n * halfT;
@@ -396,7 +435,7 @@
           stopTime,
           uf,
           Fs: -k * stopU,
-          Ff: k * stopU // Static friction balances spring force
+          Ff: k * stopU
         };
       }
 
@@ -417,11 +456,9 @@
 
       let u, v;
       if (U_n > 0) {
-        // Moving negative: friction opposes -> +Ff
         u = (U_n - uf) * Math.cos(wn * tLocal) + uf;
         v = -(U_n - uf) * wn * Math.sin(wn * tLocal);
       } else {
-        // Moving positive: friction opposes -> -Ff
         u = (U_n + uf) * Math.cos(wn * tLocal) - uf;
         v = -(U_n + uf) * wn * Math.sin(wn * tLocal);
       }
@@ -429,8 +466,6 @@
       const Fs = -k * u;
       const Ff = -Math.sign(v || -1) * muN_val;
       const a = (Fs + Ff) / m;
-
-      // Linear envelope magnitude at time t
       const env = Math.max(0, u0_val - (4 * uf / Tn) * t);
 
       return {
@@ -448,7 +483,520 @@
     }
 
     // =========================================================================
-    // CANVAS RESIZING & HIGH-DPI SETUP
+    // THREE.JS 3D WEBGL PHYSICS RIG ENGINES (TRUE 3D BIM)
+    // =========================================================================
+    class HelicalSpringCurve extends THREE.Curve {
+      constructor(start, end, radius, coils) {
+        super();
+        this.start = start.clone();
+        this.end = end.clone();
+        this.radius = radius;
+        this.coils = coils;
+      }
+      getPoint(t, optionalTarget = new THREE.Vector3()) {
+        const point = optionalTarget;
+        point.lerpVectors(this.start, this.end, t);
+        const angle = t * Math.PI * 2 * this.coils;
+        point.y += Math.cos(angle) * this.radius;
+        point.z += Math.sin(angle) * this.radius;
+        return point;
+      }
+    }
+
+    // 1. Viscous 3D Scene Objects
+    let viscScene, viscCamera, viscRenderer, viscControls;
+    let viscCartGroup, viscSpringMesh, viscDamperCyl, viscDamperRod, viscDamperPistonHead;
+    let viscWheelMeshes = [], viscWheelAngle = 0;
+    let viscArrowFs, viscArrowFd;
+
+    function initThreeVisc() {
+      const container = document.getElementById('three-visc-container');
+      if (!container) return;
+      viscScene = new THREE.Scene();
+      viscScene.background = new THREE.Color(0xf8fafc);
+
+      const r = container.getBoundingClientRect();
+      viscCamera = new THREE.PerspectiveCamera(34, r.width / r.height, 0.1, 1000);
+      viscCamera.position.set(1.5, 4.2, 9.5);
+
+      viscRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+      viscRenderer.setSize(r.width, r.height);
+      viscRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      viscRenderer.shadowMap.enabled = true;
+      viscRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(viscRenderer.domElement);
+
+      viscControls = new THREE.OrbitControls(viscCamera, viscRenderer.domElement);
+      viscControls.enableDamping = true;
+      viscControls.dampingFactor = 0.05;
+      viscControls.target.set(0, 1.1, 0);
+      viscControls.maxPolarAngle = Math.PI / 2 + 0.05;
+
+      // Studio Lighting
+      viscScene.add(new THREE.AmbientLight(0xffffff, 0.85));
+      const dir = new THREE.DirectionalLight(0xffffff, 0.95);
+      dir.position.set(10, 16, 12);
+      dir.castShadow = true;
+      dir.shadow.mapSize.width = 1024;
+      dir.shadow.mapSize.height = 1024;
+      dir.shadow.bias = -0.0005;
+      viscScene.add(dir);
+      viscScene.add(new THREE.DirectionalLight(0x38bdf8, 0.45).position.set(-8, 6, -8));
+
+      // Bedrock Plinth
+      const bedGeo = new THREE.BoxGeometry(9.6, 0.35, 4.0);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8, metalness: 0.2 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.set(0, 0.175, 0);
+      bedrock.receiveShadow = true;
+      viscScene.add(bedrock);
+      bedrock.add(new THREE.LineSegments(new THREE.EdgesGeometry(bedGeo), new THREE.LineBasicMaterial({ color: 0x475569 })));
+
+      // 4 Leveling Pads
+      const padMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+      for (let px of [-4.2, 4.2]) {
+        for (let pz of [-1.7, 1.7]) {
+          const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.32, 0.18, 16), padMat);
+          pad.position.set(px, 0.09, pz);
+          viscScene.add(pad);
+        }
+      }
+
+      // Left Reaction Anchor Wall
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.45, metalness: 0.35 });
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.6, 3.2), wallMat);
+      wall.position.set(-3.8, 1.48, 0);
+      wall.castShadow = true;
+      viscScene.add(wall);
+
+      // Steel Anchor Plate & Clevis
+      const plateMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.85, roughness: 0.2 });
+      const boltMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.95, roughness: 0.1 });
+      const pinMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.98, roughness: 0.05 });
+
+      function addClevis(x, y, z) {
+        const group = new THREE.Group();
+        group.position.set(x, y, z);
+        const earGeo = new THREE.BoxGeometry(0.3, 0.28, 0.06);
+        const ear1 = new THREE.Mesh(earGeo, plateMat); ear1.position.set(0.15, 0, -0.12); group.add(ear1);
+        const ear2 = new THREE.Mesh(earGeo, plateMat); ear2.position.set(0.15, 0, 0.12); group.add(ear2);
+        const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.34, 16), pinMat);
+        pin.position.set(0.22, 0, 0);
+        group.add(pin);
+        return group;
+      }
+      viscScene.add(addClevis(-3.3, 1.25, -0.65)); // Spring clevis
+      viscScene.add(addClevis(-3.3, 1.25, 0.65));  // Damper clevis
+
+      // LM Rails
+      for (let z of [-0.85, 0.85]) {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.10, 0.16), plateMat);
+        rail.position.set(0.1, 0.40, z);
+        viscScene.add(rail);
+
+        // End stops
+        const stopMat = new THREE.MeshStandardMaterial({ color: 0xdc2626 });
+        const bL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.25, 0.20), stopMat);
+        bL.position.set(-3.2, 0.50, z);
+        viscScene.add(bL);
+        const bR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.25, 0.20), stopMat);
+        bR.position.set(3.4, 0.50, z);
+        viscScene.add(bR);
+      }
+
+      // SDOF Mass Cart
+      viscCartGroup = new THREE.Group();
+      viscCartGroup.position.set(0, 0, 0);
+
+      // Chassis
+      const chassisMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.82, roughness: 0.22 });
+      const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.14, 2.1), chassisMat);
+      chassis.position.set(0, 0.52, 0);
+      viscCartGroup.add(chassis);
+
+      // 4 Wheels
+      viscWheelMeshes = [];
+      const wheelGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.08, 24);
+      wheelGeo.rotateX(Math.PI / 2);
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9, roughness: 0.18 });
+      for (let wx of [-0.55, 0.55]) {
+        for (let wz of [-0.85, 0.85]) {
+          const wGroup = new THREE.Group();
+          wGroup.position.set(wx, 0.42, wz);
+          const wMesh = new THREE.Mesh(wheelGeo, wheelMat);
+          wGroup.add(wMesh);
+          const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.02, 0.09), new THREE.MeshBasicMaterial({ color: 0x1e293b }));
+          wGroup.add(spoke);
+          viscCartGroup.add(wGroup);
+          viscWheelMeshes.push(wGroup);
+        }
+      }
+
+      // Main Mass Body (Cobalt Blue)
+      const massMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.65, roughness: 0.25 });
+      const massMesh = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 1.8), massMat);
+      massMesh.position.set(0, 1.14, 0);
+      massMesh.castShadow = true;
+      viscCartGroup.add(massMesh);
+
+      // Stacked Counterweight Slab on top
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.25 });
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.12, 1.5), slabMat);
+      slab.position.set(0, 1.75, 0);
+      viscCartGroup.add(slab);
+
+      // Cart Clevis Brackets on Front Face
+      function addCartClevis(x, y, z) {
+        const g = new THREE.Group(); g.position.set(x, y, z);
+        const earGeo = new THREE.BoxGeometry(0.25, 0.28, 0.06);
+        const ear1 = new THREE.Mesh(earGeo, plateMat); ear1.position.set(-0.12, 0, -0.12); g.add(ear1);
+        const ear2 = new THREE.Mesh(earGeo, plateMat); ear2.position.set(-0.12, 0, 0.12); g.add(ear2);
+        const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.32, 16), pinMat);
+        pin.position.set(-0.18, 0, 0);
+        g.add(pin);
+        return g;
+      }
+      viscCartGroup.add(addCartClevis(-0.8, 1.25, -0.65));
+      viscCartGroup.add(addCartClevis(-0.8, 1.25, 0.65));
+
+      viscScene.add(viscCartGroup);
+
+      // 3D Helical Coil Spring
+      const springStart = new THREE.Vector3(-3.05, 1.25, -0.65);
+      const springEnd = new THREE.Vector3(-0.98, 1.25, -0.65);
+      const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.22, 9);
+      const springGeo = new THREE.TubeGeometry(springCurve, 100, 0.035, 10, false);
+      const springMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.88, roughness: 0.18 });
+      viscSpringMesh = new THREE.Mesh(springGeo, springMat);
+      viscSpringMesh.castShadow = true;
+      viscScene.add(viscSpringMesh);
+
+      // 3D Hydraulic Damper
+      const cylGeo = new THREE.CylinderGeometry(0.14, 0.14, 1.8, 24);
+      cylGeo.rotateZ(Math.PI / 2);
+      const cylMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.25 });
+      viscDamperCyl = new THREE.Mesh(cylGeo, cylMat);
+      viscDamperCyl.position.set(-2.1, 1.25, 0.65);
+      viscScene.add(viscDamperCyl);
+
+      // Amber Oil Window
+      const glassGeo = new THREE.CylinderGeometry(0.135, 0.135, 0.9, 24);
+      glassGeo.rotateZ(Math.PI / 2);
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.6, roughness: 0.1 });
+      const glass = new THREE.Mesh(glassGeo, glassMat);
+      glass.position.set(-2.1, 1.25, 0.65);
+      viscScene.add(glass);
+
+      // Bronze gland seal nut
+      const nutGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.12, 24);
+      nutGeo.rotateZ(Math.PI / 2);
+      const nut = new THREE.Mesh(nutGeo, new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9, roughness: 0.25 }));
+      nut.position.set(-1.2, 1.25, 0.65);
+      viscScene.add(nut);
+
+      // Telescoping Chrome Piston Rod
+      const rodGeo = new THREE.CylinderGeometry(0.06, 0.06, 2.6, 24);
+      rodGeo.rotateZ(Math.PI / 2);
+      viscDamperRod = new THREE.Mesh(rodGeo, pinMat);
+      viscDamperRod.position.set(-0.8, 1.25, 0.65);
+      viscScene.add(viscDamperRod);
+
+      // Piston Head
+      const pHeadGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.10, 20);
+      pHeadGeo.rotateZ(Math.PI / 2);
+      viscDamperPistonHead = new THREE.Mesh(pHeadGeo, plateMat);
+      viscDamperPistonHead.position.set(-2.1, 1.25, 0.65);
+      viscScene.add(viscDamperPistonHead);
+    }
+
+    // 2. Coulomb 3D Scene Objects
+    let fricScene, fricCamera, fricRenderer, fricControls;
+    let fricBlockGroup, fricSpringMesh, fricStickClamp;
+    let fricArrowFs, fricArrowFf;
+
+    function initThreeFric() {
+      const container = document.getElementById('three-fric-container');
+      if (!container) return;
+      fricScene = new THREE.Scene();
+      fricScene.background = new THREE.Color(0xf8fafc);
+
+      const r = container.getBoundingClientRect();
+      fricCamera = new THREE.PerspectiveCamera(34, r.width / r.height, 0.1, 1000);
+      fricCamera.position.set(1.5, 4.2, 9.5);
+
+      fricRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+      fricRenderer.setSize(r.width, r.height);
+      fricRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      fricRenderer.shadowMap.enabled = true;
+      fricRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(fricRenderer.domElement);
+
+      fricControls = new THREE.OrbitControls(fricCamera, fricRenderer.domElement);
+      fricControls.enableDamping = true;
+      fricControls.dampingFactor = 0.05;
+      fricControls.target.set(0, 1.1, 0);
+      fricControls.maxPolarAngle = Math.PI / 2 + 0.05;
+
+      // Studio Lighting
+      fricScene.add(new THREE.AmbientLight(0xffffff, 0.85));
+      const dir = new THREE.DirectionalLight(0xffffff, 0.95);
+      dir.position.set(10, 16, 12);
+      dir.castShadow = true;
+      dir.shadow.mapSize.width = 1024;
+      dir.shadow.mapSize.height = 1024;
+      dir.shadow.bias = -0.0005;
+      fricScene.add(dir);
+      fricScene.add(new THREE.DirectionalLight(0xf59e0b, 0.45).position.set(-8, 6, -8));
+
+      // Bedrock Plinth
+      const bedGeo = new THREE.BoxGeometry(9.6, 0.35, 4.0);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8, metalness: 0.2 });
+      const bedrock = new THREE.Mesh(bedGeo, bedMat);
+      bedrock.position.set(0, 0.175, 0);
+      bedrock.receiveShadow = true;
+      fricScene.add(bedrock);
+      bedrock.add(new THREE.LineSegments(new THREE.EdgesGeometry(bedGeo), new THREE.LineBasicMaterial({ color: 0x475569 })));
+
+      // 4 Leveling Pads
+      const padMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+      for (let px of [-4.2, 4.2]) {
+        for (let pz of [-1.7, 1.7]) {
+          const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.32, 0.18, 16), padMat);
+          pad.position.set(px, 0.09, pz);
+          fricScene.add(pad);
+        }
+      }
+
+      // Left Anchor Wall
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.45, metalness: 0.35 });
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.6, 3.2), wallMat);
+      wall.position.set(-3.8, 1.48, 0);
+      wall.castShadow = true;
+      fricScene.add(wall);
+
+      // Steel Anchor Plate & Spring Clevis
+      const plateMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.85, roughness: 0.2 });
+      const pinMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.98, roughness: 0.05 });
+
+      const springClevis = new THREE.Group();
+      springClevis.position.set(-3.3, 1.15, 0);
+      const ear1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.28, 0.06), plateMat); ear1.position.set(0.15, 0, -0.12); springClevis.add(ear1);
+      const ear2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.28, 0.06), plateMat); ear2.position.set(0.15, 0, 0.12); springClevis.add(ear2);
+      const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.34, 16), pinMat);
+      pin.position.set(0.22, 0, 0);
+      springClevis.add(pin);
+      fricScene.add(springClevis);
+
+      // Hardened Steel Dry Friction Sliding Track Bed
+      const trackMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.88, roughness: 0.42 });
+      const trackBed = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.12, 1.8), trackMat);
+      trackBed.position.set(0.1, 0.41, 0);
+      trackBed.receiveShadow = true;
+      fricScene.add(trackBed);
+
+      // Side guide curbs
+      const curbMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 });
+      for (let cz of [-0.95, 0.95]) {
+        const curb = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.16, 0.10), curbMat);
+        curb.position.set(0.1, 0.45, cz);
+        fricScene.add(curb);
+      }
+
+      // SDOF Coulomb Mass Block
+      fricBlockGroup = new THREE.Group();
+      fricBlockGroup.position.set(0, 0, 0);
+
+      // Friction Contact Pad under block
+      const padFricMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.7, metalness: 0.2 });
+      const padUnder = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.06, 1.4), padFricMat);
+      padUnder.position.set(0, 0.50, 0);
+      fricBlockGroup.add(padUnder);
+
+      // Heavy Mass Block (Warm Amber Anodized)
+      const blockMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.65, roughness: 0.25 });
+      const block = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 1.4), blockMat);
+      block.position.set(0, 1.08, 0);
+      block.castShadow = true;
+      fricBlockGroup.add(block);
+
+      // Stacked Counterweight Slab on top
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.25 });
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.12, 1.2), slabMat);
+      slab.position.set(0, 1.69, 0);
+      fricBlockGroup.add(slab);
+
+      // Spring Clevis on Block Face
+      const bClevis = new THREE.Group();
+      bClevis.position.set(-0.8, 1.15, 0);
+      const bEar1 = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.28, 0.06), plateMat); bEar1.position.set(-0.12, 0, -0.12); bClevis.add(bEar1);
+      const bEar2 = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.28, 0.06), plateMat); bEar2.position.set(-0.12, 0, 0.12); bClevis.add(bEar2);
+      const bPin = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.32, 16), pinMat);
+      bPin.position.set(-0.18, 0, 0);
+      bClevis.add(bPin);
+      fricBlockGroup.add(bClevis);
+
+      // Mechanical 3D STICK Clamp Plate on Top
+      const stickMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.8, roughness: 0.2 });
+      fricStickClamp = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.22, 0.4), stickMat);
+      fricStickClamp.position.set(0, 1.86, 0);
+      fricStickClamp.visible = false;
+      fricBlockGroup.add(fricStickClamp);
+
+      fricScene.add(fricBlockGroup);
+
+      // 3D Helical Coil Spring
+      const springStart = new THREE.Vector3(-3.05, 1.15, 0);
+      const springEnd = new THREE.Vector3(-0.98, 1.15, 0);
+      const springCurve = new HelicalSpringCurve(springStart, springEnd, 0.22, 9);
+      const springGeo = new THREE.TubeGeometry(springCurve, 100, 0.035, 10, false);
+      const springMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.88, roughness: 0.18 });
+      fricSpringMesh = new THREE.Mesh(springGeo, springMat);
+      fricSpringMesh.castShadow = true;
+      fricScene.add(fricSpringMesh);
+    }
+
+    // Render 3D Viscous
+    function renderThreeVisc(state) {
+      if (!viscRenderer || !viscCamera) return;
+      viscControls.update();
+
+      const u_m = state.u;
+      const visualShift = u_m * 15.0; // scale 100mm to 1.5m in 3D
+
+      if (viscCartGroup) {
+        viscCartGroup.position.x = visualShift;
+      }
+
+      // Rotate Wheels
+      if (viscWheelMeshes.length > 0) {
+        const wheelR = 0.14;
+        const dTheta = (state.v * 0.016 * simSpeed * 15.0) / wheelR;
+        viscWheelAngle += dTheta;
+        viscWheelMeshes.forEach(w => w.rotation.z = viscWheelAngle);
+      }
+
+      // Update 3D Spring
+      if (viscSpringMesh) {
+        const springStart = new THREE.Vector3(-3.05, 1.25, -0.65);
+        const springEnd = new THREE.Vector3(-0.98 + visualShift, 1.25, -0.65);
+        const curve = new HelicalSpringCurve(springStart, springEnd, 0.22, 9);
+        viscSpringMesh.geometry.dispose();
+        viscSpringMesh.geometry = new THREE.TubeGeometry(curve, 100, 0.035, 10, false);
+      }
+
+      // Update Hydraulic Damper Rod & Piston Head
+      if (viscDamperRod && viscDamperPistonHead) {
+        const cartClevisX = -0.98 + visualShift;
+        const pHeadX = -2.1 + visualShift * 0.45;
+        viscDamperPistonHead.position.x = pHeadX;
+
+        const rodLen = Math.max(0.3, cartClevisX - pHeadX);
+        const rodMidX = (pHeadX + cartClevisX) / 2;
+        viscDamperRod.position.x = rodMidX;
+        viscDamperRod.scale.set(rodLen / 2.6, 1, 1);
+      }
+
+      // HUD readout
+      document.getElementById('hud-visc-3d-u').textContent = `${state.u >= 0 ? '+' : ''}${(state.u * 1000).toFixed(1)} mm`;
+      document.getElementById('hud-visc-3d-fs').textContent = `Fs: ${state.Fs.toFixed(1)} N`;
+      document.getElementById('hud-visc-3d-fd').textContent = `Fd: ${state.Fd.toFixed(1)} N`;
+
+      viscRenderer.render(viscScene, viscCamera);
+    }
+
+    // Render 3D Coulomb
+    function renderThreeFric(state) {
+      if (!fricRenderer || !fricCamera) return;
+      fricControls.update();
+
+      const u_m = state.u;
+      const visualShift = u_m * 15.0; // scale 100mm to 1.5m in 3D
+
+      if (fricBlockGroup) {
+        fricBlockGroup.position.x = visualShift;
+      }
+
+      // Update 3D Spring
+      if (fricSpringMesh) {
+        const springStart = new THREE.Vector3(-3.05, 1.15, 0);
+        const springEnd = new THREE.Vector3(-0.98 + visualShift, 1.15, 0);
+        const curve = new HelicalSpringCurve(springStart, springEnd, 0.22, 9);
+        fricSpringMesh.geometry.dispose();
+        fricSpringMesh.geometry = new THREE.TubeGeometry(curve, 100, 0.035, 10, false);
+      }
+
+      // Stick Clamp Activation
+      if (fricStickClamp) {
+        fricStickClamp.visible = !!state.isStuck;
+      }
+      const stickBadge = document.getElementById('hud-fric-stick-badge');
+      if (stickBadge) {
+        stickBadge.className = state.isStuck ? 'px-1.5 py-0.5 rounded bg-red-600 text-white font-bold text-[9px] animate-pulse block' : 'hidden';
+      }
+
+      // HUD readout
+      document.getElementById('hud-fric-3d-u').textContent = `${state.u >= 0 ? '+' : ''}${(state.u * 1000).toFixed(1)} mm`;
+      document.getElementById('hud-fric-3d-fs').textContent = `Fs: ${state.Fs.toFixed(1)} N`;
+      document.getElementById('hud-fric-3d-ff').textContent = `Ff: ${state.Ff.toFixed(1)} N`;
+
+      fricRenderer.render(fricScene, fricCamera);
+    }
+
+    // View Switchers
+    function switchViscView(view) {
+      viscView = view;
+      const b3d = document.getElementById('btn-visc-3d');
+      const b2d = document.getElementById('btn-visc-2d');
+      const c3d = document.getElementById('three-visc-container');
+      const c2d = document.getElementById('canvas-visc-container');
+
+      if (view === '3D') {
+        b3d.className = 'px-2 py-0.5 rounded bg-white text-blue-700 font-bold shadow-xs';
+        b2d.className = 'px-2 py-0.5 rounded text-slate-600 hover:text-slate-900 font-bold';
+        c3d.classList.remove('hidden');
+        c2d.classList.add('hidden');
+        if (viscRenderer && viscCamera && c3d) {
+          const r = c3d.getBoundingClientRect();
+          viscCamera.aspect = r.width / r.height;
+          viscCamera.updateProjectionMatrix();
+          viscRenderer.setSize(r.width, r.height);
+        }
+      } else {
+        b2d.className = 'px-2 py-0.5 rounded bg-white text-blue-700 font-bold shadow-xs';
+        b3d.className = 'px-2 py-0.5 rounded text-slate-600 hover:text-slate-900 font-bold';
+        c3d.classList.add('hidden');
+        c2d.classList.remove('hidden');
+      }
+    }
+
+    function switchFricView(view) {
+      fricView = view;
+      const b3d = document.getElementById('btn-fric-3d');
+      const b2d = document.getElementById('btn-fric-2d');
+      const c3d = document.getElementById('three-fric-container');
+      const c2d = document.getElementById('canvas-fric-container');
+
+      if (view === '3D') {
+        b3d.className = 'px-2 py-0.5 rounded bg-white text-amber-700 font-bold shadow-xs';
+        b2d.className = 'px-2 py-0.5 rounded text-slate-600 hover:text-slate-900 font-bold';
+        c3d.classList.remove('hidden');
+        c2d.classList.add('hidden');
+        if (fricRenderer && fricCamera && c3d) {
+          const r = c3d.getBoundingClientRect();
+          fricCamera.aspect = r.width / r.height;
+          fricCamera.updateProjectionMatrix();
+          fricRenderer.setSize(r.width, r.height);
+        }
+      } else {
+        b2d.className = 'px-2 py-0.5 rounded bg-white text-amber-700 font-bold shadow-xs';
+        b3d.className = 'px-2 py-0.5 rounded text-slate-600 hover:text-slate-900 font-bold';
+        c3d.classList.add('hidden');
+        c2d.classList.remove('hidden');
+      }
+    }
+
+    // =========================================================================
+    // CANVAS RESIZING & HIGH-DPI SETUP (FOR 2D AND WAVEFORMS)
     // =========================================================================
     function getCanvasContext(id) {
       const cvs = document.getElementById(id);
@@ -466,7 +1014,6 @@
       return { cvs, ctx, w, h };
     }
 
-    // Rounded rectangle helper
     function drawRoundRect(c, x, y, width, height, radius, fill, stroke) {
       c.beginPath();
       c.moveTo(x + radius, y);
@@ -483,217 +1030,13 @@
       if (stroke) c.stroke();
     }
 
-    // =========================================================================
-    // 3D REALISTIC MECHANICAL RENDERING
-    // =========================================================================
-
-    // 1. 3D Helical Metallic Spring
-    function drawHelicalSpring(ctx, startX, endX, y, radius, numCoils = 9, wireRadius = 2.4) {
-      const len = endX - startX;
-      if (len <= 20) return;
-      const coilW = len / numCoils;
-
-      ctx.save();
-      // Back coils (shaded darker)
-      ctx.strokeStyle = '#475569';
-      ctx.lineWidth = wireRadius * 1.7;
-      ctx.lineCap = 'round';
-      for (let i = 0; i < numCoils; i++) {
-        const x0 = startX + i * coilW;
-        const x1 = x0 + coilW * 0.5;
-        ctx.beginPath();
-        ctx.ellipse((x0 + x1) / 2, y, Math.max(1, coilW * 0.28), radius, -0.22, 0, Math.PI);
-        ctx.stroke();
-      }
-
-      // Front coils (bright metallic gradient highlight)
-      for (let i = 0; i < numCoils; i++) {
-        const x0 = startX + (i + 0.5) * coilW;
-        const x1 = x0 + coilW * 0.5;
-        const grad = ctx.createLinearGradient(x0, y - radius, x1, y + radius);
-        grad.addColorStop(0, '#94a3b8');
-        grad.addColorStop(0.35, '#ffffff');
-        grad.addColorStop(0.7, '#cbd5e1');
-        grad.addColorStop(1, '#64748b');
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = wireRadius * 2.0;
-        ctx.beginPath();
-        ctx.ellipse((x0 + x1) / 2, y, Math.max(1, coilW * 0.28), radius, -0.22, Math.PI, Math.PI * 2);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    // 2. Polished Hydraulic Dashpot
-    function drawHydraulicDashpot(ctx, startX, rodEndX, cy, cylW = 75, cylH = 26) {
-      const cylX = startX + 16;
-      ctx.save();
-
-      // Bracket
-      ctx.fillStyle = '#64748b';
-      ctx.fillRect(startX, cy - 3, 16, 6);
-
-      // Cylinder Housing (Metallic gradient)
-      const bodyGrad = ctx.createLinearGradient(cylX, cy - cylH/2, cylX, cy + cylH/2);
-      bodyGrad.addColorStop(0, '#334155');
-      bodyGrad.addColorStop(0.2, '#64748b');
-      bodyGrad.addColorStop(0.5, '#cbd5e1');
-      bodyGrad.addColorStop(0.8, '#475569');
-      bodyGrad.addColorStop(1, '#1e293b');
-
-      ctx.fillStyle = bodyGrad;
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1.5;
-      drawRoundRect(ctx, cylX, cy - cylH/2, cylW, cylH, 4, true, true);
-
-      // Translucent Oil Fluid Window
-      const pad = 3;
-      ctx.fillStyle = 'rgba(14, 165, 233, 0.22)';
-      ctx.fillRect(cylX + pad, cy - cylH/2 + pad, cylW - pad * 2, cylH - pad * 2);
-
-      // Piston Stroke mapping
-      const minStroke = 10, maxStroke = cylW - 18;
-      const normU = (rodEndX - (startX + 120)) / 90; // approx stroke
-      const pistonX = Math.max(cylX + minStroke, Math.min(cylX + maxStroke, cylX + (cylW/2) + normU * 24));
-
-      // Chrome Rod
-      const rodGrad = ctx.createLinearGradient(pistonX, cy - 3, pistonX, cy + 3);
-      rodGrad.addColorStop(0, '#cbd5e1');
-      rodGrad.addColorStop(0.5, '#ffffff');
-      rodGrad.addColorStop(1, '#475569');
-      ctx.fillStyle = rodGrad;
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 1;
-      ctx.fillRect(pistonX, cy - 3, rodEndX - pistonX, 6);
-      ctx.strokeRect(pistonX, cy - 3, rodEndX - pistonX, 6);
-
-      // Piston Head
-      ctx.fillStyle = '#0284c7';
-      ctx.strokeStyle = '#0369a1';
-      ctx.lineWidth = 1.2;
-      drawRoundRect(ctx, pistonX - 5, cy - cylH/2 + 4, 8, cylH - 8, 2, true, true);
-
-      // Seal ring
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(pistonX - 2, cy - cylH/2 + 6, 2, cylH - 12);
-
-      ctx.restore();
-    }
-
-    // 3. Machined Steel Mass Block with Chamfers & Highlights
-    function drawMassBlock(ctx, x, y, w, h, isViscous, u_mm, isStuck = false) {
-      ctx.save();
-      
-      // Shadow
-      ctx.shadowColor = isViscous ? 'rgba(37, 99, 235, 0.25)' : (isStuck ? 'rgba(239, 68, 68, 0.35)' : 'rgba(217, 119, 6, 0.25)');
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetY = 3;
-
-      // Body Gradient
-      const blockGrad = ctx.createLinearGradient(x - w/2, y - h/2, x + w/2, y + h/2);
-      if (isViscous) {
-        blockGrad.addColorStop(0, '#38bdf8');
-        blockGrad.addColorStop(0.3, '#0284c7');
-        blockGrad.addColorStop(0.8, '#0369a1');
-        blockGrad.addColorStop(1, '#075985');
-      } else {
-        if (isStuck) {
-          blockGrad.addColorStop(0, '#f87171');
-          blockGrad.addColorStop(0.3, '#dc2626');
-          blockGrad.addColorStop(0.8, '#b91c1c');
-          blockGrad.addColorStop(1, '#991b1b');
-        } else {
-          blockGrad.addColorStop(0, '#fbbf24');
-          blockGrad.addColorStop(0.3, '#d97706');
-          blockGrad.addColorStop(0.8, '#b45309');
-          blockGrad.addColorStop(1, '#78350f');
-        }
-      }
-
-      ctx.fillStyle = blockGrad;
-      ctx.strokeStyle = isViscous ? '#0369a1' : (isStuck ? '#991b1b' : '#92400e');
-      ctx.lineWidth = 1.5;
-      drawRoundRect(ctx, x - w/2, y - h/2, w, h, 6, true, true);
-      ctx.shadowColor = 'transparent';
-
-      // Specular Top Highlight
-      const hlGrad = ctx.createLinearGradient(x - w/2, y - h/2, x - w/2, y - h/2 + 8);
-      hlGrad.addColorStop(0, 'rgba(255, 255, 255, 0.65)');
-      hlGrad.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
-      ctx.fillStyle = hlGrad;
-      drawRoundRect(ctx, x - w/2 + 2, y - h/2 + 2, w - 4, 7, 2, true, false);
-
-      // Labels
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px Pretendard, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('Mass', x, y - 6);
-
-      ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.fillText(`${(u_mm >= 0 ? '+' : '') + u_mm.toFixed(0)}mm`, x, y + 8);
-
-      // Rollers / Slider Shoes
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(x - w/2 + 5, y + h/2, 9, 3);
-      ctx.fillRect(x + w/2 - 14, y + h/2, 9, 3);
-
-      // Lock clamp visual if stuck
-      if (isStuck) {
-        ctx.fillStyle = '#fee2e2';
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 1;
-        drawRoundRect(ctx, x - 24, y - h/2 - 16, 48, 14, 3, true, true);
-        ctx.fillStyle = '#b91c1c';
-        ctx.font = 'bold 9px Pretendard, sans-serif';
-        ctx.fillText('🔒 STICK', x, y - h/2 - 9);
-      }
-
-      ctx.restore();
-    }
-
-    // 4. Force Vectors
-    function drawForceVector(ctx, startX, y, force, label, color) {
-      if (Math.abs(force) < 0.5) return;
-      ctx.save();
-      const maxLen = 45;
-      const len = Math.max(-maxLen, Math.min(maxLen, (force / 30) * maxLen));
-      const endX = startX + len;
-
-      ctx.strokeStyle = color;
-      ctx.fillStyle = color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(startX, y);
-      ctx.lineTo(endX, y);
-      ctx.stroke();
-
-      // Arrow head
-      const head = len > 0 ? 5 : -5;
-      ctx.beginPath();
-      ctx.moveTo(endX, y);
-      ctx.lineTo(endX - head, y - 3.5);
-      ctx.lineTo(endX - head, y + 3.5);
-      ctx.closePath();
-      ctx.fill();
-
-      // Label
-      ctx.font = 'bold 9px "JetBrains Mono", monospace';
-      ctx.textAlign = len > 0 ? 'left' : 'right';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(`${label} ${force.toFixed(1)}N`, endX + (len > 0 ? 4 : -4), y - 2);
-      ctx.restore();
-    }
-
-    // 5. Complete Mechanical System Render
-    function renderSystem(ctx, w, h, state, isViscous) {
+    // 2D System Fallback Rendering
+    function renderSystem2D(ctx, w, h, state, isViscous) {
       ctx.clearRect(0, 0, w, h);
       const cy = h / 2 + 5;
       const wallX = 35;
       const groundY = cy + 26;
 
-      // 1. Structural Ground
       ctx.strokeStyle = '#0f172a';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
@@ -701,251 +1044,119 @@
       ctx.lineTo(w - 10, groundY);
       ctx.stroke();
 
-      // Hatching
-      ctx.strokeStyle = isViscous ? '#cbd5e1' : '#f59e0b';
-      ctx.lineWidth = 1;
-      for (let x = 15; x < w - 10; x += 14) {
-        ctx.beginPath();
-        ctx.moveTo(x, groundY);
-        ctx.lineTo(x - 6, groundY + 8);
-        ctx.stroke();
-      }
-
-      // 2. Left Wall
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(wallX, cy - 38);
-      ctx.lineTo(wallX, groundY);
-      ctx.stroke();
-
-      // Wall Anchor Bolts
-      ctx.fillStyle = '#64748b';
-      ctx.beginPath();
-      ctx.arc(wallX - 3, cy - 20, 2.5, 0, Math.PI * 2);
-      ctx.arc(wallX - 3, cy + 10, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Wall cross-hatching
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1;
-      for (let y = cy - 34; y < groundY; y += 10) {
-        ctx.beginPath();
-        ctx.moveTo(wallX, y);
-        ctx.lineTo(wallX - 10, y + 6);
-        ctx.stroke();
-      }
-
-      // 3. Block Position Mapping
       const u_mm = state.u * 1000;
       const eqX = wallX + 160;
-      const maxVisualAmp = 65; // px for 100mm
+      const maxVisualAmp = 65;
       const blockX = eqX + (u_mm / 100) * maxVisualAmp;
       const blockW = 46, blockH = 46;
-      const blockLeft = blockX - blockW / 2;
 
-      // 4. Draw Spring (Upper Row)
-      const springY = cy - 12;
-      drawHelicalSpring(ctx, wallX, blockLeft, springY, 9, 8, 2.2);
-
-      // 5. Draw Damper or Lower Mount
-      if (isViscous) {
-        const damperY = cy + 12;
-        drawHydraulicDashpot(ctx, wallX, blockLeft, damperY, 70, 18);
-      }
-
-      // 6. Draw Mass Block
-      drawMassBlock(ctx, blockX, cy, blockW, blockH, isViscous, u_mm, state.isStuck);
-
-      // 7. Draw Equilibrium Center Reference Line
-      ctx.strokeStyle = '#94a3b8';
-      ctx.setLineDash([2, 2]);
-      ctx.lineWidth = 1;
+      // Spring
+      ctx.strokeStyle = isViscous ? '#2563eb' : '#d97706';
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(eqX, cy - 38);
-      ctx.lineTo(eqX, groundY + 12);
+      ctx.moveTo(wallX, cy);
+      ctx.lineTo(blockX - blockW / 2, cy);
       ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 8.5px Pretendard, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('평형위치 u=0', eqX, groundY + 18);
 
-      // 8. Force Vectors
-      const fVecY = cy - 28;
-      drawForceVector(ctx, blockX, fVecY, state.Fs, 'Fs', '#2563eb');
-      if (isViscous) {
-        drawForceVector(ctx, blockX, fVecY - 14, state.Fd, 'Fd', '#0284c7');
-      } else {
-        drawForceVector(ctx, blockX, fVecY - 14, state.Ff, 'Ff', '#d97706');
-      }
+      // Block
+      ctx.fillStyle = isViscous ? '#1d4ed8' : (state.isStuck ? '#dc2626' : '#d97706');
+      drawRoundRect(ctx, blockX - blockW / 2, cy - blockH / 2, blockW, blockH, 6, true, true);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px Pretendard';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${(u_mm >= 0 ? '+' : '') + u_mm.toFixed(0)}mm`, blockX, cy + 4);
     }
 
-    // =========================================================================
-    // OSCILLOSCOPE TIME HISTORY PLOT
-    // =========================================================================
-    function renderPlot(ctx, w, h, hist, isViscous, overlayMode = false) {
+    // Oscilloscope Time History Plot
+    function renderPlot(ctx, w, h, hist, isViscous) {
       ctx.clearRect(0, 0, w, h);
-
-      const marginL = 50;
-      const marginR = 25;
-      const marginT = 24;
-      const marginB = 30;
+      const marginL = 50, marginR = 25, marginT = 24, marginB = 30;
       const plotW = w - marginL - marginR;
       const plotH = h - marginT - marginB;
       const cy = marginT + plotH / 2;
+      const maxU = 120;
 
-      const maxU = 120; // mm
       function toX(t) { return marginL + (t / maxHistSeconds) * plotW; }
       function toY(u_mm) { return cy - (u_mm / maxU) * (plotH / 2); }
 
-      // 1. Grid & Ticks
+      // Grid
       ctx.strokeStyle = '#f1f5f9';
       ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
-
-      // Y Ticks
-      const yTicks = [-100, -50, 0, 50, 100];
-      yTicks.forEach(val => {
+      [-100, -50, 0, 50, 100].forEach(val => {
         const y = toY(val);
-        ctx.beginPath();
-        ctx.moveTo(marginL, y);
-        ctx.lineTo(w - marginR, y);
+        ctx.beginPath(); ctx.moveTo(marginL, y); ctx.lineTo(w - marginR, y);
+        ctx.strokeStyle = val === 0 ? '#cbd5e1' : '#f1f5f9';
         ctx.stroke();
-
         ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+        ctx.font = 'bold 9.5px monospace';
         ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`${val > 0 ? '+' : ''}${val}`, marginL - 6, y);
+        ctx.fillText(`${val > 0 ? '+' : ''}${val}`, marginL - 6, y + 3);
       });
 
-      // X Ticks
       for (let t = 0; t <= maxHistSeconds; t += 1.0) {
         const x = toX(t);
-        ctx.beginPath();
-        ctx.moveTo(x, marginT);
-        ctx.lineTo(x, h - marginB);
+        ctx.beginPath(); ctx.moveTo(x, marginT); ctx.lineTo(x, h - marginB);
+        ctx.strokeStyle = '#f1f5f9';
         ctx.stroke();
-
         ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+        ctx.font = 'bold 9.5px monospace';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${t.toFixed(0)}s`, x, h - marginB + 6);
+        ctx.fillText(`${t.toFixed(0)}s`, x, h - marginB + 14);
       }
-      ctx.setLineDash([]);
-
-      // 2. Axes
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(marginL, marginT - 10);
-      ctx.lineTo(marginL, h - marginB);
-      ctx.lineTo(w - marginR + 10, h - marginB);
-      ctx.stroke();
 
       // Zero Axis
       ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(marginL, cy);
-      ctx.lineTo(w - marginR, cy);
-      ctx.stroke();
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(marginL, cy); ctx.lineTo(w - marginR, cy); ctx.stroke();
 
-      // Axis Titles
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 10px Pretendard, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText('변위 u (mm)', marginL - 45, marginT - 8);
-
-      ctx.textAlign = 'right';
-      ctx.fillText('시간 t (s)', w - marginR + 10, h - marginB + 20);
-
-      // 3. Stick Zone (Coulomb only)
-      if (!isViscous) {
-        const uf_mm = (muN / k) * 1000;
-        const yTop = toY(uf_mm);
-        const yBot = toY(-uf_mm);
-
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
-        ctx.fillRect(marginL, yTop, plotW, yBot - yTop);
-
-        ctx.strokeStyle = '#fca5a5';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([3, 2]);
-        ctx.beginPath();
-        ctx.moveTo(marginL, yTop); ctx.lineTo(w - marginR, yTop);
-        ctx.moveTo(marginL, yBot); ctx.lineTo(w - marginR, yBot);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = '#b91c1c';
-        ctx.font = 'bold 9px Pretendard, sans-serif';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`Stick 한계: ±${uf_mm.toFixed(1)}mm`, w - marginR - 6, yTop - 7);
-      }
-
-      // 4. Envelope Curves
-      const steps = 180;
+      // Envelope
+      const steps = 150;
       const u0_mm = u0 * 1000;
-
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 3]);
 
       if (isViscous) {
         ctx.strokeStyle = '#94a3b8';
-        // Positive envelope
         ctx.beginPath();
         for (let i = 0; i <= steps; i++) {
           const t = (i / steps) * maxHistSeconds;
           const env_mm = u0_mm * Math.exp(-zeta * wn * t);
-          const x = toX(t);
-          const y = toY(env_mm);
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          const x = toX(t), y = toY(env_mm);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.stroke();
-
-        // Negative envelope
         ctx.beginPath();
         for (let i = 0; i <= steps; i++) {
           const t = (i / steps) * maxHistSeconds;
           const env_mm = u0_mm * Math.exp(-zeta * wn * t);
-          const x = toX(t);
-          const y = toY(-env_mm);
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          const x = toX(t), y = toY(-env_mm);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.stroke();
       } else {
-        // Coulomb Linear Envelope
         const uf_mm = (muN / k) * 1000;
         ctx.strokeStyle = '#f59e0b';
-
         ctx.beginPath();
         for (let i = 0; i <= steps; i++) {
           const t = (i / steps) * maxHistSeconds;
           const env_mm = Math.max(0, u0_mm - (4 * uf_mm / Tn) * t);
-          const x = toX(t);
-          const y = toY(env_mm);
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          const x = toX(t), y = toY(env_mm);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.stroke();
-
         ctx.beginPath();
         for (let i = 0; i <= steps; i++) {
           const t = (i / steps) * maxHistSeconds;
           const env_mm = Math.max(0, u0_mm - (4 * uf_mm / Tn) * t);
-          const x = toX(t);
-          const y = toY(-env_mm);
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          const x = toX(t), y = toY(-env_mm);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.stroke();
       }
       ctx.setLineDash([]);
 
-      // 5. Response Waveform Stroke
+      // Waveform
       if (hist.length > 0) {
         ctx.lineWidth = 2.4;
         ctx.strokeStyle = isViscous ? '#2563eb' : '#d97706';
@@ -953,11 +1164,10 @@
         for (let i = 0; i < hist.length; i++) {
           const x = toX(hist[i].t);
           const y = toY(hist[i].u * 1000);
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.stroke();
 
-        // Glowing Head Dot
         const last = hist[hist.length - 1];
         const hx = toX(last.t);
         const hy = toY(last.u * 1000);
@@ -966,34 +1176,18 @@
         ctx.beginPath();
         ctx.arc(hx, hy, 4.5, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
         ctx.stroke();
-
-        // Sticky badge if stuck
-        if (!isViscous && last.isStuck) {
-          ctx.fillStyle = '#ef4444';
-          ctx.font = 'bold 11px Pretendard, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText(`🔒 STICK 정지 완료 (u = ${(last.stopU * 1000).toFixed(1)}mm)`, hx + 8, hy - 4);
-        }
       }
     }
 
-    // 6. Overlay Dual Plot
     function renderOverlayPlot(ctx, w, h) {
       ctx.clearRect(0, 0, w, h);
-
-      const marginL = 55;
-      const marginR = 30;
-      const marginT = 28;
-      const marginB = 34;
+      const marginL = 55, marginR = 30, marginT = 28, marginB = 34;
       const plotW = w - marginL - marginR;
       const plotH = h - marginT - marginB;
       const cy = marginT + plotH / 2;
-
       const maxU = 120;
       function toX(t) { return marginL + (t / maxHistSeconds) * plotW; }
       function toY(u_mm) { return cy - (u_mm / maxU) * (plotH / 2); }
@@ -1001,40 +1195,12 @@
       // Grid
       ctx.strokeStyle = '#f1f5f9';
       ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
       [-100, -50, 0, 50, 100].forEach(val => {
         const y = toY(val);
         ctx.beginPath(); ctx.moveTo(marginL, y); ctx.lineTo(w - marginR, y); ctx.stroke();
-        ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 10px "JetBrains Mono", monospace';
-        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-        ctx.fillText(`${val > 0 ? '+' : ''}${val}`, marginL - 8, y);
       });
 
-      for (let t = 0; t <= maxHistSeconds; t += 1.0) {
-        const x = toX(t);
-        ctx.beginPath(); ctx.moveTo(x, marginT); ctx.lineTo(x, h - marginB); ctx.stroke();
-        ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 10px "JetBrains Mono", monospace';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-        ctx.fillText(`${t.toFixed(0)}s`, x, h - marginB + 8);
-      }
-      ctx.setLineDash([]);
-
-      // Axes
-      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(marginL, marginT - 10); ctx.lineTo(marginL, h - marginB); ctx.lineTo(w - marginR + 10, h - marginB);
-      ctx.stroke();
-
-      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(marginL, cy); ctx.lineTo(w - marginR, cy); ctx.stroke();
-
-      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 11px Pretendard, sans-serif';
-      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-      ctx.fillText('변위 u (mm)', marginL - 45, marginT - 10);
-
-      // Coulomb Waveform (Amber)
+      // Coulomb (Amber)
       if (histF.length > 0) {
         ctx.strokeStyle = '#d97706';
         ctx.lineWidth = 2.4;
@@ -1042,12 +1208,12 @@
         for (let i = 0; i < histF.length; i++) {
           const x = toX(histF[i].t);
           const y = toY(histF[i].u * 1000);
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.stroke();
       }
 
-      // Viscous Waveform (Blue)
+      // Viscous (Blue)
       if (histV.length > 0) {
         ctx.strokeStyle = '#2563eb';
         ctx.lineWidth = 2.4;
@@ -1055,9 +1221,75 @@
         for (let i = 0; i < histV.length; i++) {
           const x = toX(histV[i].t);
           const y = toY(histV[i].u * 1000);
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.stroke();
+      }
+    }
+
+    // =========================================================================
+    // AWWWARDS PACK INTEGRATION: ZENTRY TILT & SPENCERGABOR SPRING PHYSICS
+    // =========================================================================
+    function initAwwwardsInteractions() {
+      // 1. Zentry 3D Tilt & Drift (05_Hover_Effects/21)
+      const cards = document.querySelectorAll('.zentry-card');
+      cards.forEach(card => {
+        let isHovering = false;
+        const live = { x: 0, y: 0, tiltX: 0, tiltY: 0 };
+        const aim = { x: 0, y: 0, tiltX: 0, tiltY: 0 };
+        const SMOOTHING = 0.08;
+        const TILT_MAX = 7;
+        const DRIFT_MAX = 8;
+        let frame = null;
+
+        const startTracking = () => {
+          frame = () => {
+            live.x += (aim.x - live.x) * SMOOTHING;
+            live.y += (aim.y - live.y) * SMOOTHING;
+            live.tiltX += (aim.tiltX - live.tiltX) * SMOOTHING;
+            live.tiltY += (aim.tiltY - live.tiltY) * SMOOTHING;
+
+            card.style.transform = `perspective(800px) translate3d(${live.x.toFixed(2)}px, ${live.y.toFixed(2)}px, 0px) rotateX(${live.tiltX.toFixed(2)}deg) rotateY(${live.tiltY.toFixed(2)}deg)`;
+            if (isHovering || Math.abs(live.tiltX) > 0.01 || Math.abs(live.tiltY) > 0.01) {
+              requestAnimationFrame(frame);
+            }
+          };
+          requestAnimationFrame(frame);
+        };
+
+        card.addEventListener('mouseenter', () => {
+          isHovering = true;
+          startTracking();
+        });
+
+        card.addEventListener('mousemove', (e) => {
+          const bounds = card.getBoundingClientRect();
+          const centerX = bounds.left + bounds.width / 2;
+          const centerY = bounds.top + bounds.height / 2;
+          const offsetX = e.clientX - centerX;
+          const offsetY = e.clientY - centerY;
+
+          const ratioX = Math.max(-1, Math.min(1, offsetX / (bounds.width / 2)));
+          const ratioY = Math.max(-1, Math.min(1, offsetY / (bounds.height / 2)));
+
+          aim.x = ratioX * DRIFT_MAX;
+          aim.y = ratioY * DRIFT_MAX;
+          aim.tiltY = ratioX * TILT_MAX;
+          aim.tiltX = -ratioY * TILT_MAX;
+        });
+
+        card.addEventListener('mouseleave', () => {
+          isHovering = false;
+          aim.x = 0; aim.y = 0; aim.tiltX = 0; aim.tiltY = 0;
+        });
+      });
+
+      // 2. Hero Staggered Entrance Reveal (01_Hero_Animations/23)
+      if (typeof gsap !== 'undefined') {
+        gsap.fromTo('.zentry-card', 
+          { opacity: 0, y: 30, scale: 0.98 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.15, ease: 'power3.out', delay: 0.1 }
+        );
       }
     }
 
@@ -1065,7 +1297,6 @@
     // SIMULATION LOOP & USER INTERACTIONS
     // =========================================================================
     function updateMetrics() {
-      // Viscous
       const c = 2 * zeta * wn * m;
       const td = Tn / Math.sqrt(Math.max(0.0001, 1 - zeta * zeta));
       const delta = (2 * Math.PI * zeta) / Math.sqrt(Math.max(0.0001, 1 - zeta * zeta));
@@ -1074,7 +1305,6 @@
       document.getElementById('txt-visc-td').innerText = `${td.toFixed(3)} s`;
       document.getElementById('txt-visc-delta').innerText = `${delta.toFixed(3)}`;
 
-      // Coulomb
       const uf_mm = (muN / k) * 1000;
       const halfDecay_mm = 2 * uf_mm;
 
@@ -1144,25 +1374,6 @@
       }
     }
 
-    // Zentry 3D Card Hover Effect
-    function initZentryTilt() {
-      const cards = document.querySelectorAll('.zentry-card');
-      cards.forEach(card => {
-        card.addEventListener('mousemove', e => {
-          const rect = card.getBoundingClientRect();
-          const x = e.clientX - rect.left - rect.width / 2;
-          const y = e.clientY - rect.top - rect.height / 2;
-          const rotX = -(y / (rect.height / 2)) * 2.5;
-          const rotY = (x / (rect.width / 2)) * 2.5;
-          card.style.transform = `perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-2px)`;
-        });
-        card.addEventListener('mouseleave', () => {
-          card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-        });
-      });
-    }
-
-    // Main 60fps Loop
     function mainLoop() {
       if (isRunning) {
         simTime += dt * simSpeed;
@@ -1172,9 +1383,6 @@
 
           histV.push({ t: simTime, ...stateV });
           histF.push({ t: simTime, ...stateF });
-        } else {
-          // Loop or pause at end
-          // isRunning = false;
         }
       }
 
@@ -1182,14 +1390,22 @@
       const curStateF = histF.length > 0 ? histF[histF.length - 1] : getCoulombState(0, u0, muN);
 
       if (viewMode === 'dual') {
-        const cSysV = getCanvasContext('canvas-visc-sys');
-        if (cSysV) renderSystem(cSysV.ctx, cSysV.w, cSysV.h, curStateV, true);
+        if (viscView === '3D') {
+          renderThreeVisc(curStateV);
+        } else {
+          const cSysV = getCanvasContext('canvas-visc-sys');
+          if (cSysV) renderSystem2D(cSysV.ctx, cSysV.w, cSysV.h, curStateV, true);
+        }
 
         const cPlotV = getCanvasContext('canvas-visc-plot');
         if (cPlotV) renderPlot(cPlotV.ctx, cPlotV.w, cPlotV.h, histV, true);
 
-        const cSysF = getCanvasContext('canvas-fric-sys');
-        if (cSysF) renderSystem(cSysF.ctx, cSysF.w, cSysF.h, curStateF, false);
+        if (fricView === '3D') {
+          renderThreeFric(curStateF);
+        } else {
+          const cSysF = getCanvasContext('canvas-fric-sys');
+          if (cSysF) renderSystem2D(cSysF.ctx, cSysF.w, cSysF.h, curStateF, false);
+        }
 
         const cPlotF = getCanvasContext('canvas-fric-plot');
         if (cPlotF) renderPlot(cPlotF.ctx, cPlotF.w, cPlotF.h, histF, false);
@@ -1201,10 +1417,32 @@
       requestAnimationFrame(mainLoop);
     }
 
-    // Initialize
-    updateMetrics();
-    initZentryTilt();
-    requestAnimationFrame(mainLoop);
+    window.addEventListener('resize', () => {
+      if (viscRenderer && viscCamera) {
+        const r = document.getElementById('three-visc-container').getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          viscCamera.aspect = r.width / r.height;
+          viscCamera.updateProjectionMatrix();
+          viscRenderer.setSize(r.width, r.height);
+        }
+      }
+      if (fricRenderer && fricCamera) {
+        const r = document.getElementById('three-fric-container').getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          fricCamera.aspect = r.width / r.height;
+          fricCamera.updateProjectionMatrix();
+          fricRenderer.setSize(r.width, r.height);
+        }
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initThreeVisc();
+      initThreeFric();
+      updateMetrics();
+      initAwwwardsInteractions();
+      requestAnimationFrame(mainLoop);
+    });
 
   </script>
 </body>
