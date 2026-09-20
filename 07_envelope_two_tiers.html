@@ -257,6 +257,7 @@
       document.getElementById('btnAmp35').className = scale === 35 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
       document.getElementById('btnAmp70').className = scale === 70 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
       document.getElementById('btnAmp140').className = scale === 140 ? 'px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs' : 'px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold';
+      buildEnvelopeCage();
     }
 
     function toggleThreeAnim() {
@@ -663,11 +664,16 @@
       animateThree();
     }
 
+    // --- 3D BIM Frame with Continuous Smooth Columns & Flared Envelope Cage ---
+    let continuousColumns = [];
+    let envelopeWireframe = null;
+
     function buildRealistic3DFrame() {
       // 3 Slabs (1F: 3.8, 2F: 7.6, Roof: 11.4)
       const slabGeo = new THREE.BoxGeometry(7.6, 0.35, 5.6);
       const slabMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.5 });
       const slabEdgeMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.3 });
+      const slabEdgeGeo = new THREE.EdgesGeometry(slabGeo);
 
       for (let i = 1; i <= 3; i++) {
         const floorGrp = new THREE.Group();
@@ -678,63 +684,186 @@
         slab.receiveShadow = true;
         floorGrp.add(slab);
 
-        const edgeGeo = new THREE.BoxGeometry(7.7, 0.08, 5.7);
-        const edge = new THREE.Mesh(edgeGeo, slabEdgeMat);
+        const edge = new THREE.Mesh(slabGeo, slabEdgeMat);
+        edge.add(new THREE.LineSegments(slabEdgeGeo, new THREE.LineBasicMaterial({ color: 0x334155 })));
         floorGrp.add(edge);
 
         floorGrp.name = `floor_${i}`;
         bldgGroup.add(floorGrp);
       }
 
-      // 4 Realistic Corner Columns: Segmented into slices for smooth bending
-      const sliceCount = 20;
+      // 4 Continuous Smooth Columns (No sliced boxes, seamless surface)
       const totalH = 11.4;
-      const sliceH = totalH / sliceCount;
+      const segmentsY = 36;
+      const colWidth = 0.42;
       const colPositions = [
         [-3.2, -2.2], [3.2, -2.2],
         [-3.2, 2.2], [3.2, 2.2]
       ];
 
-      bldgColumns = [];
+      continuousColumns = [];
       const colMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 });
 
       for (let pos of colPositions) {
-        const colSlices = [];
-        for (let i = 0; i < sliceCount; i++) {
-          const sliceGeo = new THREE.BoxGeometry(0.42, sliceH, 0.42);
-          const slice = new THREE.Mesh(sliceGeo, colMat);
-          slice.position.set(pos[0], (i + 0.5) * sliceH, pos[1]);
-          slice.castShadow = true;
-          bldgGroup.add(slice);
-          colSlices.push({
-            mesh: slice,
-            baseX: pos[0],
-            normZ: (i + 0.5) / sliceCount
-          });
-        }
-        bldgColumns.push(colSlices);
+        // Footing pad
+        const footGeo = new THREE.BoxGeometry(1.4, 0.3, 1.4);
+        const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x64748b }));
+        foot.position.set(pos[0], 0.15, pos[1]);
+        bldgGroup.add(foot);
+
+        // Continuous Column: BoxGeometry with 36 vertical segments translated so base is at y=0
+        const colGeo = new THREE.BoxGeometry(colWidth, totalH, colWidth, 1, segmentsY, 1);
+        colGeo.translate(0, totalH / 2, 0);
+
+        const colMesh = new THREE.Mesh(colGeo, colMat);
+        colMesh.position.set(pos[0], 0, pos[1]);
+        colMesh.castShadow = true;
+        colMesh.receiveShadow = true;
+        bldgGroup.add(colMesh);
+
+        const origPositions = new Float32Array(colGeo.attributes.position.array);
+        continuousColumns.push({
+          mesh: colMesh,
+          geo: colGeo,
+          origPositions: origPositions,
+          baseX: pos[0],
+          totalH: totalH
+        });
       }
     }
 
     function buildEnvelopeCage() {
-      // Bounding Envelope Cage: Translucent box enclosing the maximum displacement envelope
-      const cageGeo = new THREE.BoxGeometry(9.8, 11.4, 6.4);
+      if (envelopeCageMesh) {
+        bldgGroup.remove(envelopeCageMesh);
+        if (envelopeCageMesh.geometry) envelopeCageMesh.geometry.dispose();
+        if (envelopeCageMesh.material) envelopeCageMesh.material.dispose();
+        if (envelopeWireframe) {
+          if (envelopeWireframe.geometry) envelopeWireframe.geometry.dispose();
+          if (envelopeWireframe.material) envelopeWireframe.material.dispose();
+        }
+      }
+
+      const ampFactor = (threeAmpScale / 70.0);
+      const totalH = 11.4;
+      const W0 = 7.6; // Slab width
+      const D0 = 5.6; // Slab depth
+
+      // Flared Envelope: Width starts at exact base width W0 at y=0 (fixed base u=0),
+      // and flares out smoothly to enclose peak displacement along height!
+      const slices = 24;
+      const vertices = [];
+      const indices = [];
+
+      const A1 = 1.65;
+      const A2 = 0.60;
+      const A3 = 0.225;
+
+      // Generate slice vertices
+      for (let j = 0; j <= slices; j++) {
+        const s = j / slices;
+        const y = s * totalH;
+
+        // Tier 1: Exact SRSS Modal Envelope; Tier 2: Static Load Combination Envelope
+        let uEnv;
+        if (currentTier === 2) {
+          uEnv = 1.25 * (1.5 * s * s - 0.5 * s * s * s) * ampFactor;
+        } else {
+          const phi1 = 1.5 * s * s - 0.5 * s * s * s;
+          const phi2 = Math.sin(s * Math.PI * 1.5);
+          const phi3 = Math.sin(s * Math.PI * 2.5);
+          uEnv = Math.sqrt(
+            Math.pow(phi1 * A1, 2) + 
+            Math.pow(phi2 * A2, 2) + 
+            Math.pow(phi3 * A3, 2)
+          ) * ampFactor;
+        }
+
+        const halfW = W0 / 2 + uEnv;
+        const halfD = D0 / 2 + 0.15; // slight clearance for slab edges
+
+        // 4 corner vertices per slice: 0:(-w, +d), 1:(+w, +d), 2:(+w, -d), 3:(-w, -d)
+        vertices.push(-halfW, y, +halfD);
+        vertices.push(+halfW, y, +halfD);
+        vertices.push(+halfW, y, -halfD);
+        vertices.push(-halfW, y, -halfD);
+      }
+
+      // Generate side quad faces (triangulated)
+      for (let j = 0; j < slices; j++) {
+        const baseIdx = j * 4;
+        const nextIdx = (j + 1) * 4;
+
+        // Front Face: 0, 1
+        indices.push(baseIdx + 0, baseIdx + 1, nextIdx + 1);
+        indices.push(baseIdx + 0, nextIdx + 1, nextIdx + 0);
+
+        // Right Face: 1, 2
+        indices.push(baseIdx + 1, baseIdx + 2, nextIdx + 2);
+        indices.push(baseIdx + 1, nextIdx + 2, nextIdx + 1);
+
+        // Back Face: 2, 3
+        indices.push(baseIdx + 2, baseIdx + 3, nextIdx + 3);
+        indices.push(baseIdx + 2, nextIdx + 3, nextIdx + 2);
+
+        // Left Face: 3, 0
+        indices.push(baseIdx + 3, baseIdx + 0, nextIdx + 0);
+        indices.push(baseIdx + 3, nextIdx + 0, nextIdx + 3);
+      }
+
+      // Top Cap
+      const topBase = slices * 4;
+      indices.push(topBase + 0, topBase + 1, topBase + 2);
+      indices.push(topBase + 0, topBase + 2, topBase + 3);
+
+      // Bottom Cap (flush with base footprint)
+      indices.push(0, 2, 1);
+      indices.push(0, 3, 2);
+
+      const cageGeo = new THREE.BufferGeometry();
+      cageGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      cageGeo.setIndex(indices);
+      cageGeo.computeVertexNormals();
+
       const cageMat = new THREE.MeshStandardMaterial({
-        color: 0xdc2626,
+        color: (currentTier === 2) ? 0x059669 : 0xdc2626,
         transparent: true,
-        opacity: 0.18,
-        wireframe: false,
+        opacity: (currentTier === 2) ? 0.22 : 0.18,
         side: THREE.DoubleSide,
         depthWrite: false
       });
       envelopeCageMesh = new THREE.Mesh(cageGeo, cageMat);
-      envelopeCageMesh.position.set(0, 5.7, 0);
 
-      // Cage wireframe outline
-      const wireGeo = new THREE.EdgesGeometry(cageGeo);
-      const wireMat = new THREE.LineBasicMaterial({ color: 0xdc2626, linewidth: 2 });
-      const wireframe = new THREE.LineSegments(wireGeo, wireMat);
-      envelopeCageMesh.add(wireframe);
+      // Flared wireframe edge outlines
+      const wireVertices = [];
+      // 4 vertical corner guide lines (flaring outward)
+      for (let c = 0; c < 4; c++) {
+        for (let j = 0; j < slices; j++) {
+          const idx1 = (j * 4 + c) * 3;
+          const idx2 = ((j + 1) * 4 + c) * 3;
+          wireVertices.push(vertices[idx1], vertices[idx1 + 1], vertices[idx1 + 2]);
+          wireVertices.push(vertices[idx2], vertices[idx2 + 1], vertices[idx2 + 2]);
+        }
+      }
+
+      // Horizontal boundary rings at Base (y=0), 1F (y=3.8), 2F (y=7.6), Roof (y=11.4)
+      const ringSlices = [0, Math.round(slices * 3.8 / totalH), Math.round(slices * 7.6 / totalH), slices];
+      ringSlices.forEach(slIdx => {
+        const b = slIdx * 4 * 3;
+        for (let c = 0; c < 4; c++) {
+          const cNext = (c + 1) % 4;
+          wireVertices.push(vertices[b + c * 3], vertices[b + c * 3 + 1], vertices[b + c * 3 + 2]);
+          wireVertices.push(vertices[b + cNext * 3], vertices[b + cNext * 3 + 1], vertices[b + cNext * 3 + 2]);
+        }
+      });
+
+      const wireGeo = new THREE.BufferGeometry();
+      wireGeo.setAttribute('position', new THREE.Float32BufferAttribute(wireVertices, 3));
+      const wireMat = new THREE.LineBasicMaterial({
+        color: (currentTier === 2) ? 0x059669 : 0xdc2626,
+        linewidth: 1.8
+      });
+      envelopeWireframe = new THREE.LineSegments(wireGeo, wireMat);
+      envelopeCageMesh.add(envelopeWireframe);
 
       bldgGroup.add(envelopeCageMesh);
     }
@@ -773,17 +902,14 @@
     }
 
     function updateThreeSceneForTier() {
+      buildEnvelopeCage();
       if (!envelopeCageMesh) return;
       if (currentTier === 1) {
         envelopeCageMesh.visible = true;
-        envelopeCageMesh.material.color.setHex(0xdc2626); // Red SRSS
-        envelopeCageMesh.material.opacity = 0.18;
         if (frontBmdRibbon) frontBmdRibbon.visible = true;
         if (phantomMarker) phantomMarker.visible = false;
       } else if (currentTier === 2) {
         envelopeCageMesh.visible = true;
-        envelopeCageMesh.material.color.setHex(0x059669); // Green cENV
-        envelopeCageMesh.material.opacity = 0.22;
         if (frontBmdRibbon) frontBmdRibbon.visible = true;
         if (phantomMarker) phantomMarker.visible = false;
       } else {
@@ -818,21 +944,28 @@
         bedrockGroup.position.x = ug;
         bldgGroup.position.x = ug;
 
-        // Animate all 4 columns
-        bldgColumns.forEach(col => {
-          col.forEach(sl => {
-            const z = sl.normZ;
+        // 1. Continuous smooth column vertex deformation
+        continuousColumns.forEach(col => {
+          const positions = col.geo.attributes.position.array;
+          const orig = col.origPositions;
+          const H = col.totalH;
+
+          for (let i = 0; i < positions.length; i += 3) {
+            const origX = orig[i];
+            const y = orig[i + 1];
+            const z = y / H;
             const phi1 = 1.5 * z * z - 0.5 * z * z * z;
             const phi2 = Math.sin(z * Math.PI * 1.5);
             const phi3 = Math.sin(z * Math.PI * 2.5);
 
             const driftX = (phi1 * q1 + phi2 * q2 + phi3 * q3) * 75.0;
-            sl.mesh.position.x = sl.baseX + driftX;
-            sl.mesh.rotation.z = -driftX * 0.08;
-          });
+            positions[i] = origX + driftX;
+          }
+          col.geo.attributes.position.needsUpdate = true;
+          col.geo.computeVertexNormals();
         });
 
-        // Floor Slabs
+        // 2. Floor Slabs
         for (let i = 1; i <= 3; i++) {
           const fl = bldgGroup.getObjectByName(`floor_${i}`);
           if (fl) {
@@ -844,7 +977,7 @@
           }
         }
 
-        // Update front column 3D BMD Ribbon
+        // 3. Update front column 3D BMD Ribbon
         if (frontBmdRibbon) {
           const pos = frontBmdRibbon.geometry.attributes.position;
           for (let j = 0; j <= 20; j++) {
@@ -861,24 +994,30 @@
         bedrockGroup.position.x = 0;
         bldgGroup.position.x = 0;
 
-        const staticDriftMax = 1.35 * ampFactor;
+        const maxStaticDrift = 1.25 * ampFactor;
 
-        bldgColumns.forEach(col => {
-          col.forEach(sl => {
-            const z = sl.normZ;
-            const psi = 1.5 * z * z - 0.5 * z * z * z;
-            const dx = psi * staticDriftMax;
-            sl.mesh.position.x = sl.baseX + dx;
-            sl.mesh.rotation.z = -dx * 0.08;
-          });
+        continuousColumns.forEach(col => {
+          const positions = col.geo.attributes.position.array;
+          const orig = col.origPositions;
+          const H = col.totalH;
+
+          for (let i = 0; i < positions.length; i += 3) {
+            const origX = orig[i];
+            const y = orig[i + 1];
+            const z = y / H;
+            const staticShape = 1.5 * z * z - 0.5 * z * z * z;
+            positions[i] = origX + maxStaticDrift * staticShape;
+          }
+          col.geo.attributes.position.needsUpdate = true;
+          col.geo.computeVertexNormals();
         });
 
         for (let i = 1; i <= 3; i++) {
           const fl = bldgGroup.getObjectByName(`floor_${i}`);
           if (fl) {
             const z = i / 3.0;
-            const psi = 1.5 * z * z - 0.5 * z * z * z;
-            fl.position.x = psi * staticDriftMax;
+            const staticShape = 1.5 * z * z - 0.5 * z * z * z;
+            fl.position.x = maxStaticDrift * staticShape;
           }
         }
 
@@ -886,47 +1025,36 @@
           const pos = frontBmdRibbon.geometry.attributes.position;
           for (let j = 0; j <= 20; j++) {
             const z = j / 20.0;
-            const mVal = (z * 1.4) * ampFactor;
             pos.setX(j * 2, 0);
-            pos.setX(j * 2 + 1, mVal);
+            pos.setX(j * 2 + 1, z * 1.5 * ampFactor);
           }
           pos.needsUpdate = true;
         }
 
       } else {
-        // Tier 3: P-M Dynamic Trajectory & Phantom Marker
+        // Tier 3: P-M Uncoupled State
         bedrockGroup.position.x = 0;
         bldgGroup.position.x = 0;
 
-        const orbitAngle = animTime * 1.8;
-        const dynM = (Math.cos(orbitAngle) * 0.8 + 0.3) * ampFactor;
-
-        bldgColumns.forEach(col => {
-          col.forEach(sl => {
-            const z = sl.normZ;
-            const psi = 1.5 * z * z - 0.5 * z * z * z;
-            sl.mesh.position.x = sl.baseX + psi * dynM;
-          });
+        continuousColumns.forEach(col => {
+          const positions = col.geo.attributes.position.array;
+          const orig = col.origPositions;
+          for (let i = 0; i < positions.length; i += 3) {
+            positions[i] = orig[i];
+          }
+          col.geo.attributes.position.needsUpdate = true;
+          col.geo.computeVertexNormals();
         });
 
         for (let i = 1; i <= 3; i++) {
           const fl = bldgGroup.getObjectByName(`floor_${i}`);
-          if (fl) {
-            const z = i / 3.0;
-            const psi = 1.5 * z * z - 0.5 * z * z * z;
-            fl.position.x = psi * dynM;
-          }
-        }
-
-        if (phantomMarker) {
-          const pulse = 1.0 + 0.15 * Math.sin(animTime * 6.0);
-          phantomMarker.scale.set(pulse, pulse, pulse);
-          phantomMarker.position.set(2.8 * ampFactor, 5.7, 2.4);
+          if (fl) fl.position.x = 0;
         }
       }
 
       renderer.render(scene, camera);
     }
+
 
     // --- Awwwards Pack: Zentry 3D Tilt on Cards ---
     function initZentryCards() {
