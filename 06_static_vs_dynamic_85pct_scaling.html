@@ -638,7 +638,9 @@
     }
 
     function initThreeBldg() {
+      if (typeof THREE === 'undefined') return;
       const container = document.getElementById('threeBldgContainer');
+      if (!container) return;
       const w = container.clientWidth || 300;
       const h = container.clientHeight || 270;
 
@@ -654,12 +656,14 @@
       threeBldgRenderer.shadowMap.enabled = true;
       container.appendChild(threeBldgRenderer.domElement);
 
-      threeBldgControls = new THREE.OrbitControls(threeBldgCamera, threeBldgRenderer.domElement);
-      threeBldgControls.enableDamping = true;
-      threeBldgControls.dampingFactor = 0.08;
-      threeBldgControls.maxPolarAngle = Math.PI / 2 - 0.02;
-      threeBldgControls.target.set(0, 5.5, 0);
-      threeBldgControls.update();
+      if (typeof THREE.OrbitControls === 'function') {
+        threeBldgControls = new THREE.OrbitControls(threeBldgCamera, threeBldgRenderer.domElement);
+        threeBldgControls.enableDamping = true;
+        threeBldgControls.dampingFactor = 0.08;
+        threeBldgControls.maxPolarAngle = Math.PI / 2 - 0.02;
+        threeBldgControls.target.set(0, 5.5, 0);
+        threeBldgControls.update();
+      }
 
       // Lighting
       const ambLight = new THREE.AmbientLight(0xffffff, 0.85);
@@ -839,11 +843,14 @@
         const cant = 1.5 * Math.pow(r, 2) - 0.5 * Math.pow(r, 3);
         const dx = staticTopDrift * cant;
         staticXs.push(dx);
-        staticSlabs[s - 1].position.x = staticSlabs[s - 1].userData.originX + dx;
+        if (staticSlabs[s - 1]) {
+          staticSlabs[s - 1].position.x = staticSlabs[s - 1].userData.originX + dx;
+        }
       }
 
-      const prevStaticXs = [0, staticXs[0], staticXs[1]];
+      const prevStaticXs = [0, staticXs[0] || 0, staticXs[1] || 0];
       continuousStaticCols.forEach(col => {
+        if (!col || !col.geo || !col.origPositions) return;
         const positions = col.geo.attributes.position.array;
         const orig = col.origPositions;
 
@@ -863,7 +870,7 @@
       });
 
       // 2. Dynamic Building: 1차 주기 T1 기반 실시간 지진 진동 및 85% 스케일링
-      const omega1 = (2 * Math.PI) / currentT1;
+      const omega1 = (2 * Math.PI) / Math.max(0.05, currentT1);
       const Sa1 = getSa(currentT1);
       const dynamicScale = Math.max(0.85, (Sa1 / Sa_Ta) * (0.9172)); // 85% 하한선 반영
       const dynamicAmp = (staticTopDrift * dynamicScale);
@@ -875,7 +882,7 @@
         dynamicBaseMesh.position.x = 6.8 + groundVibe;
       }
       dynamicFeet.forEach(f => {
-        f.mesh.position.x = f.baseX + groundVibe;
+        if (f && f.mesh) f.mesh.position.x = f.baseX + groundVibe;
       });
 
       const dynXs = [];
@@ -883,11 +890,14 @@
         const phi1_s = (s / 3.0); // 1차 모드형상 선형 근사
         const dx = groundVibe + dynamicAmp * phi1_s * modalQ;
         dynXs.push(dx);
-        dynamicSlabs[s - 1].position.x = dynamicSlabs[s - 1].userData.originX + dx;
+        if (dynamicSlabs[s - 1]) {
+          dynamicSlabs[s - 1].position.x = dynamicSlabs[s - 1].userData.originX + dx;
+        }
       }
 
-      const prevDynXs = [groundVibe, dynXs[0], dynXs[1]];
+      const prevDynXs = [groundVibe, dynXs[0] || 0, dynXs[1] || 0];
       continuousDynamicCols.forEach(col => {
+        if (!col || !col.geo || !col.origPositions) return;
         const positions = col.geo.attributes.position.array;
         const orig = col.origPositions;
 
@@ -906,8 +916,10 @@
         col.geo.computeVertexNormals();
       });
 
-      threeBldgControls.update();
-      threeBldgRenderer.render(threeBldgScene, threeBldgCamera);
+      if (threeBldgControls) threeBldgControls.update();
+      if (threeBldgRenderer && threeBldgScene && threeBldgCamera) {
+        threeBldgRenderer.render(threeBldgScene, threeBldgCamera);
+      }
     }
 
     function resize() {
@@ -1205,7 +1217,11 @@
     // MAIN 60FPS LOOP & AWWWARDS ZENTRY TILT
     // =========================================================================
     function mainLoop() {
-      updateThreeBldgAnimation();
+      try {
+        updateThreeBldgAnimation();
+      } catch (err) {
+        console.error('Animation frame error:', err);
+      }
       requestAnimationFrame(mainLoop);
     }
 
@@ -1228,14 +1244,24 @@
       });
     }
 
-    setTimeout(() => {
+    function startApp() {
+      if (typeof THREE === 'undefined' || typeof THREE.OrbitControls === 'undefined') {
+        setTimeout(startApp, 40);
+        return;
+      }
       initThreeBldg();
       resize();
       resizeThreeBldg();
       initZentryTilt();
       updateT1(0.648);
       mainLoop();
-    }, 50);
+    }
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      startApp();
+    } else {
+      window.addEventListener('DOMContentLoaded', startApp);
+    }
   </script>
 </body>
 </html>
