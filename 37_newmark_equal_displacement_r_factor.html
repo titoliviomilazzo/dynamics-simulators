@@ -704,7 +704,7 @@
       // 4. Ductile Bilinear Hysteresis Loop
       const Vy = Ve_base / R;
       const uy = uEl_max / R;
-      const uDuc_max = (Tn >= 0.5) ? uMax_base : (uMax_base * (R * R + 1) / (2 * R * R));
+      const uDuc_max = (Tn >= 0.5) ? uMax_base : (uMax_base * (R * R + 1) / (2 * R));
 
       const xDuc_y_pos = uToPx(uy), yDuc_y_pos = fToPx(Vy);
       const xDuc_m_pos = uToPx(uDuc_max), yDuc_m_pos = fToPx(Vy);
@@ -753,14 +753,18 @@
       ctxH.fillStyle = '#334155';
       ctxH.beginPath(); ctxH.arc(ptElX, ptElY, 5.5, 0, Math.PI * 2); ctxH.fill();
 
-      // Ductile Yielding Point
+      // Ductile Yielding Point - Exact Parallelogram Path Tracing
       let fDuc_now = 0;
       if (vel >= 0) {
-        fDuc_now = -Vy + (Vy / uy) * (uDuc_cm - (-uDuc_max + 2 * uy));
-        fDuc_now = Math.min(Vy, Math.max(-Vy, fDuc_now));
+        // Moving right from -uDuc_max to +uDuc_max
+        // Reloading slope: starts at (-uDuc_max, -Vy) with slope (Vy / uy)
+        const fRamp = -Vy + (Vy / uy) * (uDuc_cm - (-uDuc_max));
+        fDuc_now = Math.min(Vy, Math.max(-Vy, fRamp));
       } else {
-        fDuc_now = Vy - (Vy / uy) * ((uDuc_max - 2 * uy) - uDuc_cm);
-        fDuc_now = Math.max(-Vy, Math.min(Vy, fDuc_now));
+        // Moving left from +uDuc_max to -uDuc_max
+        // Unloading slope: starts at (+uDuc_max, +Vy) with slope (Vy / uy)
+        const fUnload = Vy - (Vy / uy) * (uDuc_max - uDuc_cm);
+        fDuc_now = Math.max(-Vy, Math.min(Vy, fUnload));
       }
       const ptDucX = uToPx(uDuc_cm), ptDucY = fToPx(fDuc_now);
 
@@ -776,7 +780,7 @@
       ]);
 
       DynamicsChartCanonical.drawLeaderLine(ctxH, ptDucX, ptDucY, placement.x, placement.y, boxSize.w, boxSize.h, '#059669');
-      DynamicsChartCanonical.drawAutoBadge(ctxH, `항복 소산 루프 (R=${R})\nVy = ${Math.round(Vy)} kN | u = ${uDuc_cm.toFixed(1)}cm`, placement.x, placement.y, {
+      DynamicsChartCanonical.drawAutoBadge(ctxH, `항복 소산 루프 (R=${R})\nF = ${Math.round(fDuc_now)} kN | u = ${uDuc_cm.toFixed(1)}cm`, placement.x, placement.y, {
         textColor: '#065f46',
         borderColor: '#6ee7b7',
         fillColor: 'rgba(236, 253, 245, 0.95)',
@@ -794,7 +798,7 @@
       if (isRunning) t += 0.032;
 
       const Tc = 0.5;
-      const uDuc_max = (Tn >= Tc) ? uMax_base : (uMax_base * (R * R + 1) / (2 * R * R));
+      const uDuc_max = (Tn >= Tc) ? uMax_base : (uMax_base * (R * R + 1) / (2 * R));
 
       const currU_el = Math.sin(t) * uMax_base;
       const currU_duc = Math.sin(t) * uDuc_max;
