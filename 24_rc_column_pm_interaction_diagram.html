@@ -384,20 +384,17 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
   .bim-view-buttons {
-    position: absolute;
-    top: 8px;
-    right: 8px;
     display: flex;
     gap: 4px;
-    z-index: 10;
+    align-items: center;
   }
   .bim-btn {
     background: #ffffff;
     color: #0f172a;
     border: 1px solid #0f172a;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 10.5px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.15s;
@@ -574,21 +571,21 @@
             <div class="canvas-title">
               <span>🏢 3D BIM 기둥 2축 휨·축력 거동</span>
             </div>
-          </div>
-          <div class="bim-viewport-box">
-            <div class="bim-hud-badge">
-              <span id="bimColumnStatus" style="color:#2563eb;">인장지배 (연성)</span>
-            </div>
             <div class="bim-view-buttons">
               <button class="bim-btn active" id="btnBimCol3d" onclick="setBimCameraView('col3d')">🧱 기둥</button>
               <button class="bim-btn" id="btnBimRebar" onclick="setBimCameraView('rebar')">🔩 배근망</button>
               <button class="bim-btn" id="btnBimFrame" onclick="setBimCameraView('frame')">🏢 골조</button>
             </div>
+          </div>
+          <div class="bim-viewport-box">
+            <div class="bim-hud-badge" style="top: 8px; left: 8px;">
+              <span id="bimColumnStatus" style="color:#2563eb;">인장지배 (연성)</span>
+            </div>
+            <div id="bimColumnPM" class="bim-hud-badge" style="top: 8px; right: 8px; left: auto; font-family: monospace; font-size: 10px; color: #0f172a;">
+              φPn=1951kN, φMn=889kNm
+            </div>
             <div class="bim-hud-controls">
               🖱️ 3D 오르빗: 좌클릭 회전 &middot; 휠 줌 &middot; 우클릭 이동
-            </div>
-            <div id="bimColumnPM" class="bim-hud-badge" style="top: auto; bottom: 6px; right: 8px; left: auto; font-family: monospace; font-size: 9.5px; color: #334155;">
-              φPn=1951kN, φMn=889kNm
             </div>
             <div id="threeBimContainer"></div>
           </div>
@@ -1334,12 +1331,11 @@ let colFootingMesh = null;
 let colContinuousMesh = null;  // Single continuous smooth deformable column mesh
 let colContinuousEdges = [];   // Continuous smooth longitudinal corner and rim lines
 let colTopCapMesh = null;
-let colTopCapEdge = null;
 let rebarMeshes = [];          // 8 longitudinal steel bars (vivid colors, S-buckling)
 let tieHoopMeshes = [];        // 6 transverse hoops with 135 hooks
-let whitneyBlockGroup = null;  // Internal volumetric Whitney compression block
-let whitneyBlockMesh = null;
-let whitneyEdgeMesh = null;
+let whitneyBlockGroup = null;        // Volumetric Whitney compression block (노란색 압축대)
+let whitneyDeformableMesh = null;
+let whitneyDeformableEdges = [];
 let crushingRubbleMeshes = []; // Spalled concrete rubble on footing under compression failure
 let tensionCrackLines = [];    // Horizontal flexural cracks on tension side
 let axialArrowGroup = null;
@@ -1500,7 +1496,7 @@ function buildDetailColumnBase() {
   bimDetailGroup.add(colFootingMesh);
 
   // 2. Single Continuous Deformable Concrete Column Mesh (Smooth Continuum)
-  const nY = 28; // Vertical height divisions
+  const nY = 36; // High-density vertical divisions for ultra-smooth continuum
   const posArray = new Float32Array((nY + 1) * 4 * 3);
   const colGeo = new THREE.BufferGeometry();
   colGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
@@ -1527,13 +1523,13 @@ function buildDetailColumnBase() {
   indices.push(topStart, topStart + 1, topStart + 2, topStart, topStart + 2, topStart + 3);
   colGeo.setIndex(indices);
 
-  // High-clarity frosted translucent concrete material
+  // Crystal-clear frosted translucent concrete material
   const colMat = new THREE.MeshStandardMaterial({
-    color: 0x93c5fd,
-    roughness: 0.15,
-    metalness: 0.08,
+    color: 0xdbeafe,
+    roughness: 0.04,
+    metalness: 0.05,
     transparent: true,
-    opacity: 0.22,
+    opacity: 0.14,
     depthWrite: false,
     side: THREE.DoubleSide
   });
@@ -1579,7 +1575,7 @@ function buildDetailColumnBase() {
   colTopCapMesh.add(colTopCapEdge);
   bimDetailGroup.add(colTopCapMesh);
 
-  // 4. 8 Longitudinal Rebars (Substantial 32mm Diameter Tube + Glowing Colors)
+  // 4. 8 Longitudinal Rebars (Substantial 38mm Diameter Tube + Vivid Saturated Colors)
   const barOffsets = [
     { u:  0.38, v:  0.38, name: 'TR' },
     { u: -0.38, v:  0.38, name: 'TL' },
@@ -1593,17 +1589,17 @@ function buildDetailColumnBase() {
 
   barOffsets.forEach(bo => {
     const pts = [];
-    for (let k = 0; k <= 12; k++) {
-      pts.push(new THREE.Vector3(bo.u * bM, colBaseY + (k / 12) * H0, bo.v * dM));
+    for (let k = 0; k <= 24; k++) {
+      pts.push(new THREE.Vector3(bo.u * bM, colBaseY + (k / 24) * H0, bo.v * dM));
     }
     const curve = new THREE.CatmullRomCurve3(pts);
-    const barGeo = new THREE.TubeGeometry(curve, 16, 0.032, 8, false);
+    const barGeo = new THREE.TubeGeometry(curve, 28, 0.038, 10, false); // 38mm smooth substantial rebar
     const barMat = new THREE.MeshStandardMaterial({
       color: 0x2563eb,
-      metalness: 0.6,
-      roughness: 0.25,
+      metalness: 0.4,
+      roughness: 0.20,
       emissive: 0x1d4ed8,
-      emissiveIntensity: 0.35
+      emissiveIntensity: 0.55
     });
     const barMesh = new THREE.Mesh(barGeo, barMat);
     barMesh.castShadow = true;
@@ -1651,25 +1647,64 @@ function buildDetailColumnBase() {
     tieHoopMeshes.push({ group: hoopGroup, mesh: hoopMesh, frac: frac });
   });
 
-  // 6. Internal Volumetric Whitney Stress Block (Integrated Inside Column)
+  // 6. Internal Volumetric Whitney Stress Block (Deformable Vivid Amber-Yellow Compression Zone)
   whitneyBlockGroup = new THREE.Group();
-  const wbGeo = new THREE.BoxGeometry(bM * 0.98, 0.75, 0.25);
-  const wbMat = new THREE.MeshStandardMaterial({
-    color: 0xf97316,
-    transparent: true,
-    opacity: 0.55,
-    roughness: 0.35,
-    emissive: 0xf97316,
-    emissiveIntensity: 0.25,
-    depthWrite: false
-  });
-  whitneyBlockMesh = new THREE.Mesh(wbGeo, wbMat);
-  whitneyBlockMesh.position.set(0, 0.375, 0);
-  whitneyEdgeMesh = new THREE.LineSegments(new THREE.EdgesGeometry(wbGeo), blackLineMat);
-  whitneyBlockMesh.add(whitneyEdgeMesh);
-  whitneyBlockGroup.add(whitneyBlockMesh);
-  whitneyBlockGroup.position.set(0, colBaseY, 0);
   bimDetailGroup.add(whitneyBlockGroup);
+
+  const nY_w = 16;
+  const posArray_w = new Float32Array((nY_w + 1) * 4 * 3);
+  const wbGeo = new THREE.BufferGeometry();
+  wbGeo.setAttribute('position', new THREE.BufferAttribute(posArray_w, 3));
+
+  const indices_w = [];
+  for (let j = 0; j < nY_w; j++) {
+    const r1 = j * 4;
+    const r2 = (j + 1) * 4;
+    for (let f = 0; f < 4; f++) {
+      const fNext = (f + 1) % 4;
+      const a = r1 + f;
+      const b = r1 + fNext;
+      const c = r2 + fNext;
+      const d = r2 + f;
+      indices_w.push(a, b, c);
+      indices_w.push(a, c, d);
+    }
+  }
+  indices_w.push(0, 2, 1, 0, 3, 2);
+  const topStart_w = nY_w * 4;
+  indices_w.push(topStart_w, topStart_w + 1, topStart_w + 2, topStart_w, topStart_w + 2, topStart_w + 3);
+  wbGeo.setIndex(indices_w);
+
+  const wbMat = new THREE.MeshStandardMaterial({
+    color: 0xfacc15,          // Vivid warning amber-yellow (노란색 압축대)
+    emissive: 0xeab308,       // Glowing warm amber
+    emissiveIntensity: 0.60,
+    transparent: true,
+    opacity: 0.75,
+    roughness: 0.20,
+    metalness: 0.10,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  whitneyDeformableMesh = new THREE.Mesh(wbGeo, wbMat);
+  whitneyDeformableMesh.castShadow = true;
+  whitneyBlockGroup.add(whitneyDeformableMesh);
+
+  // 4 Corner Lines and 5 Horizontal Rib Loops (Gate 1 Black Edges)
+  whitneyDeformableEdges = [];
+  for (let c = 0; c < 4; c++) {
+    const lGeo = new THREE.BufferGeometry().setFromPoints(new Array(nY_w + 1).fill(new THREE.Vector3()));
+    const line = new THREE.Line(lGeo, blackLineMat);
+    whitneyBlockGroup.add(line);
+    whitneyDeformableEdges.push(line);
+  }
+  // 5 Rib Loops (0%, 25%, 50%, 75%, 100% height)
+  for (let lp = 0; lp < 5; lp++) {
+    const loopGeo = new THREE.BufferGeometry().setFromPoints(new Array(5).fill(new THREE.Vector3()));
+    const loopLine = new THREE.Line(loopGeo, blackLineMat);
+    whitneyBlockGroup.add(loopLine);
+    whitneyDeformableEdges.push(loopLine);
+  }
 
   // 7. Compression Failure Rubble Chunks (Gate 1 Black Edges, on Footing under Compression Face)
   const rubbleDefs = [
@@ -1886,9 +1921,9 @@ function setBimCameraView(mode) {
     bimDetailGroup.visible = true;
     bimMacroGroup.visible = false;
 
-    // Crystal-clear frosted translucent concrete so rebars shine through brilliantly!
+    // Crystal-clear frosted translucent concrete so rebars and yellow Whitney block pop!
     if (colContinuousMesh) {
-      colContinuousMesh.material.opacity = 0.22;
+      colContinuousMesh.material.opacity = 0.16;
       colContinuousMesh.visible = true;
     }
     if (colTopCapMesh) colTopCapMesh.material.opacity = 1.0;
@@ -1904,7 +1939,7 @@ function setBimCameraView(mode) {
 
     // Ultra-clear X-Ray shell
     if (colContinuousMesh) {
-      colContinuousMesh.material.opacity = 0.06;
+      colContinuousMesh.material.opacity = 0.05;
       colContinuousMesh.visible = true;
     }
     if (colTopCapMesh) colTopCapMesh.material.opacity = 0.35;
@@ -1970,7 +2005,7 @@ function update3DBim(curPM, p0_data) {
 
   // 3. Update Single Smooth Continuous Deformable Column Mesh
   if (colContinuousMesh) {
-    const nY = 28;
+    const nY = 36;
     const posAttr = colContinuousMesh.geometry.attributes.position;
     const posArr = posAttr.array;
 
@@ -1986,9 +2021,9 @@ function update3DBim(curPM, p0_data) {
     for (let j = 0; j <= nY; j++) {
       const s = j / nY;
       const y0 = colBaseY + s * Heff;
-      // Fixed base cantilever curvature: s=0 -> sway=0, slope=0
-      const sway = deltaTip * (1.0 - Math.cos((Math.PI * 0.5) * s));
-      const alpha = deltaTip * ((Math.PI * 0.5) / Heff) * Math.sin((Math.PI * 0.5) * s);
+      // Fixed base Euler-Bernoulli cantilever beam-column curvature:
+      const sway = deltaTip * (1.5 * Math.pow(s, 2) - 0.5 * Math.pow(s, 3));
+      const alpha = (deltaTip / Heff) * (3.0 * s - 1.5 * Math.pow(s, 2));
       const qTilt = new THREE.Quaternion().setFromAxisAngle(tiltAxis, alpha);
 
       let crushOffset = 0;
@@ -2064,21 +2099,24 @@ function update3DBim(curPM, p0_data) {
 
   // 4. Update Top Cap
   const tipSway = deltaTip;
-  const tipSlope = deltaTip * ((Math.PI * 0.5) / Heff);
+  const tipAlpha = (deltaTip / Heff) * 1.5;
   if (colTopCapMesh) {
+    const qTiltTop = new THREE.Quaternion().setFromAxisAngle(tiltAxis, tipAlpha);
     colTopCapMesh.scale.set((bM + 0.18) / 0.78, 1, (dM + 0.18) / 0.78);
     colTopCapMesh.position.set(tipSway * cosT, colBaseY + Heff + 0.08, tipSway * sinT);
-    colTopCapMesh.rotation.set(-tipSlope * sinT, 0, tipSlope * cosT);
+    colTopCapMesh.rotation.setFromQuaternion(qTiltTop);
   }
 
-  // 5. Update 8 Longitudinal Rebars (Substantial Tube Thickness + S-Buckling + Glowing Colors)
+  // 5. Update 8 Longitudinal Rebars (Substantial 38mm Tube + Section Rotation + S-Buckling + Vivid Colors)
   rebarMeshes.forEach(rb => {
     const pts = [];
-    const nPts = 16;
+    const nPts = 28;
     for (let k = 0; k <= nPts; k++) {
       const s = k / nPts;
-      const y = colBaseY + s * Heff;
-      const sway = deltaTip * (1.0 - Math.cos((Math.PI * 0.5) * s));
+      const y0 = colBaseY + s * Heff;
+      const sway = deltaTip * (1.5 * Math.pow(s, 2) - 0.5 * Math.pow(s, 3));
+      const alpha = (deltaTip / Heff) * (3.0 * s - 1.5 * Math.pow(s, 2));
+      const qTilt = new THREE.Quaternion().setFromAxisAngle(tiltAxis, alpha);
 
       let xBuckle = 0;
       let zBuckle = 0;
@@ -2094,87 +2132,161 @@ function update3DBim(curPM, p0_data) {
         zBuckle = -buckleDist * sinT;
       }
 
-      pts.push(new THREE.Vector3(
-        rb.u * bM + sway * cosT + xBuckle,
-        y,
-        rb.v * dM + sway * sinT + zBuckle
-      ));
+      // Rebar point rotated with section by qTilt:
+      const localPt = new THREE.Vector3(rb.u * bM, 0, rb.v * dM);
+      localPt.applyQuaternion(qTilt);
+      localPt.x += sway * cosT + xBuckle;
+      localPt.y += y0;
+      localPt.z += sway * sinT + zBuckle;
+
+      pts.push(localPt);
     }
 
     rb.mesh.geometry.dispose();
     const newCurve = new THREE.CatmullRomCurve3(pts);
-    rb.mesh.geometry = new THREE.TubeGeometry(newCurve, 16, 0.032, 8, false);
+    rb.mesh.geometry = new THREE.TubeGeometry(newCurve, 28, 0.038, 10, false);
 
     // Highly saturated vivid colors with emissive intensity
     const dProj = (rb.u * cosT + rb.v * sinT);
     if (curPM.Pn < 0) {
       // Pure tension
-      rb.mesh.material.color.setHex(0x06b6d4);
-      rb.mesh.material.emissive.setHex(0x06b6d4);
-      rb.mesh.material.emissiveIntensity = 0.65;
+      rb.mesh.material.color.setHex(0x00f0ff);
+      rb.mesh.material.emissive.setHex(0x00f0ff);
+      rb.mesh.material.emissiveIntensity = 0.95;
     } else if (dProj > 0.12) {
       // Tension side rebars
       if (isTensionControlled) {
         rb.mesh.material.color.setHex(0x00f0ff);
         rb.mesh.material.emissive.setHex(0x00f0ff);
-        rb.mesh.material.emissiveIntensity = 0.85; // Brilliant neon cyan
+        rb.mesh.material.emissiveIntensity = 1.0; // Brilliant neon cyan
       } else {
-        rb.mesh.material.color.setHex(0x2563eb);
-        rb.mesh.material.emissive.setHex(0x1d4ed8);
-        rb.mesh.material.emissiveIntensity = 0.35;
+        rb.mesh.material.color.setHex(0x0284c7);
+        rb.mesh.material.emissive.setHex(0x0284c7);
+        rb.mesh.material.emissiveIntensity = 0.60;
       }
     } else if (dProj < -0.12) {
       // Compression side rebars
       if (isCompControlled) {
         rb.mesh.material.color.setHex(0xff1e1e);
         rb.mesh.material.emissive.setHex(0xff0000);
-        rb.mesh.material.emissiveIntensity = 0.85; // Blazing hot red
+        rb.mesh.material.emissiveIntensity = 1.0; // Blazing hot red
       } else {
         rb.mesh.material.color.setHex(0xdc2626);
         rb.mesh.material.emissive.setHex(0xb91c1c);
-        rb.mesh.material.emissiveIntensity = 0.40;
+        rb.mesh.material.emissiveIntensity = 0.60;
       }
     } else {
       // Intermediate rebars
-      rb.mesh.material.color.setHex(0xf59e0b);
-      rb.mesh.material.emissive.setHex(0xd97706);
-      rb.mesh.material.emissiveIntensity = 0.25;
+      rb.mesh.material.color.setHex(0xfbbf24);
+      rb.mesh.material.emissive.setHex(0xf59e0b);
+      rb.mesh.material.emissiveIntensity = 0.55;
     }
   });
 
   // 6. Update Transverse Tie Hoops
   tieHoopMeshes.forEach(th => {
     const s = th.frac;
-    const sway = deltaTip * (1.0 - Math.cos((Math.PI * 0.5) * s));
-    const alpha = deltaTip * ((Math.PI * 0.5) / Heff) * Math.sin((Math.PI * 0.5) * s);
+    const y0 = colBaseY + s * Heff;
+    const sway = deltaTip * (1.5 * Math.pow(s, 2) - 0.5 * Math.pow(s, 3));
+    const alpha = (deltaTip / Heff) * (3.0 * s - 1.5 * Math.pow(s, 2));
     const qTilt = new THREE.Quaternion().setFromAxisAngle(tiltAxis, alpha);
 
-    th.group.position.set(sway * cosT, colBaseY + s * Heff, sway * sinT);
+    th.group.position.set(sway * cosT, y0, sway * sinT);
     th.group.rotation.setFromQuaternion(qTilt);
     th.group.scale.set((bM - 0.06) / 0.54, 1, (dM - 0.06) / 0.54);
   });
 
-  // 7. Update Internal Volumetric Whitney Stress Block (Inside the Column)
-  if (whitneyBlockGroup && whitneyBlockMesh) {
+  // 7. Update Deformable Volumetric Whitney Stress Block (Inside the Column Compression Zone)
+  if (whitneyBlockGroup && whitneyDeformableMesh) {
     if (curPM.Pn >= 0 && curPM.a > 0) {
       whitneyBlockGroup.visible = true;
-      const a3d = Math.max(0.04, Math.min(dM * 0.95, (curPM.a / colH) * dM));
-      const hBlock = Math.min(Heff * 0.45, 0.85);
-      whitneyBlockMesh.scale.set(bM * 0.94 / 0.6, hBlock / 0.75, a3d / 0.25);
+      const nY_w = 16;
+      const posAttr_w = whitneyDeformableMesh.geometry.attributes.position;
+      const posArr_w = posAttr_w.array;
 
-      // Block is placed INSIDE column at compression edge
-      const compShift = -(dM / 2 - a3d / 2) * 0.96;
-      whitneyBlockMesh.position.set(compShift * cosT, hBlock / 2, compShift * sinT);
-      whitneyBlockMesh.rotation.y = -rad;
+      const a3d = Math.max(0.04, Math.min(dM * 0.98, (curPM.a / colH) * dM));
+      const hBlock = Math.min(Heff * 0.38, 0.85);
+      const halfB = (bM * 0.98) / 2;
+      const dMin = -dM / 2 * 0.98;
+      const dMax = dMin + a3d;
+
+      const baseCorners = [
+        [dMax,  halfB],
+        [dMin,  halfB],
+        [dMin, -halfB],
+        [dMax, -halfB]
+      ];
+
+      const cornerPaths_w = [[], [], [], []];
+      const ribLoops_w = [[], [], [], [], []];
+      const ribFracs = [0.0, 0.25, 0.50, 0.75, 1.0];
+
+      for (let j = 0; j <= nY_w; j++) {
+        const sLocal = j / nY_w;
+        const yNom = colBaseY + sLocal * hBlock;
+        const sGlobal = Math.max(0, Math.min(1.0, (yNom - colBaseY) / Heff));
+
+        const sway = deltaTip * (1.5 * Math.pow(sGlobal, 2) - 0.5 * Math.pow(sGlobal, 3));
+        const alpha = (deltaTip / Heff) * (3.0 * sGlobal - 1.5 * Math.pow(sGlobal, 2));
+        const qTilt = new THREE.Quaternion().setFromAxisAngle(tiltAxis, alpha);
+
+        const currentSlicePts = [];
+        for (let ci = 0; ci < 4; ci++) {
+          const dComp = baseCorners[ci][0];
+          const wSide = baseCorners[ci][1];
+          const localPt = new THREE.Vector3(
+            dComp * cosT - wSide * sinT,
+            0,
+            dComp * sinT + wSide * cosT
+          );
+          localPt.applyQuaternion(qTilt);
+          localPt.x += sway * cosT;
+          localPt.y += yNom;
+          localPt.z += sway * sinT;
+
+          const idx = (j * 4 + ci) * 3;
+          posArr_w[idx]     = localPt.x;
+          posArr_w[idx + 1] = localPt.y;
+          posArr_w[idx + 2] = localPt.z;
+
+          cornerPaths_w[ci].push(localPt.clone());
+          currentSlicePts.push(localPt.clone());
+        }
+
+        ribFracs.forEach((rf, rIdx) => {
+          if (Math.abs(sLocal - rf) < 0.6 / nY_w) {
+            ribLoops_w[rIdx] = currentSlicePts.map(pt => pt.clone());
+            ribLoops_w[rIdx].push(currentSlicePts[0].clone());
+          }
+        });
+      }
+
+      posAttr_w.needsUpdate = true;
+      whitneyDeformableMesh.geometry.computeVertexNormals();
+
+      // Update 4 corner lines
+      if (whitneyDeformableEdges.length >= 4) {
+        for (let ci = 0; ci < 4; ci++) {
+          whitneyDeformableEdges[ci].geometry.setFromPoints(cornerPaths_w[ci]);
+        }
+      }
+      // Update 5 rib loops
+      for (let rIdx = 0; rIdx < 5; rIdx++) {
+        if (whitneyDeformableEdges.length > 4 + rIdx && ribLoops_w[rIdx].length > 0) {
+          whitneyDeformableEdges[4 + rIdx].geometry.setFromPoints(ribLoops_w[rIdx]);
+        }
+      }
 
       if (isCompControlled) {
-        whitneyBlockMesh.material.color.setHex(0xea580c);
-        whitneyBlockMesh.material.opacity = 0.65;
-        whitneyBlockMesh.material.emissiveIntensity = 0.40;
+        whitneyDeformableMesh.material.color.setHex(0xfacc15); // Vivid glowing warning yellow
+        whitneyDeformableMesh.material.emissive.setHex(0xeab308);
+        whitneyDeformableMesh.material.opacity = 0.80;
+        whitneyDeformableMesh.material.emissiveIntensity = 0.70;
       } else {
-        whitneyBlockMesh.material.color.setHex(0xf97316);
-        whitneyBlockMesh.material.opacity = 0.45;
-        whitneyBlockMesh.material.emissiveIntensity = 0.20;
+        whitneyDeformableMesh.material.color.setHex(0xfde047); // Softer amber yellow
+        whitneyDeformableMesh.material.emissive.setHex(0xca8a04);
+        whitneyDeformableMesh.material.opacity = 0.55;
+        whitneyDeformableMesh.material.emissiveIntensity = 0.35;
       }
     } else {
       whitneyBlockGroup.visible = false;
@@ -2185,10 +2297,10 @@ function update3DBim(curPM, p0_data) {
   crushingRubbleMeshes.forEach((r, idx) => {
     if (isCompControlled) {
       r.mesh.visible = true;
-      const compEdgeDist = (dM / 2 + 0.12);
-      r.mesh.position.x = -(compEdgeDist + (idx % 3) * 0.08) * cosT + (idx % 2 === 0 ? 0.10 : -0.10) * sinT;
-      r.mesh.position.z = -(compEdgeDist + (idx % 3) * 0.08) * sinT + (idx % 2 === 0 ? -0.10 : 0.10) * cosT;
-      r.mesh.position.y = 0.24 + 0.04 + Math.floor(idx / 3) * 0.05;
+      const compEdgeDist = (dM / 2 + 0.08);
+      r.mesh.position.x = -(compEdgeDist + (idx % 3) * 0.07) * cosT + (idx % 2 === 0 ? 0.08 : -0.08) * sinT;
+      r.mesh.position.z = -(compEdgeDist + (idx % 3) * 0.07) * sinT + (idx % 2 === 0 ? -0.08 : 0.08) * cosT;
+      r.mesh.position.y = 0.24 + 0.03 + Math.floor(idx / 4) * 0.03;
     } else {
       r.mesh.visible = false;
     }
@@ -2198,10 +2310,10 @@ function update3DBim(curPM, p0_data) {
     if (isTensionControlled && curPM.eps_t >= 0.0035) {
       tc.line.visible = true;
       const s = tc.frac;
-      const y = colBaseY + s * Heff;
-      const sway = deltaTip * (1.0 - Math.cos((Math.PI * 0.5) * s));
+      const y0 = colBaseY + s * Heff;
+      const sway = deltaTip * (1.5 * Math.pow(s, 2) - 0.5 * Math.pow(s, 3));
       const tenEdge = (dM / 2 + 0.01);
-      tc.line.position.set(sway * cosT + tenEdge * cosT, y, sway * sinT + tenEdge * sinT);
+      tc.line.position.set(sway * cosT + tenEdge * cosT, y0, sway * sinT + tenEdge * sinT);
       tc.line.rotation.y = -rad;
     } else {
       tc.line.visible = false;
@@ -2258,20 +2370,20 @@ function update3DBim(curPM, p0_data) {
   if (bimStatusEl) {
     if (isPureComp) {
       bimStatusEl.style.color = '#dc2626';
-      bimStatusEl.innerText = '🚨 0.80P0 초과 비허용';
+      bimStatusEl.innerText = '🚨 0.80P0 초과';
     } else if (isCompControlled) {
-      bimStatusEl.style.color = '#ea580c';
-      bimStatusEl.innerText = '🟠 압축지배 (취성 파괴)';
+      bimStatusEl.style.color = '#d97706';
+      bimStatusEl.innerText = '🟡 압축지배 (콘크리트 압축대)';
     } else if (isTensionControlled) {
       bimStatusEl.style.color = '#16a34a';
-      bimStatusEl.innerText = '🟢 인장지배 (연성 항복)';
+      bimStatusEl.innerText = '🟢 인장지배 (인장철근 항복)';
     } else {
       bimStatusEl.style.color = '#ca8a04';
       bimStatusEl.innerText = '🟡 천이지배 (전이구간)';
     }
   }
   if (bimPmEl) {
-    bimPmEl.innerText = `φPn=${curPM.phiPn.toFixed(0)}kN, φMn=${curPM.phiMn.toFixed(0)}kNm (εt=${curPM.eps_t.toFixed(4)})`;
+    bimPmEl.innerText = `φPn=${curPM.phiPn.toFixed(0)}kN, φMn=${curPM.phiMn.toFixed(0)}kNm · a=${curPM.a.toFixed(0)}mm`;
   }
 
   // 12. Update Macro Structure Sway
