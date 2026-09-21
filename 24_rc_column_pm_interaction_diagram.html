@@ -1401,7 +1401,7 @@ function initThreeBIM() {
   const h = container.clientHeight || 330;
 
   cameraBim = new THREE.PerspectiveCamera(36, w / h, 0.1, 200);
-  cameraBim.position.set(3.8, 2.3, 4.4);
+  cameraBim.position.set(4.4, 2.7, 5.0);
 
   rendererBim = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   rendererBim.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
@@ -1413,7 +1413,7 @@ function initThreeBIM() {
   controlsBim = new THREE.OrbitControls(cameraBim, rendererBim.domElement);
   controlsBim.enableDamping = true;
   controlsBim.dampingFactor = 0.08;
-  controlsBim.target.set(0, 1.25, 0);
+  controlsBim.target.set(0, 1.55, 0);
   controlsBim.maxPolarAngle = Math.PI / 2 + 0.05;
   controlsBim.minDistance = 1.2;
   controlsBim.maxDistance = 50;
@@ -1757,18 +1757,26 @@ function buildDetailColumnBase() {
   axialArrowGroup.add(arrowShaft, arrowHead);
   bimDetailGroup.add(axialArrowGroup);
 
-  // 10. Moment 3D Arc / Indicator (M)
+  // 10. Bending Moment 3D Arc / Indicator (M) - Rotating around horizontal axis orthogonal to height
   momentArcGroup = new THREE.Group();
-  const torusGeo = new THREE.TorusGeometry(0.42, 0.022, 8, 24, Math.PI * 1.3);
-  const mMat = new THREE.MeshStandardMaterial({ color: 0x4f46e5, roughness: 0.3 });
+  const mRadius = 0.30;
+  const mTube = 0.020;
+  const arcLen = Math.PI * 0.96; // ~173-degree sweep from tension side to compression cone
+  const torusGeo = new THREE.TorusGeometry(mRadius, mTube, 16, 40, arcLen);
+  const mMat = new THREE.MeshStandardMaterial({
+    color: 0x4f46e5,          // Vivid indigo
+    emissive: 0x6366f1,       // Glowing electric indigo
+    emissiveIntensity: 0.65,
+    metalness: 0.35,
+    roughness: 0.20
+  });
   const torusMesh = new THREE.Mesh(torusGeo, mMat);
-  torusMesh.rotation.x = Math.PI / 2;
+  torusMesh.rotation.z = -Math.PI * 0.08;
 
-  const mHeadGeo = new THREE.ConeGeometry(0.055, 0.15, 8);
+  const mHeadGeo = new THREE.ConeGeometry(0.055, 0.13, 14);
   const mHead = new THREE.Mesh(mHeadGeo, mMat);
-  const arcAngle = Math.PI * 1.3;
-  mHead.position.set(0.42 * Math.cos(arcAngle), 0, 0.42 * Math.sin(arcAngle));
-  mHead.rotation.y = -arcAngle + Math.PI / 2;
+  mHead.position.set(-mRadius, 0.065, 0);
+  mHead.rotation.z = Math.PI; // Tangent pointing downwards into compression face
 
   momentArcGroup.add(torusMesh, mHead);
   bimDetailGroup.add(momentArcGroup);
@@ -1928,8 +1936,8 @@ function setBimCameraView(mode) {
     }
     if (colTopCapMesh) colTopCapMesh.material.opacity = 1.0;
 
-    controlsBim.target.set(0, 1.25, 0);
-    cameraBim.position.set(3.4, 2.1, 4.0);
+    controlsBim.target.set(0, 1.55, 0);
+    cameraBim.position.set(4.4, 2.7, 5.0);
     controlsBim.update();
   } else if (mode === 'rebar') {
     const b = document.getElementById('btnBimRebar');
@@ -1944,8 +1952,8 @@ function setBimCameraView(mode) {
     }
     if (colTopCapMesh) colTopCapMesh.material.opacity = 0.35;
 
-    controlsBim.target.set(0, 1.20, 0);
-    cameraBim.position.set(2.8, 1.7, 3.2);
+    controlsBim.target.set(0, 1.50, 0);
+    cameraBim.position.set(4.0, 2.4, 4.6);
     controlsBim.update();
   } else if (mode === 'frame') {
     const b = document.getElementById('btnBimFrame');
@@ -2352,15 +2360,22 @@ function update3DBim(curPM, p0_data) {
     }
   }
 
-  // 10. Update Moment Arc (M)
+  // 10. Update Bending Moment Arc (M) - Rotating around axis orthogonal to height
   if (momentArcGroup) {
     const topX = tipSway * cosT;
     const topY = colBaseY + Heff + 0.16;
     const topZ = tipSway * sinT;
+
     momentArcGroup.position.set(topX, topY, topZ);
-    momentArcGroup.rotation.y = rad;
+    // Biaxial rotation around vertical Y combined with top cap tilt
+    const qAzimuth = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rad);
+    const qTiltTop = new THREE.Quaternion().setFromAxisAngle(tiltAxis, tipAlpha);
+    momentArcGroup.quaternion.copy(qTiltTop.clone().multiply(qAzimuth));
+
     const mNorm = Math.min(1.5, Math.abs(curPM.Mn) / 800.0);
-    momentArcGroup.scale.set(0.6 + mNorm * 0.4, 1, 0.6 + mNorm * 0.4);
+    const s = 0.85 + mNorm * 0.25;
+    const signM = (curPM.Mn >= 0) ? 1 : -1;
+    momentArcGroup.scale.set(signM * s, s, s);
     momentArcGroup.visible = (Math.abs(curPM.Mn) > 15);
   }
 
