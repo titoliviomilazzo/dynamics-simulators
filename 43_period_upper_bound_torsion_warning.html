@@ -720,7 +720,7 @@
       const eta = story / nStories;
       const dispZ = dyFrac * 0.38 * Math.pow(eta, 1.25) * tau;
       const dispX = dxFrac * 0.18 * Math.pow(eta, 1.25) * tau;
-      const thetaY = rzFrac * 0.20 * eta * tau;
+      const thetaY = rzFrac * 0.40 * eta * tau; // 2x scaled torsional rotation motion
 
       const qSlab = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), thetaY);
       // Slab center (0, 0) relative to CR (0, Z_CR) is (0, -Z_CR)
