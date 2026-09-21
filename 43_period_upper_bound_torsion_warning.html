@@ -472,7 +472,6 @@
     cornerCalloutSprite = null;
 
     nStories = Math.max(3, Math.min(25, Math.round(hn / 3.0)));
-    const totalH = nStories * floorH;
     const blackLineMat = new THREE.LineBasicMaterial({ color: 0x0f172a, linewidth: 2 }); // Gate 1
 
     // Center of Rigidity offset based on ey slider (0 ~ 8.0 m)
@@ -508,16 +507,30 @@
       [baseW / 2 - 0.35, baseD / 2 - 0.35]
     ];
 
+    const fTopY = 0.35; // Top of foundation slab
+    const clearH = 0.73; // Consistent clear story height
+
+    let prevTopY = fTopY;
+    const slabElevations = [];
     for (let s = 1; s <= nStories; s++) {
-      const y = s * floorH;
       const isRoof = (s === nStories);
-      const curSlabMat = isRoof ? roofSlabMat : slabMat;
       const slabThick = isRoof ? 0.28 : 0.22;
+      const botY = prevTopY + clearH;
+      const centerY = botY + slabThick / 2;
+      const topY = botY + slabThick;
+      slabElevations.push({ s, botY, centerY, topY, slabThick, isRoof });
+      prevTopY = topY;
+    }
+    const totalH = prevTopY;
+
+    for (let s = 1; s <= nStories; s++) {
+      const elev = slabElevations[s - 1];
+      const curSlabMat = elev.isRoof ? roofSlabMat : slabMat;
 
       // Slab Mesh
-      const sGeo = new THREE.BoxGeometry(baseW, slabThick, baseD);
+      const sGeo = new THREE.BoxGeometry(baseW, elev.slabThick, baseD);
       const sMesh = new THREE.Mesh(sGeo, curSlabMat);
-      sMesh.position.set(0, y, 0);
+      sMesh.position.set(0, elev.centerY, 0);
       sMesh.castShadow = true;
       sMesh.receiveShadow = true;
       sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sGeo), blackLineMat));
@@ -526,18 +539,23 @@
       slabMeshes.push({
         mesh: sMesh,
         story: s,
-        baseY: y
+        baseY: elev.centerY,
+        slabThick: elev.slabThick,
+        botY: elev.botY,
+        topY: elev.topY
       });
 
       // Columns
+      const colBotY = (s === 1 ? fTopY : slabElevations[s - 2].topY);
+      const colMidY = (colBotY + elev.botY) / 2;
+
       colCoords.forEach(([cx, cz]) => {
-        // High stress corner column: Far opposite side from CR
         const isFarCorner = (cz < 0 && Math.abs(cx) > 2.0);
         const colMat = (isHighTorsion && isFarCorner) ? warningColMat : normalColMat;
 
-        const cGeo = new THREE.BoxGeometry(0.24, floorH - slabThick, 0.24);
+        const cGeo = new THREE.BoxGeometry(0.24, clearH, 0.24);
         const cMesh = new THREE.Mesh(cGeo, colMat);
-        cMesh.position.set(cx, y - floorH / 2, cz);
+        cMesh.position.set(cx, colMidY, cz);
         cMesh.castShadow = true;
         cMesh.receiveShadow = true;
         cMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(cGeo), blackLineMat));
@@ -548,15 +566,15 @@
           story: s,
           baseX: cx,
           baseZ: cz,
-          baseY: y - floorH / 2,
+          nomH: clearH,
           isFarCorner: isFarCorner
         });
       });
 
       // RC Shear Wall Core (Centering at CR: 0, currentZCR)
-      const wallGeo = new THREE.BoxGeometry(0.35, floorH - slabThick, baseD * 0.44);
+      const wallGeo = new THREE.BoxGeometry(0.35, clearH, baseD * 0.44);
       const wallMesh = new THREE.Mesh(wallGeo, coreWallMat);
-      wallMesh.position.set(0, y - floorH / 2, currentZCR);
+      wallMesh.position.set(0, colMidY, currentZCR);
       wallMesh.castShadow = true;
       wallMesh.receiveShadow = true;
       wallMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(wallGeo), blackLineMat));
@@ -567,7 +585,7 @@
         story: s,
         baseX: 0,
         baseZ: currentZCR,
-        baseY: y - floorH / 2
+        nomH: clearH
       });
     }
 
@@ -697,87 +715,156 @@
     const { rz: rzFrac, dy: dyFrac, dx: dxFrac } = getModalFractions(ey);
     const Z_CR = currentZCR;
 
-    // Slabs: Translation + Rotation around CR
-    slabMeshes.forEach(({ mesh, story }) => {
+    // 1. Slabs: Rigid Diaphragm Translation + In-Plane Rotation around CR
+    slabMeshes.forEach(({ mesh, story, baseY }) => {
       const eta = story / nStories;
       const dispZ = dyFrac * 0.38 * Math.pow(eta, 1.25) * tau;
       const dispX = dxFrac * 0.18 * Math.pow(eta, 1.25) * tau;
       const thetaY = rzFrac * 0.20 * eta * tau;
 
-      // Center of slab is at (0, 0). Relative to CR (0, Z_CR), offset is (0, -Z_CR).
-      const rx = Z_CR * Math.sin(thetaY);
-      const rz = -Z_CR * Math.cos(thetaY);
+      const qSlab = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), thetaY);
+      // Slab center (0, 0) relative to CR (0, Z_CR) is (0, -Z_CR)
+      const offset = new THREE.Vector3(0, 0, -Z_CR).applyQuaternion(qSlab);
 
-      mesh.position.x = rx + dispX;
-      mesh.position.z = Z_CR + rz + dispZ;
-      mesh.rotation.y = thetaY;
+      mesh.position.set(
+        offset.x + dispX,
+        baseY,
+        Z_CR + offset.z + dispZ
+      );
+      mesh.quaternion.copy(qSlab);
+      mesh.updateMatrixWorld(true);
     });
 
-    // Columns: Orbit around CR (0, Z_CR)
-    columnMeshes.forEach(({ mesh, story, baseX, baseZ }) => {
-      const eta = (story - 0.5) / nStories;
-      const dispZ = dyFrac * 0.38 * Math.pow(eta, 1.25) * tau;
-      const dispX = dxFrac * 0.18 * Math.pow(eta, 1.25) * tau;
-      const thetaY = rzFrac * 0.20 * eta * tau;
+    // 2. Columns: Exact Physical Joints Anchored to Floor Below and Floor Above
+    columnMeshes.forEach(col => {
+      const s = col.story;
+      const cx = col.baseX;
+      const cz = col.baseZ;
+      const slabCur = slabMeshes[s - 1]; // Slab above column s
 
-      const dx = baseX;
-      const dz = baseZ - Z_CR;
+      // Top joint: point on underside of slab s at column coordinate (cx, cz)
+      const pTop = slabCur.mesh.localToWorld(new THREE.Vector3(cx, -slabCur.slabThick / 2, cz));
 
-      const cosT = Math.cos(thetaY);
-      const sinT = Math.sin(thetaY);
+      // Bottom joint: point on top of slab s-1 at column coordinate (cx, cz) or foundation top
+      let pBot;
+      let qBot;
+      if (s === 1) {
+        pBot = new THREE.Vector3(cx, 0.35, cz);
+        qBot = new THREE.Quaternion(); // Identity
+      } else {
+        const slabBelow = slabMeshes[s - 2];
+        pBot = slabBelow.mesh.localToWorld(new THREE.Vector3(cx, slabBelow.slabThick / 2, cz));
+        qBot = slabBelow.mesh.quaternion;
+      }
 
-      mesh.position.x = (dx * cosT - dz * sinT) + dispX;
-      mesh.position.z = Z_CR + (dx * sinT + dz * cosT) + dispZ;
-      mesh.rotation.y = thetaY;
+      const qTop = slabCur.mesh.quaternion;
+      const vCol = new THREE.Vector3().subVectors(pTop, pBot);
+      const lenCol = vCol.length();
+      const pMid = new THREE.Vector3().addVectors(pBot, pTop).multiplyScalar(0.5);
+
+      // Orientation: align local Y axis with vCol, with cross-section twisting by average story angle
+      const uAxis = vCol.clone().normalize();
+      const qAvg = qBot.clone().slerp(qTop, 0.5);
+
+      const xRot = new THREE.Vector3(1, 0, 0).applyQuaternion(qAvg);
+      const xCol = xRot.clone().sub(uAxis.clone().multiplyScalar(xRot.dot(uAxis))).normalize();
+      const zCol = new THREE.Vector3().crossVectors(uAxis, xCol).normalize();
+
+      const rotMat = new THREE.Matrix4().makeBasis(xCol, uAxis, zCol);
+
+      col.mesh.position.copy(pMid);
+      col.mesh.quaternion.setFromRotationMatrix(rotMat);
+      col.mesh.scale.set(1, lenCol / col.nomH, 1);
+      col.mesh.updateMatrixWorld(true);
     });
 
-    // RC Shear Wall Core: At CR (0, Z_CR)
-    wallMeshes.forEach(({ mesh, story }) => {
-      const eta = (story - 0.5) / nStories;
-      const dispZ = dyFrac * 0.38 * Math.pow(eta, 1.25) * tau;
-      const dispX = dxFrac * 0.18 * Math.pow(eta, 1.25) * tau;
-      const thetaY = rzFrac * 0.20 * eta * tau;
+    // 3. RC Shear Wall Core: Spanning between Floor Below and Floor Above at CR
+    wallMeshes.forEach(w => {
+      const s = w.story;
+      const slabCur = slabMeshes[s - 1];
 
-      mesh.position.x = dispX;
-      mesh.position.z = Z_CR + dispZ;
-      mesh.rotation.y = thetaY;
+      const pTop = slabCur.mesh.localToWorld(new THREE.Vector3(0, -slabCur.slabThick / 2, Z_CR));
+
+      let pBot;
+      let qBot;
+      if (s === 1) {
+        pBot = new THREE.Vector3(0, 0.35, Z_CR);
+        qBot = new THREE.Quaternion();
+      } else {
+        const slabBelow = slabMeshes[s - 2];
+        pBot = slabBelow.mesh.localToWorld(new THREE.Vector3(0, slabBelow.slabThick / 2, Z_CR));
+        qBot = slabBelow.mesh.quaternion;
+      }
+
+      const qTop = slabCur.mesh.quaternion;
+      const vWall = new THREE.Vector3().subVectors(pTop, pBot);
+      const lenWall = vWall.length();
+      const pMid = new THREE.Vector3().addVectors(pBot, pTop).multiplyScalar(0.5);
+
+      const uAxis = vWall.clone().normalize();
+      const qAvg = qBot.clone().slerp(qTop, 0.5);
+
+      const xRot = new THREE.Vector3(1, 0, 0).applyQuaternion(qAvg);
+      const xWall = xRot.clone().sub(uAxis.clone().multiplyScalar(xRot.dot(uAxis))).normalize();
+      const zWall = new THREE.Vector3().crossVectors(uAxis, xWall).normalize();
+
+      const rotMat = new THREE.Matrix4().makeBasis(xWall, uAxis, zWall);
+
+      w.mesh.position.copy(pMid);
+      w.mesh.quaternion.setFromRotationMatrix(rotMat);
+      w.mesh.scale.set(1, lenWall / w.nomH, 1);
+      w.mesh.updateMatrixWorld(true);
     });
 
-    // CM & CR Markers move in lockstep with roof
-    const roofDispZ = dyFrac * 0.38 * tau;
-    const roofDispX = dxFrac * 0.18 * tau;
-    const roofThetaY = rzFrac * 0.20 * tau;
+    // 4. Roof Markers, Dimension Lines, Torsion Ring, and Callout
+    if (slabMeshes.length > 0) {
+      const roofSlab = slabMeshes[nStories - 1];
+      const roofTopY = roofSlab.slabThick / 2;
 
-    if (cmMarkerGroup) {
-      const rx = Z_CR * Math.sin(roofThetaY);
-      const rz = -Z_CR * Math.cos(roofThetaY);
-      cmMarkerGroup.position.x = rx + roofDispX;
-      cmMarkerGroup.position.z = Z_CR + rz + roofDispZ;
-    }
+      // Roof CM in world coordinates
+      const roofCM = roofSlab.mesh.localToWorld(new THREE.Vector3(0, roofTopY, 0));
+      // Roof CR in world coordinates
+      const roofCR = roofSlab.mesh.localToWorld(new THREE.Vector3(0, roofTopY, Z_CR));
 
-    if (crMarkerGroup) {
-      crMarkerGroup.position.x = roofDispX;
-      crMarkerGroup.position.z = roofDispZ;
-    }
+      if (cmMarkerGroup) {
+        cmMarkerGroup.position.set(roofCM.x, 0, roofCM.z);
+      }
 
-    if (eccDimensionGroup) {
-      eccDimensionGroup.position.x = roofDispX;
-      eccDimensionGroup.position.z = roofDispZ;
-    }
+      if (crMarkerGroup) {
+        crMarkerGroup.position.set(roofCR.x, 0, roofCR.z - Z_CR);
+      }
 
-    if (torsionRingMesh) {
-      torsionRingMesh.position.x = roofDispX;
-      torsionRingMesh.position.z = Z_CR + roofDispZ;
-      torsionRingMesh.rotation.z -= 0.03;
-    }
+      if (eccDimensionGroup) {
+        const eccLine = eccDimensionGroup.children[0];
+        if (eccLine && eccLine.geometry) {
+          const pts = [
+            new THREE.Vector3(roofCM.x, roofCM.y + 0.35, roofCM.z),
+            new THREE.Vector3(roofCR.x, roofCR.y + 0.35, roofCR.z)
+          ];
+          eccLine.geometry.setFromPoints(pts);
+          eccLine.computeLineDistances();
+        }
+        const dimBadge = eccDimensionGroup.children[1];
+        if (dimBadge) {
+          dimBadge.position.set(
+            (roofCM.x + roofCR.x) / 2 + 1.6,
+            roofCM.y + 0.7,
+            (roofCM.z + roofCR.z) / 2
+          );
+        }
+      }
 
-    if (cornerCalloutSprite) {
-      const dx = -baseW / 2 + 0.35;
-      const dz = -baseD / 2 + 0.35 - Z_CR;
-      const cosT = Math.cos(roofThetaY);
-      const sinT = Math.sin(roofThetaY);
-      cornerCalloutSprite.position.x = (dx * cosT - dz * sinT) + roofDispX;
-      cornerCalloutSprite.position.z = Z_CR + (dx * sinT + dz * cosT) + roofDispZ;
+      if (torsionRingMesh) {
+        torsionRingMesh.position.set(roofCR.x, roofCR.y + 0.4, roofCR.z);
+        torsionRingMesh.rotation.z -= 0.03;
+      }
+
+      if (cornerCalloutSprite) {
+        const cornerPt = roofSlab.mesh.localToWorld(
+          new THREE.Vector3(-baseW / 2 + 0.35, roofTopY, -baseD / 2 + 0.35)
+        );
+        cornerCalloutSprite.position.set(cornerPt.x, cornerPt.y + 1.1, cornerPt.z);
+      }
     }
   }
 
