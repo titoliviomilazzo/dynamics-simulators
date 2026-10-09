@@ -158,6 +158,15 @@ function groundMotion(key, pga_g){
   for (let i=0;i<n;i++) ag[i] = ag[i]/mx * pga_g * G;
   return ag;
 }
+// Ground displacement for the shaking base: double-integrate ag, remove linear drift, normalise to ±1.
+function groundDisp(ag){
+  const n = ag.length, d = new Float64Array(n); let v = 0;
+  for (let i=1;i<n;i++){ v += 0.5*(ag[i-1]+ag[i])*DT; d[i] = d[i-1] + v*DT; }
+  const k = d[n-1]/(n-1); let mx = 0;
+  for (let i=0;i<n;i++){ d[i] -= k*i; mx = Math.max(mx, Math.abs(d[i])); }
+  for (let i=0;i<n;i++) d[i] /= mx || 1;
+  return d;
+}
 const ordinate = (D, T, mode) => {
   const w = 2*Math.PI/T;
   return mode === "sd" ? D*100 : mode === "sv" ? w*D*100 : w*w*D/G;
@@ -168,9 +177,10 @@ function kdsSa(T){ const SDS=0.37, SD1=0.16, Ts=SD1/SDS, T0=0.2*Ts;
   return T<T0 ? SDS*(0.4+0.6*T/T0) : T<=Ts ? SDS : SD1/T; }
 
 // ---------- state ----------
-let ag, periods, resp, fullP, fullD, idx = 0, playing = false, sel = 9, last = 0;
+let ag, ug, periods, resp, fullP, fullD, idx = 0, playing = false, sel = 9, last = 0, acc = 0;
 function build(){
   ag = groundMotion($("gm").value, +$("pga").value);
+  ug = groundDisp(ag);
   const tmax = +$("tmax").value, z = +$("zeta").value;
   periods = Array.from({length:N_PEND}, (_,i) => +(0.1 + (tmax-0.1)*i/(N_PEND-1)).toFixed(3));
   resp = periods.map(T => sdof(ag, T, z));
@@ -213,14 +223,13 @@ function draw(){
 
   // pendulum row (inverted cantilevers on shaking base)
   { const cv=$("cvP"); const [g,w,h] = setup(cv); const base=h-46, x0=34, pw=w-90, gap=pw/(N_PEND-1);
-    let ug=0; // ground displacement only for visual hint (scaled acceleration)
-    let mx=0; for (const x of ag) mx=Math.max(mx,Math.abs(x)); ug = ag[idx]/mx*6;
+    const ugx = ug[idx]*8; // smooth ground displacement (visual hint, ±8 px)
     let umax=0; resp.forEach(u => { umax=Math.max(umax, peakSoFar(u,n-1)); });
     g.fillStyle="#f1f5f9"; g.fillRect(0,base,w,h-base);
-    g.strokeStyle=C.ink; g.lineWidth=2; g.beginPath(); g.moveTo(10+ug,base); g.lineTo(w-10+ug,base); g.stroke();
+    g.strokeStyle=C.ink; g.lineWidth=2; g.beginPath(); g.moveTo(10+ugx,base); g.lineTo(w-10+ugx,base); g.stroke();
     g.fillStyle=C.dim; g.fillText("진자 높이 ∝ 주기 · 끝단 변위는 전 진자 공통 배율", 10, 16);
     periods.forEach((T,j) => {
-      const u = resp[j], x = x0 + j*gap + ug, L = 40 + 150*Math.sqrt(T/periods[N_PEND-1]);
+      const u = resp[j], x = x0 + j*gap + ugx, L = 40 + 150*Math.sqrt(T/periods[N_PEND-1]);
       const d = u[idx]/umax*gap*1.6, pk = peakSoFar(u, idx);
       const hot = pk/umax, col = j===sel ? C.verm : `rgb(${15+hot*180|0},${110-hot*40|0},${126-hot*80|0})`;
       g.strokeStyle = col; g.lineWidth = j===sel?3:2;
@@ -283,14 +292,17 @@ function draw(){
 // ---------- loop ----------
 function tick(ts){
   if (!playing) return;
-  const dt = last ? (ts-last)/1000 : 0; last = ts;
-  idx = Math.min(ag.length-1, idx + Math.round(dt/DT * +$("speed").value));
+  const dt = last ? Math.min((ts-last)/1000, 0.1) : 0; last = ts;
+  // accumulate fractional steps so slow speeds and high-refresh displays still advance at the right rate
+  acc += dt/DT * +$("speed").value;
+  const steps = Math.floor(acc); acc -= steps;
+  idx = Math.min(ag.length-1, idx + steps);
   draw();
   if (idx >= ag.length-1){ playing=false; $("play").textContent="▶ 재생"; return; }
   requestAnimationFrame(tick);
 }
 $("play").onclick = () => { playing=!playing; $("play").textContent = playing?"❚❚ 일시정지":"▶ 재생";
-  if (playing){ if (idx>=ag.length-1) idx=0; last=0; requestAnimationFrame(tick); } };
+  if (playing){ if (idx>=ag.length-1) idx=0; last=0; acc=0; requestAnimationFrame(tick); } };
 $("reset").onclick = () => { idx=0; draw(); };
 $("skip").onclick = () => { idx=ag.length-1; draw(); };
 const lbl = { pga:v=>(+v).toFixed(2)+" g", zeta:v=>Math.round(v*100)+" %", tmax:v=>(+v).toFixed(1)+" s", speed:v=>(+v).toFixed(2).replace(/0$/,"")+"×" };
