@@ -28,9 +28,10 @@
 
 ## 📚 4대 전공 트랙 구성 (30개 정본 시뮬레이터)
 
-### 🔹 Track 01. 구조동역학 & 진동론 (9개 모듈)
+### 🔹 Track 01. 구조동역학 & 진동론 (10개 모듈)
 - [정본 01. SDOF 공진 & 동적증폭계수(DAF) 해석기](https://titoliviomilazzo.github.io/dynamics-simulators/01_sdof_resonance.html)
 - [정본 13. 점성감쇠 vs 마찰감쇠 (Viscous vs Coulomb Damping)](https://titoliviomilazzo.github.io/dynamics-simulators/13_damping_viscous_vs_coulomb.html)
+- [정본 14. 과도응답: 대수감쇠율 · Step/Impulse · Duhamel 적분](https://titoliviomilazzo.github.io/dynamics-simulators/14_transient_duhamel_step_impulse.html)
 - [정본 09. 주파수 응답 전달함수(Transfer Function) & Bode 선도](https://titoliviomilazzo.github.io/dynamics-simulators/09_transfer_function_bode.html)
 - [정본 10. 신호처리: 고속 푸리에 변환(FFT) & 파워스펙트럼밀도(PSD)](https://titoliviomilazzo.github.io/dynamics-simulators/10_fourier_fft_psd.html)
 - [정본 08. Newmark-β 시간영역 직접적분 안정성 해석기](https://titoliviomilazzo.github.io/dynamics-simulators/08_newmark_beta_stability.html)

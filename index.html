@@ -87,13 +87,13 @@
             <span class="text-xs font-bold text-slate-800 font-mono px-2 py-0.5 rounded bg-slate-100 flex items-center gap-1.5 border border-slate-300">
               <i class="fa-solid fa-wave-square"></i> TRACK 1
             </span>
-            <span class="text-[11px] text-slate-500 font-mono font-bold">9개 모듈</span>
+            <span class="text-[11px] text-slate-500 font-mono font-bold">10개 모듈</span>
           </div>
           <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-slate-700 transition">
             구조동역학 & 진동론
           </h2>
           <p class="text-xs text-slate-600 mt-1 leading-relaxed">
-            SDOF 공진, 마찰 vs 점성감쇠, 주파수 응답/Bode, FFT/PSD, Newmark-β 수치적분, 모드 중첩 오케스트라, Rayleigh 직교성.
+            SDOF 공진, 마찰 vs 점성감쇠, 과도응답/Duhamel, 주파수 응답/Bode, FFT/PSD, Newmark-β 수치적분, 모드 중첩 오케스트라, Rayleigh 직교성.
           </p>
         </div>
         <span class="text-[11px] font-bold text-slate-900 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
@@ -226,7 +226,7 @@
           전체 4대 트랙 (30)
         </button>
         <button onclick="setTrackFilter('dynamics')" id="track-tab-dynamics" class="px-3 py-1 rounded-lg text-xs font-medium transition bg-slate-100 hover:bg-slate-200 text-slate-700">
-          트랙 1: 구조동역학 & 진동론 (9)
+          트랙 1: 구조동역학 & 진동론 (10)
         </button>
         <button onclick="setTrackFilter('wind')" id="track-tab-wind" class="px-3 py-1 rounded-lg text-xs font-medium transition bg-slate-100 hover:bg-slate-200 text-slate-700">
           트랙 2: 내풍공학 & 멀티해저드 (3)
@@ -284,11 +284,27 @@
         file: "13_damping_viscous_vs_coulomb.html",
         tags: ["점성감쇠", "마찰감쇠", "포락선", "지수함수", "Stick"]
       },
+      {
+        id: "14",
+        act: 1,
+        step: 3,
+        trackId: "dynamics",
+        trackName: "구조동역학",
+        num: "정본 14",
+        title: "과도응답: 대수감쇠율 · Step/Impulse · Duhamel 적분",
+        standard: "Chopra §2, §4",
+        badgeClass: "badge-pass",
+        status: "Duhamel 합성곱",
+        leadQuestion: "같은 하중도 갑자기 올리면 왜 2배까지 흔들리고, 짧은 펄스는 왜 충격량만 중요할까?",
+        desc: "자유진동 피크의 ln 기울기로 감쇠비를 역산(대수감쇠율)하고, Step·램프·직사각·반사인·삼각 펄스와 이상 충격의 과도응답을 Duhamel 합성곱 넓이로 분해·검증합니다. 충격스펙트럼 Rd–td/Tn 포함.",
+        file: "14_transient_duhamel_step_impulse.html",
+        tags: ["자유진동", "대수감쇠율", "Step", "충격", "Duhamel", "충격스펙트럼"]
+      },
 
       {
         id: "09",
         act: 1,
-        step: 3,
+        step: 4,
         trackId: "dynamics",
         trackName: "구조동역학",
         num: "정본 09",
@@ -304,7 +320,7 @@
       {
         id: "10",
         act: 1,
-        step: 4,
+        step: 5,
         trackId: "dynamics",
         trackName: "구조동역학",
         num: "정본 10",
@@ -323,7 +339,7 @@
         id: "11",
         act: 2,
         actTitle: "Act 2. 외력의 양대 축: 내풍설계 vs 내진설계 멀티해저드 (Wind vs Seismic Mechanics)",
-        step: 5,
+        step: 6,
         trackId: "wind",
         trackName: "내풍설계",
         num: "정본 11",
@@ -339,7 +355,7 @@
       {
         id: "34",
         act: 2,
-        step: 6,
+        step: 7,
         trackId: "wind",
         trackName: "내풍설계",
         num: "반전 0",
@@ -355,7 +371,7 @@
       {
         id: "05",
         act: 2,
-        step: 7,
+        step: 8,
         trackId: "wind",
         trackName: "내풍설계",
         num: "정본 05",
@@ -374,7 +390,7 @@
         id: "04",
         act: 3,
         actTitle: "Act 3. 복합 거동의 해체: 모드해석과 고유분해 (Decoupling MDOF Systems)",
-        step: 8,
+        step: 9,
         trackId: "dynamics",
         trackName: "구조동역학",
         num: "정본 04",
@@ -390,7 +406,7 @@
       {
         id: "12",
         act: 3,
-        step: 9,
+        step: 10,
         trackId: "dynamics",
         trackName: "구조동역학",
         num: "정본 12",
@@ -407,7 +423,7 @@
       {
         id: "W02-1",
         act: 3,
-        step: 10,
+        step: 11,
         trackId: "dynamics",
         trackName: "구조동역학",
         num: "실습 W02-A",
@@ -423,7 +439,7 @@
       {
         id: "W02-2",
         act: 3,
-        step: 11,
+        step: 12,
         trackId: "dynamics",
         trackName: "구조동역학",
         num: "실습 W02-B",
@@ -439,7 +455,7 @@
       {
         id: "08",
         act: 3,
-        step: 12,
+        step: 13,
         trackId: "dynamics",
         trackName: "구조동역학",
         num: "정본 08",
@@ -458,7 +474,7 @@
         id: "02",
         act: 4,
         actTitle: "Act 4. 지진 질량의 분배와 옥탑방의 고차모드 역설 (Mass Participation & Penthouse)",
-        step: 13,
+        step: 14,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 02",
@@ -474,7 +490,7 @@
       {
         id: "36",
         act: 4,
-        step: 14,
+        step: 15,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 36",
@@ -493,7 +509,7 @@
         id: "39",
         act: 5,
         actTitle: "Act 5. 응답스펙트럼과 KDS 규준 내진설계 (Response Spectrum & Design Codes)",
-        step: 15,
+        step: 16,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 39",
@@ -509,7 +525,7 @@
       {
         id: "45",
         act: 5,
-        step: 16,
+        step: 17,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 45",
@@ -525,7 +541,7 @@
       {
         id: "40",
         act: 5,
-        step: 17,
+        step: 18,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 40",
@@ -541,7 +557,7 @@
       {
         id: "03",
         act: 5,
-        step: 18,
+        step: 19,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 03",
@@ -557,7 +573,7 @@
       {
         id: "35",
         act: 5,
-        step: 19,
+        step: 20,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "반전 4",
@@ -573,7 +589,7 @@
       {
         id: "41",
         act: 5,
-        step: 20,
+        step: 21,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 41",
@@ -589,7 +605,7 @@
       {
         id: "42",
         act: 5,
-        step: 21,
+        step: 22,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 42",
@@ -605,7 +621,7 @@
       {
         id: "43",
         act: 5,
-        step: 22,
+        step: 23,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 43",
@@ -621,7 +637,7 @@
       {
         id: "38",
         act: 5,
-        step: 23,
+        step: 24,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 38",
@@ -637,7 +653,7 @@
       {
         id: "06",
         act: 5,
-        step: 24,
+        step: 25,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 06",
@@ -653,7 +669,7 @@
       {
         id: "07",
         act: 5,
-        step: 25,
+        step: 26,
         trackId: "seismic",
         trackName: "규준 내진설계",
         num: "정본 07",
@@ -672,7 +688,7 @@
         id: "37",
         act: 6,
         actTitle: "Act 6. 극한의 비선형성과 성능기반 내진설계 (Nonlinear PBD & Life Safety)",
-        step: 26,
+        step: 27,
         trackId: "nonlinear",
         trackName: "비선형 성능설계",
         num: "정본 37",
@@ -688,7 +704,7 @@
       {
         id: "44",
         act: 6,
-        step: 27,
+        step: 28,
         trackId: "nonlinear",
         trackName: "비선형 성능설계",
         num: "정본 44",
@@ -704,7 +720,7 @@
       {
         id: "24",
         act: 6,
-        step: 28,
+        step: 29,
         trackId: "nonlinear",
         trackName: "비선형 성능설계",
         num: "정본 24",
@@ -720,7 +736,7 @@
       {
         id: "28",
         act: 6,
-        step: 29,
+        step: 30,
         trackId: "nonlinear",
         trackName: "비선형 성능설계",
         num: "정본 28",
@@ -736,7 +752,7 @@
       {
         id: "29",
         act: 6,
-        step: 30,
+        step: 31,
         trackId: "nonlinear",
         trackName: "비선형 성능설계",
         num: "정본 29",
@@ -863,7 +879,7 @@
               <div class="flex items-center gap-1.5">
                 <span class="text-xs font-bold text-white font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-900">${sim.num}</span>
                 <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border bg-slate-100 text-slate-700 border-slate-200">${sim.trackName}</span>
-                <span class="text-[10px] font-mono text-slate-400">Step ${sim.step}/30</span>
+                <span class="text-[10px] font-mono text-slate-400">Step ${sim.step}/${simulators.length}</span>
               </div>
               <span class="text-[11px] px-2 py-0.5 rounded-md font-medium ${sim.badgeClass}">${sim.status}</span>
             </div>
