@@ -18,8 +18,9 @@
   h1 { font-size:22px; font-weight:900; margin:0; letter-spacing:-.02em; }
   .lead { font-size:13px; color:var(--sub); margin:6px 0 0; }
   a.back { font-size:12px; font-weight:700; padding:8px 14px; border-radius:12px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; text-decoration:none; }
-  .grid { display:grid; grid-template-columns:260px 1fr; gap:18px; }
+  .grid { display:grid; grid-template-columns:260px 1fr; gap:18px; align-items:start; }
   @media (max-width:900px){ .grid { grid-template-columns:1fr; } }
+  .panel { overflow-y:auto; padding-right:4px; }
   .panel h3 { font-size:12px; letter-spacing:.08em; color:var(--dim); margin:14px 0 6px; font-weight:800; }
   label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; }
   label span { float:right; font-family:ui-monospace,monospace; color:var(--teal); }
@@ -39,6 +40,13 @@
   .readout b { font-family:ui-monospace,monospace; color:var(--ink); }
   .q { margin-top:14px; border-top:1px solid var(--line); padding-top:12px; font-size:13px; color:var(--sub); line-height:1.6; }
   .q b { color:var(--verm); }
+  /* short screens (e.g. 1080p at 125-150% scaling): tighten chrome so the page fits one screen */
+  @media (min-width:901px) and (max-height:800px){
+    .wrap { padding:8px; } .card { padding:12px 16px; border-radius:16px; }
+    header { padding-bottom:8px; margin-bottom:8px; } h1 { font-size:19px; } .lead { margin-top:2px; font-size:12px; }
+    .readout { margin-bottom:6px; } .cv { margin-bottom:6px; }
+    .q { margin-top:6px; padding-top:6px; font-size:12px; line-height:1.45; }
+  }
 </style>
 </head>
 <body>
@@ -190,14 +198,33 @@ function build(){
 }
 
 // ---------- drawing ----------
+// Canvas heights: design values scaled so the whole page fits one screen (desktop only).
+const BASE_H = { cvG:110, cvP:260, cvS:300, cvH:300 };
+let fitK = 1;
+function fit(){
+  const col = $("cvG").parentElement, panel = document.querySelector(".panel");
+  if (innerWidth <= 900){ fitK = 1; panel.style.maxHeight = ""; return; }  // stacked layout: normal scrolling
+  const cur = ["cvG","cvP","cvS"].reduce((a,id) => a + $(id).offsetHeight, 0);
+  const top = col.getBoundingClientRect().top + scrollY;           // header, card padding above the column
+  const extra = col.offsetHeight - cur;                              // readout, margins, questions
+  const bottom = parseFloat(getComputedStyle(document.querySelector(".card")).paddingBottom) + parseFloat(getComputedStyle(document.querySelector(".wrap")).paddingBottom) + 6;   // +6 slack for borders and rounding                                                 // card + page padding below
+  const want = BASE_H.cvG + BASE_H.cvP + BASE_H.cvS + 6;
+  fitK = Math.max(0.42, Math.min(1, (innerHeight - top - extra - bottom) / want));
+}
+// After the canvases are sized, cap the control panel to the column height so it scrolls instead of growing the page.
+function fitPanel(){
+  const panel = document.querySelector(".panel");
+  panel.style.maxHeight = innerWidth <= 900 ? "" : $("cvG").parentElement.offsetHeight + "px";
+}
 function setup(cv){
-  // Keep the design height in data-h: setting cv.height below rewrites the height attribute,
-  // so re-reading it on HiDPI screens (devicePixelRatio > 1) would inflate h on every resize.
-  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute("height");
-  const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.dataset.h;
-  if (cv.width !== Math.round(w*r) || cv.height !== Math.round(h*r)) { cv.width = Math.round(w*r); cv.height = Math.round(h*r); cv.style.height = h+"px"; }
+  // Size the backing store from the CSS box every draw; never read the height attribute back,
+  // because on HiDPI screens (devicePixelRatio > 1) it holds the scaled pixel height.
+  const r = window.devicePixelRatio || 1, h = Math.round(BASE_H[cv.id]*fitK);
+  if (cv.style.height !== (h+2)+"px") cv.style.height = (h+2)+"px";   // +2 = 1px border top/bottom
+  const w = cv.clientWidth;
+  if (cv.width !== Math.round(w*r) || cv.height !== Math.round(h*r)) { cv.width = Math.round(w*r); cv.height = Math.round(h*r); }
   const g = cv.getContext("2d"); g.setTransform(r,0,0,r,0,0); g.clearRect(0,0,w,h);
-  g.font = "12px Pretendard, sans-serif"; return [g, w, h];
+  g.font = (fitK < 0.8 ? 11 : 12) + "px Pretendard, sans-serif"; return [g, w, h];
 }
 function axes(g, x0, y0, w, h, xmax, ymax, xl, yl, yt){
   g.strokeStyle = C.line; g.lineWidth = 1; g.fillStyle = C.sub;
@@ -210,6 +237,7 @@ function axes(g, x0, y0, w, h, xmax, ymax, xl, yl, yt){
 function peakSoFar(u, n){ let m=0; for (let i=0;i<=n;i++) m=Math.max(m,Math.abs(u[i])); return m; }
 
 function draw(){
+  fit();
   const n = ag.length, mode = $("ord").value;
   $("tNow").textContent = (idx*DT).toFixed(2);
 
@@ -232,7 +260,7 @@ function draw(){
     g.strokeStyle=C.ink; g.lineWidth=2; g.beginPath(); g.moveTo(10+ugx,base); g.lineTo(w-10+ugx,base); g.stroke();
     g.fillStyle=C.dim; g.fillText("진자 높이 ∝ 주기 · 끝단 변위는 전 진자 공통 배율", 10, 16);
     periods.forEach((T,j) => {
-      const u = resp[j], x = x0 + j*gap + ugx, L = 40 + 150*Math.sqrt(T/periods[N_PEND-1]);
+      const u = resp[j], x = x0 + j*gap + ugx, L = (base-30)*(0.2 + 0.8*Math.sqrt(T/periods[N_PEND-1]));
       const d = u[idx]/umax*gap*1.6, pk = peakSoFar(u, idx);
       const hot = pk/umax, col = j===sel ? C.verm : `rgb(${15+hot*180|0},${110-hot*40|0},${126-hot*80|0})`;
       g.strokeStyle = col; g.lineWidth = j===sel?3:2;
@@ -290,6 +318,7 @@ function draw(){
     $("selT").textContent = T.toFixed(2);
     $("selPk").textContent = ordinate(pk, T, mode).toFixed(mode==="psa"?3:2) + " " + ordUnit[mode];
   }
+  fitPanel();
 }
 
 // ---------- loop ----------
