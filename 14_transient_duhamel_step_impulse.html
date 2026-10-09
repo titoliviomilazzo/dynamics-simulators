@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 14: 과도응답 · 대수감쇠율 · Step/Impulse · Duhamel 적분</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="assets/dynamics-fx.js" defer></script>
+  <style>
+    body {
+      background-color: #faf8f5;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .zentry-card {
+      transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+    /* selected state on top of the site-wide obsidian button system (assets/dynamics-fx.css) */
+    button.load-btn.active, button.tab-btn.active,
+    button.load-btn.active:hover, button.tab-btn.active:hover {
+      background-color: #2563eb !important;
+      border-color: #1d4ed8 !important;
+      box-shadow: 0 3px 0 #1e3a8a !important;
+      color: #ffffff !important;
+    }
+    canvas { touch-action: none; }
+  </style>
+</head>
+<body class="p-3 md:p-5 flex flex-col items-center justify-center min-h-screen">
+
+  <div id="sim-app-container" class="w-full max-w-7xl bg-white border border-slate-200 rounded-3xl p-4 md:p-5 shadow-xl space-y-3">
+
+    <!-- Top Header -->
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      <div class="space-y-1">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+            CHOPRA §2 · §4 TRANSIENT
+          </span>
+          <h1 class="text-lg md:text-xl font-black text-slate-900 tracking-tight">
+            SDOF 과도응답 &middot; 대수감쇠율 &middot; Step/Impulse &middot; Duhamel 적분
+          </h1>
+        </div>
+        <p id="formula-strip" class="text-xs text-slate-600 font-mono">
+          m&middot;u'' + c&middot;u' + k&middot;u = p(t) &middot; 구간선형 정확해(Chopra §5.2) 시간적분 &middot; Duhamel 합성곱 교차검증
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-xs font-semibold border border-slate-200">
+          <button onclick="setSpeed(0.25)" id="spd-0.25" class="tab-btn px-2 py-1 rounded text-slate-600">0.25x</button>
+          <button onclick="setSpeed(0.5)" id="spd-0.5" class="tab-btn px-2 py-1 rounded text-slate-600 active">0.5x</button>
+          <button onclick="setSpeed(1)" id="spd-1" class="tab-btn px-2 py-1 rounded text-slate-600">1x</button>
+        </div>
+        <button id="btn-play" onclick="togglePlay()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+          <span id="play-icon">⏸</span>
+          <span id="play-text">일시정지</span>
+        </button>
+        <button onclick="restart()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold transition">
+          처음부터
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+
+      <!-- LEFT: frame + controls -->
+      <div class="lg:col-span-4 flex flex-col gap-3">
+
+        <div class="bg-slate-50/70 border border-slate-200 rounded-2xl p-3 flex flex-col">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-1.5">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+              <span class="text-xs font-bold text-slate-900">1자유도 골조 거동</span>
+            </div>
+            <span class="text-[11px] font-mono text-slate-500">T<sub>n</sub> = 1.00 s</span>
+          </div>
+          <div class="relative w-full mt-2 rounded-xl overflow-hidden border border-slate-200 bg-white" style="height: 200px;">
+            <canvas id="frameCanvas" class="w-full h-full block"></canvas>
+          </div>
+          <div class="flex justify-between items-center text-xs pt-1.5 font-mono">
+            <span class="text-slate-900 font-bold">t/T<sub>n</sub> = <span id="t-val" class="text-slate-700">0.00</span></span>
+            <span class="text-slate-900 font-bold"><span id="u-label">u/u<sub>st</sub></span> = <span id="u-val" class="text-blue-700">0.000</span></span>
+          </div>
+        </div>
+
+        <!-- Load type -->
+        <div class="bg-slate-50/80 p-3 rounded-2xl border border-slate-200 zentry-card">
+          <div class="text-xs font-bold text-slate-900 mb-2">하중 / 초기조건 유형</div>
+          <div class="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
+            <button class="load-btn px-1.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700" data-type="free">자유진동</button>
+            <button class="load-btn px-1.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700" data-type="impulse">이상 충격 I</button>
+            <button class="load-btn px-1.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700" data-type="step">Step (램프)</button>
+            <button class="load-btn px-1.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700" data-type="rect">직사각 펄스</button>
+            <button class="load-btn px-1.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700" data-type="halfsine">반사인 펄스</button>
+            <button class="load-btn px-1.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700" data-type="tri">삼각(감소) 펄스</button>
+          </div>
+        </div>
+
+        <!-- Sliders -->
+        <div class="bg-slate-50/80 p-3 rounded-2xl border border-slate-200 zentry-card space-y-3 text-xs">
+          <div>
+            <div class="flex justify-between mb-1.5">
+              <span class="font-bold text-slate-900">감쇠비 &zeta;</span>
+              <span id="zeta-text" class="font-mono font-bold text-blue-700">0.05 (5%)</span>
+            </div>
+            <input id="slider-zeta" type="range" min="0" max="0.30" step="0.01" value="0.05"
+                   class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+          </div>
+          <div id="td-row">
+            <div class="flex justify-between mb-1.5">
+              <span id="td-name" class="font-bold text-slate-900">펄스 지속시간 t<sub>d</sub>/T<sub>n</sub></span>
+              <span id="td-text" class="font-mono font-bold text-amber-700">0.40</span>
+            </div>
+            <input id="slider-td" type="range" min="0" max="3" step="0.05" value="0.40"
+                   class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500">
+          </div>
+          <div id="v0-row">
+            <div class="flex justify-between mb-1.5">
+              <span class="font-bold text-slate-900">초기속도 v<sub>0</sub>/(&omega;<sub>n</sub>u<sub>0</sub>)</span>
+              <span id="v0-text" class="font-mono font-bold text-emerald-700">0.00</span>
+            </div>
+            <input id="slider-v0" type="range" min="-2" max="2" step="0.1" value="0"
+                   class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600">
+          </div>
+        </div>
+
+        <!-- Telemetry -->
+        <div class="bg-white p-3 rounded-2xl border border-slate-200 text-[11px] font-mono space-y-1" id="telemetry">
+          <div class="flex justify-between"><span class="text-slate-600">최대응답 (수치)</span><span id="tm-max" class="font-bold text-slate-900">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-600">최대응답 (해석해)</span><span id="tm-exact" class="font-bold text-slate-900">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-600">대수감쇠율 &delta; → &zeta; 역산</span><span id="tm-delta" class="font-bold text-slate-900">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-600">Duhamel 합성곱 vs 시간적분</span><span id="tm-duh" class="font-bold text-slate-900">-</span></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: plots -->
+      <div class="lg:col-span-8 flex flex-col gap-3">
+
+        <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 flex-wrap gap-2">
+            <span class="text-xs font-bold text-slate-900">변위 이력 u(t) &middot; 외력 p(t) <span class="text-slate-400 font-normal">(그래프 클릭·드래그로 시점 이동)</span></span>
+            <div class="flex items-center gap-3 text-[11px] font-mono font-medium">
+              <span class="flex items-center gap-1.5 text-blue-700 font-bold"><span class="w-2 h-2 rounded-full bg-blue-600 inline-block"></span> u(t)</span>
+              <span class="flex items-center gap-1.5 text-amber-600 font-bold"><span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> p(t)/p<sub>0</sub></span>
+              <span class="flex items-center gap-1.5 text-slate-500 font-bold"><span class="w-3 border-t-2 border-dashed border-slate-400 inline-block"></span> 포락선 / u<sub>st</sub></span>
+            </div>
+          </div>
+          <div class="relative w-full mt-2 bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden" style="height: 260px;">
+            <canvas id="respCanvas" class="w-full h-full block"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 flex-wrap gap-2">
+            <span id="panel2-title" class="text-xs font-bold text-slate-900">Duhamel 적분 분해</span>
+            <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-xs font-semibold border border-slate-200">
+              <button onclick="setPanel('duhamel')" id="tab-duhamel" class="tab-btn px-2 py-0.5 rounded text-slate-600">∫ Duhamel</button>
+              <button onclick="setPanel('logdec')" id="tab-logdec" class="tab-btn px-2 py-0.5 rounded text-slate-600">ln 대수감쇠</button>
+              <button onclick="setPanel('spectrum')" id="tab-spectrum" class="tab-btn px-2 py-0.5 rounded text-slate-600">충격스펙트럼</button>
+            </div>
+          </div>
+          <div class="relative w-full mt-2 bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden" style="height: 250px;">
+            <canvas id="panelCanvas" class="w-full h-full block"></canvas>
+          </div>
+          <p id="panel2-note" class="text-[11px] text-slate-500 font-mono pt-1.5"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Physics core (pure functions, no DOM) ===== -->
+  <script id="physics-core">
+    const TN = 1.0;
+    const WN = 2 * Math.PI / TN;
+    const MASS = 1.0;
+    const KSTIFF = WN * WN * MASS;   // p0 = k → u_st = 1
+
+    // p(t)/p0 for each load type; td = pulse duration or ramp rise time (in s, Tn = 1 s)
+    function loadShape(type, td) {
+      switch (type) {
+        case 'step':
+          return td <= 0 ? (t) => 1 : (t) => (t < td ? t / td : 1);
+        case 'rect':
+          return (t) => (t <= td ? 1 : 0);
+        case 'halfsine':
+          return (t) => (t <= td ? Math.sin(Math.PI * t / td) : 0);
+        case 'tri':
+          return (t) => (t <= td ? 1 - t / td : 0);
+        default:
+          return (t) => 0;
+      }
+    }
+
+    // Piecewise-linear exact recurrence coefficients (Chopra Table 5.2.1)
+    function recurrenceCoeffs(zeta, dt, wn, k) {
+      const sq = Math.sqrt(1 - zeta * zeta);
+      const wd = wn * sq;
+      const e = Math.exp(-zeta * wn * dt);
+      const s = Math.sin(wd * dt), c = Math.cos(wd * dt);
+      const A = e * (zeta / sq * s + c);
+      const B = e * (s / wd);
+      const C = (1 / k) * (2 * zeta / (wn * dt) + e * (((1 - 2 * zeta * zeta) / (wd * dt) - zeta / sq) * s - (1 + 2 * zeta / (wn * dt)) * c));
+      const D = (1 / k) * (1 - 2 * zeta / (wn * dt) + e * ((2 * zeta * zeta - 1) / (wd * dt) * s + 2 * zeta / (wn * dt) * c));
+      const Ap = -e * (wn / sq * s);
+      const Bp = e * (c - zeta / sq * s);
+      const Cp = (1 / k) * (-1 / dt + e * ((wn / sq + zeta / (dt * sq)) * s + c / dt));
+      const Dp = (1 / (k * dt)) * (1 - e * (zeta / sq * s + c));
+      return { A, B, C, D, Ap, Bp, Cp, Dp };
+    }
+
+    // Time history. Returns arrays of t, u, v, p (p normalized by p0)
+    function simulate(opts) {
+      const { zeta, type, td, u0 = 0, v0 = 0, tEnd, nPerTn = 1000 } = opts;
+      const dt = TN / nPerTn;
+      const n = Math.round(tEnd / dt);
+      const co = recurrenceCoeffs(zeta, dt, WN, KSTIFF);
+      const shape = loadShape(type, td);
+      const t = new Float64Array(n + 1), u = new Float64Array(n + 1), v = new Float64Array(n + 1), p = new Float64Array(n + 1);
+      u[0] = u0; v[0] = v0;
+      for (let i = 0; i <= n; i++) { t[i] = i * dt; p[i] = shape(t[i]); }
+      // rectangular pulse: put the jump mid-value on the grid point so the linear
+      // interpolation keeps the exact impulse p0·td (second-order accurate)
+      if (type === 'rect') { const id = Math.round(td / dt); if (id >= 0 && id <= n) p[id] = 0.5; }
+      for (let i = 0; i < n; i++) {
+        const pi = p[i] * KSTIFF, pj = p[i + 1] * KSTIFF;
+        u[i + 1] = co.A * u[i] + co.B * v[i] + co.C * pi + co.D * pj;
+        v[i + 1] = co.Ap * u[i] + co.Bp * v[i] + co.Cp * pi + co.Dp * pj;
+      }
+      return { t, u, v, p, dt, n };
+    }
+
+    // Unit impulse response h(t) = e^{-ζωn t} sin(ωD t) / (m ωD)
+    function unitImpulse(zeta, t) {
+      const wd = WN * Math.sqrt(1 - zeta * zeta);
+      return Math.exp(-zeta * WN * t) * Math.sin(wd * t) / (MASS * wd);
+    }
+
+    // Initial-condition (homogeneous) term
+    function freeTerm(zeta, u0, v0, t) {
+      const wd = WN * Math.sqrt(1 - zeta * zeta);
+      return Math.exp(-zeta * WN * t) * (u0 * Math.cos(wd * t) + (v0 + zeta * WN * u0) / wd * Math.sin(wd * t));
+    }
+
+    // Duhamel convolution ∫0^t p(τ) h(t−τ) dτ by composite Simpson; p in force units (p0 = k)
+    function duhamelAt(zeta, type, td, t, nSeg = 800) {
+      if (t <= 0) return 0;
+      const shape = loadShape(type, td);
+      // split at load-shape kinks so Simpson stays accurate
+      const breaks = [0, t];
+      if (td > 0 && td < t) breaks.splice(1, 0, td);
+      let sum = 0;
+      for (let b = 0; b < breaks.length - 1; b++) {
+        const a0 = breaks[b], a1 = breaks[b + 1];
+        const m = Math.max(2, 2 * Math.ceil(nSeg * (a1 - a0) / t / 2));
+        const h = (a1 - a0) / m;
+        // evaluate p just inside the segment to respect discontinuities at td
+        const f = (tau) => {
+          const tt = Math.min(Math.max(tau, a0 + 1e-12), a1 - 1e-12);
+          return shape(tt) * KSTIFF * unitImpulse(zeta, t - tau);
+        };
+        let s = f(a0) + f(a1);
+        for (let i = 1; i < m; i++) s += (i % 2 ? 4 : 2) * f(a0 + i * h);
+        sum += s * h / 3;
+      }
+      return sum;
+    }
+
+    // Closed-form maxima where Chopra gives them (null when no closed form is shown)
+    function exactMax(type, zeta, td, u0, v0) {
+      const sq = Math.sqrt(1 - zeta * zeta);
+      const x = td / TN;
+      if (type === 'impulse') {
+        // normalized by I/(m ωn)
+        const wd = WN * sq;
+        const tp = zeta > 0 ? Math.atan(sq / zeta) / wd : Math.PI / 2 / WN;
+        return (WN / wd) * Math.exp(-zeta * WN * tp) * Math.sin(wd * tp);
+      }
+      if (type === 'step') {
+        if (td <= 0) return 1 + Math.exp(-Math.PI * zeta / sq);
+        if (zeta === 0) return 1 + Math.abs(Math.sin(Math.PI * x)) / (Math.PI * x);
+        return null;
+      }
+      if (type === 'rect' && zeta === 0) return x < 0.5 ? 2 * Math.sin(Math.PI * x) : 2;
+      if (type === 'halfsine' && zeta === 0 && x < 0.5) {
+        // free-vibration phase governs (Chopra eq. 4.8.6)
+        return (4 * x / (1 - 4 * x * x)) * Math.cos(Math.PI * x);
+      }
+      if (type === 'free' && zeta === 0) return Math.sqrt(u0 * u0 + (v0 / WN) ** 2);
+      return null;
+    }
+
+    // Positive peaks of the residual r = u − pEnd after the load has ended
+    function residualPeaks(sim, tLoadEnd, pEnd) {
+      const out = [];
+      const { t, u, n } = sim;
+      for (let i = 1; i < n; i++) {
+        if (t[i] <= tLoadEnd + 1e-9) continue;
+        const a = u[i - 1] - pEnd, b = u[i] - pEnd, c = u[i + 1] - pEnd;
+        if (b > a && b >= c && b > 1e-6) out.push({ i, t: t[i], r: b });
+      }
+      return out;
+    }
+
+    function logDecrement(peaks, maxCycles = 6) {
+      if (peaks.length < 2) return null;
+      const j = Math.min(maxCycles, peaks.length - 1);
+      const delta = Math.log(peaks[0].r / peaks[j].r) / j;
+      const zetaEst = delta / Math.sqrt(4 * Math.PI * Math.PI + delta * delta);
+      return { delta, zetaEst, j };
+    }
+
+    // Shock spectrum Rd = max|u|/u_st vs td/Tn
+    function shockSpectrum(type, zeta) {
+      const xs = [], ys = [];
+      for (let x = 0.05; x <= 3.0001; x += 0.025) {
+        const td = x * TN;
+        const sim = simulate({ zeta, type, td, tEnd: td + 1.5 * TN, nPerTn: 200 });
+        let mx = 0;
+        for (let i = 0; i <= sim.n; i++) mx = Math.max(mx, Math.abs(sim.u[i]));
+        xs.push(x); ys.push(mx);
+      }
+      return { xs, ys };
+    }
+
+    if (typeof module !== 'undefined') {
+      module.exports = { TN, WN, KSTIFF, loadShape, simulate, unitImpulse, freeTerm, duhamelAt, exactMax, residualPeaks, logDecrement, shockSpectrum };
+    }
+  </script>
+
+  <!-- ===== UI / rendering ===== -->
+  <script>
+    const PAD = { left: 65, right: 30, top: 30, bottom: 45 };
+    const DPR = () => Math.max(2, window.devicePixelRatio || 1);
+    const COL = {
+      blue: '#2563eb', blueLight: 'rgba(37, 99, 235, 0.18)', amber: '#d97706', amberFill: 'rgba(217, 119, 6, 0.10)',
+      red: '#dc2626', green: '#059669', slate: '#0f172a', grid: '#f1f5f9', border: '#e2e8f0', guide: '#94a3b8'
+    };
+    const Canon = window.DynamicsChartCanonical;
+
+    const state = {
+      type: 'step', zeta: 0.05, td: 0.40, v0: 0, panel: 'duhamel',
+      playing: true, speed: 0.5, tc: 0, sim: null, tEnd: 8,
+      peaks: [], ld: null, maxU: 0, tMax: 0, specCache: {}
+    };
+
+    const TD_DEFAULT = { step: 0, rect: 0.4, halfsine: 0.4, tri: 0.4 };
+
+    const frameCanvas = document.getElementById('frameCanvas');
+    const respCanvas = document.getElementById('respCanvas');
+    const panelCanvas = document.getElementById('panelCanvas');
+    const ctxF = frameCanvas.getContext('2d');
+    const ctxR = respCanvas.getContext('2d');
+    const ctxP = panelCanvas.getContext('2d');
+
+    function resizeCanvases() {
+      [frameCanvas, respCanvas, panelCanvas].forEach(c => {
+        const r = c.parentElement.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        c.width = r.width * DPR();
+        c.height = r.height * DPR();
+        c.getContext('2d').setTransform(DPR(), 0, 0, DPR(), 0, 0);
+      });
+    }
+    window.addEventListener('resize', () => { resizeCanvases(); });
+
+    const isPulse = (t) => t === 'rect' || t === 'halfsine' || t === 'tri';
+    const loadEnd = () => (state.type === 'step' || isPulse(state.type) ? state.td : 0);
+    const pEnd = () => (state.type === 'step' ? 1 : 0);
+
+    function recompute() {
+      const { type, zeta, td } = state;
+      const u0 = type === 'free' ? 1 : 0;
+      // impulse: I = m ωn → v0 = ωn, response normalized by I/(m ωn)
+      const v0 = type === 'free' ? state.v0 * WN * u0 : type === 'impulse' ? WN : 0;
+      state.u0 = u0; state.v0abs = v0;
+      state.tEnd = Math.max(8, Math.ceil(loadEnd() + 5));
+      state.sim = simulate({ zeta, type, td, u0, v0, tEnd: state.tEnd * TN, nPerTn: 1000 });
+      let mx = 0, tm = 0;
+      for (let i = 0; i <= state.sim.n; i++) {
+        if (Math.abs(state.sim.u[i]) > mx) { mx = Math.abs(state.sim.u[i]); tm = state.sim.t[i]; }
+      }
+      state.maxU = mx; state.tMax = tm;
+      state.peaks = residualPeaks(state.sim, loadEnd(), pEnd());
+      state.ld = logDecrement(state.peaks);
+      state.exact = exactMax(type, zeta, td, u0, v0);
+      if (state.tc > state.tEnd) state.tc = 0;
+      updateTelemetry();
+      updateTexts();
+    }
+
+    function uLabelText() {
+      return state.type === 'impulse' ? 'u·mω<sub>n</sub>/I' : state.type === 'free' ? 'u/u<sub>0</sub>' : 'u/u<sub>st</sub>';
+    }
+
+    function updateTexts() {
+      const t = state.type;
+      document.getElementById('zeta-text').textContent = `${state.zeta.toFixed(2)} (${Math.round(state.zeta * 100)}%)`;
+      document.getElementById('td-text').textContent = state.td.toFixed(2);
+      document.getElementById('v0-text').textContent = state.v0.toFixed(2);
+      document.getElementById('td-row').style.display = (t === 'step' || isPulse(t)) ? '' : 'none';
+      document.getElementById('v0-row').style.display = t === 'free' ? '' : 'none';
+      document.getElementById('td-name').innerHTML = t === 'step'
+        ? '상승시간 t<sub>r</sub>/T<sub>n</sub> (0 = 갑작스러운 재하)'
+        : '펄스 지속시간 t<sub>d</sub>/T<sub>n</sub>';
+      document.getElementById('slider-td').min = t === 'step' ? '0' : '0.05';
+      document.getElementById('u-label').innerHTML = uLabelText();
+
+      const F = {
+        free: 'u(t) = e<sup>−ζω<sub>n</sub>t</sup>[u<sub>0</sub>cos ω<sub>D</sub>t + (v<sub>0</sub>+ζω<sub>n</sub>u<sub>0</sub>)/ω<sub>D</sub> sin ω<sub>D</sub>t] &middot; δ = ln(u<sub>i</sub>/u<sub>i+1</sub>) = 2πζ/√(1−ζ²)',
+        impulse: 'p(t) = I·δ(t) → v(0⁺) = I/m &middot; u(t) = I·h(t), h(t) = e<sup>−ζω<sub>n</sub>t</sup> sin ω<sub>D</sub>t /(mω<sub>D</sub>)',
+        step: 'u(t) = u<sub>st</sub>[1 − e<sup>−ζω<sub>n</sub>t</sup>(cos ω<sub>D</sub>t + ζ/√(1−ζ²) sin ω<sub>D</sub>t)] &middot; t<sub>r</sub> = 0이면 u<sub>max</sub> = u<sub>st</sub>(1 + e<sup>−πζ/√(1−ζ²)</sup>) ≈ 2u<sub>st</sub>',
+        rect: 'p = p<sub>0</sub> (0 ≤ t ≤ t<sub>d</sub>) &middot; 강제진동 단계 + 자유진동 단계 &middot; u(t) = ∫<sub>0</sub><sup>t</sup> p(τ)h(t−τ)dτ',
+        halfsine: 'p = p<sub>0</sub> sin(πt/t<sub>d</sub>) (0 ≤ t ≤ t<sub>d</sub>) &middot; u(t) = ∫<sub>0</sub><sup>t</sup> p(τ)h(t−τ)dτ',
+        tri: 'p = p<sub>0</sub>(1 − t/t<sub>d</sub>) (블라스트형) &middot; u(t) = ∫<sub>0</sub><sup>t</sup> p(τ)h(t−τ)dτ'
+      };
+      document.getElementById('formula-strip').innerHTML = F[t];
+
+      document.querySelectorAll('.load-btn').forEach(b => b.classList.toggle('active', b.dataset.type === t));
+      ['duhamel', 'logdec', 'spectrum'].forEach(p => document.getElementById('tab-' + p).classList.toggle('active', p === state.panel));
+      const titles = { duhamel: 'Duhamel 적분 분해: p(τ) × h(t−τ) 의 넓이 = u(t)', logdec: '대수감쇠율: 연속 피크의 ln 값은 직선', spectrum: '충격스펙트럼 R<sub>d</sub> = u<sub>max</sub>/u<sub>st</sub> vs t<sub>d</sub>/T<sub>n</sub>' };
+      document.getElementById('panel2-title').innerHTML = titles[state.panel];
+    }
+
+    function fmt(x, d = 3) { return x == null || !isFinite(x) ? '—' : x.toFixed(d); }
+
+    function updateTelemetry() {
+      const lbl = state.type === 'impulse' ? 'u·mωn/I' : state.type === 'free' ? '|u|/u0' : 'u/u_st';
+      document.getElementById('tm-max').textContent = `${lbl} = ${fmt(state.maxU)} @ t/Tn = ${fmt(state.tMax / TN, 2)}`;
+      document.getElementById('tm-exact').textContent = state.exact == null ? '닫힌해 없음 (수치해 사용)' : `${fmt(state.exact)}  (오차 ${fmt(Math.abs(state.maxU - state.exact) / state.exact * 100, 2)}%)`;
+      if (state.ld) {
+        const exactDelta = 2 * Math.PI * state.zeta / Math.sqrt(1 - state.zeta ** 2);
+        document.getElementById('tm-delta').textContent = `δ = ${fmt(state.ld.delta)} (이론 ${fmt(exactDelta)}) → ζ ≈ ${fmt(state.ld.zetaEst)}`;
+      } else {
+        document.getElementById('tm-delta').textContent = state.zeta === 0 ? 'δ = 0 (비감쇠)' : '피크 부족';
+      }
+    }
+
+    // ---------- shared plot helpers ----------
+    function plotArea(c) {
+      const w = c.width / DPR(), h = c.height / DPR();
+      return { w, h, x0: PAD.left, x1: w - PAD.right, y0: PAD.top, y1: h - PAD.bottom };
+    }
+
+    function niceStep(range, target) {
+      const raw = range / target;
+      const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+      const n = raw / mag;
+      return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * mag;
+    }
+
+    function drawAxes(ctx, A, xmin, xmax, ymin, ymax, xLabel, yLabel, xStep) {
+      const X = (x) => A.x0 + (x - xmin) / (xmax - xmin) * (A.x1 - A.x0);
+      const Y = (y) => A.y1 - (y - ymin) / (ymax - ymin) * (A.y1 - A.y0);
+      ctx.save();
+      ctx.font = '10px Pretendard, monospace';
+      ctx.fillStyle = '#475569';
+      ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+      const ys = niceStep(ymax - ymin, 5);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (let y = Math.ceil(ymin / ys) * ys; y <= ymax + 1e-9; y += ys) {
+        ctx.beginPath(); ctx.moveTo(A.x0, Y(y)); ctx.lineTo(A.x1, Y(y)); ctx.stroke();
+        ctx.fillText(Math.abs(y) < 1e-9 ? '0' : (+y.toFixed(3)).toString(), A.x0 - 6, Y(y));
+      }
+      const xs = xStep || niceStep(xmax - xmin, 8);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let x = Math.ceil(xmin / xs) * xs; x <= xmax + 1e-9; x += xs) {
+        ctx.beginPath(); ctx.moveTo(X(x), A.y0); ctx.lineTo(X(x), A.y1); ctx.stroke();
+        ctx.fillText((+x.toFixed(3)).toString(), X(x), A.y1 + 5);
+      }
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.strokeRect(A.x0, A.y0, A.x1 - A.x0, A.y1 - A.y0);
+      if (ymin < 0 && ymax > 0) { ctx.strokeStyle = COL.border; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(A.x0, Y(0)); ctx.lineTo(A.x1, Y(0)); ctx.stroke(); }
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 10.5px Pretendard, monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(xLabel, (A.x0 + A.x1) / 2, A.h - 6);
+      ctx.save(); ctx.translate(14, (A.y0 + A.y1) / 2); ctx.rotate(-Math.PI / 2);
+      ctx.textBaseline = 'middle'; ctx.fillText(yLabel, 0, 0); ctx.restore();
+      ctx.restore();
+      return { X, Y };
+    }
+
+    function placeBadge(ctx, A, text, tx, ty, curve, color) {
+      ctx.save();
+      ctx.font = 'bold 9.5px Pretendard, monospace';
+      const bw = ctx.measureText(text).width + 16, bh = 22;
+      ctx.restore();
+      const pos = Canon.getBestCalloutPlacement(tx, ty, bw, bh, { left: A.x0, top: A.y0, width: A.x1 - A.x0, height: A.y1 - A.y0 }, curve);
+      Canon.drawLeaderLine(ctx, tx, ty, pos.x, pos.y, bw, bh, color);
+      Canon.drawAutoBadge(ctx, text, pos.x, pos.y, { border: color });
+    }
+
+    // ---------- response plot ----------
+    function drawResponse() {
+      const ctx = ctxR, A = plotArea(respCanvas), S = state.sim;
+      ctx.clearRect(0, 0, A.w, A.h);
+      let ymax = 1.0, ymin = -0.2;
+      for (let i = 0; i <= S.n; i++) { ymax = Math.max(ymax, S.u[i], S.p[i]); ymin = Math.min(ymin, S.u[i], S.p[i]); }
+      const span = ymax - ymin;
+      ymax += span * 0.12; ymin -= span * 0.08;
+      if (ymin > -0.25 * ymax) ymin = Math.min(ymin, -0.25 * ymax);
+      const { X, Y } = drawAxes(ctx, A, 0, state.tEnd, ymin, ymax, 't / Tn', uLabelText().replace(/<\/?sub>/g, ''), 1);
+      const stride = Math.max(1, Math.floor(S.n / 1200));
+
+      // load
+      if (state.type !== 'free' && state.type !== 'impulse') {
+        ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+        for (let i = 0; i <= S.n; i += stride) ctx.lineTo(X(S.t[i]), Y(S.p[i]));
+        ctx.lineTo(X(S.t[S.n]), Y(0)); ctx.closePath();
+        ctx.fillStyle = COL.amberFill; ctx.fill();
+        ctx.beginPath();
+        for (let i = 0; i <= S.n; i += stride) { const x = X(S.t[i]), y = Y(S.p[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        ctx.strokeStyle = COL.amber; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+      }
+      if (state.type === 'impulse') {
+        ctx.strokeStyle = COL.amber; ctx.fillStyle = COL.amber; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(X(0) + 1.5, Y(0)); ctx.lineTo(X(0) + 1.5, A.y0 + 14); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(X(0) + 1.5, A.y0 + 6); ctx.lineTo(X(0) - 3.5, A.y0 + 15); ctx.lineTo(X(0) + 6.5, A.y0 + 15); ctx.fill();
+        ctx.font = 'bold 10px Pretendard, monospace'; ctx.textAlign = 'left'; ctx.fillText('I·δ(t)', X(0) + 9, A.y0 + 14);
+      }
+
+      // static line & envelope
+      ctx.strokeStyle = COL.guide; ctx.lineWidth = 1.2; ctx.setLineDash([5, 4]);
+      if (state.type === 'step') { ctx.beginPath(); ctx.moveTo(A.x0, Y(1)); ctx.lineTo(A.x1, Y(1)); ctx.stroke(); }
+      const tl = loadEnd();
+      const base = pEnd();
+      const iStart = Math.min(S.n, Math.round(tl / S.dt));
+      const r0 = S.u[iStart] - base, rv = S.v[iStart];
+      const wd = WN * Math.sqrt(1 - state.zeta ** 2);
+      const amp = Math.sqrt(r0 * r0 + ((rv + state.zeta * WN * r0) / wd) ** 2);
+      if (amp > 1e-6) {
+        [1, -1].forEach(sg => {
+          ctx.beginPath();
+          for (let i = iStart; i <= S.n; i += stride) {
+            const y = base + sg * amp * Math.exp(-state.zeta * WN * (S.t[i] - tl));
+            i === iStart ? ctx.moveTo(X(S.t[i]), Y(y)) : ctx.lineTo(X(S.t[i]), Y(y));
+          }
+          ctx.stroke();
+        });
+      }
+      ctx.setLineDash([]);
+      if (tl > 0 && tl < state.tEnd) {
+        ctx.strokeStyle = 'rgba(217,119,6,0.5)'; ctx.beginPath(); ctx.moveTo(X(tl), A.y0); ctx.lineTo(X(tl), A.y1); ctx.stroke();
+        ctx.fillStyle = COL.amber; ctx.font = 'bold 9.5px Pretendard, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText(state.type === 'step' ? 't = tr' : 't = td (자유진동 시작)', X(tl) + 4, A.y1 - 4);
+      }
+
+      // full (ghost) + revealed response
+      const curve = [];
+      ctx.beginPath();
+      for (let i = 0; i <= S.n; i += stride) { const x = X(S.t[i]), y = Y(S.u[i]); curve.push({ x, y }); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.strokeStyle = COL.blueLight; ctx.lineWidth = 2; ctx.stroke();
+      const ic = Math.min(S.n, Math.round(state.tc / S.dt));
+      ctx.beginPath();
+      for (let i = 0; i <= ic; i += stride) { const x = X(S.t[i]), y = Y(S.u[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.lineTo(X(S.t[ic]), Y(S.u[ic]));
+      ctx.strokeStyle = COL.blue; ctx.lineWidth = 2.5; ctx.stroke();
+
+      // log-decrement peaks
+      const nPk = state.ld ? state.ld.j + 1 : 0;
+      ctx.fillStyle = '#ffffff'; ctx.strokeStyle = COL.green; ctx.lineWidth = 1.5;
+      for (let k = 0; k < nPk; k++) {
+        const pk = state.peaks[k];
+        ctx.beginPath(); ctx.arc(X(pk.t), Y(S.u[pk.i]), 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+
+      // cursor
+      ctx.strokeStyle = COL.slate; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(X(state.tc), A.y0); ctx.lineTo(X(state.tc), A.y1); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = COL.blue; ctx.beginPath(); ctx.arc(X(S.t[ic]), Y(S.u[ic]), 4.5, 0, Math.PI * 2); ctx.fill();
+
+      // max marker
+      const im = Math.round(state.tMax / S.dt);
+      const mx = X(S.t[im]), my = Y(S.u[im]);
+      ctx.fillStyle = COL.red; ctx.beginPath(); ctx.arc(mx, my, 4, 0, Math.PI * 2); ctx.fill();
+      const lbl = state.type === 'impulse' ? 'u·mωn/I' : state.type === 'free' ? '|u|/u0' : 'u/u_st';
+      placeBadge(ctx, A, `max ${lbl} = ${state.maxU.toFixed(3)}`, mx, my, curve, COL.red);
+    }
+
+    // ---------- panel: Duhamel ----------
+    function drawDuhamel() {
+      const ctx = ctxP, A = plotArea(panelCanvas);
+      ctx.clearRect(0, 0, A.w, A.h);
+      const { type, zeta, td } = state;
+      const t = state.tc;
+      const shape = loadShape(type, td);
+      const N = 1200;
+      // kernel normalized: h̃ = ωD m h = e^{-ζωn s} sin ωD s  (|h̃| ≤ 1)
+      const wd = WN * Math.sqrt(1 - zeta ** 2);
+      const kern = (s) => (s < 0 ? 0 : Math.exp(-zeta * WN * s) * Math.sin(wd * s));
+      const { X, Y } = drawAxes(ctx, A, 0, state.tEnd, -1.25, 1.35, 'τ / Tn', 'p(τ)/p0 · h̃(t−τ)', 1);
+
+      if (type === 'free') {
+        ctx.fillStyle = '#334155'; ctx.font = 'bold 11px Pretendard, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('외력 없음 → Duhamel 항 = 0, 응답은 초기조건 항 e^(−ζωn t)[u0 cos ωDt + …] 뿐', (A.x0 + A.x1) / 2, (A.y0 + A.y1) / 2);
+      }
+
+      // product area (only τ ∈ [0, t])
+      if (type !== 'free' && type !== 'impulse' && t > 0) {
+        for (const sign of [1, -1]) {
+          ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+          for (let i = 0; i <= N; i++) {
+            const tau = t * i / N;
+            const v = shape(tau) * kern(t - tau);
+            ctx.lineTo(X(tau), Y(sign * v > 0 ? v : 0));
+          }
+          ctx.lineTo(X(t), Y(0)); ctx.closePath();
+          ctx.fillStyle = sign > 0 ? 'rgba(5,150,105,0.28)' : 'rgba(220,38,38,0.25)';
+          ctx.fill();
+        }
+      }
+      // load p(τ)
+      if (type !== 'free' && type !== 'impulse') {
+        ctx.beginPath();
+        for (let i = 0; i <= N; i++) { const tau = state.tEnd * i / N; const y = Y(shape(tau)); i ? ctx.lineTo(X(tau), y) : ctx.moveTo(X(tau), y); }
+        ctx.strokeStyle = COL.amber; ctx.lineWidth = 1.8; ctx.stroke();
+      }
+      if (type === 'impulse') {
+        ctx.strokeStyle = COL.amber; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(X(0) + 1.5, Y(0)); ctx.lineTo(X(0) + 1.5, Y(1.2)); ctx.stroke();
+      }
+      // kernel h̃(t − τ), drawn backward from the cursor
+      if (type !== 'free') {
+        ctx.beginPath();
+        for (let i = 0; i <= N; i++) { const tau = t * i / N; const y = Y(kern(t - tau)); i ? ctx.lineTo(X(tau), y) : ctx.moveTo(X(tau), y); }
+        ctx.strokeStyle = COL.blue; ctx.lineWidth = 1.6; ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
+      }
+      // cursor
+      ctx.strokeStyle = COL.slate; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(X(t), A.y0); ctx.lineTo(X(t), A.y1); ctx.stroke(); ctx.setLineDash([]);
+
+      // values
+      const { duh, label, err, uNum } = duhamelCheck();
+      const legend = [
+        { c: COL.amber, t: 'p(τ)/p0', dash: false },
+        { c: COL.blue, t: A.x1 - A.x0 < 420 ? 'h̃(t−τ)' : 'h̃(t−τ) = mωD·h (뒤집힌 커널)', dash: true },
+        { c: 'rgba(5,150,105,0.6)', t: '+ 기여', box: true },
+        { c: 'rgba(220,38,38,0.55)', t: '− 기여', box: true }
+      ];
+      ctx.save(); ctx.font = 'bold 9.5px Pretendard, monospace'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      let lx = A.x0 + 8;
+      legend.forEach(l => {
+        if (l.box) { ctx.fillStyle = l.c; ctx.fillRect(lx, A.y0 - 20, 12, 8); }
+        else { ctx.strokeStyle = l.c; ctx.lineWidth = 2; ctx.setLineDash(l.dash ? [4, 2] : []); ctx.beginPath(); ctx.moveTo(lx, A.y0 - 16); ctx.lineTo(lx + 14, A.y0 - 16); ctx.stroke(); ctx.setLineDash([]); }
+        ctx.fillStyle = '#334155'; ctx.fillText(l.t, lx + 17, A.y0 - 16);
+        lx += 17 + ctx.measureText(l.t).width + 14;
+      });
+      ctx.restore();
+      const bw = Math.min(356, A.x1 - A.x0 - 8);
+      const narrow = bw < 300;
+      Canon.drawAutoBadge(ctx, narrow ? `${label} | 시간적분 ${uNum.toFixed(4)}` : `${label}  |  시간적분 u(t) = ${uNum.toFixed(4)}  (차 ${err.toExponential(1)})`,
+        A.x1 - bw - 4, A.y1 - 28, { maxW: bw, minFontSize: 6.5, border: COL.blue });
+
+      document.getElementById('panel2-note').textContent = type === 'free'
+        ? '자유진동은 외력이 없으므로 Duhamel 항이 0입니다. ln 대수감쇠 탭에서 피크 감소율을 확인하세요.'
+        : '커서 시점 t에서 h(t−τ)를 뒤집어 p(τ)와 곱한 넓이가 곧 u(t)입니다. 녹색−적색 넓이의 차가 변위입니다.';
+    }
+
+    function duhamelCheck() {
+      const { type, zeta, td } = state, S = state.sim;
+      const ic = Math.min(S.n, Math.round(state.tc / S.dt)), t = S.t[ic];   // compare on the integration grid
+      const uNum = S.u[ic];
+      let duh, label;
+      if (type === 'impulse') { duh = WN * unitImpulse(zeta, t); label = `u(t) = I·h(t) = ${duh.toFixed(4)}`; }
+      else if (type === 'free') { duh = freeTerm(zeta, state.u0, state.v0abs, t); label = `초기조건 항 = ${duh.toFixed(4)}`; }
+      else { duh = duhamelAt(zeta, type, td, t); label = `∫p(τ)h(t−τ)dτ = ${duh.toFixed(4)}`; }
+      return { duh, label, uNum, err: Math.abs(duh - uNum) };
+    }
+
+    // ---------- panel: log decrement ----------
+    function drawLogDec() {
+      const ctx = ctxP, A = plotArea(panelCanvas);
+      ctx.clearRect(0, 0, A.w, A.h);
+      const pk = state.peaks.slice(0, 12);
+      if (pk.length < 2) {
+        drawAxes(ctx, A, 0, 6, -3, 0.5, '피크 번호 i', 'ln(r_i)', 1);
+        ctx.fillStyle = '#334155'; ctx.font = 'bold 11px Pretendard, monospace'; ctx.textAlign = 'center';
+        ctx.fillText(state.zeta === 0 ? '비감쇠: 모든 피크가 같다 (δ = 0)' : '피크가 부족합니다', (A.x0 + A.x1) / 2, (A.y0 + A.y1) / 2);
+        if (state.zeta > 0 || pk.length < 2) return;
+      }
+      const ln = pk.map(p => Math.log(p.r));
+      let ymax = Math.max(...ln), ymin = Math.min(...ln);
+      if (ymax - ymin < 0.5) { ymin -= 0.3; ymax += 0.3; }
+      const pad = (ymax - ymin) * 0.15;
+      const { X, Y } = drawAxes(ctx, A, 0, pk.length - 1 + 0.5, ymin - pad, ymax + pad, '피크 번호 i (자유진동 구간)', 'ln(r_i)', 1);
+      // theory line slope −δ through first point
+      const deltaTh = 2 * Math.PI * state.zeta / Math.sqrt(1 - state.zeta ** 2);
+      ctx.strokeStyle = COL.guide; ctx.lineWidth = 1.2; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(X(0), Y(ln[0])); ctx.lineTo(X(pk.length - 1 + 0.5), Y(ln[0] - deltaTh * (pk.length - 0.5))); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = COL.green; ctx.lineWidth = 2;
+      ctx.beginPath(); ln.forEach((v, i) => (i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)))); ctx.stroke();
+      const curve = [];
+      ln.forEach((v, i) => {
+        curve.push({ x: X(i), y: Y(v) });
+        ctx.fillStyle = i <= (state.ld ? state.ld.j : 0) ? COL.green : '#ffffff'; ctx.strokeStyle = COL.green;
+        ctx.beginPath(); ctx.arc(X(i), Y(v), 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      });
+      if (state.ld) {
+        const j = state.ld.j;
+        placeBadge(ctx, A, `δ = ln(r0/r${j})/${j} = ${state.ld.delta.toFixed(4)} → ζ = δ/√(4π²+δ²) = ${state.ld.zetaEst.toFixed(4)}`, X(j), Y(ln[j]), curve, COL.green);
+      }
+      const half = state.zeta > 0 ? Math.log(2) / deltaTh : Infinity;
+      document.getElementById('panel2-note').textContent =
+        `점선 = 이론 기울기 −δ (δ = 2πζ/√(1−ζ²) = ${deltaTh.toFixed(4)}). 근사 ζ ≈ δ/2π = ${(state.ld ? state.ld.delta / (2 * Math.PI) : 0).toFixed(4)}. 진폭 50% 감소에 약 ${isFinite(half) ? half.toFixed(1) : '∞'} 사이클 (≈ 0.11/ζ). 피크는 하중 종료 후 잔류진동 r = u − u_final 기준.`;
+    }
+
+    // ---------- panel: shock spectrum ----------
+    function drawSpectrum() {
+      const ctx = ctxP, A = plotArea(panelCanvas);
+      ctx.clearRect(0, 0, A.w, A.h);
+      const type = state.type;
+      if (!(type === 'step' || isPulse(type))) {
+        drawAxes(ctx, A, 0, 3, 0, 2.2, 'td / Tn', 'Rd', 0.5);
+        ctx.fillStyle = '#334155'; ctx.font = 'bold 11px Pretendard, monospace'; ctx.textAlign = 'center';
+        ctx.fillText('충격스펙트럼은 Step / 펄스 하중에서 정의됩니다', (A.x0 + A.x1) / 2, (A.y0 + A.y1) / 2);
+        document.getElementById('panel2-note').textContent = '';
+        return;
+      }
+      const key = `${type}|${state.zeta}`;
+      if (!state.specCache[key]) state.specCache[key] = shockSpectrum(type, state.zeta);
+      const sp = state.specCache[key];
+      const ymax = Math.max(2.2, Math.max(...sp.ys) * 1.1);
+      const { X, Y } = drawAxes(ctx, A, 0, 3, 0, ymax, type === 'step' ? 'tr / Tn' : 'td / Tn', 'Rd = umax / ust', 0.5);
+      ctx.strokeStyle = COL.guide; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.2;
+      [1, 2].forEach(v => { ctx.beginPath(); ctx.moveTo(A.x0, Y(v)); ctx.lineTo(A.x1, Y(v)); ctx.stroke(); });
+      ctx.setLineDash([]);
+      const curve = [];
+      ctx.beginPath();
+      sp.xs.forEach((x, i) => { curve.push({ x: X(x), y: Y(sp.ys[i]) }); i ? ctx.lineTo(X(x), Y(sp.ys[i])) : ctx.moveTo(X(x), Y(sp.ys[i])); });
+      ctx.strokeStyle = COL.blue; ctx.lineWidth = 2.5; ctx.stroke();
+      const xc = Math.max(0, state.td / TN);
+      ctx.fillStyle = COL.red; ctx.beginPath(); ctx.arc(X(xc), Y(state.maxU), 5, 0, Math.PI * 2); ctx.fill();
+      placeBadge(ctx, A, `현재 ${type === 'step' ? 'tr' : 'td'}/Tn = ${xc.toFixed(2)} → Rd = ${state.maxU.toFixed(3)}`, X(xc), Y(state.maxU), curve, COL.red);
+      const notes = {
+        step: 'tr/Tn이 정수일 때 Rd = 1 (동적 효과 소멸), tr → 0이면 Rd → 2. 상승시간이 Tn보다 길면 준정적.',
+        rect: 'td/Tn ≥ 0.5이면 Rd = 2 (강제진동 단계에서 최대). 짧은 펄스는 충격량 I = p0·td 만 중요.',
+        halfsine: '짧은 펄스(td/Tn < 0.4)는 자유진동 단계에서 최대, 길면 강제진동 단계에서 최대.',
+        tri: '블라스트형 감소 삼각 펄스. 짧은 펄스는 충격량 p0·td/2 로 응답이 결정.'
+      };
+      document.getElementById('panel2-note').textContent = notes[type] + ' (ζ = ' + state.zeta.toFixed(2) + ' 반영)';
+    }
+
+    // ---------- frame drawing ----------
+    function drawFrame() {
+      const ctx = ctxF;
+      const w = frameCanvas.width / DPR(), h = frameCanvas.height / DPR();
+      ctx.clearRect(0, 0, w, h);
+      const S = state.sim, ic = Math.min(S.n, Math.round(state.tc / S.dt));
+      const u = S.u[ic], p = S.p[ic];
+      const cx = w * 0.5, baseY = h - 28, topY = 52;
+      const bay = Math.min(150, w * 0.42), half = bay / 2;
+      const scale = 32;
+      // soft clamp so the slab never leaves the viewport (kinematic limit)
+      const lim = w * 0.3;
+      const dx = lim * Math.tanh(u * scale / lim);
+
+      // ground hatch
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx - half - 40, baseY); ctx.lineTo(cx + half + 40, baseY); ctx.stroke();
+      ctx.lineWidth = 1;
+      for (let x = cx - half - 36; x < cx + half + 40; x += 10) { ctx.beginPath(); ctx.moveTo(x, baseY); ctx.lineTo(x - 7, baseY + 8); ctx.stroke(); }
+
+      // static (u_st) ghost
+      if (state.type === 'step' || isPulse(state.type)) {
+        const gx = lim * Math.tanh(1 * scale / lim) * p;
+        ctx.strokeStyle = 'rgba(148,163,184,0.8)'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2;
+        ctx.strokeRect(cx + gx - half - 15, topY - 7, bay + 30, 14);
+        ctx.setLineDash([]);
+      }
+
+      ctx.strokeStyle = COL.blue; ctx.lineWidth = 4; ctx.lineCap = 'round';
+      [-half, half].forEach(off => {
+        ctx.beginPath();
+        for (let i = 0; i <= 24; i++) {
+          const s = i / 24, hh = 3 * s * s - 2 * s * s * s;
+          const x = cx + off + dx * hh, y = baseY + (topY - baseY) * s;
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        }
+        ctx.stroke();
+      });
+      // fixed supports
+      ctx.fillStyle = '#475569';
+      [-half, half].forEach(off => ctx.fillRect(cx + off - 9, baseY - 4, 18, 6));
+
+      // slab (mass)
+      ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2;
+      ctx.fillRect(cx + dx - half - 15, topY - 8, bay + 30, 16);
+      ctx.strokeRect(cx + dx - half - 15, topY - 8, bay + 30, 16);
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 9px Pretendard, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('m', cx + dx, topY);
+
+      // load arrow p(t)
+      const isImpulseFlash = state.type === 'impulse' && state.tc < 0.06;
+      const pMag = isImpulseFlash ? 1 : p;
+      if (Math.abs(pMag) > 0.01) {
+        const L = 46 * Math.min(1.2, Math.abs(pMag));
+        const ax = cx + dx - half - 18, ay = topY;
+        ctx.strokeStyle = COL.amber; ctx.fillStyle = COL.amber; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(ax - L, ay); ctx.lineTo(ax - 6, ay); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax - 9, ay - 6); ctx.lineTo(ax - 9, ay + 6); ctx.fill();
+        ctx.font = 'bold 10px Pretendard, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText(state.type === 'impulse' ? 'I' : 'p(t)', ax - L / 2, ay - 8);
+      }
+      // displacement indicator
+      ctx.strokeStyle = COL.slate; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+      ctx.beginPath(); ctx.moveTo(cx, topY - 22); ctx.lineTo(cx, topY - 12); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = COL.blue; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx, topY - 17); ctx.lineTo(cx + dx, topY - 17); ctx.stroke();
+      ctx.fillStyle = COL.blue; ctx.font = 'bold 10px Pretendard, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText('u', cx + dx / 2, topY - 20);
+      ctx.fillStyle = '#64748b'; ctx.font = '9px Pretendard, monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText('변위 스케일 확대 표시', w - 8, 8);
+
+      document.getElementById('t-val').textContent = (state.tc / TN).toFixed(2);
+      document.getElementById('u-val').textContent = u.toFixed(3);
+    }
+
+    // ---------- controls ----------
+    function setPanel(p) { state.panel = p; updateTexts(); }
+    function setSpeed(s) {
+      state.speed = s;
+      [0.25, 0.5, 1].forEach(v => document.getElementById('spd-' + v).classList.toggle('active', v === s));
+    }
+    function togglePlay() {
+      state.playing = !state.playing;
+      if (state.playing && state.tc >= state.tEnd) state.tc = 0;
+      document.getElementById('play-text').textContent = state.playing ? '일시정지' : '재생';
+      document.getElementById('play-icon').textContent = state.playing ? '⏸' : '▶';
+      document.getElementById('btn-play').className = state.playing
+        ? 'px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5'
+        : 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5';
+    }
+    function restart() { state.tc = 0; if (!state.playing) togglePlay(); }
+
+    function setType(t) {
+      state.type = t;
+      if (t in TD_DEFAULT) {
+        state.td = TD_DEFAULT[t];
+        document.getElementById('slider-td').value = state.td;
+      }
+      if (t === 'free' || t === 'impulse') state.panel = state.panel === 'spectrum' ? 'logdec' : state.panel;
+      if (t === 'free') state.panel = 'logdec';
+      state.tc = 0;
+      recompute();
+    }
+
+    document.querySelectorAll('.load-btn').forEach(b => b.addEventListener('click', () => setType(b.dataset.type)));
+    document.getElementById('slider-zeta').addEventListener('input', e => { state.zeta = parseFloat(e.target.value); recompute(); });
+    document.getElementById('slider-td').addEventListener('input', e => { state.td = parseFloat(e.target.value); recompute(); });
+    document.getElementById('slider-v0').addEventListener('input', e => { state.v0 = parseFloat(e.target.value); recompute(); });
+
+    function scrubFrom(canvas, ev) {
+      const A = plotArea(canvas), r = canvas.getBoundingClientRect();
+      const x = ev.clientX - r.left;
+      const t = (x - A.x0) / (A.x1 - A.x0) * state.tEnd;
+      state.tc = Math.max(0, Math.min(state.tEnd, t));
+    }
+    [respCanvas, panelCanvas].forEach(c => {
+      let drag = false;
+      c.addEventListener('pointerdown', ev => {
+        if (c === panelCanvas && state.panel !== 'duhamel') return;
+        drag = true; c.setPointerCapture(ev.pointerId);
+        if (state.playing) togglePlay();
+        scrubFrom(c, ev);
+      });
+      c.addEventListener('pointermove', ev => { if (drag) scrubFrom(c, ev); });
+      c.addEventListener('pointerup', () => { drag = false; });
+    });
+    window.addEventListener('keydown', e => { if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); togglePlay(); } });
+
+    function initZentryCards() {
+      document.querySelectorAll('.zentry-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const r = card.getBoundingClientRect();
+          const rx = -((e.clientY - r.top - r.height / 2) / (r.height / 2)) * 3.0;
+          const ry = ((e.clientX - r.left - r.width / 2) / (r.width / 2)) * 3.0;
+          card.style.transform = `perspective(800px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => { card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)'; });
+      });
+    }
+
+    let lastTs = null;
+    function loop(ts) {
+      if (lastTs == null) lastTs = ts;
+      const dtReal = Math.min(0.05, (ts - lastTs) / 1000);
+      lastTs = ts;
+      if (state.playing) {
+        state.tc += dtReal * state.speed;
+        if (state.tc > state.tEnd) state.tc = 0;
+      }
+      drawFrame();
+      drawResponse();
+      const chk = duhamelCheck();
+      document.getElementById('tm-duh').textContent = (state.type === 'free' ? '초기조건 해석해 ' : '') + `|Δ| = ${chk.err.toExponential(1)}`;
+      if (state.panel === 'duhamel') drawDuhamel();
+      else if (state.panel === 'logdec') drawLogDec();
+      else drawSpectrum();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initZentryCards();
+      resizeCanvases();
+      recompute();
+      requestAnimationFrame(loop);
+    });
+  </script>
+</body>
+</html>
