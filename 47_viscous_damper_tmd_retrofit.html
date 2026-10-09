@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구조동역학 47: 점성댐퍼 & TMD 제진보강 효과 (Viscous Damper & TMD Retrofit)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="assets/dynamics-chart-canonical.js"></script>
+  <link rel="stylesheet" href="assets/dynamics-fx.css">
+  <script src="assets/dynamics-fx.js" defer></script>
+  <style>
+    body {
+      background-color: #faf8f5;
+      color: #0f172a;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+    }
+    .math-var {
+      font-family: "Cambria Math", "Times New Roman", "STIX Two Math", serif;
+      font-style: italic;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; width: 100%; }
+    input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: #e2e8f0; }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+      background: #2563eb; margin-top: -5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: #e2e8f0; }
+    input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: #2563eb; border: none; }
+    input[type=range].accent-amber::-webkit-slider-thumb { background: #d97706; }
+    input[type=range].accent-red::-webkit-slider-thumb { background: #dc2626; }
+    input[type=range]:disabled { opacity: 0.35; }
+    .seg-btn { padding: 3px 10px; font-size: 11px; white-space: nowrap; }
+    .chip { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px 8px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+    .chip .lbl { font-size: 10px; color: #64748b; font-weight: 600; line-height: 1.2; }
+    .chip .val { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 800; font-size: 12.5px; color: #0f172a; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chip .sub { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctl-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+    .ctl-val { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 800; font-size: 12px; }
+    .preset { padding: 1px 7px; font-size: 10.5px; line-height: 1.5; }
+    .plot-box { position: relative; width: 100%; height: 255px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #ffffff; }
+    .plot-box canvas { width: 100%; height: 100%; display: block; }
+    .plot-toggle { position: absolute; top: 4px; right: 6px; display: flex; gap: 3px; z-index: 5; }
+    .plot-toggle button { font-size: 10px; padding: 0 6px; line-height: 1.6; }
+  </style>
+</head>
+<body class="p-3 md:p-5 flex flex-col items-center min-h-screen">
+
+  <div id="sim-app-container" class="w-full max-w-7xl bg-white border border-slate-200 rounded-3xl p-4 md:p-5 shadow-xl space-y-3">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      <div class="space-y-1">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+            CHOPRA §3.9 &middot; FEMA 356 §9.3 &middot; ASCE 7-16 Ch.18
+          </span>
+          <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            점성댐퍼 &amp; TMD 제진보강 효과 (Viscous Damper &amp; TMD Retrofit)
+          </h1>
+        </div>
+        <p class="text-xs md:text-sm text-slate-600 font-mono">
+          부가감쇠비 <span class="math-var">&zeta;<sub>d</sub></span> &middot; 응답저감 &middot; 댐퍼 F–v / F–u 이력루프 &middot; 층별 배치 효율 &middot; TMD 튜닝 &mdash; 보강 전/후 동일 지진 RK4 시간이력 비교
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-play" onclick="togglePlay()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1.5">
+          <span id="play-icon">⏸</span><span id="play-text">일시정지</span>
+        </button>
+        <button onclick="resetSim()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold transition">초기화 (Reset)</button>
+        <a href="index.html" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">&larr; 마스터 허브</a>
+      </div>
+    </div>
+
+    <!-- Mode / Excitation / Speed -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-1.5" id="mode-tabs">
+        <button class="seg-btn active" data-mode="sdof" onclick="setMode('sdof')">① SDOF + 점성댐퍼</button>
+        <button class="seg-btn btn-secondary" data-mode="mdof" onclick="setMode('mdof')">② 5층 MDOF · 댐퍼 배치</button>
+        <button class="seg-btn btn-secondary" data-mode="tmd" onclick="setMode('tmd')">③ 5층 + 옥상 TMD</button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[11px] font-bold text-slate-500">지반가진</span>
+        <div class="flex flex-wrap items-center gap-1.5" id="exc-tabs">
+          <button class="seg-btn btn-secondary" data-exc="harmonic" onclick="setExc('harmonic')">공진 조화 0.05g</button>
+          <button class="seg-btn active" data-exc="synthetic" onclick="setExc('synthetic')">인공지진 0.30g</button>
+          <button class="seg-btn btn-secondary" data-exc="pulse" onclick="setExc('pulse')">근단층 펄스 0.35g</button>
+        </div>
+        <div class="flex items-center gap-1.5" id="speed-tabs">
+          <button class="seg-btn btn-secondary" data-speed="0.5" onclick="setSpeed(0.5)">0.5×</button>
+          <button class="seg-btn active" data-speed="1" onclick="setSpeed(1)">1×</button>
+          <button class="seg-btn btn-secondary" data-speed="2" onclick="setSpeed(2)">2×</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="grid grid-cols-1 lg:grid-cols-[290px_1fr] gap-3">
+
+      <!-- Left: Controls -->
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2.5 text-xs">
+
+        <div class="space-y-1">
+          <div class="ctl-row"><span class="font-bold text-slate-700">고유감쇠 <span class="math-var">&zeta;</span><sub>0</sub></span><span id="txt-zeta0" class="ctl-val text-slate-800">5.0 %</span></div>
+          <input type="range" id="sl-zeta0" min="0.01" max="0.10" step="0.005" value="0.05" oninput="onSlider()">
+          <div class="flex gap-1"><button class="preset btn-secondary" onclick="setVal('sl-zeta0',0.02)">2% 강구조</button><button class="preset btn-secondary" onclick="setVal('sl-zeta0',0.05)">5% RC 표준</button></div>
+        </div>
+
+        <!-- Damper controls -->
+        <div id="grp-damper" class="space-y-2.5 border-t border-slate-200 pt-2.5">
+          <div class="space-y-1">
+            <div class="ctl-row"><span class="font-bold text-slate-700"><span id="lbl-zd">목표 부가감쇠</span> <span class="math-var">&zeta;</span><sub>d</sub></span><span id="txt-zd" class="ctl-val text-blue-700">20.0 %</span></div>
+            <input type="range" id="sl-zd" min="0" max="0.40" step="0.01" value="0.20" oninput="onSlider()">
+            <div class="flex gap-1"><button class="preset btn-secondary" onclick="setVal('sl-zd',0)">0% 보강 전</button><button class="preset btn-secondary" onclick="setVal('sl-zd',0.10)">10%</button><button class="preset btn-secondary" onclick="setVal('sl-zd',0.20)">20%</button><button class="preset btn-secondary" onclick="setVal('sl-zd',0.30)">30%</button></div>
+          </div>
+          <div class="space-y-1">
+            <div class="ctl-row"><span class="font-bold text-slate-700">속도지수 <span class="math-var">&alpha;</span> <span class="font-normal text-slate-500">(F = C|v|<sup>&alpha;</sup>)</span></span><span id="txt-alpha" class="ctl-val text-amber-700">1.00</span></div>
+            <input type="range" id="sl-alpha" class="accent-amber" min="0.2" max="1.0" step="0.05" value="1.0" oninput="onSlider()">
+            <div class="flex gap-1"><button class="preset btn-secondary" onclick="setVal('sl-alpha',0.3)">0.3 비선형</button><button class="preset btn-secondary" onclick="setVal('sl-alpha',0.5)">0.5</button><button class="preset btn-secondary" onclick="setVal('sl-alpha',1.0)">1.0 선형</button></div>
+          </div>
+          <div class="space-y-1" id="grp-ud">
+            <div class="ctl-row"><span class="font-bold text-slate-700">설계변위 <span class="math-var">u</span><sub>d</sub> <span id="lbl-ud-sub" class="font-normal text-slate-500">(&alpha;&lt;1 용량 산정)</span></span><span id="txt-ud" class="ctl-val text-slate-800">50 mm</span></div>
+            <input type="range" id="sl-ud" min="10" max="300" step="5" value="50" oninput="onSlider()">
+          </div>
+          <div class="space-y-1" id="grp-dist">
+            <div class="font-bold text-slate-700">층별 배치 <span class="font-normal text-slate-500">(총 용량 &Sigma;C 동일)</span></div>
+            <div class="grid grid-cols-2 gap-1" id="dist-tabs">
+              <button class="preset btn-secondary" data-dist="uniform" onclick="setDist('uniform')">균등 배치</button>
+              <button class="preset btn-secondary" data-dist="drift" onclick="setDist('drift')">1차 층간변위 비례</button>
+              <button class="preset btn-secondary" data-dist="lower" onclick="setDist('lower')">하부 1–2층 집중</button>
+              <button class="preset btn-secondary" data-dist="upper" onclick="setDist('upper')">상부 4–5층 집중</button>
+            </div>
+            <div class="flex items-center gap-1.5 pt-1"><span class="font-bold text-slate-700">이력루프 표시 층</span><div class="plot-toggle" id="story-toggle" style="position:static"></div></div>
+          </div>
+        </div>
+
+        <!-- TMD controls -->
+        <div id="grp-tmd" class="space-y-2.5 border-t border-slate-200 pt-2.5 hidden">
+          <div class="space-y-1">
+            <div class="ctl-row"><span class="font-bold text-slate-700">질량비 <span class="math-var">&mu;</span> = m<sub>t</sub>/M<sub>1</sub></span><span id="txt-mu" class="ctl-val text-red-700">3.0 %</span></div>
+            <input type="range" id="sl-mu" class="accent-red" min="0.005" max="0.10" step="0.005" value="0.03" oninput="onSlider()">
+          </div>
+          <div class="space-y-1">
+            <div class="ctl-row"><span class="font-bold text-slate-700">진동수비 <span class="math-var">f</span> = &omega;<sub>t</sub>/&omega;<sub>1</sub></span><span id="txt-f" class="ctl-val text-red-700">0.957</span></div>
+            <input type="range" id="sl-f" class="accent-red" min="0.80" max="1.15" step="0.005" value="0.957" oninput="onSlider()">
+          </div>
+          <div class="space-y-1">
+            <div class="ctl-row"><span class="font-bold text-slate-700">TMD 감쇠비 <span class="math-var">&zeta;</span><sub>t</sub></span><span id="txt-zt" class="ctl-val text-red-700">10.5 %</span></div>
+            <input type="range" id="sl-zt" class="accent-red" min="0.005" max="0.30" step="0.005" value="0.105" oninput="onSlider()">
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <button class="preset btn-secondary" onclick="tuneOptimal()" style="border-color:#fca5a5;color:#b91c1c;font-weight:800">⚙ Warburton 최적 튜닝</button>
+            <button class="preset btn-secondary" onclick="setVal('sl-f',1.10)">디튜닝 f=1.10</button>
+          </div>
+        </div>
+
+        <!-- Model info -->
+        <div class="border-t border-slate-200 pt-2 text-[10.5px] font-mono text-slate-600 space-y-0.5" id="model-info"></div>
+      </div>
+
+      <!-- Right: Viewport + Metrics + Plots -->
+      <div class="space-y-3 min-w-0">
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-3">
+          <div class="relative w-full h-[210px] rounded-xl overflow-hidden border border-slate-200 bg-white">
+            <div id="three-container" class="w-full h-full absolute inset-0"></div>
+            <div class="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/95 border border-slate-300 text-slate-600 z-10">보강 전 (Bare)</div>
+            <div class="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/95 border border-blue-300 text-blue-700 z-10" id="lbl-retro">보강 후 (점성댐퍼)</div>
+            <div class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2 py-1 rounded-lg border border-slate-300 z-10 flex items-center gap-1.5 flex-wrap">
+              <span>🖱️ 3D</span><span class="text-slate-300">|</span>
+              <span>t = <span id="hud-t" class="font-bold">0.00 s</span></span><span class="text-slate-300">|</span>
+              <span>ü<sub>g</sub> = <span id="hud-ag" class="font-bold text-purple-700">0.000 g</span></span><span class="text-slate-300">|</span>
+              <span>u<sub>roof</sub>: <span id="hud-ub" class="font-bold text-slate-500">0</span> → <span id="hud-ur" class="font-bold text-blue-700">0 mm</span></span>
+              <span class="text-slate-300">|</span><span class="text-slate-500">변위 시각화 <span id="hud-scale">×1</span></span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 h-auto md:h-[210px]">
+            <div class="chip"><span class="lbl" id="m1-lbl">유효감쇠 ζ<sub>eff</sub> 설계/실효</span><span class="val text-blue-700" id="m1-val">–</span><span class="sub" id="m1-sub">–</span></div>
+            <div class="chip"><span class="lbl">최대 옥상변위 저감</span><span class="val text-emerald-700" id="m2-val">–</span><span class="sub" id="m2-sub">–</span></div>
+            <div class="chip"><span class="lbl">최대 층간변위비</span><span class="val" id="m3-val">–</span><span class="sub" id="m3-sub">–</span></div>
+            <div class="chip"><span class="lbl">최대 밑면전단 V<sub>b</sub></span><span class="val" id="m4-val">–</span><span class="sub" id="m4-sub">–</span></div>
+            <div class="chip"><span class="lbl" id="m5-lbl">댐퍼 최대력</span><span class="val text-amber-700" id="m5-val">–</span><span class="sub" id="m5-sub">–</span></div>
+            <div class="chip"><span class="lbl" id="m6-lbl">댐퍼 소산 / 입력에너지</span><span class="val text-purple-700" id="m6-val">–</span><span class="sub" id="m6-sub">–</span></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-[1.25fr_1fr_1fr] gap-3">
+          <div class="plot-box"><canvas id="cv-th"></canvas></div>
+          <div class="plot-box">
+            <canvas id="cv-loop"></canvas>
+            <div class="plot-toggle" id="loop-toggle">
+              <button data-lv="Fv" class="active" onclick="setLoopView('Fv')">F–v</button>
+              <button data-lv="Fu" class="btn-secondary" onclick="setLoopView('Fu')">F–u</button>
+            </div>
+          </div>
+          <div class="plot-box"><canvas id="cv-third"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footnote -->
+    <div class="text-[10.5px] text-slate-500 leading-relaxed border-t border-slate-100 pt-2">
+      <b class="text-slate-600">가정·근거</b> &middot; 골조는 탄성 전단건물(층 강성 k<sub>j</sub>, 고유감쇠 Rayleigh 1·3차 모드). 댐퍼 계수 C는 층간 수평변위 기준 환산값(가새 각도 &theta; 반영: C<sub>h</sub> = C<sub>axial</sub>cos<sup>1+&alpha;</sup>&theta;).
+      부가감쇠비는 에너지 등가 선형화: E<sub>D</sub> = &lambda;(&alpha;)&middot;C&middot;&omega;<sup>&alpha;</sup>&middot;u<sub>0</sub><sup>1+&alpha;</sup>, &zeta;<sub>d</sub> = &Sigma;E<sub>D,j</sub> / (4&pi;E<sub>S</sub>) (FEMA 356 §9.3 방식, 1차 모드 진폭 u<sub>d</sub> 기준) &mdash; &alpha;&lt;1이면 실제 진폭에 따라 실효 &zeta;<sub>d</sub>가 달라짐.
+      감쇠계수 B: ASCE 7-16 Table 18.7-2. TMD 최적값: Warburton(1982) 지반가속도 가진식. 시간적분: RK4 (&Delta;t = 0.002 s).
+    </div>
+  </div>
+
+  <script>
+    // ==PHYSICS-BEGIN==
+    // =========================================================================
+    // 1. 수학 유틸리티 (Gamma 함수, 시드 난수, 대칭 고유치 Jacobi)
+    // =========================================================================
+    const G = 9.81;
+
+    function gammaFn(z) {
+      // Lanczos 근사 (g=7, n=9)
+      const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+        -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+      if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gammaFn(1 - z));
+      z -= 1;
+      let x = p[0];
+      for (let i = 1; i < 9; i++) x += p[i] / (z + i);
+      const t = z + 7.5;
+      return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+    }
+
+    // 비선형 점성댐퍼 1사이클 소산에너지 계수 λ(α) — FEMA 356 / Soong & Constantinou
+    // E_D = λ · C · ω^α · u0^(1+α),  λ(1) = π
+    function lambdaAlpha(alpha) {
+      const g = gammaFn(1 + alpha / 2);
+      return Math.pow(2, 2 + alpha) * g * g / gammaFn(2 + alpha);
+    }
+
+    function mulberry32(a) {
+      return function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    // 대칭행렬 A의 고유치/고유벡터 (Jacobi 회전법)
+    function jacobiEigen(Ain) {
+      const n = Ain.length;
+      const A = Ain.map(r => r.slice());
+      const V = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+      for (let sweep = 0; sweep < 100; sweep++) {
+        let off = 0;
+        for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += A[i][j] * A[i][j];
+        if (off < 1e-20) break;
+        for (let p = 0; p < n; p++) {
+          for (let q = p + 1; q < n; q++) {
+            if (Math.abs(A[p][q]) < 1e-300) continue;
+            const th = (A[q][q] - A[p][p]) / (2 * A[p][q]);
+            const t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1));
+            const c = 1 / Math.sqrt(t * t + 1), s = t * c;
+            for (let k = 0; k < n; k++) {
+              const akp = A[k][p], akq = A[k][q];
+              A[k][p] = c * akp - s * akq; A[k][q] = s * akp + c * akq;
+            }
+            for (let k = 0; k < n; k++) {
+              const apk = A[p][k], aqk = A[q][k];
+              A[p][k] = c * apk - s * aqk; A[q][k] = s * apk + c * aqk;
+            }
+            for (let k = 0; k < n; k++) {
+              const vkp = V[k][p], vkq = V[k][q];
+              V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq;
+            }
+          }
+        }
+      }
+      const idx = Array.from({ length: n }, (_, i) => i).sort((a, b) => A[a][a] - A[b][b]);
+      return { values: idx.map(i => A[i][i]), vectors: idx.map(i => V.map(row => row[i])) };
+    }
+
+    // =========================================================================
+    // 2. 지반가속도 (조화 공진 / 인공지진파 Kanai-Tajimi / 근단층 속도펄스)
+    // =========================================================================
+    function makeGroundMotion(type, wRes, dt) {
+      let dur, ag;
+      if (type === 'harmonic') {
+        // 공진 조화가진: ü_g = 0.05g · sin(ω₁t), 첫 2초 cos 램프
+        dur = 16; const N = Math.round(dur / dt) + 1; ag = new Float64Array(N);
+        for (let i = 0; i < N; i++) {
+          const t = i * dt;
+          const ramp = t < 2 ? 0.5 * (1 - Math.cos(Math.PI * t / 2)) : 1;
+          ag[i] = 0.05 * G * ramp * Math.sin(wRes * t);
+        }
+      } else if (type === 'pulse') {
+        // Mavroeidis-Papageorgiou 근단층 속도펄스 (Tp=1.0s, γ=2.0, ν=0) → PGA 0.35g 스케일
+        dur = 12; const N = Math.round(dur / dt) + 1;
+        const fp = 1.0, gam = 2.0, t0 = 2.5, nu = 0;
+        const vel = new Float64Array(N);
+        for (let i = 0; i < N; i++) {
+          const tt = i * dt - t0;
+          if (Math.abs(tt) <= gam / (2 * fp)) {
+            vel[i] = 0.5 * (1 + Math.cos(2 * Math.PI * fp * tt / gam)) * Math.cos(2 * Math.PI * fp * tt + nu);
+          }
+        }
+        ag = new Float64Array(N);
+        for (let i = 1; i < N - 1; i++) ag[i] = (vel[i + 1] - vel[i - 1]) / (2 * dt);
+        let pk = 0; for (let i = 0; i < N; i++) pk = Math.max(pk, Math.abs(ag[i]));
+        for (let i = 0; i < N; i++) ag[i] *= 0.35 * G / pk;
+      } else {
+        // 인공지진파: Kanai-Tajimi PSD (ωg=15.6 rad/s, ζg=0.6) + Jennings 포락선 → PGA 0.30g
+        dur = 20; const N = Math.round(dur / dt) + 1; ag = new Float64Array(N);
+        const rnd = mulberry32(20261009);
+        const wg = 15.6, zg = 0.6, nf = 240, w0 = 0.6, w1 = 80;
+        const dw = (w1 - w0) / nf;
+        const comps = [];
+        for (let k = 0; k < nf; k++) {
+          const w = w0 + (k + 0.5) * dw;
+          const r = w / wg;
+          const S = (1 + 4 * zg * zg * r * r) / ((1 - r * r) * (1 - r * r) + 4 * zg * zg * r * r);
+          // 저주파 Clough-Penzien 필터 (ωf=1.6, ζf=0.6) — 장주기 드리프트 억제
+          const rf = w / 1.6;
+          const HP = (rf ** 4) / ((1 - rf * rf) ** 2 + 4 * 0.36 * rf * rf);
+          comps.push({ w, a: Math.sqrt(2 * S * HP * dw), ph: 2 * Math.PI * rnd() });
+        }
+        for (let i = 0; i < N; i++) {
+          const t = i * dt;
+          const env = t < 2 ? (t / 2) ** 2 : (t < 9 ? 1 : Math.exp(-0.33 * (t - 9)));
+          let s = 0;
+          for (const c of comps) s += c.a * Math.cos(c.w * t + c.ph);
+          ag[i] = env * s;
+        }
+        let pk = 0; for (let i = 0; i < N; i++) pk = Math.max(pk, Math.abs(ag[i]));
+        for (let i = 0; i < N; i++) ag[i] *= 0.30 * G / pk;
+      }
+      return { ag, dt, dur };
+    }
+
+    // =========================================================================
+    // 3. 구조 모델 (전단건물 n층 + 층간 비선형 점성댐퍼 + 옥상 TMD)
+    // =========================================================================
+    // cfg = { m:[t], k:[kN/m], zeta0, Cd:[kN·(s/m)^α], alpha, tmd:{mt,kt,ct}|null }
+    // 단위계: t, kN, m, s  →  F[kN] = m[t]·a[m/s²]
+    function modalProps(m, k) {
+      const n = m.length;
+      const K = Array.from({ length: n }, () => new Array(n).fill(0));
+      for (let j = 0; j < n; j++) {
+        K[j][j] += k[j];
+        if (j + 1 < n) { K[j][j] += k[j + 1]; K[j][j + 1] -= k[j + 1]; K[j + 1][j] -= k[j + 1]; }
+      }
+      const A = K.map((row, i) => row.map((v, j) => v / Math.sqrt(m[i] * m[j])));
+      const eg = jacobiEigen(A);
+      const modes = eg.values.map((lam, r) => {
+        let phi = eg.vectors[r].map((v, i) => v / Math.sqrt(m[i]));
+        const top = phi[n - 1];
+        phi = phi.map(v => v / top);                        // 옥상 정규화 φ_roof = 1
+        const Mn = phi.reduce((s, v, i) => s + m[i] * v * v, 0);
+        const Ln = phi.reduce((s, v, i) => s + m[i] * v, 0);
+        const dphi = phi.map((v, i) => v - (i ? phi[i - 1] : 0));
+        return { w: Math.sqrt(lam), T: 2 * Math.PI / Math.sqrt(lam), phi, dphi, Mn, Gamma: Ln / Mn };
+      });
+      return { K, modes };
+    }
+
+    function buildModel(cfg) {
+      const n = cfg.m.length;
+      const nd = n + (cfg.tmd ? 1 : 0);
+      const { K: Ks, modes } = modalProps(cfg.m, cfg.k);
+      const M = new Float64Array(nd);
+      for (let i = 0; i < n; i++) M[i] = cfg.m[i];
+      const K = Array.from({ length: nd }, () => new Float64Array(nd));
+      const C = Array.from({ length: nd }, () => new Float64Array(nd));
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) K[i][j] = Ks[i][j];
+      // 고유감쇠: n=1 → 2ζmω, n>1 → Rayleigh (1차·3차 모드 ζ0)
+      if (n === 1) {
+        C[0][0] = 2 * cfg.zeta0 * cfg.m[0] * modes[0].w;
+      } else {
+        const wi = modes[0].w, wj = modes[Math.min(2, n - 1)].w;
+        const a0 = cfg.zeta0 * 2 * wi * wj / (wi + wj), a1 = cfg.zeta0 * 2 / (wi + wj);
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) C[i][j] = a0 * (i === j ? cfg.m[i] : 0) + a1 * Ks[i][j];
+      }
+      if (cfg.tmd) {
+        const t = n, r = n - 1, { mt, kt, ct } = cfg.tmd;
+        M[t] = mt;
+        K[t][t] += kt; K[r][r] += kt; K[t][r] -= kt; K[r][t] -= kt;
+        C[t][t] += ct; C[r][r] += ct; C[t][r] -= ct; C[r][t] -= ct;
+      }
+      return { n, nd, M, K, C, modes, Cd: cfg.Cd || new Array(n).fill(0), alpha: cfg.alpha ?? 1, tmd: cfg.tmd || null, m: cfg.m, k: cfg.k };
+    }
+
+    // 층간 댐퍼력 (비선형 F = C·sgn(v)|v|^α, |v|<v0 구간은 선형 정칙화)
+    function damperForce(C, alpha, dv, v0) {
+      if (C === 0) return 0;
+      if (alpha >= 0.999) return C * dv;
+      const a = Math.abs(dv);
+      if (a < v0) return C * Math.pow(v0, alpha - 1) * dv;
+      return C * Math.sign(dv) * Math.pow(a, alpha);
+    }
+
+    // RK4 시간적분 (내부 dt=0.002s, 기록 0.01s)
+    function simulate(model, gm) {
+      const { n, nd, M, K, C, Cd, alpha } = model;
+      const dt = 0.002, rec = 5;
+      const nSteps = Math.round(gm.dur / dt);
+      // 정칙화 속도 v0: 국부 감쇠계수가 RK4 안정영역을 넘지 않도록
+      let v0 = 1e-3;
+      if (alpha < 0.999) {
+        for (let j = 0; j < n; j++) {
+          if (Cd[j] > 0) {
+            const mm = Math.min(M[j], j ? M[j - 1] : M[j]);
+            v0 = Math.max(v0, Math.pow(Cd[j] * dt / (0.5 * mm), 1 / (1 - alpha)));
+          }
+        }
+      }
+      const agAt = t => {
+        const x = t / gm.dt, i = Math.floor(x);
+        if (i >= gm.ag.length - 1) return gm.ag[gm.ag.length - 1] || 0;
+        const f = x - i;
+        return gm.ag[i] * (1 - f) + gm.ag[i + 1] * f;
+      };
+      const Fd = new Float64Array(n);
+      function deriv(u, v, ag, du, dv) {
+        for (let j = 0; j < n; j++) {
+          const rel = v[j] - (j ? v[j - 1] : 0);
+          Fd[j] = damperForce(Cd[j], alpha, rel, v0);
+        }
+        for (let i = 0; i < nd; i++) {
+          let f = -M[i] * ag;
+          const Ki = K[i], Ci = C[i];
+          for (let j = 0; j < nd; j++) f -= Ki[j] * u[j] + Ci[j] * v[j];
+          if (i < n) { f -= Fd[i]; if (i + 1 < n) f += Fd[i + 1]; }
+          du[i] = v[i];
+          dv[i] = f / M[i];
+        }
+      }
+      let u = new Float64Array(nd), v = new Float64Array(nd);
+      const k1u = new Float64Array(nd), k1v = new Float64Array(nd), k2u = new Float64Array(nd), k2v = new Float64Array(nd);
+      const k3u = new Float64Array(nd), k3v = new Float64Array(nd), k4u = new Float64Array(nd), k4v = new Float64Array(nd);
+      const tu = new Float64Array(nd), tv = new Float64Array(nd);
+
+      const nRec = Math.floor(nSteps / rec) + 1;
+      const out = {
+        dt: dt * rec, nRec, t: new Float64Array(nRec), ag: new Float64Array(nRec),
+        u: Array.from({ length: nd }, () => new Float64Array(nRec)),
+        drift: Array.from({ length: n }, () => new Float64Array(nRec)),
+        dvel: Array.from({ length: n }, () => new Float64Array(nRec)),
+        fd: Array.from({ length: n }, () => new Float64Array(nRec)),
+        tmdRel: null, tmdVel: null, tmdF: null,
+        vb: new Float64Array(nRec), eIn: new Float64Array(nRec), eD: new Float64Array(nRec), eH: new Float64Array(nRec)
+      };
+      if (model.tmd) { out.tmdRel = new Float64Array(nRec); out.tmdVel = new Float64Array(nRec); out.tmdF = new Float64Array(nRec); }
+      let eIn = 0, eD = 0, eH = 0, r = 0;
+      const record = (t, ag) => {
+        deriv(u, v, ag, k1u, k1v);
+        out.t[r] = t; out.ag[r] = ag;
+        let vb = 0;
+        for (let i = 0; i < nd; i++) { out.u[i][r] = u[i]; vb -= M[i] * (k1v[i] + ag); }
+        for (let j = 0; j < n; j++) {
+          out.drift[j][r] = u[j] - (j ? u[j - 1] : 0);
+          out.dvel[j][r] = v[j] - (j ? v[j - 1] : 0);
+          out.fd[j][r] = Fd[j];
+        }
+        if (model.tmd) {
+          out.tmdRel[r] = u[n] - u[n - 1]; out.tmdVel[r] = v[n] - v[n - 1];
+          out.tmdF[r] = model.tmd.ct * out.tmdVel[r];
+        }
+        out.vb[r] = vb; out.eIn[r] = eIn; out.eD[r] = eD; out.eH[r] = eH;
+        r++;
+      };
+      // 에너지 파워: 입력 = -Σ m_i v_i ü_g, 댐퍼 = Σ F_j Δv_j, 고유감쇠(+TMD) = vᵀCv
+      const power = (ag) => {
+        let pin = 0, pd = 0, ph = 0;
+        for (let i = 0; i < nd; i++) {
+          pin -= M[i] * v[i] * ag;
+          let cv = 0; for (let j = 0; j < nd; j++) cv += C[i][j] * v[j];
+          ph += v[i] * cv;
+        }
+        for (let j = 0; j < n; j++) pd += damperForce(Cd[j], alpha, v[j] - (j ? v[j - 1] : 0), v0) * (v[j] - (j ? v[j - 1] : 0));
+        return [pin, pd, ph];
+      };
+      record(0, agAt(0));
+      for (let s = 0; s < nSteps; s++) {
+        const t = s * dt, a0 = agAt(t), am = agAt(t + dt / 2), a1 = agAt(t + dt);
+        const p0 = power(a0);
+        deriv(u, v, a0, k1u, k1v);
+        for (let i = 0; i < nd; i++) { tu[i] = u[i] + 0.5 * dt * k1u[i]; tv[i] = v[i] + 0.5 * dt * k1v[i]; }
+        deriv(tu, tv, am, k2u, k2v);
+        for (let i = 0; i < nd; i++) { tu[i] = u[i] + 0.5 * dt * k2u[i]; tv[i] = v[i] + 0.5 * dt * k2v[i]; }
+        deriv(tu, tv, am, k3u, k3v);
+        for (let i = 0; i < nd; i++) { tu[i] = u[i] + dt * k3u[i]; tv[i] = v[i] + dt * k3v[i]; }
+        deriv(tu, tv, a1, k4u, k4v);
+        for (let i = 0; i < nd; i++) {
+          u[i] += dt / 6 * (k1u[i] + 2 * k2u[i] + 2 * k3u[i] + k4u[i]);
+          v[i] += dt / 6 * (k1v[i] + 2 * k2v[i] + 2 * k3v[i] + k4v[i]);
+        }
+        const p1 = power(a1);
+        eIn += 0.5 * dt * (p0[0] + p1[0]); eD += 0.5 * dt * (p0[1] + p1[1]); eH += 0.5 * dt * (p0[2] + p1[2]);
+        if ((s + 1) % rec === 0) record((s + 1) * dt, a1);
+      }
+      out.nRec = r;
+      out.v0 = v0;
+      return out;
+    }
+
+    function peakAbs(arr) { let p = 0; for (let i = 0; i < arr.length; i++) p = Math.max(p, Math.abs(arr[i])); return p; }
+
+    // =========================================================================
+    // 4. 부가감쇠비 산정 (에너지 등가 선형화, 1차 모드 기준)
+    // =========================================================================
+    // c_eq,j = λ·C_j·ω^(α-1)·Δ_j^(α-1)/π,  Δ_j = u_d·Δφ_j
+    // ζ_dn = Σ c_eq,j·Δφ_nj² / (2·ω_n·M_n)
+    function equivalentC(model, Cd, alpha, ud) {
+      const m1 = model.modes[0], lam = lambdaAlpha(alpha);
+      return Cd.map((c, j) => {
+        if (alpha >= 0.999) return c;
+        const D = Math.max(1e-6, Math.abs(ud * m1.dphi[j]));
+        return lam * c * Math.pow(m1.w, alpha - 1) * Math.pow(D, alpha - 1) / Math.PI;
+      });
+    }
+    function addedModalDamping(model, ceq) {
+      return model.modes.map(md => md.dphi.reduce((s, d, j) => s + ceq[j] * d * d, 0) / (2 * md.w * md.Mn));
+    }
+    // 분포 가중치 w_j에 대해 목표 ζ_d1을 만족하는 C_j 산정
+    function sizeDampers(model, weights, zetaTarget, alpha, ud) {
+      const ceqUnit = equivalentC(model, weights, alpha, ud);
+      const z1 = addedModalDamping(model, ceqUnit)[0];
+      const s = z1 > 0 ? zetaTarget / z1 : 0;
+      return weights.map(w => w * s);
+    }
+
+    // =========================================================================
+    // 5. 주파수응답함수 (지반가속도 → 옥상 상대변위, 복소 선형계)
+    // =========================================================================
+    function frfRoof(model, w) {
+      const nd = model.nd;
+      const Re = Array.from({ length: nd }, (_, i) => Array.from({ length: nd }, (_, j) => model.K[i][j] - (i === j ? w * w * model.M[i] : 0)));
+      const Im = Array.from({ length: nd }, (_, i) => Array.from({ length: nd }, (_, j) => w * (model.C[i][j] + 0)));
+      // 층간 댐퍼 (α=1 선형만 반영)
+      for (let j = 0; j < model.n; j++) {
+        const c = model.Cd[j]; if (!c) continue;
+        Im[j][j] += w * c;
+        if (j > 0) { Im[j - 1][j - 1] += w * c; Im[j][j - 1] -= w * c; Im[j - 1][j] -= w * c; }
+      }
+      const bR = Array.from({ length: nd }, (_, i) => -model.M[i]), bI = new Array(nd).fill(0);
+      // 복소 가우스 소거
+      for (let p = 0; p < nd; p++) {
+        let piv = p, best = -1;
+        for (let i = p; i < nd; i++) { const mg = Math.hypot(Re[i][p], Im[i][p]); if (mg > best) { best = mg; piv = i; } }
+        [Re[p], Re[piv]] = [Re[piv], Re[p]]; [Im[p], Im[piv]] = [Im[piv], Im[p]];
+        [bR[p], bR[piv]] = [bR[piv], bR[p]]; [bI[p], bI[piv]] = [bI[piv], bI[p]];
+        const dr = Re[p][p], di = Im[p][p], dd = dr * dr + di * di;
+        for (let i = p + 1; i < nd; i++) {
+          const fr = (Re[i][p] * dr + Im[i][p] * di) / dd, fi = (Im[i][p] * dr - Re[i][p] * di) / dd;
+          for (let j = p; j < nd; j++) {
+            const xr = Re[p][j], xi = Im[p][j];
+            Re[i][j] -= fr * xr - fi * xi; Im[i][j] -= fr * xi + fi * xr;
+          }
+          bR[i] -= fr * bR[p] - fi * bI[p]; bI[i] -= fr * bI[p] + fi * bR[p];
+        }
+      }
+      const xR = new Array(nd).fill(0), xI = new Array(nd).fill(0);
+      for (let i = nd - 1; i >= 0; i--) {
+        let sr = bR[i], si = bI[i];
+        for (let j = i + 1; j < nd; j++) { sr -= Re[i][j] * xR[j] - Im[i][j] * xI[j]; si -= Re[i][j] * xI[j] + Im[i][j] * xR[j]; }
+        const dr = Re[i][i], di = Im[i][i], dd = dr * dr + di * di;
+        xR[i] = (sr * dr + si * di) / dd; xI[i] = (si * dr - sr * di) / dd;
+      }
+      return { roof: Math.hypot(xR[model.n - 1], xI[model.n - 1]), tmd: model.tmd ? Math.hypot(xR[nd - 1] - xR[nd - 2], xI[nd - 1] - xI[nd - 2]) : 0 };
+    }
+
+    // ASCE 7-16 Table 18.7-2 감쇠계수 B (부가감쇠 시스템)
+    const B_TABLE = [[0.02, 0.8], [0.05, 1.0], [0.10, 1.2], [0.20, 1.5], [0.30, 1.8], [0.40, 2.1], [0.50, 2.4]];
+    function dampingB(z) {
+      if (z <= B_TABLE[0][0]) return B_TABLE[0][1];
+      for (let i = 1; i < B_TABLE.length; i++) {
+        if (z <= B_TABLE[i][0]) {
+          const [z0, b0] = B_TABLE[i - 1], [z1, b1] = B_TABLE[i];
+          return b0 + (b1 - b0) * (z - z0) / (z1 - z0);
+        }
+      }
+      return B_TABLE[B_TABLE.length - 1][1];
+    }
+    // Warburton(1982) 지반가속도 조화가진·변위 최소화 최적 TMD 튜닝 (비감쇠 주구조 가정)
+    function tmdOptimal(mu) {
+      return {
+        f: Math.sqrt(1 - mu / 2) / (1 + mu),
+        zeta: Math.sqrt(3 * mu / (8 * (1 + mu) * (1 - mu / 2)))
+      };
+    }
+    // ==PHYSICS-END==
+
+
+    // =========================================================================
+    // 6. 구조물 정의 & 상태
+    // =========================================================================
+    const STRUCT = {
+      sdof: (() => { const m = [2000], T = 1.0; return { m, k: [m[0] * (2 * Math.PI / T) ** 2], h: 4.0, label: 'SDOF 1층 (T=1.00 s)' }; })(),
+      mdof: (() => {
+        const m = [400, 400, 400, 400, 400], prof = [1.0, 0.9, 0.8, 0.7, 0.6];
+        const mp = modalProps(m, prof);
+        const s = (mp.modes[0].w / (2 * Math.PI / 0.9)) ** 2;
+        return { m, k: prof.map(p => p / s), h: 3.5, label: '5층 전단건물 (T₁=0.90 s)' };
+      })()
+    };
+    STRUCT.tmd = STRUCT.mdof;
+
+    const S = {
+      mode: 'sdof', exc: 'synthetic', dist: 'uniform', loopView: 'Fv', story: 0,
+      speed: 1, playing: true, tp: 0,
+      ud: { sdof: 50, mdof: 100 }
+    };
+    let R = null;          // 계산 결과
+    let recomputeTimer = null;
+
+    function el(id) { return document.getElementById(id); }
+    function fmt(x, d = 1) { return (isFinite(x) ? x : 0).toFixed(d); }
+    function pct(x, d = 1) { return (x * 100).toFixed(d) + ' %'; }
+
+    // =========================================================================
+    // 7. 계산 파이프라인 (보강 전 / 보강 후 / SDOF 감쇠 스윕 / TMD FRF)
+    // =========================================================================
+    function distWeights(dist, base) {
+      const n = base.n;
+      if (n === 1) return [1];
+      const dphi = base.modes[0].dphi;
+      if (dist === 'drift') return dphi.map(d => Math.abs(d));
+      if (dist === 'lower') return [1, 1, 0, 0, 0];
+      if (dist === 'upper') return [0, 0, 0, 1, 1];
+      return new Array(n).fill(1);
+    }
+
+    function compute() {
+      const mode = S.mode, st = STRUCT[mode];
+      const zeta0 = +el('sl-zeta0').value;
+      const zd = +el('sl-zd').value, alpha = +el('sl-alpha').value;
+      const ud = S.ud[mode === 'sdof' ? 'sdof' : 'mdof'] / 1000;
+      const base = buildModel({ m: st.m, k: st.k, zeta0 });
+      const w1 = base.modes[0].w;
+      const gm = makeGroundMotion(S.exc, w1, 0.005);
+      const res = { mode, st, base, gm, zeta0, zd, alpha, ud, w1 };
+
+      if (mode === 'tmd') {
+        const mu = +el('sl-mu').value, f = +el('sl-f').value, zt = +el('sl-zt').value;
+        const M1 = base.modes[0].Mn, mt = mu * M1, wt = f * w1;
+        const tmd = { mt, kt: mt * wt * wt, ct: 2 * zt * mt * wt };
+        res.tmd = { mu, f, zt, M1, mt, wt, ...tmd };
+        res.retro = buildModel({ m: st.m, k: st.k, zeta0, tmd });
+        res.Cd = new Array(base.n).fill(0);
+      } else {
+        const uni = sizeDampers(base, new Array(base.n).fill(1), zd, alpha, ud);
+        const total = uni.reduce((a, b) => a + b, 0);
+        const w = distWeights(S.dist, base), ws = w.reduce((a, b) => a + b, 0);
+        res.Cd = w.map(x => total * x / ws);
+        res.Ctotal = total;
+        res.zetaModal = addedModalDamping(base, equivalentC(base, res.Cd, alpha, ud));
+        res.retro = buildModel({ m: st.m, k: st.k, zeta0, Cd: res.Cd, alpha });
+      }
+      res.ob = simulate(base, gm);
+      res.or = simulate(res.retro, gm);
+      const n = base.n, ob = res.ob, or = res.or;
+
+      // --- 응답 지표 ---
+      res.roofB = peakAbs(ob.u[n - 1]); res.roofR = peakAbs(or.u[n - 1]);
+      res.driftB = []; res.driftR = [];
+      for (let j = 0; j < n; j++) { res.driftB.push(peakAbs(ob.drift[j]) / st.h); res.driftR.push(peakAbs(or.drift[j]) / st.h); }
+      res.vbB = peakAbs(ob.vb); res.vbR = peakAbs(or.vb);
+      res.fdMax = or.fd.map(peakAbs);
+      res.eIn = or.eIn[or.nRec - 1];
+      if (mode === 'tmd') {
+        let e = 0; const v = or.tmdVel;
+        for (let i = 1; i < or.nRec; i++) e += 0.5 * or.dt * res.tmd.ct * (v[i] * v[i] + v[i - 1] * v[i - 1]);
+        res.eDev = e;
+        res.stroke = peakAbs(or.tmdRel);
+        res.tmdFmax = peakAbs(or.tmdF);
+      } else {
+        res.eDev = or.eD[or.nRec - 1];
+      }
+      // 실효 부가감쇠 (α<1: 실제 1차 진폭 기준 보정)
+      if (mode !== 'tmd') {
+        res.zdEff = alpha >= 0.999 ? zd : zd * Math.pow(Math.max(res.roofR, 1e-4) / ud, alpha - 1);
+      }
+
+      // --- SDOF: 감쇠 스윕 (현재 지진·α·u_d) ---
+      if (mode === 'sdof') {
+        res.sweep = [];
+        for (let z = 0; z <= 0.4001; z += 0.05) {
+          const C = sizeDampers(base, [1], z, alpha, ud);
+          const mdl = buildModel({ m: st.m, k: st.k, zeta0, Cd: C, alpha });
+          const o = z === 0 ? ob : simulate(mdl, gm);
+          res.sweep.push({ z: zeta0 + z, r: peakAbs(o.u[0]) / res.roofB });
+        }
+      }
+      // --- TMD: 주파수응답함수 ---
+      if (mode === 'tmd') {
+        res.frf = [];
+        let pkR = 0;
+        for (let i = 0; i <= 400; i++) {
+          const r = 0.6 + 0.8 * i / 400;
+          const hb = frfRoof(base, r * w1), hr = frfRoof(res.retro, r * w1);
+          const a = { r, b: hb.roof * w1 * w1, t: hr.roof * w1 * w1, s: hr.tmd * w1 * w1 };
+          res.frf.push(a); pkR = Math.max(pkR, a.t);
+        }
+        res.frfPeakR = pkR;
+        res.zetaEqTmd = 1 / (2 * pkR);
+      }
+
+      // --- 3D 변위 시각화 스케일 (보강 전 최대 옥상변위 → 건물높이의 22%) ---
+      res.visScale = 0.22 * (n * VIS.H) / Math.max(res.roofB, 1e-5);
+      R = res;
+      if (S.story >= n || res.Cd[S.story] <= 0) S.story = Math.max(0, res.fdMax ? res.fdMax.indexOf(Math.max(...res.fdMax)) : 0);
+      updateMetrics();
+      updateModelInfo();
+      buildStoryToggle();
+      rebuildScene();
+    }
+
+    function scheduleCompute() {
+      clearTimeout(recomputeTimer);
+      recomputeTimer = setTimeout(compute, 60);
+    }
+
+    // =========================================================================
+    // 8. UI 핸들러
+    // =========================================================================
+    function syncLabels() {
+      const zeta0 = +el('sl-zeta0').value, zd = +el('sl-zd').value, alpha = +el('sl-alpha').value;
+      el('txt-zeta0').textContent = pct(zeta0);
+      el('txt-zd').textContent = pct(zd);
+      el('txt-alpha').textContent = alpha.toFixed(2);
+      const key = S.mode === 'sdof' ? 'sdof' : 'mdof';
+      S.ud[key] = +el('sl-ud').value;
+      el('txt-ud').textContent = S.ud[key] + ' mm';
+      el('sl-ud').disabled = alpha >= 0.999;
+      el('lbl-ud-sub').innerHTML = alpha >= 0.999 ? '(&alpha;=1 → 진폭 무관)' : (S.mode === 'sdof' ? '(&alpha;&lt;1 용량 산정)' : '(옥상, &alpha;&lt;1 용량 산정)');
+      el('lbl-zd').textContent = S.mode === 'mdof' ? '균등배치 기준' : '목표 부가감쇠';
+      el('txt-mu').textContent = pct(+el('sl-mu').value);
+      el('txt-f').textContent = (+el('sl-f').value).toFixed(3);
+      el('txt-zt').textContent = pct(+el('sl-zt').value);
+    }
+    function onSlider() { syncLabels(); scheduleCompute(); }
+    function setVal(id, v) { el(id).value = v; onSlider(); }
+    // 정본 버튼 시스템: 활성 = 솔리드 잉크, 비활성 = .btn-secondary (화이트)
+    function markActive(sel, pred) {
+      document.querySelectorAll(sel).forEach(b => { const on = pred(b); b.classList.toggle('active', on); b.classList.toggle('btn-secondary', !on); });
+    }
+
+    function setMode(mode) {
+      S.mode = mode;
+      markActive('#mode-tabs .seg-btn', b => b.dataset.mode === mode);
+      el('grp-damper').classList.toggle('hidden', mode === 'tmd');
+      el('grp-tmd').classList.toggle('hidden', mode !== 'tmd');
+      el('grp-dist').classList.toggle('hidden', mode !== 'mdof');
+      const key = mode === 'sdof' ? 'sdof' : 'mdof';
+      el('sl-ud').value = S.ud[key];
+      el('lbl-retro').textContent = mode === 'tmd' ? '보강 후 (옥상 TMD)' : '보강 후 (점성댐퍼)';
+      S.story = 0; S.tp = 0;
+      syncLabels();
+      compute();
+    }
+    function setExc(exc) {
+      S.exc = exc; S.tp = 0;
+      markActive('#exc-tabs .seg-btn', b => b.dataset.exc === exc);
+      compute();
+    }
+    function setSpeed(v) {
+      S.speed = v;
+      markActive('#speed-tabs .seg-btn', b => +b.dataset.speed === v);
+    }
+    function setDist(d) {
+      S.dist = d;
+      markActive('#dist-tabs .preset', b => b.dataset.dist === d);
+      compute();
+    }
+    function setLoopView(v) {
+      S.loopView = v;
+      markActive('#loop-toggle button', b => b.dataset.lv === v);
+    }
+    function setStory(j) {
+      S.story = j;
+      markActive('#story-toggle button', b => +b.dataset.st === j);
+      updateDamperHighlight();
+    }
+    function buildStoryToggle() {
+      const box = el('story-toggle');
+      if (S.mode !== 'mdof') return;
+      box.innerHTML = '';
+      for (let j = 0; j < R.base.n; j++) {
+        const b = document.createElement('button');
+        b.textContent = (j + 1) + 'F'; b.dataset.st = j;
+        b.classList.add(j === S.story ? 'active' : 'btn-secondary');
+        b.onclick = () => setStory(j);
+        box.appendChild(b);
+      }
+    }
+    function tuneOptimal() {
+      const o = tmdOptimal(+el('sl-mu').value);
+      el('sl-f').value = o.f.toFixed(3);
+      el('sl-zt').value = (Math.round(o.zeta / 0.005) * 0.005).toFixed(3);
+      onSlider();
+    }
+    function togglePlay() {
+      S.playing = !S.playing;
+      el('play-icon').textContent = S.playing ? '⏸' : '▶';
+      el('play-text').textContent = S.playing ? '일시정지' : '재생';
+    }
+    function resetSim() { S.tp = 0; if (!S.playing) togglePlay(); }
+
+    function updateModelInfo() {
+      const r = R, st = r.st, md = r.base.modes;
+      let html = `<div class="font-bold text-slate-700 font-sans text-[11px]">${st.label}</div>`;
+      html += `<div>m = ${st.m.length === 1 ? st.m[0] + ' t' : st.m[0] + ' t/층'} · h = ${st.h} m</div>`;
+      html += `<div>T = ${md.slice(0, Math.min(3, md.length)).map(x => x.T.toFixed(3)).join(' / ')} s</div>`;
+      if (r.mode === 'tmd') {
+        html += `<div>M₁ = ${fmt(r.tmd.M1, 0)} t → m<sub>t</sub> = <b class="text-red-700">${fmt(r.tmd.mt, 1)} t</b></div>`;
+        html += `<div>k<sub>t</sub> = ${fmt(r.tmd.kt, 0)} kN/m · c<sub>t</sub> = ${fmt(r.tmd.ct, 1)} kN·s/m</div>`;
+        const o = tmdOptimal(r.tmd.mu);
+        html += `<div class="text-slate-500">최적: f = ${o.f.toFixed(3)}, ζ<sub>t</sub> = ${pct(o.zeta)}</div>`;
+      } else {
+        const unit = r.alpha >= 0.999 ? 'kN·s/m' : `kN·(s/m)<sup>${r.alpha.toFixed(2)}</sup>`;
+        html += `<div>C<sub>j</sub> [${unit}] (1F→${r.base.n}F):</div>`;
+        html += `<div class="text-amber-700 font-bold">${r.Cd.map(c => fmt(c, 0)).join(' · ')}</div>`;
+        if (r.base.n > 1) {
+          html += `<div>&Sigma;C = ${fmt(r.Ctotal, 0)} · ζ<sub>d,n</sub> (1·2·3차) =</div>`;
+          html += `<div class="text-blue-700 font-bold">${r.zetaModal.slice(0, 3).map(z => z >= 1 ? '≥100 %(과감쇠)' : pct(z)).join(' · ')}</div>`;
+        }
+      }
+      el('model-info').innerHTML = html;
+    }
+
+    function updateMetrics() {
+      const r = R, n = r.base.n;
+      if (r.mode === 'tmd') {
+        el('m1-lbl').innerHTML = '등가감쇠 ζ<sub>eq</sub> (FRF 피크)';
+        el('m1-val').textContent = pct(r.zetaEqTmd);
+        el('m1-sub').textContent = `ζ₀ ${pct(r.zeta0)} + TMD ${pct(Math.max(0, r.zetaEqTmd - r.zeta0))}`;
+        el('m5-lbl').textContent = 'TMD 최대 스트로크';
+        el('m5-val').textContent = fmt(r.stroke * 1000, 0) + ' mm';
+        el('m5-sub').textContent = `옥상의 ${fmt(r.stroke / Math.max(r.roofR, 1e-6), 1)}배 · ${fmt(r.tmdFmax, 0)} kN`;
+        el('m6-lbl').textContent = 'TMD 소산 / 입력에너지';
+      } else {
+        el('m1-lbl').innerHTML = '유효감쇠 ζ<sub>eff</sub> 설계/실효';
+        el('m1-val').textContent = `${pct(r.zeta0 + r.zd)} / ${pct(r.zeta0 + r.zdEff)}`;
+        el('m1-sub').textContent = r.alpha >= 0.999 ? 'α=1: 진폭 무관' : `u_max ${fmt(r.roofR * 1000, 0)} / u_d ${fmt(r.ud * 1000, 0)} mm`;
+        el('m5-lbl').textContent = '댐퍼 최대력';
+        const jm = r.fdMax.indexOf(Math.max(...r.fdMax));
+        el('m5-val').textContent = fmt(r.fdMax[jm], 0) + ' kN';
+        el('m5-sub').textContent = n > 1 ? `${jm + 1}층 · 수평환산` : '수평환산';
+        el('m6-lbl').textContent = '댐퍼 소산 / 입력에너지';
+      }
+      const red = 1 - r.roofR / r.roofB;
+      el('m2-val').textContent = (red >= 0 ? '−' : '+') + pct(Math.abs(red), 0);
+      el('m2-sub').textContent = `${fmt(r.roofB * 1000, 0)} → ${fmt(r.roofR * 1000, 0)} mm`;
+      const dB = Math.max(...r.driftB), dR = Math.max(...r.driftR);
+      el('m3-val').textContent = `${pct(dB, 2)} → ${pct(dR, 2)}`;
+      el('m3-val').style.color = dR > 0.015 ? '#dc2626' : '#047857';
+      el('m3-sub').textContent = dR > 0.015 ? '허용 1.5% 초과 (I등급)' : '허용 1.5% 이내 (I등급)';
+      el('m4-val').textContent = `${fmt(r.vbB, 0)} → ${fmt(r.vbR, 0)}`;
+      const W = r.st.m.reduce((a, b) => a + b, 0) * G;
+      el('m4-sub').textContent = `kN · V/W ${fmt(r.vbB / W, 2)}→${fmt(r.vbR / W, 2)}`;
+      el('m6-val').textContent = pct(r.eDev / Math.max(r.eIn, 1e-9), 0);
+      el('m6-sub').textContent = `E_in ${fmt(r.eIn, 0)} kN·m`;
+    }
+
+    // =========================================================================
+    // 9. 3D 장면 (보강 전 / 보강 후 전단건물, 점성댐퍼 가새, 옥상 TMD)
+    // =========================================================================
+    const VIS = { H: 1.0, L: 1.3, D: 1.0, gap: 1.75, cw: 0.09, slabT: 0.08 };
+    let scene, camera, renderer, controls, sceneRoot = null;
+    let bldg = { bare: null, retro: null };
+    let damperObjs = [], tmdObj = null;
+    const MAT = {};
+
+    function initThree() {
+      const box = el('three-container');
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf8fafc);
+      const r = box.getBoundingClientRect();
+      camera = new THREE.PerspectiveCamera(32, r.width / Math.max(r.height, 1), 0.1, 200);
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+      renderer.setSize(r.width, r.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      box.appendChild(renderer.domElement);
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI / 2 + 0.05;
+
+      // 조명 총합 0.9 + 1.0 + 0.4 = 2.3 ≤ 2.5 (과노출 억제 게이트)
+      scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+      const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+      dir.position.set(6, 12, 9); dir.castShadow = true;
+      dir.shadow.mapSize.set(1024, 1024); dir.shadow.bias = -0.0005;
+      dir.shadow.camera.left = -6; dir.shadow.camera.right = 6; dir.shadow.camera.top = 8; dir.shadow.camera.bottom = -2;
+      scene.add(dir);
+      const fill = new THREE.DirectionalLight(0x93c5fd, 0.4); fill.position.set(-8, 5, -6); scene.add(fill);
+
+      MAT.slabBare = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.6, metalness: 0.1 });
+      MAT.slabRetro = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.45, metalness: 0.25 });
+      MAT.colBare = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.5, metalness: 0.3 });
+      MAT.colRetro = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4, metalness: 0.45 });
+      MAT.edge = new THREE.LineBasicMaterial({ color: 0x0f172a });
+      MAT.cyl = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3, metalness: 0.8 });
+      MAT.rod = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.08, metalness: 0.95 });
+      MAT.joint = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.3, metalness: 0.8 });
+      MAT.tmd = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.35, metalness: 0.4 });
+      MAT.rail = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3, metalness: 0.8 });
+      MAT.spring = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.2, metalness: 0.85 });
+
+      // 지반 플린스 (고정단)
+      const gGeo = new THREE.BoxGeometry(VIS.gap * 2 + VIS.L + 2.2, 0.16, VIS.D + 1.4);
+      const ground = new THREE.Mesh(gGeo, new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.9 }));
+      ground.position.y = -0.08; ground.receiveShadow = true;
+      ground.add(new THREE.LineSegments(new THREE.EdgesGeometry(gGeo), MAT.edge));
+      scene.add(ground);
+
+      new ResizeObserver(() => {
+        const rr = box.getBoundingClientRect();
+        if (rr.width < 2 || rr.height < 2) return;
+        camera.aspect = rr.width / rr.height; camera.updateProjectionMatrix();
+        renderer.setSize(rr.width, rr.height);
+      }).observe(box);
+    }
+
+    function makeColumn(mat, x0, z0, yBase) {
+      const geo = new THREE.BoxGeometry(VIS.cw, VIS.H, VIS.cw, 1, 16, 1);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x0, yBase + VIS.H / 2, z0);
+      mesh.castShadow = true;
+      const pos = geo.attributes.position;
+      const base = new Float32Array(pos.array);
+      return { mesh, pos, base };
+    }
+
+    function makeBuilding(cx, n, retro) {
+      const g = { cx, n, slabs: [], cols: [] };
+      const slabGeo = new THREE.BoxGeometry(VIS.L + 0.24, VIS.slabT, VIS.D + 0.24);
+      for (let j = 0; j < n; j++) {
+        const s = new THREE.Mesh(slabGeo, retro ? MAT.slabRetro : MAT.slabBare);
+        s.position.set(cx, (j + 1) * VIS.H, 0);
+        s.castShadow = true; s.receiveShadow = true;
+        s.add(new THREE.LineSegments(new THREE.EdgesGeometry(slabGeo), MAT.edge));
+        sceneRoot.add(s); g.slabs.push(s);
+        const cols = [];
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+          const c = makeColumn(retro ? MAT.colRetro : MAT.colBare, cx + sx * VIS.L / 2, sz * VIS.D / 2, j * VIS.H);
+          sceneRoot.add(c.mesh); cols.push(c);
+        }
+        g.cols.push(cols);
+      }
+      // 기초 보 (고정단)
+      const fGeo = new THREE.BoxGeometry(VIS.L + 0.34, 0.1, VIS.D + 0.34);
+      const f = new THREE.Mesh(fGeo, MAT.joint); f.position.set(cx, 0.05, 0);
+      f.add(new THREE.LineSegments(new THREE.EdgesGeometry(fGeo), MAT.edge));
+      sceneRoot.add(f);
+      return g;
+    }
+
+    function makeDamper(story, zFace, L0) {
+      const body = new THREE.Group();
+      const Lc = 0.55 * L0, Lr = 0.6 * L0;
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, Lc, 16), MAT.cyl);
+      cyl.castShadow = true;
+      const oilMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xf59e0b, emissiveIntensity: 0.0, transparent: true, opacity: 0.85, roughness: 0.15 });
+      const oil = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.048, Lc * 0.45, 16), oilMat);
+      oil.position.y = Lc * 0.05;
+      const gland = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.04, 16), new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.85, roughness: 0.25 }));
+      gland.position.y = Lc / 2 - 0.02;
+      body.add(cyl, oil, gland);
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, Lr, 12), MAT.rod);
+      const j0 = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), MAT.joint);
+      const j1 = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), MAT.joint);
+      sceneRoot.add(body, rod, j0, j1);
+      return { story, zFace, Lc, Lr, body, rod, j0, j1, oilMat };
+    }
+
+    function makeTMD(cx, n) {
+      const yRoof = n * VIS.H + VIS.slabT / 2;
+      const grp = new THREE.Group();          // 옥상 슬래브와 함께 이동
+      const railGeo = new THREE.BoxGeometry(VIS.L * 0.95, 0.03, 0.05);
+      for (const z of [-0.22, 0.22]) { const r = new THREE.Mesh(railGeo, MAT.rail); r.position.set(0, 0.015, z); grp.add(r); }
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.6), MAT.rail);
+      post.position.set(-VIS.L * 0.47, 0.16, 0);
+      post.add(new THREE.LineSegments(new THREE.EdgesGeometry(post.geometry), MAT.edge));
+      grp.add(post);
+      grp.position.set(cx, yRoof, 0);
+      sceneRoot.add(grp);
+      const mGeo = new THREE.BoxGeometry(0.34, 0.26, 0.52);
+      const mass = new THREE.Mesh(mGeo, MAT.tmd);
+      mass.castShadow = true;
+      mass.add(new THREE.LineSegments(new THREE.EdgesGeometry(mGeo), MAT.edge));
+      mass.position.set(0, 0.16, 0);
+      grp.add(mass);
+      // 스프링: 단위길이 헬릭스 메시를 x방향 스케일
+      const pts = [];
+      for (let i = 0; i <= 160; i++) { const s = i / 160, a = s * 2 * Math.PI * 8; pts.push(new THREE.Vector3(s, 0.05 * Math.sin(a), 0.05 * Math.cos(a))); }
+      const spring = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 200, 0.008, 6, false), MAT.spring);
+      spring.position.set(0, 0.22, -0.14); grp.add(spring);
+      // 대시팟: 실린더(포스트 고정) + 로드(질량 고정)
+      const dCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.30, 14), MAT.cyl);
+      dCyl.rotation.z = Math.PI / 2; grp.add(dCyl);
+      const dRod = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.0, 10), MAT.rod);   // 단위길이 → scale.y로 신축
+      dRod.rotation.z = Math.PI / 2; grp.add(dRod);
+      return { grp, mass, spring, dCyl, dRod, x0: -VIS.L * 0.43 };
+    }
+
+    function rebuildScene() {
+      if (!scene) return;
+      if (sceneRoot) {
+        scene.remove(sceneRoot);
+        sceneRoot.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.dispose && !Object.values(MAT).includes(o.material)) o.material.dispose(); });
+      }
+      sceneRoot = new THREE.Group(); scene.add(sceneRoot);
+      const n = R.base.n;
+      bldg.bare = makeBuilding(-VIS.gap, n, false);
+      bldg.retro = makeBuilding(VIS.gap, n, true);
+      damperObjs = []; tmdObj = null;
+      if (R.mode !== 'tmd') {
+        const L0 = Math.hypot(VIS.L, VIS.H - VIS.slabT);
+        for (let j = 0; j < n; j++) {
+          if (R.Cd[j] <= 1e-9) continue;
+          for (const zf of [-VIS.D / 2, VIS.D / 2]) damperObjs.push(makeDamper(j, zf, L0));
+        }
+      } else {
+        tmdObj = makeTMD(VIS.gap, n);
+      }
+      updateDamperHighlight();
+      // 카메라 프레이밍
+      const Ht = n * VIS.H;
+      const ty = n === 1 ? 0.5 : Ht * 0.5 + 0.2;
+      const dist = n === 1 ? 3.9 : 11.2;
+      camera.position.set(0.5, ty + (n === 1 ? 0.9 : 1.6), dist);
+      controls.target.set(0, ty, 0);
+      controls.update();
+    }
+
+    function updateDamperHighlight() {
+      damperObjs.forEach(d => { d.sel = (R.mode === 'mdof' && d.story === S.story); });
+    }
+
+    // 시각 층변위 (tanh 소프트 클램핑: 층고 35% 한계 — 비침투 게이트)
+    function visDisp(uArr, i, scale, n) {
+      const out = [0];
+      let prev = 0, acc = 0;
+      const lim = 0.35 * VIS.H;
+      for (let j = 0; j < n; j++) {
+        const d = (uArr[j][i] - prev) * scale;
+        acc += lim * Math.tanh(d / lim);
+        prev = uArr[j][i];
+        out.push(acc);
+      }
+      return out;     // out[0]=지반, out[j+1]=j층 슬래브
+    }
+
+    const _v0 = new THREE.Vector3(), _v1 = new THREE.Vector3(), _dir = new THREE.Vector3(), _yAx = new THREE.Vector3(0, 1, 0);
+    function poseBuilding(g, X) {
+      for (let j = 0; j < g.n; j++) {
+        g.slabs[j].position.x = g.cx + X[j + 1];
+        const xb = X[j], xt = X[j + 1], dx = xt - xb;
+        for (const c of g.cols[j]) {
+          const a = c.pos.array, b = c.base;
+          for (let v = 0; v < a.length; v += 3) {
+            const s = (b[v + 1] + VIS.H / 2) / VIS.H;      // 0(하단)~1(상단)
+            a[v] = b[v] + xb + dx * (3 * s * s - 2 * s * s * s);   // 양단 고정 이중곡률
+          }
+          c.pos.needsUpdate = true;
+        }
+      }
+    }
+
+    function poseDampers(X, i) {
+      const fmax = Math.max(...R.fdMax, 1e-9);
+      for (const d of damperObjs) {
+        const j = d.story, cx = VIS.gap;
+        _v0.set(cx - VIS.L / 2 + X[j], j * VIS.H + VIS.slabT / 2, d.zFace);
+        _v1.set(cx + VIS.L / 2 + X[j + 1], (j + 1) * VIS.H - VIS.slabT / 2, d.zFace);
+        _dir.subVectors(_v1, _v0).normalize();
+        d.body.quaternion.setFromUnitVectors(_yAx, _dir);
+        d.body.position.copy(_v0).addScaledVector(_dir, d.Lc / 2);
+        d.rod.quaternion.copy(d.body.quaternion);
+        d.rod.position.copy(_v1).addScaledVector(_dir, -d.Lr / 2);
+        d.j0.position.copy(_v0); d.j1.position.copy(_v1);
+        const f = Math.abs(R.or.fd[j][i]) / fmax;
+        d.oilMat.emissiveIntensity = 0.05 + 0.75 * f + (d.sel ? 0.25 : 0);
+      }
+    }
+
+    function poseTMD(X, i) {
+      if (!tmdObj) return;
+      const n = R.base.n;
+      tmdObj.grp.position.x = VIS.gap + X[n];
+      const lim = 0.22 * VIS.L;
+      const rel = lim * Math.tanh(R.or.tmdRel[i] * R.visScale / lim);
+      const mx = rel;
+      tmdObj.mass.position.x = mx;
+      const x0 = tmdObj.x0, xm = mx - 0.17;
+      tmdObj.spring.position.x = x0; tmdObj.spring.scale.x = Math.max(0.05, xm - x0);
+      tmdObj.dCyl.position.set(x0 + 0.15, 0.11, 0.14);
+      const ra = x0 + 0.05, rl = Math.max(0.02, xm - ra);       // 로드는 실린더 내부에서 질량면까지
+      tmdObj.dRod.scale.y = rl; tmdObj.dRod.position.set(ra + rl / 2, 0.11, 0.14);
+    }
+
+    // =========================================================================
+    // 10. 2D 캔버스 플롯 (DPR ≥ 2, 패딩 65/30/30/45)
+    // =========================================================================
+    const PAD = { l: 65, r: 30, t: 30, b: 45 };
+    const COL = { bare: '#94a3b8', retro: '#2563eb', amber: '#d97706', red: '#dc2626', purple: '#7c3aed', grid: '#f1f5f9', axis: '#cbd5e1', text: '#475569', title: '#0f172a' };
+    function getCtx(id) {
+      const c = el(id), r = c.getBoundingClientRect();
+      const dpr = Math.max(2, window.devicePixelRatio || 1);
+      const W = Math.max(10, Math.round(r.width)), H = Math.max(10, Math.round(r.height));
+      if (c.width !== W * dpr || c.height !== H * dpr) { c.width = W * dpr; c.height = H * dpr; }
+      const ctx = c.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      return { ctx, w: W, h: H };
+    }
+    function niceStep(range, target) {
+      const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+      return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
+    }
+    function axes(ctx, w, h, o) {
+      const pw = w - PAD.l - PAD.r, ph = h - PAD.t - PAD.b;
+      const X = x => PAD.l + (x - o.x0) / (o.x1 - o.x0) * pw;
+      const Y = y => PAD.t + (1 - (y - o.y0) / (o.y1 - o.y0)) * ph;
+      ctx.save();
+      ctx.font = '10px Pretendard, sans-serif'; ctx.fillStyle = COL.text;
+      ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+      const xs = o.xStep || niceStep(o.x1 - o.x0, 5), ys = o.yStep || niceStep(o.y1 - o.y0, 4);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let x = Math.ceil(o.x0 / xs) * xs; x <= o.x1 + 1e-9; x += xs) {
+        ctx.beginPath(); ctx.moveTo(X(x), PAD.t); ctx.lineTo(X(x), PAD.t + ph); ctx.stroke();
+        ctx.fillText(o.xFmt ? o.xFmt(x) : +x.toFixed(6), X(x), PAD.t + ph + 5);
+      }
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (let y = Math.ceil(o.y0 / ys) * ys; y <= o.y1 + 1e-9; y += ys) {
+        ctx.beginPath(); ctx.moveTo(PAD.l, Y(y)); ctx.lineTo(PAD.l + pw, Y(y)); ctx.stroke();
+        ctx.fillText(o.yFmt ? o.yFmt(y) : +y.toFixed(6), PAD.l - 6, Y(y));
+      }
+      ctx.strokeStyle = COL.axis; ctx.strokeRect(PAD.l, PAD.t, pw, ph);
+      if (o.zeroY && o.y0 < 0 && o.y1 > 0) { ctx.strokeStyle = '#94a3b8'; ctx.beginPath(); ctx.moveTo(PAD.l, Y(0)); ctx.lineTo(PAD.l + pw, Y(0)); ctx.stroke(); }
+      if (o.zeroX && o.x0 < 0 && o.x1 > 0) { ctx.strokeStyle = '#94a3b8'; ctx.beginPath(); ctx.moveTo(X(0), PAD.t); ctx.lineTo(X(0), PAD.t + ph); ctx.stroke(); }
+      ctx.fillStyle = COL.title; ctx.font = 'bold 11px Pretendard, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(o.title, 10, 11);
+      ctx.fillStyle = COL.text; ctx.font = '10px Pretendard, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(o.xLabel, PAD.l + pw / 2, h - 6);
+      ctx.save(); ctx.translate(13, PAD.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(o.yLabel, 0, 0); ctx.restore();
+      ctx.restore();
+      return { X, Y, pw, ph, rect: { left: PAD.l, top: PAD.t, width: pw, height: ph } };
+    }
+    function legend(ctx, w, items, yAt) {
+      ctx.save(); ctx.font = 'bold 9.5px Pretendard, sans-serif'; ctx.textBaseline = 'middle';
+      let x = w - PAD.r - (yAt ? 6 : 0);
+      const ly = yAt || (PAD.t - 7);
+      for (let k = items.length - 1; k >= 0; k--) {
+        const it = items[k], tw = ctx.measureText(it.t).width;
+        x -= tw; ctx.fillStyle = it.c; ctx.textAlign = 'left'; ctx.fillText(it.t, x, ly);
+        x -= 14; ctx.strokeStyle = it.c; ctx.lineWidth = 2.2; ctx.setLineDash(it.dash || []);
+        ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + 10, ly); ctx.stroke(); ctx.setLineDash([]);
+        x -= 10;
+      }
+      ctx.restore();
+    }
+    function polyline(ctx, pts, color, lw, dash) {
+      if (pts.length < 2) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.setLineDash(dash || []);
+      ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+      for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
+      ctx.stroke(); ctx.restore();
+    }
+    function peakBadge(ctx, ax, px, py, text, color, curve) {
+      const DC = window.DynamicsChartCanonical;
+      if (!DC) return;
+      ctx.save(); ctx.font = 'bold 9.5px Pretendard, monospace';
+      const bw = ctx.measureText(text).width + 16; ctx.restore();
+      const pos = DC.getBestCalloutPlacement(px, py, bw, 22, ax.rect, curve);
+      DC.drawLeaderLine(ctx, px, py, pos.x, pos.y, bw, 22, color);
+      DC.drawAutoBadge(ctx, text, pos.x, pos.y, { textColor: color, border: color });
+      // 다음 배지가 피해가도록 장애물 점 반환
+      const obs = [];
+      for (let gx = 0; gx <= 6; gx++) for (let gy = 0; gy <= 2; gy++) obs.push({ x: pos.x + bw * gx / 6, y: pos.y + 11 * gy });
+      return obs;
+    }
+
+    // (A) 시간이력: 옥상변위 보강 전/후
+    function drawTimeHistory(i) {
+      const { ctx, w, h } = getCtx('cv-th');
+      const r = R, n = r.base.n, ob = r.ob, or = r.or;
+      const ymax = Math.max(r.roofB, r.roofR) * 1000 * 1.15 || 1;
+      const ax = axes(ctx, w, h, {
+        x0: 0, x1: r.gm.dur, y0: -ymax, y1: ymax, zeroY: true,
+        title: n > 1 ? '옥상 변위 u₅(t)' : '변위 u(t)', xLabel: '시간 t [s]', yLabel: 'u [mm]', yFmt: y => y.toFixed(0)
+      });
+      legend(ctx, w, [{ t: '보강 전', c: COL.bare }, { t: '보강 후', c: COL.retro }]);
+      // 지반가속도 (배경 음영 트레이스)
+      const agMax = peakAbs(r.ob.ag) || 1;
+      const ptsA = [];
+      for (let k = 0; k < ob.nRec; k += 2) ptsA.push({ x: ax.X(ob.t[k]), y: ax.Y(ob.ag[k] / agMax * ymax * 0.25) });
+      polyline(ctx, ptsA, 'rgba(124,58,237,0.22)', 1);
+      const pb = [], pr = [];
+      for (let k = 0; k <= i; k++) {
+        pb.push({ x: ax.X(ob.t[k]), y: ax.Y(ob.u[n - 1][k] * 1000) });
+        pr.push({ x: ax.X(or.t[k]), y: ax.Y(or.u[n - 1][k] * 1000) });
+      }
+      polyline(ctx, pb, COL.bare, 1.4);
+      polyline(ctx, pr, COL.retro, 1.8);
+      // 커서
+      ctx.save(); ctx.strokeStyle = 'rgba(220,38,38,0.6)'; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(ax.X(ob.t[i]), PAD.t); ctx.lineTo(ax.X(ob.t[i]), PAD.t + ax.ph); ctx.stroke(); ctx.restore();
+      // 피크 배지 (커서 통과 후)
+      const kB = argPeak(ob.u[n - 1]), kR = argPeak(or.u[n - 1]);
+      const curve = pb.filter((_, k) => k % 6 === 0).concat(pr.filter((_, k) => k % 6 === 0));
+      if (kB <= i) curve.push(...peakBadge(ctx, ax, ax.X(ob.t[kB]), ax.Y(ob.u[n - 1][kB] * 1000), `보강 전 ${fmt(r.roofB * 1000, 0)} mm`, '#475569', curve));
+      if (kR <= i) peakBadge(ctx, ax, ax.X(or.t[kR]), ax.Y(or.u[n - 1][kR] * 1000), `보강 후 ${fmt(r.roofR * 1000, 0)} mm`, '#1d4ed8', curve);
+    }
+    function argPeak(a) { let k = 0, p = -1; for (let i = 0; i < a.length; i++) if (Math.abs(a[i]) > p) { p = Math.abs(a[i]); k = i; } return k; }
+
+    // (B) 댐퍼 이력루프: F–v / F–u
+    function drawLoop(i) {
+      const { ctx, w, h } = getCtx('cv-loop');
+      const r = R, or = r.or, Fv = S.loopView === 'Fv';
+      let xs, fs, Ftitle, xLab, C = 0, alpha = 1;
+      if (r.mode === 'tmd') {
+        xs = Fv ? or.tmdVel : or.tmdRel; fs = or.tmdF;
+        Ftitle = Fv ? 'TMD 대시팟 F–v' : 'TMD 대시팟 F–u (스트로크)';
+        C = r.tmd.ct;
+      } else {
+        const j = Math.min(S.story, r.base.n - 1);
+        xs = Fv ? or.dvel[j] : or.drift[j]; fs = or.fd[j]; C = r.Cd[j]; alpha = r.alpha;
+        Ftitle = (r.base.n > 1 ? `${j + 1}층 ` : '') + (Fv ? '댐퍼 F–v 관계' : '댐퍼 F–u 이력루프');
+      }
+      const xMul = Fv ? 1 : 1000;
+      const xm = (peakAbs(xs) * xMul || 1) * 1.15, fm = (peakAbs(fs) || 1) * 1.2;
+      const ax = axes(ctx, w, h, {
+        x0: -xm, x1: xm, y0: -fm, y1: fm, zeroX: true, zeroY: true, title: Ftitle,
+        xLabel: Fv ? (r.mode === 'tmd' ? '상대속도 v_t [m/s]' : '층간속도 Δv [m/s]') : (r.mode === 'tmd' ? '상대변위 u_t [mm]' : '층간변위 Δ [mm]'),
+        yLabel: 'F_d [kN]', yFmt: y => Math.abs(y) >= 1000 ? (y / 1000).toFixed(1) + 'k' : y.toFixed(0),
+        xFmt: x => Fv ? x.toFixed(Math.abs(xm) < 0.5 ? 2 : 1) : x.toFixed(0)
+      });
+      if (C <= 0) {
+        ctx.save(); ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 11px Pretendard'; ctx.textAlign = 'center';
+        ctx.fillText('이 층에는 댐퍼 없음 (C = 0)', PAD.l + ax.pw / 2, PAD.t + ax.ph / 2); ctx.restore();
+        return;
+      }
+      // 이론 F–v 곡선
+      if (Fv) {
+        const th = [];
+        for (let k = 0; k <= 200; k++) {
+          const v = -xm + 2 * xm * k / 200;
+          const F = C * Math.sign(v) * Math.pow(Math.abs(v), alpha);
+          if (Math.abs(F) <= fm) th.push({ x: ax.X(v), y: ax.Y(F) });
+        }
+        polyline(ctx, th, 'rgba(217,119,6,0.55)', 1.2, [4, 3]);
+      }
+      // 궤적 (최근 4초 진하게)
+      const recent = Math.round(4 / or.dt);
+      const old = [], nw = [];
+      for (let k = 0; k <= i; k++) {
+        const p = { x: ax.X(xs[k] * xMul), y: ax.Y(fs[k]) };
+        (k < i - recent ? old : nw).push(p);
+      }
+      if (old.length) nw.unshift(old[old.length - 1]);
+      polyline(ctx, old, 'rgba(37,99,235,0.18)', 1);
+      polyline(ctx, nw, r.mode === 'tmd' ? COL.red : COL.retro, 1.6);
+      // 현재점
+      ctx.save(); ctx.fillStyle = COL.amber; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(ax.X(xs[i] * xMul), ax.Y(fs[i]), 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+      if (Fv) legend(ctx, w, [{ t: `이론 C|v|^${alpha.toFixed(2)}`, c: COL.amber, dash: [4, 3] }], PAD.t + ax.ph - 10);
+      else {
+        // 누적 소산에너지
+        let e = 0;
+        const v = r.mode === 'tmd' ? or.tmdVel : or.dvel[Math.min(S.story, r.base.n - 1)];
+        for (let k = 1; k <= i; k++) e += 0.5 * or.dt * (fs[k] * v[k] + fs[k - 1] * v[k - 1]);
+        legend(ctx, w, [{ t: `누적 E_D = ${fmt(e, 0)} kN·m`, c: COL.purple }], PAD.t + ax.ph - 10);
+      }
+    }
+
+    // (C-1) SDOF: 유효감쇠 ↔ 응답저감률
+    function drawSweep() {
+      const { ctx, w, h } = getCtx('cv-third');
+      const r = R, z0 = r.zeta0;
+      const ax = axes(ctx, w, h, {
+        x0: 0, x1: 0.5, y0: 0, y1: 1.1, xStep: 0.1, yStep: 0.2,
+        title: '유효감쇠 ↔ 응답비 R(ζ)/R(ζ₀)', xLabel: 'ζ_eff = ζ₀ + ζ_d', yLabel: '최대변위 비',
+        xFmt: x => (x * 100).toFixed(0) + '%', yFmt: y => y.toFixed(1)
+      });
+      const B = [], Th = [];
+      for (let k = 0; k <= 120; k++) {
+        const z = 0.005 + (0.5 - 0.005) * k / 120;
+        if (z >= z0) { B.push({ x: ax.X(z), y: ax.Y(dampingB(z0) / dampingB(z)) }); Th.push({ x: ax.X(z), y: ax.Y(Math.min(1.1, z0 / z)) }); }
+      }
+      polyline(ctx, Th, COL.purple, 1.4, [2, 3]);
+      polyline(ctx, B, COL.amber, 1.8, [6, 3]);
+      const sw = r.sweep.map(p => ({ x: ax.X(p.z), y: ax.Y(Math.min(1.1, p.r)) }));
+      polyline(ctx, sw, COL.retro, 2);
+      ctx.save(); ctx.fillStyle = COL.retro;
+      sw.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 2.6, 0, Math.PI * 2); ctx.fill(); }); ctx.restore();
+      // 현재 설계점
+      const zc = z0 + r.zd, rc = r.roofR / r.roofB;
+      ctx.save(); ctx.fillStyle = COL.red; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(ax.X(zc), ax.Y(Math.min(1.1, rc)), 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+      peakBadge(ctx, ax, ax.X(zc), ax.Y(Math.min(1.1, rc)), `현재 ${fmt(rc, 2)} · B식 ${fmt(dampingB(z0) / dampingB(zc), 2)}`, '#b91c1c', sw.concat(B.filter((_, k) => k % 4 === 0)));
+      legend(ctx, w, [{ t: '시뮬레이션', c: COL.retro }, { t: '1/B', c: COL.amber, dash: [6, 3] }, { t: 'ζ₀/ζ 공진', c: COL.purple, dash: [2, 3] }]);
+    }
+
+    // (C-2) MDOF: 층간변위비 포락선
+    function drawDriftProfile(i) {
+      const { ctx, w, h } = getCtx('cv-third');
+      const r = R, n = r.base.n;
+      const xmax = Math.max(0.016, Math.max(...r.driftB) * 1.15);
+      const ax = axes(ctx, w, h, {
+        x0: 0, x1: xmax, y0: 0, y1: n, yStep: 1,
+        title: '층간변위비 포락선', xLabel: '층간변위비 Δ/h', yLabel: '층',
+        xFmt: x => (x * 100).toFixed(1) + '%', yFmt: () => ''
+      });
+      // 허용치 1.5%
+      ctx.save(); ctx.strokeStyle = COL.red; ctx.setLineDash([5, 3]); ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(ax.X(0.015), PAD.t); ctx.lineTo(ax.X(0.015), PAD.t + ax.ph); ctx.stroke();
+      ctx.fillStyle = COL.red; ctx.font = 'bold 9px Pretendard'; ctx.textAlign = 'right'; ctx.fillText('1.5%', ax.X(0.015) - 3, PAD.t + 10); ctx.restore();
+      const step = (arr) => { const p = [{ x: ax.X(0), y: ax.Y(0) }]; for (let j = 0; j < n; j++) { p.push({ x: ax.X(arr[j]), y: ax.Y(j) }); p.push({ x: ax.X(arr[j]), y: ax.Y(j + 1) }); } return p; };
+      polyline(ctx, step(r.driftB), COL.bare, 2);
+      polyline(ctx, step(r.driftR), COL.retro, 2.4);
+      // 현재 순간 층간변위비 (절대값 점)
+      ctx.save();
+      for (let j = 0; j < n; j++) {
+        const yb = ax.Y(j + 0.5);
+        ctx.fillStyle = 'rgba(148,163,184,0.9)';
+        ctx.beginPath(); ctx.arc(ax.X(Math.abs(r.ob.drift[j][i]) / r.st.h), yb + 4, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = COL.retro;
+        ctx.beginPath(); ctx.arc(ax.X(Math.abs(r.or.drift[j][i]) / r.st.h), yb - 4, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = COL.text; ctx.font = 'bold 10px Pretendard'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText((j + 1) + 'F', PAD.l - 6, yb);
+        if (r.Cd[j] > 0) { ctx.fillStyle = COL.amber; ctx.font = 'bold 8.5px Pretendard'; ctx.textAlign = 'left'; ctx.fillText('◆', PAD.l + 3, yb + 3); }
+      }
+      ctx.restore();
+      legend(ctx, w, [{ t: '보강 전', c: COL.bare }, { t: '보강 후', c: COL.retro }]);
+    }
+
+    // (C-3) TMD: 주파수응답함수
+    function drawFRF() {
+      const { ctx, w, h } = getCtx('cv-third');
+      const r = R, f = r.frf;
+      const ymax = Math.max(...f.map(p => p.b)) * 1.08;
+      const ax = axes(ctx, w, h, {
+        x0: 0.6, x1: 1.4, y0: 0, y1: ymax, xStep: 0.2,
+        title: '주파수응답 |u_roof|·ω₁²/|ü_g|', xLabel: 'ω / ω₁', yLabel: '증폭률', xFmt: x => x.toFixed(1), yFmt: y => y.toFixed(0)
+      });
+      polyline(ctx, f.map(p => ({ x: ax.X(p.r), y: ax.Y(p.b) })), COL.bare, 1.8);
+      polyline(ctx, f.map(p => ({ x: ax.X(p.r), y: ax.Y(Math.min(ymax, p.s * 0.2)) })), 'rgba(220,38,38,0.6)', 1.2, [4, 3]);
+      const tr = f.map(p => ({ x: ax.X(p.r), y: ax.Y(p.t) }));
+      polyline(ctx, tr, COL.retro, 2.2);
+      if (S.exc === 'harmonic') {
+        ctx.save(); ctx.strokeStyle = COL.purple; ctx.setLineDash([2, 3]);
+        ctx.beginPath(); ctx.moveTo(ax.X(1), PAD.t); ctx.lineTo(ax.X(1), PAD.t + ax.ph); ctx.stroke(); ctx.restore();
+      }
+      let k = 0; f.forEach((p, q) => { if (p.t > f[k].t) k = q; });
+      peakBadge(ctx, ax, tr[k].x, tr[k].y, `피크 ${fmt(r.frfPeakR, 1)} → ζ_eq ≈ ${pct(r.zetaEqTmd)}`, '#1d4ed8', tr.filter((_, q) => q % 8 === 0));
+      legend(ctx, w, [{ t: '보강 전', c: COL.bare }, { t: 'TMD', c: COL.retro }, { t: '스트로크×0.2', c: COL.red, dash: [4, 3] }]);
+    }
+
+    // =========================================================================
+    // 11. 메인 루프
+    // =========================================================================
+    let lastTs = null;
+    function mainLoop(ts) {
+      requestAnimationFrame(mainLoop);
+      if (!R) return;
+      const dtReal = lastTs === null ? 0 : Math.min(0.05, (ts - lastTs) / 1000);
+      lastTs = ts;
+      if (S.playing) {
+        S.tp += dtReal * S.speed;
+        if (S.tp > R.gm.dur + 1.0) S.tp = 0;           // 1초 정지 후 반복
+      }
+      const i = Math.min(R.or.nRec - 1, Math.floor(Math.min(S.tp, R.gm.dur) / R.or.dt));
+      const n = R.base.n;
+      // 3D
+      if (renderer) {
+        const XB = visDisp(R.ob.u, i, R.visScale, n), XR = visDisp(R.or.u, i, R.visScale, n);
+        poseBuilding(bldg.bare, XB); poseBuilding(bldg.retro, XR);
+        poseDampers(XR, i); poseTMD(XR, i);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      // HUD
+      el('hud-t').textContent = R.or.t[i].toFixed(2) + ' s';
+      el('hud-ag').textContent = (R.or.ag[i] / G).toFixed(3) + ' g';
+      el('hud-ub').textContent = (R.ob.u[n - 1][i] * 1000).toFixed(0);
+      el('hud-ur').textContent = (R.or.u[n - 1][i] * 1000).toFixed(0) + ' mm';
+      el('hud-scale').textContent = '×' + (R.visScale / (VIS.H / R.st.h)).toFixed(0);
+      // 2D
+      drawTimeHistory(i);
+      drawLoop(i);
+      if (R.mode === 'sdof') drawSweep();
+      else if (R.mode === 'mdof') drawDriftProfile(i);
+      else drawFRF();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      try { initThree(); } catch (e) { console.warn('WebGL 초기화 실패 — 2D 플롯만 표시', e); renderer = null; }
+      setDist('uniform');
+      tuneOptimal();
+      setMode('sdof');
+      requestAnimationFrame(mainLoop);
+    });
+  </script>
+</body>
+</html>

@@ -144,13 +144,13 @@
             <span class="text-xs font-bold text-slate-800 font-mono px-2 py-0.5 rounded bg-slate-100 flex items-center gap-1.5 border border-slate-300">
               <i class="fa-solid fa-chart-line"></i> TRACK 4
             </span>
-            <span class="text-[11px] text-slate-500 font-mono font-bold">5개 모듈</span>
+            <span class="text-[11px] text-slate-500 font-mono font-bold">6개 모듈</span>
           </div>
           <h2 class="font-black text-slate-900 text-base mt-2 group-hover:text-slate-700 transition">
             비선형 성능기반설계(PBD)
           </h2>
           <p class="text-xs text-slate-600 mt-1 leading-relaxed">
-            Newmark 등변위(R=5 삭감), 능력스펙트럼법(CSM) 성능점 수렴, RC 기둥 3D P-M 상관도, FEMA 356 백본, 4단계 미시손상역학.
+            Newmark 등변위(R=5 삭감), 능력스펙트럼법(CSM) 성능점 수렴, RC 기둥 3D P-M 상관도, FEMA 356 백본, 4단계 미시손상역학, 점성댐퍼·TMD 제진보강.
           </p>
         </div>
         <span class="text-[11px] font-bold text-slate-900 flex items-center gap-1">트랙 모듈 보기 &rarr;</span>
@@ -235,7 +235,7 @@
           트랙 3: 규준 내진설계 & 모달해석 (13)
         </button>
         <button onclick="setTrackFilter('nonlinear')" id="track-tab-nonlinear" class="px-3 py-1 rounded-lg text-xs font-medium transition bg-slate-100 hover:bg-slate-200 text-slate-700">
-          트랙 4: 비선형 성능설계 & 손상역학 (5)
+          트랙 4: 비선형 성능설계 & 손상역학 (6)
         </button>
       </div>
     </section>
@@ -764,6 +764,22 @@
         desc: "미세 휨 균열(Hairline) → 피복 콘크리트 탈락(Spalling) → 띠철근 파단 → 주철근 S자 비탄성 좌굴(Buckling) 4단계 고해상도 렌더링.",
         file: "29_plastic_hinge_cross_section_damage.html",
         tags: ["소성힌지단면", "피복탈락", "주철근좌굴", "띠철근", "미시파괴"]
+      },
+      {
+        id: "47",
+        act: 6,
+        step: 32,
+        trackId: "nonlinear",
+        trackName: "비선형 성능설계",
+        num: "정본 47",
+        title: "점성댐퍼 & TMD 제진보강 효과: 부가감쇠비 · 응답저감 · F–v 이력루프",
+        standard: "FEMA 356 §9.3 / ASCE 7-16 Ch.18",
+        badgeClass: "badge-fema",
+        status: "보강 전/후 RK4 비교",
+        leadQuestion: "손상을 막기 위해 감쇠를 더하면, 지진 응답은 정말 감쇠비만큼 줄어들까요?",
+        desc: "SDOF·5층 전단건물에 선형/비선형(F=C|v|^α) 점성댐퍼와 옥상 TMD를 설치해 동일 지진의 보강 전/후 응답을 비교. 에너지 등가 부가감쇠비 ζd, ASCE 7 B계수 대비 실제 저감률, 층별 배치 효율, Warburton 최적 튜닝과 FRF.",
+        file: "47_viscous_damper_tmd_retrofit.html",
+        tags: ["점성댐퍼", "TMD", "부가감쇠비", "제진보강", "이력루프", "B계수", "FEMA356"]
       }
     ];
 
