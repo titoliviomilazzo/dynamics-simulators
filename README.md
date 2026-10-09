@@ -57,13 +57,14 @@
 - [정본 43. 주기상한(CuTa) 제한규준 & 1차모드 비틀림 결함 경보기](https://titoliviomilazzo.github.io/dynamics-simulators/43_period_upper_bound_torsion_warning.html)
 - [정본 45. KDS 41 내진설계 전주기 파이프라인 네비게이터](https://titoliviomilazzo.github.io/dynamics-simulators/45_kds41_seismic_code_navigator_pipeline.html)
 
-### 🔹 Track 04. 비선형 성능기반설계 (PBD) & FEMA 356 (5개 모듈)
+### 🔹 Track 04. 비선형 성능기반설계 (PBD) & FEMA 356 (7개 모듈)
 - [정본 37. Newmark 등변위 규칙 & 반응수정계수(R=5 지진력 1/5 삭감)](https://titoliviomilazzo.github.io/dynamics-simulators/37_newmark_equal_displacement_r_factor.html)
 - [정본 41. 반응수정계수 R의 3중 분해(R = R_R &middot; R_Ω &middot; R_Y) & 이중골조 시스템](https://titoliviomilazzo.github.io/dynamics-simulators/41_r_factor_decomposition_dual_system.html)
 - [정본 44. 비선형 능력스펙트럼법(CSM) & 성능점(Performance Point) 수렴기](https://titoliviomilazzo.github.io/dynamics-simulators/44_capacity_spectrum_method_performance_point.html)
 - [정본 24. RC 기둥 P-M 상관도 & 강도감소계수(φ) 연성-취성 전이곡면](https://titoliviomilazzo.github.io/dynamics-simulators/24_rc_column_pm_interaction_diagram.html)
 - [정본 28. FEMA 힌지 백본(IO-LS-CP) & 단면 200배 거시-미시 손상 통합](https://titoliviomilazzo.github.io/dynamics-simulators/28_fema_backbone_io_ls_cp.html)
 - [정본 29. 기둥 밑둥 소성힌지 단면 200배 줌인 4단계 미시 손상역학](https://titoliviomilazzo.github.io/dynamics-simulators/29_plastic_hinge_cross_section_damage.html)
+- [정본 47. 점성댐퍼 & TMD 제진보강 효과: 부가감쇠비 · 응답저감 · F–v 이력루프](https://titoliviomilazzo.github.io/dynamics-simulators/47_viscous_damper_tmd_retrofit.html)
 
 ---
 
