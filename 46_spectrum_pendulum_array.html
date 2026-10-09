@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 46: 진자 배열 응답스펙트럼 생성기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>
+  :root { --ink:#0f172a; --sub:#475569; --dim:#94a3b8; --line:#e2e8f0; --teal:#0f6e7e; --verm:#c4341a; --bg:#f8fafc; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:1280px; margin:0 auto; padding:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(15,23,42,.06); }
+  header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:center;
+    border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:14px; }
+  .badge { font:700 12px ui-monospace,monospace; padding:3px 9px; border-radius:6px; background:#ecfeff; color:var(--teal); border:1px solid #a5f3fc; }
+  h1 { font-size:22px; font-weight:900; margin:0; letter-spacing:-.02em; }
+  .lead { font-size:13px; color:var(--sub); margin:6px 0 0; }
+  a.back { font-size:12px; font-weight:700; padding:8px 14px; border-radius:12px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; text-decoration:none; }
+  .grid { display:grid; grid-template-columns:260px 1fr; gap:18px; }
+  @media (max-width:900px){ .grid { grid-template-columns:1fr; } }
+  .panel h3 { font-size:12px; letter-spacing:.08em; color:var(--dim); margin:14px 0 6px; font-weight:800; }
+  label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; }
+  label span { float:right; font-family:ui-monospace,monospace; color:var(--teal); }
+  input[type=range] { width:100%; accent-color:var(--teal); }
+  select { width:100%; padding:6px; border-radius:8px; border:1px solid #cbd5e1; font:inherit; font-size:13px; }
+  .btns { display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+  button { flex:1; padding:9px 8px; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+  button.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .chk { display:flex; align-items:center; gap:6px; font-size:13px; margin:8px 0; font-weight:500; }
+  .note { font-size:12px; color:var(--sub); line-height:1.55; background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:12px; }
+  .note b { color:var(--ink); }
+  canvas { width:100%; display:block; }
+  .cv { border:1px solid var(--line); border-radius:14px; margin-bottom:10px; background:#fff; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:900px){ .row2 { grid-template-columns:1fr; } }
+  .readout { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:var(--sub); margin:2px 2px 10px; }
+  .readout b { font-family:ui-monospace,monospace; color:var(--ink); }
+  .q { margin-top:14px; border-top:1px solid var(--line); padding-top:12px; font-size:13px; color:var(--sub); line-height:1.6; }
+  .q b { color:var(--verm); }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+  <header>
+    <div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge">SIM 46 · 응답스펙트럼</span>
+        <h1>진자 배열 → 응답스펙트럼 생성기</h1>
+      </div>
+      <p class="lead">주기만 다른 1자유도계 20개를 같은 지진파 위에 세우고, 각자의 <b>최대값 하나</b>만 남겨 곡선을 만든다.</p>
+    </div>
+    <a class="back" href="index.html">&larr; 마스터 대시보드</a>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>지진파</h3>
+      <select id="gm">
+        <option value="7">합성파 A (seed 7)</option>
+        <option value="21">합성파 B (seed 21)</option>
+        <option value="42">합성파 C (seed 42)</option>
+        <option value="soft">합성파 D · 연약지반형 (장주기 성분↑)</option>
+      </select>
+      <label>PGA <span id="pgaV">0.20 g</span></label>
+      <input id="pga" type="range" min="0.05" max="0.5" step="0.01" value="0.20">
+
+      <h3>진자 배열</h3>
+      <label>감쇠비 ζ <span id="zV">5 %</span></label>
+      <input id="zeta" type="range" min="0.01" max="0.30" step="0.01" value="0.05">
+      <label>주기 범위 최대 <span id="tmaxV">4.0 s</span></label>
+      <input id="tmax" type="range" min="1" max="6" step="0.5" value="4">
+
+      <h3>표시</h3>
+      <select id="ord">
+        <option value="psa">유사가속도 PSa = ω²·Sd</option>
+        <option value="sd">변위 Sd</option>
+        <option value="sv">유사속도 PSv = ω·Sd</option>
+      </select>
+      <div class="chk"><input type="checkbox" id="full"><label for="full" style="margin:0">완성 곡선 (촘촘한 주기 80개)</label></div>
+      <div class="chk"><input type="checkbox" id="kds"><label for="kds" style="margin:0">설계스펙트럼 겹치기 (S_DS 0.37 · S_D1 0.16)</label></div>
+      <label>재생 속도 <span id="spV">1.0×</span></label>
+      <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1">
+
+      <div class="btns">
+        <button class="primary" id="play">▶ 재생</button>
+        <button id="reset">처음으로</button>
+        <button id="skip">끝까지</button>
+      </div>
+      <div class="note">
+        <b>교육용 합성 지진파</b>(백색잡음 → Kanai-Tajimi 필터 → 포락선). 실측 기록이 아니다.<br>
+        설계스펙트럼 값은 강의 덱 p.39 값이며 T_L 구간은 표시하지 않는다.<br>
+        진자를 <b>클릭</b>하면 그 진자의 변위 이력이 아래에 나온다.
+      </div>
+    </div>
+
+    <div>
+      <div class="readout">
+        <div>t = <b id="tNow">0.00</b> s</div>
+        <div>선택 진자 T = <b id="selT">-</b> s</div>
+        <div>현재 최대 = <b id="selPk">-</b></div>
+      </div>
+      <canvas id="cvG" class="cv" height="110"></canvas>
+      <canvas id="cvP" class="cv" height="260"></canvas>
+      <div class="row2">
+        <canvas id="cvS" class="cv" height="300"></canvas>
+        <canvas id="cvH" class="cv" height="300"></canvas>
+      </div>
+      <div class="q">
+        <b>Q1</b> 재생 초반에 단주기 진자와 장주기 진자 중 어느 쪽이 먼저 최대값에 도달하나? &nbsp;
+        <b>Q2</b> ζ를 5%→20%로 바꾸면 곡선은 어느 주기에서 가장 많이 내려가나? &nbsp;
+        <b>Q3</b> 합성파 A·B·C의 곡선이 서로 다른데, 설계스펙트럼은 어떻게 하나로 정하나? (덱 p.23)
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+const G = 9.81, DT = 0.01, DUR = 30, N_PEND = 20;
+const C = { ink:"#0f172a", sub:"#475569", dim:"#94a3b8", line:"#e2e8f0", teal:"#0f6e7e", verm:"#c4341a" };
+const $ = (id) => document.getElementById(id);
+
+// ---------- numerics ----------
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function gauss(rng){ let u=0,v=0; while(u===0)u=rng(); v=rng(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+// Newmark average acceleration, unit mass. Returns relative displacement array (m).
+function sdof(ag, T, z){
+  const w = 2*Math.PI/T, k = w*w, c = 2*z*w, n = ag.length;
+  const u = new Float64Array(n); let v = 0, a = -ag[0];
+  const kh = k + 2*c/DT + 4/(DT*DT);
+  for (let i=0;i<n-1;i++){
+    const dp = -(ag[i+1]-ag[i]) + (4/DT + 2*c)*v + 2*a;
+    const du = dp/kh, dv = 2*du/DT - 2*v;
+    u[i+1] = u[i] + du; v += dv;
+    a = -ag[i+1] - c*v - k*u[i+1];
+  }
+  return u;
+}
+function groundMotion(key, pga_g){
+  const seed = key === "soft" ? 99 : +key;
+  const wg = key === "soft" ? 4.0 : 15.0, zg = key === "soft" ? 0.3 : 0.6;
+  const rng = mulberry32(seed), n = Math.round(DUR/DT);
+  const wn = new Float64Array(n); for (let i=0;i<n;i++) wn[i] = gauss(rng);
+  // Kanai-Tajimi: filter = SDOF(wg,zg) driven by white noise; ag = -(2 zg wg v + wg^2 u)
+  const w2 = wg*wg, c = 2*zg*wg, kh = w2 + 2*c/DT + 4/(DT*DT);
+  const ag = new Float64Array(n); let u=0, v=0, a=-wn[0];
+  for (let i=0;i<n-1;i++){
+    const dp = -(wn[i+1]-wn[i]) + (4/DT + 2*c)*v + 2*a;
+    const du = dp/kh, dv = 2*du/DT - 2*v;
+    u += du; v += dv; a = -wn[i+1] - c*v - w2*u;
+    const t = (i+1)*DT, env = Math.min(t/3,1) * (t>12 ? Math.exp(-0.18*(t-12)) : 1);
+    ag[i+1] = -(c*v + w2*u) * env;
+  }
+  let mx = 0; for (const x of ag) mx = Math.max(mx, Math.abs(x));
+  for (let i=0;i<n;i++) ag[i] = ag[i]/mx * pga_g * G;
+  return ag;
+}
+const ordinate = (D, T, mode) => {
+  const w = 2*Math.PI/T;
+  return mode === "sd" ? D*100 : mode === "sv" ? w*D*100 : w*w*D/G;
+};
+const ordUnit = { psa:"g", sd:"cm", sv:"cm/s" };
+const ordLabel = { psa:"PSa (g)", sd:"Sd (cm)", sv:"PSv (cm/s)" };
+function kdsSa(T){ const SDS=0.37, SD1=0.16, Ts=SD1/SDS, T0=0.2*Ts;
+  return T<T0 ? SDS*(0.4+0.6*T/T0) : T<=Ts ? SDS : SD1/T; }
+
+// ---------- state ----------
+let ag, periods, resp, fullP, fullD, idx = 0, playing = false, sel = 9, last = 0;
+function build(){
+  ag = groundMotion($("gm").value, +$("pga").value);
+  const tmax = +$("tmax").value, z = +$("zeta").value;
+  periods = Array.from({length:N_PEND}, (_,i) => +(0.1 + (tmax-0.1)*i/(N_PEND-1)).toFixed(3));
+  resp = periods.map(T => sdof(ag, T, z));
+  fullP = Array.from({length:80}, (_,i) => 0.05 + (tmax-0.05)*i/79);
+  fullD = fullP.map(T => { const u = sdof(ag, T, z); let m=0; for (const x of u) m=Math.max(m,Math.abs(x)); return m; });
+  idx = 0; draw();
+}
+
+// ---------- drawing ----------
+function setup(cv){
+  const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.getAttribute("height");
+  if (cv.width !== Math.round(w*r)) { cv.width = Math.round(w*r); cv.height = Math.round(h*r); cv.style.height = h+"px"; }
+  const g = cv.getContext("2d"); g.setTransform(r,0,0,r,0,0); g.clearRect(0,0,w,h);
+  g.font = "12px Pretendard, sans-serif"; return [g, w, h];
+}
+function axes(g, x0, y0, w, h, xmax, ymax, xl, yl, yt){
+  g.strokeStyle = C.line; g.lineWidth = 1; g.fillStyle = C.sub;
+  for (let i=0;i<=4;i++){ const y = y0 + h - h*i/4; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke();
+    g.fillText((ymax*i/4).toFixed(yt), x0-36, y+4); }
+  const step = xmax > 4 ? 1 : 0.5;
+  for (let x=0;x<=xmax+1e-9;x+=step){ const px = x0 + w*x/xmax; g.fillText(x.toFixed(1), px-8, y0+h+16); }
+  g.fillText(xl, x0+w-60, y0+h+32); g.save(); g.translate(14, y0+h/2+30); g.rotate(-Math.PI/2); g.fillText(yl,0,0); g.restore();
+}
+function peakSoFar(u, n){ let m=0; for (let i=0;i<=n;i++) m=Math.max(m,Math.abs(u[i])); return m; }
+
+function draw(){
+  const n = ag.length, mode = $("ord").value;
+  $("tNow").textContent = (idx*DT).toFixed(2);
+
+  // ground motion strip
+  { const [g,w,h] = setup($("cvG")); const x0=40, pw=w-56, mid=h/2+6;
+    let mx=0; for (const x of ag) mx=Math.max(mx,Math.abs(x));
+    g.fillStyle=C.dim; g.fillText("지반가속도 ag(t)  ·  PGA "+(+$("pga").value).toFixed(2)+" g", x0, 14);
+    g.strokeStyle=C.line; g.beginPath(); g.moveTo(x0,mid); g.lineTo(x0+pw,mid); g.stroke();
+    g.strokeStyle=C.dim; g.lineWidth=0.8; g.beginPath();
+    for (let i=0;i<n;i+=2){ const px=x0+pw*i/n, py=mid-ag[i]/mx*(h/2-18); i?g.lineTo(px,py):g.moveTo(px,py); } g.stroke();
+    g.strokeStyle=C.ink; g.lineWidth=1.2; g.beginPath();
+    for (let i=0;i<=idx;i+=2){ const px=x0+pw*i/n, py=mid-ag[i]/mx*(h/2-18); i?g.lineTo(px,py):g.moveTo(px,py); } g.stroke();
+    g.strokeStyle=C.verm; g.beginPath(); g.moveTo(x0+pw*idx/n,18); g.lineTo(x0+pw*idx/n,h-4); g.stroke(); }
+
+  // pendulum row (inverted cantilevers on shaking base)
+  { const cv=$("cvP"); const [g,w,h] = setup(cv); const base=h-46, x0=34, pw=w-90, gap=pw/(N_PEND-1);
+    let ug=0; // ground displacement only for visual hint (scaled acceleration)
+    let mx=0; for (const x of ag) mx=Math.max(mx,Math.abs(x)); ug = ag[idx]/mx*6;
+    let umax=0; resp.forEach(u => { umax=Math.max(umax, peakSoFar(u,n-1)); });
+    g.fillStyle="#f1f5f9"; g.fillRect(0,base,w,h-base);
+    g.strokeStyle=C.ink; g.lineWidth=2; g.beginPath(); g.moveTo(10+ug,base); g.lineTo(w-10+ug,base); g.stroke();
+    g.fillStyle=C.dim; g.fillText("진자 높이 ∝ 주기 · 끝단 변위는 전 진자 공통 배율", 10, 16);
+    periods.forEach((T,j) => {
+      const u = resp[j], x = x0 + j*gap + ug, L = 40 + 150*Math.sqrt(T/periods[N_PEND-1]);
+      const d = u[idx]/umax*gap*1.6, pk = peakSoFar(u, idx);
+      const hot = pk/umax, col = j===sel ? C.verm : `rgb(${15+hot*180|0},${110-hot*40|0},${126-hot*80|0})`;
+      g.strokeStyle = col; g.lineWidth = j===sel?3:2;
+      g.beginPath(); g.moveTo(x,base); g.quadraticCurveTo(x, base-L*0.55, x+d, base-L); g.stroke();
+      g.fillStyle = col; g.beginPath(); g.arc(x+d, base-L, j===sel?7:5.5, 0, 7); g.fill();
+      // peak ghost
+      g.strokeStyle = "rgba(196,52,26,.35)"; g.lineWidth=1;
+      const pd = pk/umax*gap*1.6; g.beginPath(); g.moveTo(x-pd,base-L-10); g.lineTo(x-pd,base-L+10); g.moveTo(x+pd,base-L-10); g.lineTo(x+pd,base-L+10); g.stroke();
+      g.fillStyle = C.sub; g.font="10px ui-monospace,monospace";
+      if (j%2===0 || j===sel) g.fillText(T.toFixed(1), x0+j*gap-9, h-26);
+      g.font="12px Pretendard, sans-serif";
+    });
+    g.fillStyle=C.sub; g.fillText("T (s)", w-44, h-10);
+    cv.onclick = (e) => { const r=cv.getBoundingClientRect(), x=e.clientX-r.left;
+      sel = Math.max(0, Math.min(N_PEND-1, Math.round((x-x0)/gap))); draw(); };
+  }
+
+  // spectrum
+  { const [g,w,h] = setup($("cvS")); const x0=62, y0=24, pw=w-78, ph=h-64, xmax=+$("tmax").value;
+    const pts = periods.map((T,j) => ordinate(peakSoFar(resp[j], idx), T, mode));
+    const full = fullP.map((T,i) => ordinate(fullD[i], T, mode));
+    let ymax = Math.max(...full, ...pts) * 1.15;
+    if ($("kds").checked && mode==="psa") ymax = Math.max(ymax, 0.37*1.15*(+$("pga").value/0.2 > 1 ? 1 : 1));
+    ymax = ymax || 1;
+    g.fillStyle=C.ink; g.font="700 13px Pretendard, sans-serif"; g.fillText("응답스펙트럼  ζ = "+Math.round(+$("zeta").value*100)+"%", x0, 16); g.font="12px Pretendard, sans-serif";
+    axes(g, x0, y0, pw, ph, xmax, ymax, "주기 T (s)", ordLabel[mode], mode==="psa"?2:0);
+    const X = T => x0 + pw*T/xmax, Y = v => y0 + ph - ph*v/ymax;
+    if ($("kds").checked && mode==="psa"){ g.strokeStyle=C.teal; g.setLineDash([6,4]); g.lineWidth=1.6; g.beginPath();
+      for (let i=0;i<=200;i++){ const T=0.001+xmax*i/200; i?g.lineTo(X(T),Y(kdsSa(T))):g.moveTo(X(T),Y(kdsSa(T))); } g.stroke(); g.setLineDash([]);
+      g.fillStyle=C.teal; g.fillText("설계스펙트럼", X(xmax*0.62), Y(kdsSa(xmax*0.62))-8); }
+    if ($("full").checked || idx >= n-1){ g.strokeStyle = $("full").checked ? C.ink : "rgba(15,23,42,.35)"; g.lineWidth=1.8; g.beginPath();
+      fullP.forEach((T,i) => i?g.lineTo(X(T),Y(full[i])):g.moveTo(X(T),Y(full[i]))); g.stroke(); }
+    g.strokeStyle="rgba(196,52,26,.5)"; g.lineWidth=1; g.beginPath();
+    periods.forEach((T,j) => j?g.lineTo(X(T),Y(pts[j])):g.moveTo(X(T),Y(pts[j]))); g.stroke();
+    periods.forEach((T,j) => { g.fillStyle = j===sel ? C.verm : C.ink; g.beginPath(); g.arc(X(T),Y(pts[j]), j===sel?6:4, 0, 7); g.fill(); });
+    if (mode==="psa"){ g.fillStyle=C.dim; g.fillText("T→0 이면 PSa → PGA", x0+6, Y(+$("pga").value)-6);
+      g.strokeStyle=C.dim; g.setLineDash([2,3]); g.beginPath(); g.moveTo(x0,Y(+$("pga").value)); g.lineTo(x0+50,Y(+$("pga").value)); g.stroke(); g.setLineDash([]); }
+  }
+
+  // selected history
+  { const [g,w,h] = setup($("cvH")); const x0=62, y0=24, pw=w-78, ph=h-64, u=resp[sel], T=periods[sel];
+    let m=0; for (const x of u) m=Math.max(m,Math.abs(x)); m*=100*1.15;
+    g.fillStyle=C.ink; g.font="700 13px Pretendard, sans-serif"; g.fillText("선택 진자 변위 u(t)  ·  T = "+T.toFixed(2)+" s", x0, 16); g.font="12px Pretendard, sans-serif";
+    const mid = y0+ph/2; g.strokeStyle=C.line;
+    for (let i=0;i<=4;i++){ const y=y0+ph*i/4; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+pw,y); g.stroke(); g.fillStyle=C.sub; g.fillText((m*(1-i/2)).toFixed(1), x0-36, y+4); }
+    g.fillText("시간 (s)", x0+pw-50, y0+ph+32); for (let t=0;t<=DUR;t+=5) g.fillText(t, x0+pw*t/DUR-4, y0+ph+16);
+    g.save(); g.translate(14,y0+ph/2+30); g.rotate(-Math.PI/2); g.fillText("u (cm)",0,0); g.restore();
+    g.strokeStyle="rgba(148,163,184,.6)"; g.lineWidth=0.8; g.beginPath();
+    for (let i=0;i<n;i+=2){ const px=x0+pw*i/n, py=mid-u[i]*100/m*ph/2; i?g.lineTo(px,py):g.moveTo(px,py); } g.stroke();
+    g.strokeStyle=C.verm; g.lineWidth=1.4; g.beginPath();
+    let ip=0, pk=0; for (let i=0;i<=idx;i++){ if (Math.abs(u[i])>pk){pk=Math.abs(u[i]); ip=i;} }
+    for (let i=0;i<=idx;i+=2){ const px=x0+pw*i/n, py=mid-u[i]*100/m*ph/2; i?g.lineTo(px,py):g.moveTo(px,py); } g.stroke();
+    if (idx>0){ const px=x0+pw*ip/n, py=mid-u[ip]*100/m*ph/2; g.fillStyle=C.verm; g.beginPath(); g.arc(px,py,5,0,7); g.fill();
+      g.fillText("최대 "+(pk*100).toFixed(2)+" cm @ "+(ip*DT).toFixed(2)+" s", Math.min(px+8, x0+pw-150), Math.max(py-8, y0+12)); }
+    $("selT").textContent = T.toFixed(2);
+    $("selPk").textContent = ordinate(pk, T, mode).toFixed(mode==="psa"?3:2) + " " + ordUnit[mode];
+  }
+}
+
+// ---------- loop ----------
+function tick(ts){
+  if (!playing) return;
+  const dt = last ? (ts-last)/1000 : 0; last = ts;
+  idx = Math.min(ag.length-1, idx + Math.round(dt/DT * +$("speed").value));
+  draw();
+  if (idx >= ag.length-1){ playing=false; $("play").textContent="▶ 재생"; return; }
+  requestAnimationFrame(tick);
+}
+$("play").onclick = () => { playing=!playing; $("play").textContent = playing?"❚❚ 일시정지":"▶ 재생";
+  if (playing){ if (idx>=ag.length-1) idx=0; last=0; requestAnimationFrame(tick); } };
+$("reset").onclick = () => { idx=0; draw(); };
+$("skip").onclick = () => { idx=ag.length-1; draw(); };
+const lbl = { pga:v=>(+v).toFixed(2)+" g", zeta:v=>Math.round(v*100)+" %", tmax:v=>(+v).toFixed(1)+" s", speed:v=>(+v).toFixed(2).replace(/0$/,"")+"×" };
+["pga","zeta","tmax"].forEach(k => $(k).oninput = e => { $(k+"V").textContent = lbl[k](e.target.value); build(); });
+$("speed").oninput = e => $("spV").textContent = lbl.speed(e.target.value);
+$("gm").onchange = build; ["ord","full","kds"].forEach(k => $(k).onchange = draw);
+window.addEventListener("resize", draw);
+build();
+</script>
+</body>
+</html>
