@@ -77,6 +77,7 @@
       <label>S<sub>D1</sub> <span id="sd1V">0.16 g</span></label>
       <input id="sd1" type="range" min="0.05" max="0.6" step="0.01" value="0.16">
       <div class="chk"><input type="checkbox" id="cu" checked><label for="cu">주기상한 C<sub>u</sub>·T<sub>a</sub> 띠 (7.2.3)</label></div>
+      <div class="chk"><input type="checkbox" id="loglog"><label for="loglog">로그–로그 축 (기울기 = 지수 x)</label></div>
       <div class="chk"><input type="checkbox" id="asce" checked><label for="asce">ASCE 7 기준선 T = 3.5·T<sub>S</sub></label></div>
 
       <h3>해석 프로그램 주기와 비교</h3>
@@ -177,6 +178,18 @@ function frame(g, w, h, title, xmax, ymax, xl, yl, xstep, ystep, xdec, ydec){
   return { X:v=>x0+pw*v/xmax, Y:v=>y0+ph-ph*v/ymax, x0, y0, pw, ph };
 }
 
+function frameLog(g, w, h, title, xmin, xmax, ymin, ymax, xticks, yticks, xl, yl){
+  const x0=58, y0=28, pw=w-74, ph=h-70, L=Math.log10;
+  const X=v=>x0+pw*(L(v)-L(xmin))/(L(xmax)-L(xmin)), Y=v=>y0+ph-ph*(L(v)-L(ymin))/(L(ymax)-L(ymin));
+  g.fillStyle=C.ink; g.font="700 13px Pretendard, sans-serif"; g.fillText(title, x0, 18); g.font="12px Pretendard, sans-serif";
+  g.strokeStyle=C.line; g.lineWidth=1; g.fillStyle=C.sub;
+  yticks.forEach(v=>{ const y=Y(v); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+pw,y); g.stroke(); g.fillText(String(v), x0-34, y+4); });
+  xticks.forEach(v=>{ const x=X(v); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+ph); g.stroke(); g.fillText(String(v), x-8, y0+ph+16); });
+  g.fillText(xl, x0+pw-130, y0+ph+34);
+  g.save(); g.translate(14, y0+ph/2+40); g.rotate(-Math.PI/2); g.fillText(yl,0,0); g.restore();
+  return { X, Y, x0, y0, pw, ph };
+}
+
 function draw(){
   const h=+$("h").value, sh=+$("sh").value, sds=+$("sds").value, sd1=+$("sd1").value;
   const Ts=sd1/sds, cu=Cu(sd1), N=Math.max(1, Math.round(h/sh));
@@ -184,11 +197,21 @@ function draw(){
   $("sdsV").textContent=sds.toFixed(2)+" g"; $("sd1V").textContent=sd1.toFixed(2)+" g";
 
   // ---- Ta vs height ----
-  { const [g,w,hh]=setup($("cvT")); const HMAX=200, TMAX=6;
-    const F=frame(g,w,hh,"근사고유주기 T_a — 높이 × 구조형식",HMAX,TMAX,"건물 높이 h_n (m)","T_a (s)",20,1,0,0);
+  { const [g,w,hh]=setup($("cvT")); const LOG=$("loglog").checked, HMIN=LOG?3:0, HMAX=200;
+    // dynamic T axis: fit every visible item (curves at 200 m, C_u band, T_model, user points, ASCE line)
+    const csA=SYS.find(x=>x.key===$("cmpSys").value), TmA=$("mRatio").checked ? (+$("ratio").value)*Ta(csA,h) : +$("tm").value;
+    const tops=[$("asce").checked?3.5*Ts:Ts, TmA, ...parsePts().filter(([ph])=>ph<=HMAX).map(([,pt])=>pt)];
+    SYS.forEach(s=>{ if (on[s.key]) tops.push(Ta(s,HMAX)*(($("cu").checked && s.key===$("cmpSys").value)?cu:1)); });
+    const top=Math.max(...tops.filter(v=>isFinite(v)&&v>0))*1.08;
+    const niceStep=v=>{ const p=Math.pow(10,Math.floor(Math.log10(v))); return [1,2,2.5,5,10].map(m=>m*p).find(c=>c>=v); };
+    const ystep=niceStep(top/6), TMAX=LOG ? [1,2,5,10,20,50].find(c=>c>=top) : Math.ceil(top/ystep)*ystep;
+    const yt=[0.05,0.1,0.2,0.5,1,2,5,10,20,50].filter(v=>v<=TMAX);
+    const F = LOG
+      ? frameLog(g,w,hh,"근사고유주기 T_a — 로그–로그 (직선 기울기 = x)",3,200,0.05,TMAX,[3,5,10,20,50,100,200],yt,"건물 높이 h_n (m, 로그)","T_a (s, 로그)")
+      : frame(g,w,hh,"근사고유주기 T_a — 높이 × 구조형식",HMAX,TMAX,"건물 높이 h_n (m)","T_a (s)",20,ystep,0,ystep<1?1:0);
     // secondary floor ticks
     g.fillStyle=C.dim; g.font="10px ui-monospace,monospace";
-    for (let n=10;n*sh<=HMAX;n+=10) g.fillText(n+"F", F.X(n*sh)-8, F.y0+F.ph+28);
+    for (let n=10;n*sh<=HMAX;n+=10) if (n*sh>=HMIN) g.fillText(n+"F", F.X(n*sh)-8, F.y0+F.ph+28);
     g.font="12px Pretendard, sans-serif";
     // reference lines
     const hl=(T,col,lbl,dash)=>{ if (T>TMAX) return; g.strokeStyle=col; g.setLineDash(dash); g.lineWidth=1.2; g.beginPath(); g.moveTo(F.x0,F.Y(T)); g.lineTo(F.x0+F.pw,F.Y(T)); g.stroke(); g.setLineDash([]); g.fillStyle=col; g.fillText(lbl, F.x0+6, F.Y(T)-5); };
@@ -197,7 +220,7 @@ function draw(){
     // KDS 70 m
     g.strokeStyle=C.dim; g.setLineDash([6,4]); g.beginPath(); g.moveTo(F.X(70),F.y0); g.lineTo(F.X(70),F.y0+F.ph); g.stroke(); g.setLineDash([]);
     g.fillStyle=C.dim; g.fillText("KDS 70 m", F.X(70)+4, F.y0+12);
-    const hs=[]; for (let v=1; v<=HMAX; v+=1) hs.push(v);
+    const hs=[]; for (let v=Math.max(1,HMIN); v<=HMAX; v+=1) hs.push(v);
     SYS.forEach(s => { if (!on[s.key]) return;
       if ($("cu").checked && s.key===$("cmpSys").value){ g.fillStyle=s.col+"22"; g.beginPath();
         hs.forEach((v,i)=>{ const y=F.Y(Math.min(TMAX,Ta(s,v)*cu)); i?g.lineTo(F.X(v),y):g.moveTo(F.X(v),y); });
@@ -205,17 +228,23 @@ function draw(){
         g.closePath(); g.fill(); }
       g.strokeStyle=s.col; g.lineWidth=2.2; g.beginPath();
       hs.forEach((v,i)=>{ const y=F.Y(Ta(s,v)); i?g.lineTo(F.X(v),y):g.moveTo(F.X(v),y); }); g.stroke();
-      const T=Ta(s,h); g.fillStyle=s.col; g.beginPath(); g.arc(F.X(h),F.Y(Math.min(T,TMAX)),5,0,7); g.fill();
+      const T=Ta(s,h); g.fillStyle=s.col; g.beginPath(); g.arc(F.X(Math.max(h,HMIN)),F.Y(Math.min(T,TMAX)),5,0,7); g.fill();
     });
+    if (LOG){ // slope labels at the right edge, nudged apart so they never overlap
+      const labs=SYS.filter(s=>on[s.key]).map(s=>({s, y:F.Y(Ta(s,HMAX))-6})).sort((a,b)=>a.y-b.y);
+      labs.forEach((l,i)=>{ if (i && l.y-labs[i-1].y<13) l.y=labs[i-1].y+13; });
+      g.font="700 11px Pretendard, sans-serif";
+      labs.forEach(l=>{ g.fillStyle=l.s.col; g.fillText("x = "+l.s.x, F.x0+F.pw-46, l.y); });
+      g.font="12px Pretendard, sans-serif"; }
     if ($("n01").checked){ const hmax=12*sh; g.strokeStyle="#64748b"; g.lineWidth=1.6; g.setLineDash([8,3,2,3]); g.beginPath();
-      for (let n=1;n<=12;n++){ const x=F.X(n*sh), y=F.Y(0.1*n); n>1?g.lineTo(x,y):g.moveTo(x,y); } g.stroke(); g.setLineDash([]);
+      for (let n=1;n<=12;n++){ if (n*sh<HMIN) continue; const x=F.X(n*sh), y=F.Y(0.1*n); (n>1&&(n-1)*sh>=HMIN)?g.lineTo(x,y):g.moveTo(x,y); } g.stroke(); g.setLineDash([]);
       g.fillStyle="#64748b"; g.fillText("0.1N (≤12층)", F.X(hmax)+6, F.Y(1.2)-6); }
     // analysis-program periods
     const cs = SYS.find(x=>x.key===$("cmpSys").value), TaC = Ta(cs,h);
     const Tm = $("mRatio").checked ? (+$("ratio").value)*TaC : +$("tm").value;
     const dia=(x,y,col,sz)=>{ g.fillStyle=col; g.beginPath(); g.moveTo(x,y-sz); g.lineTo(x+sz,y); g.lineTo(x,y+sz); g.lineTo(x-sz,y); g.closePath(); g.fill(); };
     if (Tm<=TMAX){ dia(F.X(h),F.Y(Tm),"#f59e0b",8); g.fillStyle="#b45309"; g.fillText("T_model "+Tm.toFixed(2)+" s", Math.min(F.X(h)+10,F.x0+F.pw-110), F.Y(Tm)+4); }
-    parsePts().forEach(([ph,pt])=>{ if (ph<=HMAX&&pt<=TMAX){ dia(F.X(ph),F.Y(pt),"#f59e0b",6); g.strokeStyle="#b45309"; g.lineWidth=1; g.strokeRect(F.X(ph)-3,F.Y(pt)-3,6,6); } });
+    parsePts().forEach(([ph,pt])=>{ if (ph<=HMAX&&ph>=HMIN&&pt<=TMAX){ dia(F.X(ph),F.Y(pt),"#f59e0b",6); g.strokeStyle="#b45309"; g.lineWidth=1; g.strokeRect(F.X(ph)-3,F.Y(pt)-3,6,6); } });
     g.strokeStyle=C.ink; g.lineWidth=1; g.beginPath(); g.moveTo(F.X(h),F.y0); g.lineTo(F.X(h),F.y0+F.ph); g.stroke();
     g.fillStyle=C.ink; g.font="700 12px Pretendard, sans-serif"; g.fillText("h = "+h+" m ≈ "+N+"층", Math.min(F.X(h)+6, F.x0+F.pw-110), F.y0+28); g.font="12px Pretendard, sans-serif";
     if ($("cu").checked){ g.fillStyle=C.sub; g.fillText("띠(비교 구조형식): T_a ~ C_u·T_a (C_u = "+cu.toFixed(2)+")", F.x0+F.pw-230, F.y0+F.ph-8); }
@@ -231,8 +260,8 @@ function draw(){
   }
 
   // ---- spectrum with markers ----
-  { const [g,w,hh]=setup($("cvS")); const TMAX=4, ymax=sds*1.25;
-    const F=frame(g,w,hh,"설계스펙트럼 위치 (T_L 구간 미표시)",TMAX,ymax,"주기 T (s)","S_a (g)",0.5,ymax>0.6?0.2:0.1,1,1);
+  { const [g,w,hh]=setup($("cvS")); const TMAX=Math.max(4, Math.ceil(Math.max(...SYS.filter(s=>on[s.key]).map(s=>Ta(s,h)))*1.1)), ymax=sds*1.25;
+    const F=frame(g,w,hh,"설계스펙트럼 위치 (T_L 구간 미표시)",TMAX,ymax,"주기 T (s)","S_a (g)",TMAX>5?1:0.5,ymax>0.6?0.2:0.1,1,1);
     g.strokeStyle=C.ink; g.lineWidth=2; g.beginPath();
     for (let i=0;i<=400;i++){ const T=0.001+TMAX*i/400, y=F.Y(Sa(T,sds,sd1)); i?g.lineTo(F.X(T),y):g.moveTo(F.X(T),y); } g.stroke();
     g.strokeStyle=C.verm; g.setLineDash([4,4]); g.beginPath(); g.moveTo(F.X(Ts),F.y0); g.lineTo(F.X(Ts),F.y0+F.ph); g.stroke(); g.setLineDash([]);
@@ -284,7 +313,7 @@ function draw(){
 }
 
 ["h","sh","sds","sd1"].forEach(id => $(id).oninput = draw);
-["n01","cu","asce","cmpSys","mRatio","mDirect"].forEach(id => $(id).onchange = draw);
+["n01","cu","asce","loglog","cmpSys","mRatio","mDirect"].forEach(id => $(id).onchange = draw);
 ["ratio","tm","pts"].forEach(id => $(id).oninput = draw);
 window.addEventListener("resize", draw);
 draw();
