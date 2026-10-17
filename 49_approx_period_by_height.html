@@ -314,7 +314,9 @@ function draw(){
 
 ["h","sh","sds","sd1"].forEach(id => $(id).oninput = draw);
 ["n01","cu","asce","loglog","cmpSys","mRatio","mDirect"].forEach(id => $(id).onchange = draw);
-["ratio","tm","pts"].forEach(id => $(id).oninput = draw);
+$("tm").oninput = () => { $("mDirect").checked = true; draw(); };     // typing a period means "use my MIDAS value"
+$("ratio").oninput = () => { $("mRatio").checked = true; draw(); };   // moving the slider means "use the ratio"
+$("pts").oninput = draw;
 window.addEventListener("resize", draw);
 draw();
 </script>
