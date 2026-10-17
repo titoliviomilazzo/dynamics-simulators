@@ -322,6 +322,20 @@
       tags: ["응답스펙트럼", "SDOF", "진자배열", "감쇠비", "유사가속도", "설계스펙트럼", "Newmark"]
     },
     {
+      id: "48",
+      act: 5,
+      track: "spectrum",
+      num: "정본 48",
+      title: "감쇠비 슬라이더 — 댐퍼는 스펙트럼을 얼마나 내리나",
+      standard: "Chopra §6.8 / ASCE 7 Ch.18 감쇠보정 개념",
+      badgeClass: "badge-kds",
+      status: "실시간 감쇠비 연산",
+      leadQuestion: "감쇠비를 5%에서 20%로 올리면 우리 건물의 변위는 얼마나 줄어드는가?",
+      desc: "같은 합성 지진파에서 감쇠비만 바꿔 PSa 곡선의 하강, 주기별 감소비 PSa(ζ)/PSa(5%), 고감쇠에서 PSa/Sa가 1 아래로 떨어지는 현상, 건물 주기별 변위 이력 감소를 동시에 본다.",
+      file: "48_damping_slider_spectrum.html",
+      tags: ["감쇠비", "점성댐퍼", "감쇠보정계수", "유사가속도", "절대가속도", "제진", "응답스펙트럼"]
+    },
+    {
       id: "39",
       act: 5,
       track: "spectrum",
@@ -432,6 +446,20 @@
       desc: "컴퓨터 해석 주기 Tcom 과대평가에 따른 밑면전단력 과소평가를 CuTa 상한으로 차단하는 원리와, MIDAS Gen 1차 모드 비틀림(RZ=49.5%) 발생 시 모퉁이 기둥 응력집중 회전 가시화.",
       file: "43_period_upper_bound_torsion_warning.html",
       tags: ["약산주기", "CuTa", "주기상한", "밑면전단력방어", "MIDAS", "비틀림모드", "RZ"]
+    },
+    {
+      id: "49",
+      act: 5,
+      track: "code",
+      num: "정본 49",
+      title: "고유주기 약산식 — 높이 × 구조형식 & 해석 주기 비교",
+      standard: "KDS 41 17 00 7.2.3·7.2.4 / ASCE 7 표 12.6-1",
+      badgeClass: "badge-kds",
+      status: "실시간 주기·지진력 비교",
+      leadQuestion: "약산 주기와 MIDAS 해석 주기 중 어느 쪽이 보수적인가?",
+      desc: "구조형식 4종의 T_a = C_t·h^x를 높이 0~200m로 비교하고 C_u·T_a 상한 띠, T_S·3.5T_S 문턱 높이를 표시. 해석 주기(비율 또는 직접 입력)와 약산 주기의 S_a·S_d를 비교해 힘과 변위에서 보수성이 뒤집히는 것을 보여 준다.",
+      file: "49_approx_period_by_height.html",
+      tags: ["고유주기", "약산식", "Ct", "주기상한계수", "Cu", "MIDAS", "보수성", "구조형식"]
     },
     {
       id: "38",

@@ -27,7 +27,7 @@
 ---
 
 <!-- registry:tracks:start -->
-## 📚 8개 전공 트랙 구성 (시뮬레이터 33개 · 정본 31 + 실습 2)
+## 📚 8개 전공 트랙 구성 (시뮬레이터 35개 · 정본 33 + 실습 2)
 
 > 이 목록은 `assets/simulators.js`에서 생성됩니다. 시뮬레이터를 추가하면 `node tools/check-registry.mjs --write`로 갱신하세요.
 
@@ -61,18 +61,19 @@
 - [정본 11. 풍하중(외표면 압력) vs 지진하중(내부 관성력) 역학 메커니즘 대조](https://titoliviomilazzo.github.io/dynamics-simulators/11_wind_vs_seismic_load.html)
 - [반전 0. 강체(F=ma) vs 채찍(유연 골조) 42% 지진력 폭증의 배신](https://titoliviomilazzo.github.io/dynamics-simulators/34_rigid_vs_flexible_whip.html)
 
-### 🔹 Track 05. 응답스펙트럼 · 모드조합 (7개 모듈)
+### 🔹 Track 05. 응답스펙트럼 · 모드조합 (8개 모듈)
 진자 배열 스펙트럼 생성, 삼분도표·ADRS, SRSS/CQC와 근접모드 절벽, ABSSUM 항등식, 포락선 부호소실.
 
 - [정본 05. 초고층 비틀림-횡변위 연성 CQC 기하학적 절벽: 타이베이 101](https://titoliviomilazzo.github.io/dynamics-simulators/05_cqc_geometry_cliff_taipei101.html)
 - [정본 46. 진자 배열 → 응답스펙트럼 생성기](https://titoliviomilazzo.github.io/dynamics-simulators/46_spectrum_pendulum_array.html)
+- [정본 48. 감쇠비 슬라이더 — 댐퍼는 스펙트럼을 얼마나 내리나](https://titoliviomilazzo.github.io/dynamics-simulators/48_damping_slider_spectrum.html)
 - [정본 39. Newmark 삼분 응답 스펙트럼 (Tripartite) & ADRS 4-in-1](https://titoliviomilazzo.github.io/dynamics-simulators/39_newmark_tripartite_adrs.html)
 - [정본 03. 다층 응답스펙트럼 해석 & 모드중첩(SRSS / CQC)](https://titoliviomilazzo.github.io/dynamics-simulators/03_multistory_response_spectrum.html)
 - [반전 4. ABSSUM = 등가정적(ELF) 완전 항등식 증명기](https://titoliviomilazzo.github.io/dynamics-simulators/35_abssum_equals_static_proof.html)
 - [정본 38. MIDAS Gen 실무용 30초 CQC 진단 & 85% Scale Factor 계산기](https://titoliviomilazzo.github.io/dynamics-simulators/38_midas_cqc_diagnostic_tool.html)
 - [정본 07. 2단계 포락선(Envelope)과 P-M 상관도 부호소실(Sign Loss) 함정](https://titoliviomilazzo.github.io/dynamics-simulators/07_envelope_two_tiers.html)
 
-### 🔹 Track 06. KDS 41 규준 내진설계 (6개 모듈)
+### 🔹 Track 06. KDS 41 규준 내진설계 (7개 모듈)
 규준 파이프라인 네비게이터, 해석법 선정, 85% 최소밑면전단력, CuTa 주기상한, R 삼중분해, Cd 변위증폭.
 
 - [정본 45. KDS 41 내진설계 규준 인터랙티브 네비게이터 & 7단계 의사결정 파이프라인](https://titoliviomilazzo.github.io/dynamics-simulators/45_kds41_seismic_code_navigator_pipeline.html)
@@ -80,6 +81,7 @@
 - [정본 41. 반응수정계수(R) 삼중분해 & 이중골조 25% 백업 랩](https://titoliviomilazzo.github.io/dynamics-simulators/41_r_factor_decomposition_dual_system.html)
 - [정본 42. 변위증폭계수(Cd)의 실체 & 비탄성 층간변위·충돌(Pounding) 랩](https://titoliviomilazzo.github.io/dynamics-simulators/42_cd_deflection_amplification_inelastic_drift.html)
 - [정본 43. 고유주기의 역설: 약산주기 vs 전산주기 상한(CuTa) & MIDAS 비틀림 경고](https://titoliviomilazzo.github.io/dynamics-simulators/43_period_upper_bound_torsion_warning.html)
+- [정본 49. 고유주기 약산식 — 높이 × 구조형식 & 해석 주기 비교](https://titoliviomilazzo.github.io/dynamics-simulators/49_approx_period_by_height.html)
 - [정본 06. 등가정적(1,188 kN) vs 동적(737 kN) & KDS 85% 최소밑면전단력](https://titoliviomilazzo.github.io/dynamics-simulators/06_static_vs_dynamic_85pct_scaling.html)
 
 ### 🔹 Track 07. 비선형 성능기반설계 · 손상역학 (5개 모듈)

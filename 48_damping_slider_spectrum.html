@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 48: 감쇠비 슬라이더 응답스펙트럼</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>
+  :root { --ink:#0f172a; --sub:#475569; --dim:#94a3b8; --line:#e2e8f0; --teal:#0f6e7e; --verm:#c4341a; --bg:#f8fafc; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:1280px; margin:0 auto; padding:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(15,23,42,.06); }
+  header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:center;
+    border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:14px; }
+  .badge { font:700 12px ui-monospace,monospace; padding:3px 9px; border-radius:6px; background:#fff1ee; color:var(--verm); border:1px solid #fecaca; }
+  h1 { font-size:22px; font-weight:900; margin:0; letter-spacing:-.02em; }
+  .lead { font-size:13px; color:var(--sub); margin:6px 0 0; }
+  a.back { font-size:12px; font-weight:700; padding:8px 14px; border-radius:12px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; text-decoration:none; }
+  .grid { display:grid; grid-template-columns:260px 1fr; gap:18px; }
+  @media (max-width:900px){ .grid { grid-template-columns:1fr; } }
+  .panel h3 { font-size:12px; letter-spacing:.08em; color:var(--dim); margin:14px 0 6px; font-weight:800; }
+  label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; }
+  label span { float:right; font-family:ui-monospace,monospace; color:var(--verm); }
+  input[type=range] { width:100%; accent-color:var(--verm); }
+  select { width:100%; padding:6px; border-radius:8px; border:1px solid #cbd5e1; font:inherit; font-size:13px; }
+  .chk { display:flex; align-items:center; gap:6px; font-size:13px; margin:8px 0; }
+  .chk label { margin:0; font-weight:500; }
+  .kpi { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .kpi div { border:1px solid var(--line); border-radius:12px; padding:8px 10px; }
+  .kpi small { display:block; font-size:11px; color:var(--dim); font-weight:700; }
+  .kpi b { font:800 18px ui-monospace,monospace; }
+  .kpi .neg { color:var(--teal); }
+  .note { font-size:12px; color:var(--sub); line-height:1.55; background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:12px; }
+  .note b { color:var(--ink); }
+  canvas { width:100%; display:block; }
+  .cv { border:1px solid var(--line); border-radius:14px; margin-bottom:10px; background:#fff; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:900px){ .row2 { grid-template-columns:1fr; } }
+  .q { margin-top:6px; border-top:1px solid var(--line); padding-top:12px; font-size:13px; color:var(--sub); line-height:1.6; }
+  .q b { color:var(--verm); }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+  <header>
+    <div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge">SIM 48 · 감쇠와 스펙트럼</span>
+        <h1>감쇠비 슬라이더 — 댐퍼는 곡선을 얼마나 내리나</h1>
+      </div>
+      <p class="lead">같은 지진파, 같은 주기에서 감쇠비만 바꾼다. 감소량은 주기마다, 지진파마다 다르다.</p>
+    </div>
+    <a class="back" href="index.html">&larr; 마스터 대시보드</a>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>감쇠</h3>
+      <label>감쇠비 ζ <span id="zV">20 %</span></label>
+      <input id="zeta" type="range" min="0.01" max="0.40" step="0.01" value="0.20">
+      <div class="chk"><input type="checkbox" id="family" checked><label for="family">비교 곡선 (2·5·10·20·30%)</label></div>
+
+      <h3>지진파</h3>
+      <select id="gm">
+        <option value="7">합성파 A (seed 7)</option>
+        <option value="21">합성파 B (seed 21)</option>
+        <option value="42">합성파 C (seed 42)</option>
+        <option value="soft">합성파 D · 연약지반형</option>
+      </select>
+      <div class="chk"><input type="checkbox" id="mean"><label for="mean">감소비: 합성파 A·B·C 평균도 표시</label></div>
+
+      <h3>건물</h3>
+      <label>건물 주기 T_b <span id="tbV">1.00 s</span></label>
+      <input id="tb" type="range" min="0.1" max="4" step="0.05" value="1.0">
+
+      <div class="kpi">
+        <div><small>PSa ζ=5%</small><b id="k5">-</b></div>
+        <div><small>PSa ζ=현재</small><b id="kz">-</b></div>
+        <div><small>Sd ζ=5% (cm)</small><b id="d5">-</b></div>
+        <div><small>Sd 감소율</small><b id="dr" class="neg">-</b></div>
+      </div>
+      <div class="note">
+        <b>교육용 합성 지진파</b>이며 PGA는 0.20g로 고정했다.<br>
+        설계에서는 5% 설계스펙트럼을 <b>감쇠보정계수 B</b>로 나누어 쓴다. B 표는 ASCE 7 18장과 KDS 해당 조항을 확인해서 쓴다. 이 시뮬레이터는 B 값을 쓰지 않고 지진파별로 직접 계산한다.<br>
+        실제 댐퍼 건물의 유효감쇠는 진폭에 따라 달라진다(비선형 댐퍼, α&lt;1). 여기서는 선형 점성감쇠로 가정한다.
+      </div>
+    </div>
+
+    <div>
+      <canvas id="cvS" class="cv" height="320"></canvas>
+      <div class="row2">
+        <canvas id="cvR" class="cv" height="260"></canvas>
+        <canvas id="cvA" class="cv" height="260"></canvas>
+      </div>
+      <canvas id="cvH" class="cv" height="200"></canvas>
+      <div class="q">
+        <b>Q1</b> ζ를 5%→20%로 올렸을 때 감소비가 가장 작은(효과가 큰) 주기 구간은? 지진파를 바꿔도 같은가? &nbsp;
+        <b>Q2</b> PSa/Sa가 1보다 작아지는 이유는? 고감쇠 건물의 설비 가속도를 PSa로 추정하면? &nbsp;
+        <b>Q3</b> ζ를 계속 올리면 감소 효과는 선형으로 커지나, 포화되나?
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+const G = 9.81, DT = 0.01, DUR = 30, PGA = 0.20;
+const C = { ink:"#0f172a", sub:"#475569", dim:"#94a3b8", line:"#e2e8f0", teal:"#0f6e7e", verm:"#c4341a" };
+const FAM = [[0.02,"#cbd5e1"],[0.05,"#0f172a"],[0.10,"#5b9aa5"],[0.20,"#0f6e7e"],[0.30,"#94a3b8"]];
+const $ = (id) => document.getElementById(id);
+const periods = Array.from({length:80}, (_,i) => +(0.05 + 0.05*i).toFixed(2));
+
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function gauss(r){ let u=0; while(u===0)u=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r()); }
+
+// Newmark average acceleration, unit mass. Returns {u, Dmax [m], Amax [m/s2 absolute]}
+function sdof(ag, T, z, keep){
+  const w=2*Math.PI/T, k=w*w, c=2*z*w, n=ag.length, kh=k+2*c/DT+4/(DT*DT);
+  const u = keep ? new Float64Array(n) : null;
+  let ui=0, v=0, a=-ag[0], Dmax=0, Amax=Math.abs(a+ag[0]);
+  for (let i=0;i<n-1;i++){
+    const dp=-(ag[i+1]-ag[i])+(4/DT+2*c)*v+2*a, du=dp/kh, dv=2*du/DT-2*v;
+    ui+=du; v+=dv; a=-ag[i+1]-c*v-k*ui;
+    if (keep) u[i+1]=ui;
+    Dmax=Math.max(Dmax,Math.abs(ui)); Amax=Math.max(Amax,Math.abs(a+ag[i+1]));
+  }
+  return { u, Dmax, Amax };
+}
+function groundMotion(key){
+  const seed = key==="soft" ? 99 : +key, wg = key==="soft" ? 4.0 : 15.0, zg = key==="soft" ? 0.3 : 0.6;
+  const r=mulberry32(seed), n=Math.round(DUR/DT), wn=new Float64Array(n);
+  for (let i=0;i<n;i++) wn[i]=gauss(r);
+  const w2=wg*wg, c=2*zg*wg, kh=w2+2*c/DT+4/(DT*DT), ag=new Float64Array(n);
+  let u=0, v=0, a=-wn[0];
+  for (let i=0;i<n-1;i++){
+    const dp=-(wn[i+1]-wn[i])+(4/DT+2*c)*v+2*a, du=dp/kh, dv=2*du/DT-2*v;
+    u+=du; v+=dv; a=-wn[i+1]-c*v-w2*u;
+    const t=(i+1)*DT, env=Math.min(t/3,1)*(t>12?Math.exp(-0.18*(t-12)):1);
+    ag[i+1]=-(c*v+w2*u)*env;
+  }
+  let mx=0; for (const x of ag) mx=Math.max(mx,Math.abs(x));
+  for (let i=0;i<n;i++) ag[i]=ag[i]/mx*PGA*G;
+  return ag;
+}
+// spectrum: arrays over periods
+function spec(ag, z){
+  const D=[], PSa=[], Sa=[];
+  for (const T of periods){ const r=sdof(ag,T,z,false), w=2*Math.PI/T;
+    D.push(r.Dmax); PSa.push(w*w*r.Dmax/G); Sa.push(r.Amax/G); }
+  return { D, PSa, Sa };
+}
+
+// caches
+const motions = {}, cache = {};
+const getAg = (k) => motions[k] || (motions[k] = groundMotion(k));
+const getSpec = (k, z) => { const key=k+"|"+z.toFixed(2); return cache[key] || (cache[key] = spec(getAg(k), z)); };
+
+// ---------- drawing ----------
+function setup(cv){
+  const r=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute("height");
+  if (cv.width!==Math.round(w*r)){ cv.width=Math.round(w*r); cv.height=Math.round(h*r); cv.style.height=h+"px"; }
+  const g=cv.getContext("2d"); g.setTransform(r,0,0,r,0,0); g.clearRect(0,0,w,h); g.font="12px Pretendard, sans-serif"; return [g,w,h];
+}
+function frame(g, w, h, title, ymin, ymax, yl, dec, xmax, xl){
+  const x0=62, y0=26, pw=w-78, ph=h-66;
+  g.fillStyle=C.ink; g.font="700 13px Pretendard, sans-serif"; g.fillText(title, x0, 17); g.font="12px Pretendard, sans-serif";
+  g.strokeStyle=C.line; g.lineWidth=1;
+  for (let i=0;i<=4;i++){ const y=y0+ph-ph*i/4; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+pw,y); g.stroke();
+    g.fillStyle=C.sub; g.fillText((ymin+(ymax-ymin)*i/4).toFixed(dec), x0-38, y+4); }
+  const step = xmax>10 ? 5 : 0.5;
+  for (let x=0;x<=xmax+1e-9;x+=step) g.fillText(step<1?x.toFixed(1):x, x0+pw*x/xmax-8, y0+ph+16);
+  g.fillText(xl, x0+pw-60, y0+ph+32);
+  g.save(); g.translate(14, y0+ph/2+30); g.rotate(-Math.PI/2); g.fillText(yl,0,0); g.restore();
+  return { X:(x)=>x0+pw*x/xmax, Y:(v)=>y0+ph-ph*(v-ymin)/(ymax-ymin), x0, y0, pw, ph };
+}
+function line(g, xs, ys, F, col, lw, dash){
+  g.strokeStyle=col; g.lineWidth=lw; g.setLineDash(dash||[]); g.beginPath();
+  xs.forEach((x,i) => i ? g.lineTo(F.X(x),F.Y(ys[i])) : g.moveTo(F.X(x),F.Y(ys[i]))); g.stroke(); g.setLineDash([]);
+}
+function interp(arr, T){ const i=Math.max(0,Math.min(periods.length-2, Math.floor((T-0.05)/0.05))), f=(T-periods[i])/0.05; return arr[i]*(1-f)+arr[i+1]*f; }
+function vline(g, F, x, col){ g.strokeStyle=col; g.setLineDash([4,4]); g.lineWidth=1; g.beginPath(); g.moveTo(F.X(x),F.y0); g.lineTo(F.X(x),F.y0+F.ph); g.stroke(); g.setLineDash([]); }
+
+function draw(){
+  const k=$("gm").value, z=+$("zeta").value, tb=+$("tb").value;
+  const s5=getSpec(k,0.05), sz=getSpec(k,z);
+
+  // main spectrum
+  { const [g,w,h]=setup($("cvS"));
+    const fam = $("family").checked ? FAM.map(([zz]) => getSpec(k,zz)) : [];
+    const ymax = Math.max(...s5.PSa, ...sz.PSa, ...fam.flatMap(f=>f.PSa))*1.12;
+    const F=frame(g,w,h,"유사가속도 스펙트럼 PSa — 5% 기준 vs ζ = "+Math.round(z*100)+"%",0,ymax,"PSa (g)",2,4,"주기 T (s)");
+    fam.forEach((f,i) => line(g, periods, f.PSa, F, FAM[i][1], 1, [3,3]));
+    line(g, periods, s5.PSa, F, C.ink, 1.8);
+    // shaded reduction
+    g.fillStyle="rgba(196,52,26,.10)"; g.beginPath();
+    periods.forEach((T,i)=> i?g.lineTo(F.X(T),F.Y(s5.PSa[i])):g.moveTo(F.X(T),F.Y(s5.PSa[i])));
+    for (let i=periods.length-1;i>=0;i--) g.lineTo(F.X(periods[i]),F.Y(sz.PSa[i])); g.closePath(); g.fill();
+    line(g, periods, sz.PSa, F, C.verm, 2.4);
+    vline(g, F, tb, C.teal);
+    const a5=interp(s5.PSa,tb), az=interp(sz.PSa,tb);
+    g.fillStyle=C.ink; g.beginPath(); g.arc(F.X(tb),F.Y(a5),5,0,7); g.fill();
+    g.fillStyle=C.verm; g.beginPath(); g.arc(F.X(tb),F.Y(az),5,0,7); g.fill();
+    g.fillStyle=C.teal; g.fillText("건물 T_b = "+tb.toFixed(2)+" s", Math.min(F.X(tb)+6, F.x0+F.pw-110), F.y0+12);
+    // legend
+    g.fillStyle=C.ink; g.fillRect(F.x0+F.pw-150, F.y0+24, 18, 2.5); g.fillText("ζ = 5%", F.x0+F.pw-126, F.y0+29);
+    g.fillStyle=C.verm; g.fillRect(F.x0+F.pw-150, F.y0+42, 18, 3); g.fillText("ζ = "+Math.round(z*100)+"%", F.x0+F.pw-126, F.y0+47);
+    $("k5").textContent=a5.toFixed(3)+" g"; $("kz").textContent=az.toFixed(3)+" g";
+    const d5=interp(s5.D,tb)*100, dz=interp(sz.D,tb)*100;
+    $("d5").textContent=d5.toFixed(2); $("dr").textContent=(z===0.05?"0":"−"+((1-dz/d5)*100).toFixed(0))+" %";
+  }
+
+  // reduction ratio
+  { const [g,w,h]=setup($("cvR")); const ratio=sz.PSa.map((v,i)=>v/s5.PSa[i]);
+    let mean=null;
+    if ($("mean").checked){ mean=periods.map((_,i)=>{ let s=0; for (const kk of ["7","21","42"]) s+=getSpec(kk,z).PSa[i]/getSpec(kk,0.05).PSa[i]; return s/3; }); }
+    const lo=Math.min(0.3, ...ratio, ...(mean||[]))-0.05, hi=Math.max(1.1, ...ratio, ...(mean||[]));
+    const F=frame(g,w,h,"감소비 PSa(ζ) / PSa(5%)",Math.max(0,lo),hi,"비율",2,4,"주기 T (s)");
+    g.strokeStyle=C.dim; g.setLineDash([2,3]); g.beginPath(); g.moveTo(F.x0,F.Y(1)); g.lineTo(F.x0+F.pw,F.Y(1)); g.stroke(); g.setLineDash([]);
+    if (mean) line(g, periods, mean, F, C.teal, 1.6, [6,3]);
+    line(g, periods, ratio, F, C.verm, 2);
+    vline(g, F, tb, C.teal);
+    if (mean){ g.fillStyle=C.teal; g.fillText("A·B·C 평균", F.x0+F.pw-80, F.y0+12); }
+  }
+
+  // PSa / Sa
+  { const [g,w,h]=setup($("cvA"));
+    const r5=s5.PSa.map((v,i)=>v/s5.Sa[i]), rz=sz.PSa.map((v,i)=>v/sz.Sa[i]);
+    const lo=Math.min(0.6, ...rz)-0.05;
+    const F=frame(g,w,h,"PSa / 실제 절대가속도 Sa",lo,1.1,"비율",2,4,"주기 T (s)");
+    g.strokeStyle=C.dim; g.setLineDash([2,3]); g.beginPath(); g.moveTo(F.x0,F.Y(1)); g.lineTo(F.x0+F.pw,F.Y(1)); g.stroke(); g.setLineDash([]);
+    line(g, periods, r5, F, C.ink, 1.6); line(g, periods, rz, F, C.verm, 2);
+    g.fillStyle=C.ink; g.fillText("ζ=5%", F.x0+8, F.Y(r5[2])-8);
+    g.fillStyle=C.verm; g.fillText("ζ="+Math.round(z*100)+"%", F.x0+8, F.Y(Math.min(...rz))+16);
+  }
+
+  // building time history
+  { const [g,w,h]=setup($("cvH")); const ag=getAg(k);
+    const u5=sdof(ag,tb,0.05,true).u, uz=sdof(ag,tb,z,true).u;
+    let m=0; for (const x of u5) m=Math.max(m,Math.abs(x)); for (const x of uz) m=Math.max(m,Math.abs(x)); m*=100*1.1;
+    const F=frame(g,w,h,"건물(T_b = "+tb.toFixed(2)+" s) 변위 이력 — 5% vs "+Math.round(z*100)+"%",-m,m,"u (cm)",1,DUR,"시간 (s)");
+    const t=Array.from({length:u5.length/2|0},(_,i)=>i*2*DT);
+    line(g, t, t.map((_,i)=>u5[2*i]*100), F, "rgba(15,23,42,.45)", 1);
+    line(g, t, t.map((_,i)=>uz[2*i]*100), F, C.verm, 1.5);
+  }
+}
+
+function busy(fn){ document.body.style.cursor="progress"; requestAnimationFrame(()=>{ fn(); document.body.style.cursor=""; }); }
+$("zeta").oninput = e => { $("zV").textContent=Math.round(e.target.value*100)+" %"; busy(draw); };
+$("tb").oninput = e => { $("tbV").textContent=(+e.target.value).toFixed(2)+" s"; draw(); };
+["gm","family","mean"].forEach(id => $(id).onchange = () => busy(draw));
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>
