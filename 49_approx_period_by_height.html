@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 49: 고유주기 약산식 — 높이 × 구조형식</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>
+  :root { --ink:#0f172a; --sub:#475569; --dim:#94a3b8; --line:#e2e8f0; --teal:#0f6e7e; --verm:#c4341a; --bg:#f8fafc; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:1280px; margin:0 auto; padding:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(15,23,42,.06); }
+  header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:center;
+    border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:14px; }
+  .badge { font:700 12px ui-monospace,monospace; padding:3px 9px; border-radius:6px; background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; }
+  h1 { font-size:22px; font-weight:900; margin:0; letter-spacing:-.02em; }
+  .lead { font-size:13px; color:var(--sub); margin:6px 0 0; }
+  a.back { font-size:12px; font-weight:700; padding:8px 14px; border-radius:12px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; text-decoration:none; }
+  .grid { display:grid; grid-template-columns:270px 1fr; gap:18px; }
+  @media (max-width:900px){ .grid { grid-template-columns:1fr; } }
+  .panel h3 { font-size:12px; letter-spacing:.08em; color:var(--dim); margin:14px 0 6px; font-weight:800; }
+  label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; }
+  label span { float:right; font-family:ui-monospace,monospace; color:#3730a3; }
+  input[type=range] { width:100%; accent-color:#4f46e5; }
+  .chk { display:flex; align-items:center; gap:6px; font-size:13px; margin:6px 0; }
+  .chk label { margin:0; font-weight:500; }
+  .sw { display:inline-block; width:14px; height:4px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+  .note { font-size:12px; color:var(--sub); line-height:1.55; background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:12px; }
+  .note b { color:var(--ink); }
+  canvas { width:100%; display:block; }
+  .cv { border:1px solid var(--line); border-radius:14px; margin-bottom:10px; background:#fff; }
+  .row2 { display:grid; grid-template-columns:1.1fr 1fr; gap:10px; }
+  @media (max-width:900px){ .row2 { grid-template-columns:1fr; } }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { padding:7px 8px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th { font-size:11px; color:var(--dim); font-weight:800; letter-spacing:.04em; }
+  td:first-child, th:first-child { text-align:left; white-space:normal; }
+  td.mono { font-family:ui-monospace,monospace; }
+  .tag { font-size:11px; font-weight:700; padding:2px 6px; border-radius:6px; }
+  .plateau { background:#fff1ee; color:var(--verm); } .vel { background:#ecfeff; color:var(--teal); } .na { color:var(--dim); }
+  .tbl { border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-bottom:10px; }
+  .tbl h4 { margin:0 0 6px; font-size:13px; }
+  .q { margin-top:6px; border-top:1px solid var(--line); padding-top:12px; font-size:13px; color:var(--sub); line-height:1.6; }
+  .q b { color:var(--verm); }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+  <header>
+    <div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge">SIM 49 · 고유주기 약산</span>
+        <h1>고유주기 약산식 — 높이 × 구조형식</h1>
+      </div>
+      <p class="lead">T<sub>a</sub> = C<sub>t</sub>·h<sub>n</sub><sup>x</sup> (KDS 41 17 00 7.2.4). 같은 높이라도 구조형식이 주기를, 주기가 스펙트럼 위치를 정한다.</p>
+    </div>
+    <a class="back" href="index.html">&larr; 마스터 대시보드</a>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>건물</h3>
+      <label>건물 높이 h<sub>n</sub> <span id="hV">70 m</span></label>
+      <input id="h" type="range" min="3" max="200" step="1" value="70">
+      <label>층고 <span id="shV">3.5 m</span></label>
+      <input id="sh" type="range" min="2.8" max="5" step="0.1" value="3.5">
+
+      <h3>구조형식</h3>
+      <div id="sysList"></div>
+      <div class="chk"><input type="checkbox" id="n01" checked><label for="n01">T<sub>a</sub> = 0.1N (모멘트골조 12층 이하·층고 3m 이상)</label></div>
+
+      <h3>지반 · 스펙트럼</h3>
+      <label>S<sub>DS</sub> <span id="sdsV">0.37 g</span></label>
+      <input id="sds" type="range" min="0.1" max="1.0" step="0.01" value="0.37">
+      <label>S<sub>D1</sub> <span id="sd1V">0.16 g</span></label>
+      <input id="sd1" type="range" min="0.05" max="0.6" step="0.01" value="0.16">
+      <div class="chk"><input type="checkbox" id="cu" checked><label for="cu">주기상한 C<sub>u</sub>·T<sub>a</sub> 띠 (7.2.3)</label></div>
+      <div class="chk"><input type="checkbox" id="asce" checked><label for="asce">ASCE 7 기준선 T = 3.5·T<sub>S</sub></label></div>
+
+      <h3>해석 프로그램 주기와 비교</h3>
+      <label style="margin-top:4px">비교할 구조형식</label>
+      <select id="cmpSys" style="width:100%;padding:6px;border-radius:8px;border:1px solid #cbd5e1;font:inherit;font-size:13px"></select>
+      <label>해석 주기 T<sub>model</sub> 입력 방식</label>
+      <div class="chk"><input type="radio" name="mode" id="mRatio" checked><label for="mRatio">T<sub>model</sub> = 비율 × T<sub>a</sub></label></div>
+      <div class="chk"><input type="radio" name="mode" id="mDirect"><label for="mDirect">T<sub>model</sub> 직접 입력 (MIDAS 결과)</label></div>
+      <label>비율 T<sub>model</sub>/T<sub>a</sub> <span id="ratioV">1.50</span></label>
+      <input id="ratio" type="range" min="0.8" max="2.5" step="0.05" value="1.5">
+      <label>T<sub>model</sub> (s)</label>
+      <input id="tm" type="number" min="0.05" max="10" step="0.01" value="3.00" style="width:100%;padding:6px;border-radius:8px;border:1px solid #cbd5e1;font:inherit">
+      <label>내 해석 결과 점 (높이 m, 주기 s; 세미콜론 구분)</label>
+      <textarea id="pts" rows="2" placeholder="예: 45, 1.12; 70, 2.9" style="width:100%;padding:6px;border-radius:8px;border:1px solid #cbd5e1;font:12px ui-monospace,monospace"></textarea>
+
+      <div class="note">
+        <b>비율 1.50은 예시용 가정값이다.</b> 실제 비교는 MIDAS Gen 등의 고유치해석 1차 주기를 직접 입력하거나 점으로 넣는다.<br>
+        계수는 강의 덱 p.42(KDS 7.2.4 캡처)와 같다. C<sub>u</sub> 표는 p.46(표 7.2-1)이며 중간값은 직선보간한다.<br>
+        설계스펙트럼은 0~T₀ 상승, T₀~T<sub>S</sub> 평탄, 이후 S<sub>D1</sub>/T로 그린다. <b>T<sub>L</sub> 이후 구간은 그리지 않는다</b>(KDS 값 확인 필요).<br>
+        3.5·T<sub>S</sub>는 ASCE 7 표 12.6-1의 등가정적 허용 조건이며 KDS 조항이 아니다(원문 확인 필요).
+      </div>
+    </div>
+
+    <div>
+      <canvas id="cvT" class="cv" height="360"></canvas>
+      <div class="row2">
+        <div class="tbl">
+          <h4 id="tblTitle">h = 70 m에서</h4>
+          <table id="tbl"></table>
+        </div>
+        <canvas id="cvS" class="cv" height="290"></canvas>
+      </div>
+      <div class="row2">
+        <div class="tbl">
+          <h4 id="cmpTitle">약산 주기 vs 해석 주기 — 어느 쪽이 보수적인가</h4>
+          <table id="cmp"></table>
+          <p id="verdict" style="font-size:13px;line-height:1.6;margin:8px 0 0;color:#334155"></p>
+        </div>
+        <canvas id="cvC" class="cv" height="300"></canvas>
+      </div>
+      <div class="tbl">
+        <h4>문턱 높이 — 구조형식별로 T<sub>a</sub>가 기준 주기에 닿는 높이</h4>
+        <table id="thr"></table>
+      </div>
+      <div class="q">
+        <b>Q1</b> 15층 아파트(RC 전단벽)에 0.1N을 쓰면 주기를 얼마나 과대평가하나? &nbsp;
+        <b>Q2</b> S<sub>D1</sub>만 키우면(연약지반) 같은 건물이 평탄부로 들어오나, 나가나? &nbsp;
+        <b>Q3</b> ASCE 3.5·T<sub>S</sub> 문턱 높이는 KDS 70m보다 높은가, 낮은가? 지반을 바꾸면?
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+// KDS 41 17 00 7.2.4 coefficients (deck p.42). h in metres -> Ta in seconds.
+const SYS = [
+  { key:"rcmf",  name:"RC 모멘트골조",            Ct:0.0466, x:0.90, col:"#c4341a", mf:true },
+  { key:"smf",   name:"철골 모멘트골조",          Ct:0.0724, x:0.80, col:"#7c3aed", mf:true },
+  { key:"ebf",   name:"철골 편심·좌굴방지가새골조", Ct:0.0731, x:0.75, col:"#0f6e7e", mf:false },
+  { key:"wall",  name:"RC 전단벽·기타골조",        Ct:0.0488, x:0.75, col:"#0f172a", mf:false },
+];
+const CU_SD1 = [0.1, 0.15, 0.2, 0.3, 0.4], CU_VAL = [1.7, 1.6, 1.5, 1.4, 1.4];   // table 7.2-1
+const C = { ink:"#0f172a", sub:"#475569", dim:"#94a3b8", line:"#e2e8f0", teal:"#0f6e7e", verm:"#c4341a" };
+const $ = (id) => document.getElementById(id);
+const on = {}; SYS.forEach(s => on[s.key] = true);
+
+$("sysList").innerHTML = SYS.map(s =>
+  `<div class="chk"><input type="checkbox" id="s_${s.key}" checked><label for="s_${s.key}"><span class="sw" style="background:${s.col}"></span>${s.name} <span style="color:#94a3b8;font-family:ui-monospace,monospace;font-size:11px">C<sub>t</sub>=${s.Ct}, x=${s.x}</span></label></div>`).join("");
+SYS.forEach(s => $("s_"+s.key).onchange = e => { on[s.key] = e.target.checked; draw(); });
+
+$("cmpSys").innerHTML = SYS.map(s=>`<option value="${s.key}">${s.name}</option>`).join("");
+function parsePts(){ return $("pts").value.split(";").map(t=>t.split(",").map(Number)).filter(a=>a.length===2&&a.every(v=>isFinite(v)&&v>0)); }
+const Sd_cm = (T, sa_g) => T*T/(4*Math.PI*Math.PI)*sa_g*9.81*100;   // g -> m/s2 -> cm
+const Ta = (s, h) => s.Ct * Math.pow(h, s.x);
+const hAtT = (s, T) => Math.pow(T / s.Ct, 1 / s.x);
+function Cu(sd1){
+  if (sd1 <= CU_SD1[0]) return CU_VAL[0];
+  if (sd1 >= CU_SD1[CU_SD1.length-1]) return CU_VAL[CU_VAL.length-1];
+  for (let i=0;i<CU_SD1.length-1;i++) if (sd1 <= CU_SD1[i+1]) {
+    const f = (sd1-CU_SD1[i])/(CU_SD1[i+1]-CU_SD1[i]); return CU_VAL[i] + f*(CU_VAL[i+1]-CU_VAL[i]); }
+}
+function Sa(T, sds, sd1){ const Ts=sd1/sds, T0=0.2*Ts; return T<T0 ? sds*(0.4+0.6*T/T0) : T<=Ts ? sds : sd1/T; }
+
+function setup(cv){
+  const r=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute("height");
+  if (cv.width!==Math.round(w*r)){ cv.width=Math.round(w*r); cv.height=Math.round(h*r); cv.style.height=h+"px"; }
+  const g=cv.getContext("2d"); g.setTransform(r,0,0,r,0,0); g.clearRect(0,0,w,h); g.font="12px Pretendard, sans-serif"; return [g,w,h];
+}
+function frame(g, w, h, title, xmax, ymax, xl, yl, xstep, ystep, xdec, ydec){
+  const x0=58, y0=28, pw=w-74, ph=h-70;
+  g.fillStyle=C.ink; g.font="700 13px Pretendard, sans-serif"; g.fillText(title, x0, 18); g.font="12px Pretendard, sans-serif";
+  g.strokeStyle=C.line; g.lineWidth=1; g.fillStyle=C.sub;
+  for (let v=0; v<=ymax+1e-9; v+=ystep){ const y=y0+ph-ph*v/ymax; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+pw,y); g.stroke(); g.fillText(v.toFixed(ydec), x0-34, y+4); }
+  for (let v=0; v<=xmax+1e-9; v+=xstep){ const x=x0+pw*v/xmax; g.fillText(v.toFixed(xdec), x-8, y0+ph+16); }
+  g.fillText(xl, x0+pw-90, y0+ph+34);
+  g.save(); g.translate(14, y0+ph/2+40); g.rotate(-Math.PI/2); g.fillText(yl,0,0); g.restore();
+  return { X:v=>x0+pw*v/xmax, Y:v=>y0+ph-ph*v/ymax, x0, y0, pw, ph };
+}
+
+function draw(){
+  const h=+$("h").value, sh=+$("sh").value, sds=+$("sds").value, sd1=+$("sd1").value;
+  const Ts=sd1/sds, cu=Cu(sd1), N=Math.max(1, Math.round(h/sh));
+  $("hV").textContent=h+" m"; $("shV").textContent=sh.toFixed(1)+" m";
+  $("sdsV").textContent=sds.toFixed(2)+" g"; $("sd1V").textContent=sd1.toFixed(2)+" g";
+
+  // ---- Ta vs height ----
+  { const [g,w,hh]=setup($("cvT")); const HMAX=200, TMAX=6;
+    const F=frame(g,w,hh,"근사고유주기 T_a — 높이 × 구조형식",HMAX,TMAX,"건물 높이 h_n (m)","T_a (s)",20,1,0,0);
+    // secondary floor ticks
+    g.fillStyle=C.dim; g.font="10px ui-monospace,monospace";
+    for (let n=10;n*sh<=HMAX;n+=10) g.fillText(n+"F", F.X(n*sh)-8, F.y0+F.ph+28);
+    g.font="12px Pretendard, sans-serif";
+    // reference lines
+    const hl=(T,col,lbl,dash)=>{ if (T>TMAX) return; g.strokeStyle=col; g.setLineDash(dash); g.lineWidth=1.2; g.beginPath(); g.moveTo(F.x0,F.Y(T)); g.lineTo(F.x0+F.pw,F.Y(T)); g.stroke(); g.setLineDash([]); g.fillStyle=col; g.fillText(lbl, F.x0+6, F.Y(T)-5); };
+    hl(Ts, C.verm, "T_S = "+Ts.toFixed(2)+" s (평탄부 끝)", [5,4]);
+    if ($("asce").checked) hl(3.5*Ts, "#4f46e5", "3.5·T_S = "+(3.5*Ts).toFixed(2)+" s (ASCE 7 ELF 한계)", [2,3]);
+    // KDS 70 m
+    g.strokeStyle=C.dim; g.setLineDash([6,4]); g.beginPath(); g.moveTo(F.X(70),F.y0); g.lineTo(F.X(70),F.y0+F.ph); g.stroke(); g.setLineDash([]);
+    g.fillStyle=C.dim; g.fillText("KDS 70 m", F.X(70)+4, F.y0+12);
+    const hs=[]; for (let v=1; v<=HMAX; v+=1) hs.push(v);
+    SYS.forEach(s => { if (!on[s.key]) return;
+      if ($("cu").checked && s.key===$("cmpSys").value){ g.fillStyle=s.col+"22"; g.beginPath();
+        hs.forEach((v,i)=>{ const y=F.Y(Math.min(TMAX,Ta(s,v)*cu)); i?g.lineTo(F.X(v),y):g.moveTo(F.X(v),y); });
+        for (let i=hs.length-1;i>=0;i--) g.lineTo(F.X(hs[i]),F.Y(Math.min(TMAX,Ta(s,hs[i]))));
+        g.closePath(); g.fill(); }
+      g.strokeStyle=s.col; g.lineWidth=2.2; g.beginPath();
+      hs.forEach((v,i)=>{ const y=F.Y(Ta(s,v)); i?g.lineTo(F.X(v),y):g.moveTo(F.X(v),y); }); g.stroke();
+      const T=Ta(s,h); g.fillStyle=s.col; g.beginPath(); g.arc(F.X(h),F.Y(Math.min(T,TMAX)),5,0,7); g.fill();
+    });
+    if ($("n01").checked){ const hmax=12*sh; g.strokeStyle="#64748b"; g.lineWidth=1.6; g.setLineDash([8,3,2,3]); g.beginPath();
+      for (let n=1;n<=12;n++){ const x=F.X(n*sh), y=F.Y(0.1*n); n>1?g.lineTo(x,y):g.moveTo(x,y); } g.stroke(); g.setLineDash([]);
+      g.fillStyle="#64748b"; g.fillText("0.1N (≤12층)", F.X(hmax)+6, F.Y(1.2)-6); }
+    // analysis-program periods
+    const cs = SYS.find(x=>x.key===$("cmpSys").value), TaC = Ta(cs,h);
+    const Tm = $("mRatio").checked ? (+$("ratio").value)*TaC : +$("tm").value;
+    const dia=(x,y,col,sz)=>{ g.fillStyle=col; g.beginPath(); g.moveTo(x,y-sz); g.lineTo(x+sz,y); g.lineTo(x,y+sz); g.lineTo(x-sz,y); g.closePath(); g.fill(); };
+    if (Tm<=TMAX){ dia(F.X(h),F.Y(Tm),"#f59e0b",8); g.fillStyle="#b45309"; g.fillText("T_model "+Tm.toFixed(2)+" s", Math.min(F.X(h)+10,F.x0+F.pw-110), F.Y(Tm)+4); }
+    parsePts().forEach(([ph,pt])=>{ if (ph<=HMAX&&pt<=TMAX){ dia(F.X(ph),F.Y(pt),"#f59e0b",6); g.strokeStyle="#b45309"; g.lineWidth=1; g.strokeRect(F.X(ph)-3,F.Y(pt)-3,6,6); } });
+    g.strokeStyle=C.ink; g.lineWidth=1; g.beginPath(); g.moveTo(F.X(h),F.y0); g.lineTo(F.X(h),F.y0+F.ph); g.stroke();
+    g.fillStyle=C.ink; g.font="700 12px Pretendard, sans-serif"; g.fillText("h = "+h+" m ≈ "+N+"층", Math.min(F.X(h)+6, F.x0+F.pw-110), F.y0+28); g.font="12px Pretendard, sans-serif";
+    if ($("cu").checked){ g.fillStyle=C.sub; g.fillText("띠(비교 구조형식): T_a ~ C_u·T_a (C_u = "+cu.toFixed(2)+")", F.x0+F.pw-230, F.y0+F.ph-8); }
+  }
+
+  // ---- table at h ----
+  { $("tblTitle").textContent = `h = ${h} m (약 ${N}층)에서 · C_u = ${cu.toFixed(2)}`;
+    const rows = SYS.filter(s=>on[s.key]).map(s => { const T=Ta(s,h), sa=Sa(T,sds,sd1);
+      return `<tr><td><span class="sw" style="background:${s.col}"></span>${s.name}</td><td class="mono">${T.toFixed(2)}</td><td class="mono">${(cu*T).toFixed(2)}</td><td class="mono">${sa.toFixed(3)}</td><td>${T<=Ts?'<span class="tag plateau">평탄부</span>':'<span class="tag vel">1/T</span>'}</td></tr>`; });
+    if ($("n01").checked){ const ok = N<=12 && sh>=3.0, T=0.1*N;
+      rows.push(`<tr><td><span class="sw" style="background:#64748b"></span>0.1N (모멘트골조)</td><td class="mono">${ok?T.toFixed(2):'—'}</td><td class="mono">${ok?(cu*T).toFixed(2):'—'}</td><td class="mono">${ok?Sa(T,sds,sd1).toFixed(3):'—'}</td><td>${ok?(T<=Ts?'<span class="tag plateau">평탄부</span>':'<span class="tag vel">1/T</span>'):'<span class="na">적용 불가</span>'}</td></tr>`); }
+    $("tbl").innerHTML = `<tr><th>구조형식</th><th>T_a (s)</th><th>C_u·T_a</th><th>S_a(T_a) g</th><th>구간</th></tr>` + rows.join("");
+  }
+
+  // ---- spectrum with markers ----
+  { const [g,w,hh]=setup($("cvS")); const TMAX=4, ymax=sds*1.25;
+    const F=frame(g,w,hh,"설계스펙트럼 위치 (T_L 구간 미표시)",TMAX,ymax,"주기 T (s)","S_a (g)",0.5,ymax>0.6?0.2:0.1,1,1);
+    g.strokeStyle=C.ink; g.lineWidth=2; g.beginPath();
+    for (let i=0;i<=400;i++){ const T=0.001+TMAX*i/400, y=F.Y(Sa(T,sds,sd1)); i?g.lineTo(F.X(T),y):g.moveTo(F.X(T),y); } g.stroke();
+    g.strokeStyle=C.verm; g.setLineDash([4,4]); g.beginPath(); g.moveTo(F.X(Ts),F.y0); g.lineTo(F.X(Ts),F.y0+F.ph); g.stroke(); g.setLineDash([]);
+    g.fillStyle=C.verm; g.fillText("T_S", F.X(Ts)+4, F.y0+12);
+    SYS.forEach((s,k) => { if (!on[s.key]) return; const T=Ta(s,h); if (T>TMAX) return;
+      const y=F.Y(Sa(T,sds,sd1)); g.fillStyle=s.col; g.beginPath(); g.arc(F.X(T),y,6,0,7); g.fill(); });
+  }
+
+  // ---- conservative comparison ----
+  { const cs=SYS.find(x=>x.key===$("cmpSys").value), T1=Ta(cs,h), Tcap=cu*T1;
+    const Tm = $("mRatio").checked ? (+$("ratio").value)*T1 : +$("tm").value;
+    $("ratioV").textContent=(+$("ratio").value).toFixed(2);
+    const Td = Math.min(Tm, Tcap);
+    const cases = [["약산 T_a", T1], ["해석 T_model", Tm], ["설계용 min(T_model, C_u·T_a)", Td]];
+    const base = Sa(T1,sds,sd1), baseD = Sd_cm(T1, base);
+    $("cmpTitle").textContent = `${cs.name} · h = ${h} m — 약산 vs 해석 주기`;
+    $("cmp").innerHTML = `<tr><th>주기</th><th>T (s)</th><th>S_a (g)</th><th>힘 비 (T_a=1)</th><th>S_d (cm)</th></tr>` +
+      cases.map(([n,T])=>{ const sa=Sa(T,sds,sd1); return `<tr><td>${n}</td><td class="mono">${T.toFixed(2)}</td><td class="mono">${sa.toFixed(3)}</td><td class="mono">${(sa/base).toFixed(2)}</td><td class="mono">${Sd_cm(T,sa).toFixed(1)}</td></tr>`; }).join("");
+    const saM=Sa(Tm,sds,sd1), sdM=Sd_cm(Tm,saM);
+    let v;
+    if (Tm>T1+1e-9){
+      v = `<b>지진력</b>: 약산 T_a가 더 보수적이다(힘 ${(base/saM).toFixed(2)}배). 해석 주기가 길수록 S_a가 작아진다. ` +
+          (Tm>Tcap ? `해석 주기 ${Tm.toFixed(2)}초는 상한 ${Tcap.toFixed(2)}초를 넘으므로 <b>설계에는 ${Tcap.toFixed(2)}초</b>를 쓴다. ` : `해석 주기가 상한 안이므로 그대로 쓸 수 있다. `) +
+          `<br><b>변위</b>: 반대로 해석 주기 쪽이 크다(S_d ${(sdM/baseD).toFixed(2)}배). 변위·층간변위 검토에서 짧은 T_a를 쓰면 비보수적이다.`;
+    } else if (Tm<T1-1e-9){
+      v = `해석 주기가 약산 주기보다 짧다. 지진력은 해석 주기 쪽이 크다(${(saM/base).toFixed(2)}배). 모델이 지나치게 강하거나(강성 과대) 질량이 빠졌는지 점검한다.`;
+    } else v = "두 주기가 같다.";
+    if (T1<=Ts && Tm<=Ts) v += " (두 주기 모두 평탄부라 힘 차이가 없다.)";
+    $("verdict").innerHTML = v;
+
+    // spectrum + markers for the comparison
+    const [g,w,hh]=setup($("cvC")); const TMAX=Math.max(4, Math.ceil(Tm+0.5)), ymax=sds*1.25;
+    const F=frame(g,w,hh,"같은 스펙트럼 위의 세 주기",TMAX,ymax,"주기 T (s)","S_a (g)",TMAX>5?1:0.5,ymax>0.6?0.2:0.1,1,1);
+    g.strokeStyle=C.ink; g.lineWidth=2; g.beginPath();
+    for (let i=0;i<=400;i++){ const T=0.001+TMAX*i/400, y=F.Y(Sa(T,sds,sd1)); i?g.lineTo(F.X(T),y):g.moveTo(F.X(T),y); } g.stroke();
+    g.fillStyle="rgba(79,70,229,.08)"; g.fillRect(F.X(T1),F.y0,F.X(Tcap)-F.X(T1),F.ph);
+    g.fillStyle="#4f46e5"; g.fillText("허용 범위 T_a ~ C_u·T_a", F.X(T1)+4, F.y0+12);
+    [[T1,cs.col,"T_a"],[Tm,"#f59e0b","T_model"],[Td,"#16a34a","설계"]].forEach(([T,col,l],k)=>{ const y=F.Y(Sa(T,sds,sd1));
+      g.fillStyle=col; g.beginPath(); g.arc(F.X(T),y,6,0,7); g.fill(); g.fillText(l, F.X(T)+8, y-8-k*12); });
+  }
+
+  // ---- threshold heights ----
+  { const rows = SYS.filter(s=>on[s.key]).map(s => {
+      const hTs=hAtT(s,Ts), h35=hAtT(s,3.5*Ts);
+      const f=v=>v>400?">400":v.toFixed(0);
+      return `<tr><td><span class="sw" style="background:${s.col}"></span>${s.name}</td><td class="mono">${f(hTs)} m (${Math.round(hTs/sh)}층)</td><td class="mono">${f(h35)} m (${Math.round(h35/sh)}층)</td><td class="mono">${f(hAtT(s,3*Ts))} m</td></tr>`; });
+    $("thr").innerHTML = `<tr><th>구조형식</th><th>T_a = T_S (평탄부 이탈)</th><th>T_a = 3.5·T_S (ASCE ELF 한계)</th><th>T₂ = T_S (T_a = 3·T_S, 균일 전단빌딩 가정)</th></tr>` + rows.join("");
+  }
+}
+
+["h","sh","sds","sd1"].forEach(id => $(id).oninput = draw);
+["n01","cu","asce","cmpSys","mRatio","mDirect"].forEach(id => $(id).onchange = draw);
+["ratio","tm","pts"].forEach(id => $(id).oninput = draw);
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>
