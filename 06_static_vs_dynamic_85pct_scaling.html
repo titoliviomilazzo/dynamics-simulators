@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>구조동역학 06: 등가정적 vs 동적 62% 분해 &middot; 85% 최소밑면전단력 보정</title>
+  <title>구조동역학 06: 등가정적 vs 동적 분해 &middot; 85% 최소밑면전단력 보정</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
@@ -48,42 +48,42 @@
       <div>
         <div class="flex flex-wrap items-center gap-3">
           <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-            등가정적 vs 응답스펙트럼 62% 원인 분해 및 85% 기준 보정
+            등가정적 vs 응답스펙트럼 <span id="h1-ratio">62%</span> 원인 분해 및 85% 기준 보정
           </h1>
           <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
             KDS 41 17 00 &middot; 3층 전단골조 (<span class="math-var">W</span> = 11,767 kN)
           </span>
         </div>
         <p class="text-sm text-slate-600 mt-1 font-medium">
-          동일 건물에서 정적 <span class="math-var">V<sub>s</sub></span>(1,187 kN) vs 동적 <span class="math-var">V<sub>t</sub></span>(737 kN)의 62.1% 갭 분석 &rarr; 85% 하한선(1,009 kN) 강제 스케일링
+          동일 건물에서 정적 <span class="math-var">V<sub>s</sub></span>(<span id="sub-vs">1,187.5</span> kN) vs 동적 <span class="math-var">V<sub>t</sub></span>(<span id="sub-vt">736.9</span> kN)의 <span id="sub-ratio">62.1</span>% 갭 분석 &rarr; 85% 하한선(<span id="sub-lim">1,009.4</span> kN) 기준 설계값 보정(층간변위 제외)
         </p>
       </div>
 
       <!-- Presets -->
       <div class="flex flex-wrap items-center gap-2 font-sans">
         <button onclick="applyT1Preset(0.648)" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs">
-          본문 표준 (<span class="math-var">T</span>₁=0.65s, 62%)
+          본문 표준 (<span class="math-var">T</span>₁=0.648s, <span data-preset-ratio="0.648">62.1%</span>)
         </button>
         <button onclick="applyT1Preset(0.400)" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs">
-          단주기 강체 (<span class="math-var">T</span>₁=0.40s, 92%)
+          단주기 강체 (<span class="math-var">T</span>₁=0.400s, <span data-preset-ratio="0.4">100.0%</span>)
         </button>
         <button onclick="applyT1Preset(0.950)" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-xs">
-          장주기 연성 (<span class="math-var">T</span>₁=0.95s, 42%)
+          장주기 연성 (<span class="math-var">T</span>₁=0.950s, <span data-preset-ratio="0.95">42.8%</span>)
         </button>
       </div>
     </div>
 
     <!-- Interactive Period Slider Strip -->
     <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs font-medium">
-      <div class="flex-1 min-w-[280px] flex items-center gap-3">
+      <div class="flex-1 min-w-[280px] flex flex-wrap items-center gap-x-3 gap-y-1">
         <span class="text-slate-800 font-bold whitespace-nowrap text-sm">
           ⏱️ 해석 모델 1차 모드 주기 <span class="math-var">T</span>₁:
         </span>
-        <input type="range" id="slider-t1" min="0.30" max="1.30" step="0.01" value="0.648" oninput="updateT1(this.value)" class="flex-1 accent-blue-600 cursor-pointer">
-        <span id="t1-val" class="font-mono font-bold text-blue-700 w-20 text-right text-sm">0.65 s</span>
+        <input type="range" id="slider-t1" min="0.30" max="1.30" step="0.001" value="0.648" oninput="updateT1(this.value)" class="flex-1 min-w-[140px] accent-blue-600 cursor-pointer">
+        <span id="t1-val" class="font-mono font-bold text-blue-700 shrink-0 whitespace-nowrap text-right text-sm"><span class="math-var">T</span>₁ = 0.648 s</span>
       </div>
       <div id="status-badge" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-        🚨 85% 미달: 1.3688배 강제 증폭 필요
+        🚨 85% 미달: 설계값 <strong>1.3697배</strong> 보정 (층간변위 제외)
       </div>
     </div>
 
@@ -122,38 +122,43 @@
                 <span class="w-2 h-2 rounded-full bg-blue-600"></span>
                 응답스펙트럼해석 (RSA)
               </span>
-              <span id="card-t1-badge" class="text-xs font-mono text-blue-600 font-bold"><span class="math-var">T</span>₁ = 0.65s</span>
+              <span id="card-t1-badge" class="text-xs font-mono text-blue-600 font-bold"><span class="math-var">T</span>₁ = 0.648s</span>
             </div>
-            <div id="card-vt-val" class="text-2xl font-black text-blue-700 font-mono">737.1 kN</div>
+            <div id="card-vt-val" class="text-2xl font-black text-blue-700 font-mono">736.9 kN</div>
             <p id="card-vt-desc" class="text-xs text-blue-900 mt-1 leading-relaxed">
-              모드별 질량분할(91.4% + 7.5% + 1.1%) + 주기 신장에 따른 하강부 가속도 + SRSS
+              모드별 질량분할(91.4% + 7.5% + 1.1%) + 주기 신장에 따른 하강부 가속도 + SRSS. 모드 주기: <span class="math-var">T</span>₂ = <span class="math-var">T</span>₁/2.80 = 0.231s, <span class="math-var">T</span>₃ = <span class="math-var">T</span>₁/4.05 = 0.160s (층질량·층강성 동일한 3층 전단골조)
             </p>
           </div>
           <div id="card-ratio-badge" class="mt-2 pt-2 border-t border-blue-200 text-[11px] font-bold text-blue-700 flex justify-between items-center">
-            <span>정적 대비 62.1% (85% 미달)</span>
-            <span id="card-vt-sub" class="font-mono font-bold"><span class="math-var">V<sub>t</sub></span> = 737.1 kN</span>
+            <span>정적 대비 62.1% (85% 미달)</span><span id="card-vt-sub" class="font-mono font-bold"><span class="math-var">V<sub>t</sub></span> = 736.9 kN</span>
           </div>
         </div>
 
         <!-- 3. Final Design Base Shear (85% Rule) -->
-        <div id="card-design-box" class="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 shadow-xs flex flex-col justify-between flex-1">
+        <div id="card-design-box" class="p-4 rounded-xl bg-emerald-50/70 border border-emerald-300 shadow-xs flex flex-col justify-between flex-1">
           <div>
             <div class="flex justify-between items-center mb-1">
               <span class="text-xs font-bold text-emerald-800 uppercase flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
                 KDS 41 최종 설계 밑면전단력
               </span>
-              <span id="card-scale-badge" class="text-xs font-mono text-emerald-700 font-bold">1.3688배 보정</span>
+              <span id="card-scale-badge" class="text-xs font-mono text-emerald-700 font-bold">1.3697배 보정</span>
             </div>
             <div id="card-vdesign-val" class="text-2xl font-black text-emerald-700 font-mono">1,009.4 kN</div>
             <p id="card-vdesign-desc" class="text-xs text-emerald-900 mt-1 leading-relaxed">
-              <span class="math-var">V<sub>t</sub></span> &lt; 0.85<span class="math-var">V<sub>s</sub></span> 감지 &rarr; <strong>1.3688배</strong> 강제 증폭. MIDAS Scale: 1.961 &rarr; <strong>2.6845</strong>
+              <span class="math-var">V<sub>t</sub></span>(736.9 kN) &lt; 0.85<span class="math-var">V<sub>s</sub></span>(1,009.4 kN) &rarr; 설계값에 <strong>1.3697배</strong>. MIDAS Scale: 1.9613 &rarr; <strong>2.6865</strong>
             </p>
           </div>
           <div class="mt-2 pt-2 border-t border-emerald-200 text-[11px] font-bold text-emerald-800 flex justify-between items-center">
-            <span>최종 설계 채택 하중 (부재력 &middot; 변위 일괄 증폭)</span>
+            <span>최종 설계 채택 하중 (부재력 등 설계값에 적용 &middot; 층간변위 제외)</span>
             <span id="card-vdesign-sub" class="font-mono font-bold"><span class="math-var">V<sub>design</sub></span> = 1,009.4 kN</span>
           </div>
+        </div>
+
+        <!-- KDS clause: what the correction factor applies to -->
+        <div class="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-[11px] text-amber-950 leading-relaxed">
+          <strong class="font-bold">KDS 41 17 00 7.3.3.5(2)</strong> &mdash; 85% 미달 시 7.3.3.5(1)에서 구한 <strong>설계값(밑면전단력, 층전단력, 층변위, 부재력 등)</strong>에 보정계수를 곱합니다.
+          단, <strong>&ldquo;층간변위에는 보정계수 &hellip;을 곱하지 않는다&rdquo;</strong> (&hellip; = 원문 변환본에서 기호 누락).
         </div>
 
       </div>
@@ -166,7 +171,7 @@
               <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
               밑면전단력 거동 비교 (3D BIM)
             </span>
-            <span class="text-[11px] text-slate-500 font-medium">정적 캔틸레버 100% vs 동적 진동 62%→85%</span>
+            <span class="text-[11px] text-slate-500 font-medium">정적 캔틸레버(100% <span class="math-var">V<sub>s</sub></span>) vs 동적 진동(RSA 원값) &middot; 층간변위는 85% 보정 미적용</span>
           </div>
           <div class="flex items-center gap-1.5">
             <div class="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-xs font-semibold">
@@ -174,7 +179,7 @@
               <button id="btnViewBar" onclick="switchBldgView('Bar')" class="px-2 py-0.5 rounded text-xs font-bold transition text-slate-600 hover:text-slate-900">📊 막대</button>
             </div>
             <span id="chart-scale-chip" class="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-mono whitespace-nowrap">
-              &times;1.3688 증폭
+              🚨 &times;1.3697 보정
             </span>
           </div>
         </div>
@@ -185,7 +190,7 @@
             <div id="threeHud" class="absolute bottom-2 left-2 text-[10px] font-mono text-slate-700 bg-white/95 px-2.5 py-1.5 rounded-lg border border-slate-300 z-10 shadow-sm flex items-center gap-1.5 flex-wrap">
               <span>🖱️ 3D 회전/줌</span>
               <span class="text-slate-300">|</span>
-              <span class="font-bold text-slate-800">변위 증폭:</span>
+              <span class="font-bold text-slate-800" title="시각화용 확대 배율입니다. 코드 보정계수가 아닙니다.">표시 배율(시각화):</span>
               <button onclick="setThreeAmp(40)" id="btnAmp40" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1x</button>
               <button onclick="setThreeAmp(75)" id="btnAmp75" class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold shadow-xs">2x (표준)</button>
               <button onclick="setThreeAmp(140)" id="btnAmp140" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">4x (확대)</button>
@@ -213,17 +218,17 @@
               <div class="flex flex-col items-center w-20 h-full justify-end group relative">
                 <!-- Val Label (z-30: 값이 막대 그래프 앞에 나오게) -->
                 <div id="chart-vt-lbl-box" class="z-30 bg-white/95 border border-blue-200 px-2 py-0.5 rounded-md shadow-2xs text-center mb-1.5 backdrop-blur-xs">
-                  <div id="chart-vt-val" class="text-xs font-black text-blue-700 font-mono">737.1</div>
+                  <div id="chart-vt-val" class="text-xs font-black text-blue-700 font-mono">736.9</div>
                   <div id="chart-vt-pct" class="text-[10px] font-bold text-blue-600 font-mono">62.1%</div>
                 </div>
                 <!-- Bar Body with optional gap stripe on top (z-10) -->
                 <div class="w-14 flex flex-col justify-end z-10">
                   <!-- Missing Gap (Striped, only if Vt < 85%) -->
-                  <div id="chart-vt-gap" class="w-full striped-pattern border border-dashed border-amber-400 rounded-t-lg flex items-center justify-center text-[9px] font-bold text-amber-800 font-mono transition-all duration-300 z-10" style="height: 36px;">
+                  <div id="chart-vt-gap" class="w-full striped-pattern border border-dashed border-amber-400 rounded-t-lg flex items-center justify-center text-[9px] font-bold text-amber-800 font-mono transition-all duration-300 z-10" style="display: flex; height: 35.8px;">
                     <span id="chart-vt-gap-txt">+272</span>
                   </div>
                   <!-- Actual Dynamic Shear Bar -->
-                  <div id="chart-vt-bar" class="w-full bg-gradient-to-t from-blue-700 to-blue-500 shadow-sm border border-blue-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 97px;"></div>
+                  <div id="chart-vt-bar" class="w-full bg-gradient-to-t from-blue-700 to-blue-500 shadow-sm border border-blue-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 96.8px;"></div>
                 </div>
               </div>
 
@@ -235,7 +240,7 @@
                   <div id="chart-vdes-pct" class="text-[10px] font-bold text-emerald-600 font-mono">85.0%</div>
                 </div>
                 <!-- Bar Body (z-10) -->
-                <div id="chart-vdes-bar" class="w-14 bg-gradient-to-t from-emerald-700 to-emerald-500 rounded-t-lg shadow-sm border border-emerald-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 133px;"></div>
+                <div id="chart-vdes-bar" class="w-14 bg-gradient-to-t from-emerald-700 to-emerald-500 rounded-t-lg shadow-sm border border-emerald-400 transition-all duration-300 hover:brightness-110 z-10" style="height: 132.6px;"></div>
               </div>
 
             </div>
@@ -280,9 +285,9 @@
         <div class="text-[11px] text-slate-500 pt-1 leading-relaxed font-medium flex items-center justify-between">
           <span class="flex items-center gap-1.5">
             <span class="w-2.5 h-2.5 rounded-sm bg-amber-200 border border-amber-400"></span>
-            <span>노란 빗금: 85% 미달 시 채워야 하는 부족분 (강제 증폭)</span>
+            <span>노란 빗금: 85% 미달 시 채워야 하는 부족분 (설계값 보정)</span>
           </span>
-          <span class="font-mono text-[10px] text-slate-400 font-bold">KDS 41 §17.3.3</span>
+          <span class="font-mono text-[10px] text-slate-400 font-bold">KDS 41 17 00 7.3.3.5</span>
         </div>
       </div>
 
@@ -294,8 +299,8 @@
       <!-- Left 6 Cols: Mathematical Waterfall Decomposition -->
       <div class="lg:col-span-6 bg-slate-50/60 border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-3">
         <div class="border-b border-slate-200 pb-2">
-          <span class="text-sm font-bold text-slate-900">왜 62.1%인가? 2대 원인의 수학적 분해</span>
-          <p class="text-xs text-slate-500 mt-0.5">등가정적(100%)에서 동적(62.1%)으로 깎여나간 두 단계</p>
+          <span class="text-sm font-bold text-slate-900">왜 <span id="wf-title-ratio">62.1</span>%인가? 3단계 수학적 분해</span>
+          <p class="text-xs text-slate-500 mt-0.5">등가정적(100%)에서 동적(<span id="wf-sub-ratio">62.1</span>%)으로 바뀐 세 단계 (질량분할 &middot; 주기 &middot; 고차모드 가속도)</p>
         </div>
 
         <div class="space-y-3 flex-1">
@@ -303,12 +308,12 @@
           <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
             <div class="flex justify-between items-center">
               <span class="font-bold text-slate-800 text-xs">① 질량 분할 및 SRSS 비동시성 효과</span>
-              <span class="font-mono font-bold text-red-600 text-xs">&minus;8.3% 절감</span>
+              <span id="wf-m-drop" class="font-mono font-bold text-red-600 text-xs">&minus;8.3% 절감</span>
             </div>
             <p class="text-[11px] text-slate-600 mt-1 leading-relaxed">
               모든 모드가 동일한 가속도를 받아도, 질량이 쪼개지고 피타고라스(SRSS)로 묶이면서 자연 감소:
             </p>
-            <div class="mt-1.5 font-mono text-[11px] bg-slate-50 p-1.5 rounded text-slate-700 border border-slate-100">
+            <div id="wf-m-calc" class="mt-1.5 font-mono text-[11px] bg-slate-50 p-1.5 rounded text-slate-700 border border-slate-100">
               &radic;(0.9141&sup2; + 0.0749&sup2; + 0.0110&sup2;) = <strong>0.9172 (91.7%)</strong>
             </div>
           </div>
@@ -316,31 +321,45 @@
           <!-- Step 2 -->
           <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
             <div class="flex justify-between items-center">
-              <span class="font-bold text-slate-800 text-xs">② 주기 신장 효과 (경험주기 vs 모델주기)</span>
+              <span id="wf-period-title" class="font-bold text-slate-800 text-xs">② 주기 신장 효과 (경험주기 vs 모델주기)</span>
               <span id="txt-period-drop" class="font-mono font-bold text-red-600 text-xs">&minus;32.7% 절감</span>
             </div>
             <p class="text-[11px] text-slate-600 mt-1 leading-relaxed">
-              보수적 경험주기(<span class="math-var">T<sub>a</sub></span>=0.436s, 0.505g) 대비 모델(<span class="math-var">T</span>₁=<span id="txt-t1-inline" class="font-bold text-blue-700">0.65s</span>, <span id="txt-sa1-inline" class="font-bold text-blue-700">0.340g</span>)의 하강부 이동:
+              보수적 경험주기(<span class="math-var">T<sub>a</sub></span>=0.436s, 0.505g) 대비 모델(<span class="math-var">T</span>₁=<span id="txt-t1-inline" class="font-bold text-blue-700">0.648s</span>, <span id="txt-sa1-inline" class="font-bold text-blue-700">0.340g</span>)의 스펙트럼 가속도 비:
             </p>
             <div id="txt-period-calc" class="mt-1.5 font-mono text-[11px] bg-slate-50 p-1.5 rounded text-slate-700 border border-slate-100">
-              <span class="math-var">S<sub>a</sub>(T₁) / S<sub>a</sub>(T<sub>a</sub>)</span> = 0.3396 / 0.5046 = <strong>0.6730 (67.3%)</strong>
+              <span class="math-var">S<sub>a</sub>(T₁) / S<sub>a</sub>(T<sub>a</sub>)</span> = 0.3395 / 0.5046 = <strong>0.6728 (67.3%)</strong>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-slate-800 text-xs">③ 고차모드 가속도 반영 (2&middot;3차 모드의 <span class="math-var">S<sub>a</sub></span>)</span>
+              <span id="wf-h-delta" class="font-mono font-bold text-emerald-700 text-xs">+0.6% 가중</span>
+            </div>
+            <p id="wf-h-desc" class="text-[11px] text-slate-600 mt-1 leading-relaxed">
+              1차 모드 <span class="math-var">S<sub>a</sub></span>만 쓴 SRSS 대비, 2&middot;3차 모드의 실제 <span class="math-var">S<sub>a</sub></span>(<span class="math-var">S<sub>a</sub></span>₂ = 0.550g, <span class="math-var">S<sub>a</sub></span>₃ = 0.550g)를 반영한 비:
+            </p>
+            <div id="wf-h-calc" class="mt-1.5 font-mono text-[11px] bg-slate-50 p-1.5 rounded text-slate-700 border border-slate-100">
+              &radic;&Sigma;(<span class="math-var">S<sub>a,n</sub></span>&middot;<span class="math-var">m<sub>n</sub></span>)&sup2; / (<span class="math-var">S<sub>a</sub></span>(T₁)&middot;&radic;&Sigma;<span class="math-var">m<sub>n</sub></span>&sup2;) = 0.3131 / 0.3114 = <strong>1.0055</strong>
             </div>
           </div>
 
           <!-- Final Multiplier Box -->
           <div class="p-3 rounded-xl bg-blue-50 border border-blue-200">
-            <div class="flex justify-between items-center font-bold text-blue-900 text-xs">
-              <span>최종 비율 산출 (두 효과의 결합)</span>
-              <span id="txt-final-mult" class="font-mono text-sm">0.9172 &times; 0.6730 &approx; 62.1%</span>
+            <div class="flex justify-between items-center font-bold text-blue-900 text-xs gap-2">
+              <span>최종 비율 산출 (세 효과의 결합)</span>
+              <span id="txt-final-mult" class="font-mono text-sm">0.9172 &times; 0.6728 &times; 1.0055 &approx; 62.1%</span>
             </div>
-            <p class="text-[11px] text-blue-700 mt-1">
-              주기 하나의 차이가 모드조합 방식 차이보다 4배 이상 지배적입니다.
+            <p id="wf-final-note" class="text-[11px] text-blue-700 mt-1">
+              주기 신장 효과(&minus;32.7%)는 질량분할&middot;SRSS 효과(&minus;8.3%)의 3.95배입니다.
             </p>
           </div>
         </div>
 
-        <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-200 font-medium">
-          * 2&middot;3차 모드의 추가 기여는 밑면전단력을 단 0.6%p만 증가시킵니다 (0.6%의 역설).
+        <div id="wf-foot" class="text-[11px] text-slate-500 pt-2 border-t border-slate-200 font-medium">
+          * 2&middot;3차 모드의 추가 기여는 밑면전단력을 단 0.6%p만 증가시킵니다 (1차 모드만 61.5% &rarr; SRSS 62.1%).
         </div>
       </div>
 
@@ -362,25 +381,28 @@
           <div class="grid grid-cols-2 gap-3 text-xs font-mono">
             <div class="p-2 rounded bg-white border border-slate-200">
               <span class="text-slate-500 block text-[11px] font-sans">기본 Scale Factor (<span class="math-var">g&middot;I<sub>e</sub> / R</span>)</span>
-              <span class="font-bold text-slate-800 text-sm">1.9613</span>
+              <span id="midas-base-val" class="font-bold text-slate-800 text-sm">1.9613</span>
             </div>
             <div class="p-2 rounded bg-emerald-50 border border-emerald-200">
               <span class="text-emerald-700 block text-[11px] font-sans font-bold">85% 보정 후 Scale Factor</span>
-              <span id="midas-scale-val" class="font-bold text-emerald-700 text-sm">2.6845</span>
+              <span id="midas-scale-val" class="font-bold text-emerald-700 text-sm">2.6865</span>
             </div>
           </div>
           <p class="text-[11px] text-slate-500 leading-relaxed">
-            MIDAS Gen RS Load Case에서 Scale Factor를 <span id="txt-scale-mult" class="font-bold text-slate-800">1.3688배</span> 곱해 입력하면, 
-            모든 부재력과 층간변위가 KDS 85% 하한선에 맞춰 일괄 상향 조정됩니다.
+            MIDAS Gen RS Load Case에서 Scale Factor에 <span id="txt-scale-mult" class="font-bold text-slate-800">1.3697배</span>를 곱해 입력하면,
+            부재력 등 설계값이 KDS 85% 하한선에 맞춰 상향 조정됩니다. <strong class="text-slate-700">층간변위에는 보정계수를 곱하지 않습니다</strong> (KDS 41 17 00 7.3.3.5(2)).
           </p>
           <div class="p-2.5 bg-blue-50/70 border border-blue-200 rounded-lg text-[11px] text-blue-950 space-y-1">
             <strong class="text-blue-900 block font-bold">🖥️ MIDAS Gen 4단계 실무 재현 절차 (마스터노트 §12.1):</strong>
             <ol class="list-decimal list-inside space-y-0.5 text-slate-700 font-sans">
               <li>Eigenvalue Analysis Control &rarr; 모달 참여질량 누적 90% (91.4% / 7.5% / 1.1%) 확인</li>
-              <li>RS Load Case &rarr; 초기 Scale Factor = 9.806 &times; I<sub>e</sub> / R = <strong>1.9612</strong> (CQC 지정)</li>
-              <li>정적 지진하중(T<sub>a</sub>)과 Story Shear 비교 &rarr; V<sub>t</sub> / V<sub>s</sub> = 0.621 (&lt; 0.85 미달 확인)</li>
-              <li>Scale Factor란에 1.3688배를 곱한 <strong class="text-emerald-700">2.6845</strong>를 입력하여 최종 설계력 확정</li>
+              <li>RS Load Case &rarr; 초기 Scale Factor = 9.80665 &times; I<sub>e</sub> / R = <strong id="step-base-sf">1.9613</strong> (CQC 지정)</li>
+              <li id="step-ratio">정적 지진하중(T<sub>a</sub>)과 Story Shear 비교 &rarr; V<sub>t</sub> / V<sub>s</sub> = 0.621 (&lt; 0.85 미달 확인)</li>
+              <li id="step-final">Scale Factor란에 1.3697배를 곱한 <strong class="text-emerald-700">2.6865</strong>를 입력하여 설계 부재력 확정</li>
             </ol>
+            <p id="step-drift-note" class="text-slate-600 pt-1">
+              ※ Scale Factor는 RS Load Case 결과 전체에 곱해지므로 층간변위도 함께 커집니다. KDS는 층간변위에 보정계수를 곱하지 않으므로 층간변위는 보정 전(초기 Scale Factor) 결과로 확인합니다.
+            </p>
           </div>
         </div>
       </div>
@@ -403,15 +425,22 @@
 
   <script>
     // --- Constant Physical Parameters (Chopra 12/13장 & KDS 41) ---
+    const G_MS2 = 9.80665; // gravity [m/s^2]; 1 t of mass weighs G_MS2 kN
     const W = 11767.2; // Total building weight [kN] (1,200 ton)
+    console.assert(Math.abs(W / G_MS2 - 1200) < 0.5, 'W [kN] must equal 1,200 t x g');
     const R = 5.0;      // Response modification coefficient
     const Ie = 1.0;     // Importance factor
     const Ta = 0.436;   // Empirical period [s]
     const S_DS = 0.55;  // Design spectral acceleration at short period [g]
     const S_D1 = 0.22;  // Design spectral acceleration at 1-sec [g]
+    const R_T2 = 2.80;  // T1/T2 of the uniform 3-story shear frame (printed on the RSA card)
+    const R_T3 = 4.05;  // T1/T3 of the uniform 3-story shear frame (printed on the RSA card)
+    const SF_BASE = G_MS2 * Ie / R; // MIDAS initial RS Load Case scale factor = g*Ie/R (1.9613)
+    const DPR = Math.max(window.devicePixelRatio || 1, 2.0); // canvas DPR >= 2 (policy Gate 7)
 
     // Effective modal mass ratios for 3-story benchmark
     const meff_ratios = [0.9141, 0.0749, 0.0110];
+    const massSrss = Math.sqrt(meff_ratios.reduce((a, m) => a + m * m, 0)); // step 1 factor (0.9172)
 
     // Equivalent static base shear (ELF)
     const Sa_Ta = S_D1 / Ta; // 0.5046 g
@@ -442,95 +471,117 @@
       updateT1(val);
     }
 
+    const fmt1 = v => v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const setText = (id, txt) => { document.getElementById(id).innerText = txt; };
+    const setHTML = (id, html) => { document.getElementById(id).innerHTML = html; };
+    const SA = '<span class="math-var">S<sub>a</sub></span>';
+
+    // Pure model: every number the page shows for a given first-mode period T1 [s].
+    function stateAt(T1) {
+      const Tm = [T1, T1 / R_T2, T1 / R_T3];
+      const Sa = Tm.map(getSa);
+      const Vb = Sa.map((sa, i) => (sa / R) * (meff_ratios[i] * W)); // modal base shear [kN]
+      const Vt = Math.sqrt(Vb.reduce((a, v) => a + v * v, 0));        // SRSS [kN]
+      const ratio = Vt / Vs;
+      const scaled = Vt < V_limit;
+      const eta = scaled ? V_limit / Vt : 1.0;
+      const V_final = scaled ? V_limit : Vt;
+      const f_m = massSrss;                 // step 1: mass split + SRSS (all modes at equal Sa)
+      const f_T = Sa[0] / Sa_Ta;            // step 2: first-mode Sa(T1)/Sa(Ta)
+      const N = Math.sqrt(Sa.reduce((a, sa, i) => a + Math.pow(sa * meff_ratios[i], 2), 0));
+      const D = Sa[0] * f_m;
+      const f_h = N / D;                    // step 3: actual Sa of modes 2,3 vs Sa(T1); f_m*f_T*f_h = Vt/Vs
+      const mode1 = Vb[0] / Vs;             // first mode alone, fraction of Vs
+      return { T1, Tm, Sa, Vb, Vt, ratio, scaled, eta, V_final, SF: SF_BASE * eta, f_m, f_T, f_h, N, D, mode1 };
+    }
+    let simState = stateAt(0.648); // latest model state; the 3D view reads it (no 85% factor on drift)
+
+    function initPresetLabels() {
+      document.querySelectorAll('[data-preset-ratio]').forEach(el => {
+        el.innerText = `${(stateAt(parseFloat(el.dataset.presetRatio)).ratio * 100).toFixed(1)}%`;
+      });
+    }
+
     function updateT1(val) {
       currentT1 = parseFloat(val);
-      document.getElementById('t1-val').innerHTML = `<span class="math-var">T</span>₁ = ${currentT1.toFixed(2)} s`;
-      document.getElementById('card-t1-badge').innerHTML = `<span class="math-var">T</span>₁ = ${currentT1.toFixed(2)}s`;
-      document.getElementById('txt-t1-inline').innerText = `${currentT1.toFixed(2)}s`;
+      const st = stateAt(currentT1);
+      simState = st;
+      const { Sa, Vt, ratio, scaled, eta, V_final, f_m, f_T, f_h } = st;
+      const ratioPct = ratio * 100;
+      const T1txt = currentT1.toFixed(3);
 
-      // 1. Calculate Dynamic Base Shear Vt via SRSS
-      const Sa1 = getSa(currentT1);
-      const Sa2 = getSa(currentT1 / 2.80);
-      const Sa3 = getSa(currentT1 / 4.05);
+      setHTML('t1-val', `<span class="math-var">T</span>₁ = ${T1txt} s`);
+      setHTML('card-t1-badge', `<span class="math-var">T</span>₁ = ${T1txt}s`);
+      setText('txt-t1-inline', `${T1txt}s`);
+      setText('txt-sa1-inline', `${Sa[0].toFixed(3)}g`);
+      setText('h1-ratio', `${ratioPct.toFixed(0)}%`);
+      setText('sub-vs', fmt1(Vs));
+      setText('sub-vt', fmt1(Vt));
+      setText('sub-ratio', ratioPct.toFixed(1));
+      setText('sub-lim', fmt1(V_limit));
 
-      document.getElementById('txt-sa1-inline').innerText = `${Sa1.toFixed(3)}g`;
+      // 1. Dynamic base shear Vt (SRSS of modal base shears) vs static Vs
+      setText('card-vt-val', `${fmt1(Vt)} kN`);
+      setHTML('card-vt-desc', `모드별 질량분할(${meff_ratios.map(m => (m * 100).toFixed(1)).join('% + ')}%) + 주기 신장에 따른 하강부 가속도 + SRSS. 모드 주기: <span class="math-var">T</span>₂ = <span class="math-var">T</span>₁/${R_T2.toFixed(2)} = ${st.Tm[1].toFixed(3)}s, <span class="math-var">T</span>₃ = <span class="math-var">T</span>₁/${R_T3.toFixed(2)} = ${st.Tm[2].toFixed(3)}s (층질량·층강성 동일한 3층 전단골조)`);
+      setHTML('card-ratio-badge', `<span>정적 대비 ${ratioPct.toFixed(1)}% (${scaled ? '85% 미달' : '85% 충족'})</span><span id="card-vt-sub" class="font-mono font-bold"><span class="math-var">V<sub>t</sub></span> = ${fmt1(Vt)} kN</span>`);
 
-      const Vb1 = (Sa1 / R) * (meff_ratios[0] * W);
-      const Vb2 = (Sa2 / R) * (meff_ratios[1] * W);
-      const Vb3 = (Sa3 / R) * (meff_ratios[2] * W);
-
-      const Vt = Math.sqrt(Vb1*Vb1 + Vb2*Vb2 + Vb3*Vb3);
-      const ratioPct = (Vt / Vs) * 100;
-
-      document.getElementById('card-vt-val').innerText = `${Vt.toFixed(1)} kN`;
-      document.getElementById('card-ratio-badge').innerHTML = `<span>정적 대비 ${ratioPct.toFixed(1)}% (${ratioPct < 85 ? '85% 미달' : '85% 충족'})</span><span id="card-vt-sub" class="font-mono font-bold"><span class="math-var">V<sub>t</sub></span> = ${Vt.toFixed(1)} kN</span>`;
-
-      // 2. 85% Code Check & Scale Factor
+      // 2. 85% code check (KDS 41 17 00 7.3.3.5(2)): factor applies to design values, NOT to story drift
       const statusBadge = document.getElementById('status-badge');
       const cardDesignBox = document.getElementById('card-design-box');
-      const cardScaleBadge = document.getElementById('card-scale-badge');
-      const cardVdesignVal = document.getElementById('card-vdesign-val');
-      const cardVdesignDesc = document.getElementById('card-vdesign-desc');
-      const cardVdesignSub = document.getElementById('card-vdesign-sub');
-      const midasScaleVal = document.getElementById('midas-scale-val');
-      const txtScaleMult = document.getElementById('txt-scale-mult');
       const chartScaleChip = document.getElementById('chart-scale-chip');
+      const sfTxt = st.SF.toFixed(4);
 
-      let eta = 1.0;
-      let V_final = Vt;
-
-      if (Vt < V_limit) {
-        eta = V_limit / Vt;
-        V_final = V_limit;
+      if (scaled) {
         statusBadge.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300";
-        statusBadge.innerHTML = `🚨 85% 미달: <strong>${eta.toFixed(4)}배</strong> 강제 증폭 적용`;
+        statusBadge.innerHTML = `🚨 85% 미달: 설계값 <strong>${eta.toFixed(4)}배</strong> 보정 (층간변위 제외)`;
         cardDesignBox.className = "p-4 rounded-xl bg-emerald-50/70 border border-emerald-300 shadow-xs flex flex-col justify-between flex-1";
-        cardScaleBadge.innerText = `${eta.toFixed(4)}배 보정`;
-        cardVdesignVal.innerText = `${V_final.toFixed(1)} kN`;
-        cardVdesignDesc.innerHTML = `<span class="math-var">V<sub>t</sub></span>(${Vt.toFixed(1)} kN) &lt; 0.85<span class="math-var">V<sub>s</sub></span>(${V_limit.toFixed(1)} kN) &rarr; <strong>${eta.toFixed(4)}배</strong> 강제 증폭. MIDAS Scale: 1.961 &rarr; <strong>${(1.9613 * eta).toFixed(4)}</strong>`;
-        cardVdesignSub.innerHTML = `<span class="math-var">V<sub>design</sub></span> = ${V_final.toFixed(1)} kN`;
-
+        setText('card-scale-badge', `${eta.toFixed(4)}배 보정`);
+        setHTML('card-vdesign-desc', `<span class="math-var">V<sub>t</sub></span>(${fmt1(Vt)} kN) &lt; 0.85<span class="math-var">V<sub>s</sub></span>(${fmt1(V_limit)} kN) &rarr; 설계값에 <strong>${eta.toFixed(4)}배</strong>. MIDAS Scale: ${SF_BASE.toFixed(4)} &rarr; <strong>${sfTxt}</strong>`);
         chartScaleChip.className = "text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-mono whitespace-nowrap";
-        chartScaleChip.innerHTML = `🚨 &times;${eta.toFixed(4)} 증폭`;
+        chartScaleChip.innerHTML = `🚨 &times;${eta.toFixed(4)} 보정`;
       } else {
-        eta = 1.0;
-        V_final = Vt;
         statusBadge.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300";
         statusBadge.innerHTML = `✅ 85% 충족 (보정 불필요, 1.000배 유지)`;
         cardDesignBox.className = "p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-xs flex flex-col justify-between flex-1";
-        cardScaleBadge.innerText = `보정 불필요 (1.00x)`;
-        cardVdesignVal.innerText = `${V_final.toFixed(1)} kN`;
-        cardVdesignDesc.innerHTML = `<span class="math-var">V<sub>t</sub></span>(${Vt.toFixed(1)} kN) &ge; 0.85<span class="math-var">V<sub>s</sub></span> 충족 &rarr; 동적해석 결과 직접 채택. MIDAS Scale: <strong>1.9613</strong> 유지`;
-        cardVdesignSub.innerHTML = `<span class="math-var">V<sub>design</sub></span> = ${V_final.toFixed(1)} kN`;
-
+        setText('card-scale-badge', `보정 불필요 (1.00x)`);
+        setHTML('card-vdesign-desc', `<span class="math-var">V<sub>t</sub></span>(${fmt1(Vt)} kN) &ge; 0.85<span class="math-var">V<sub>s</sub></span> 충족 &rarr; 동적해석 결과 직접 채택. MIDAS Scale: <strong>${SF_BASE.toFixed(4)}</strong> 유지`);
         chartScaleChip.className = "text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono whitespace-nowrap";
         chartScaleChip.innerHTML = `✅ 1.00x (보정 불필요)`;
       }
+      setText('card-vdesign-val', `${fmt1(V_final)} kN`);
+      setHTML('card-vdesign-sub', `<span class="math-var">V<sub>design</sub></span> = ${fmt1(V_final)} kN`);
 
-      midasScaleVal.innerText = (1.9613 * eta).toFixed(4);
-      txtScaleMult.innerText = `${eta.toFixed(4)}배`;
+      setText('midas-base-val', SF_BASE.toFixed(4));
+      setText('midas-scale-val', sfTxt);
+      setText('txt-scale-mult', `${eta.toFixed(4)}배`);
+      setText('step-base-sf', SF_BASE.toFixed(4));
+      setHTML('step-ratio', `정적 지진하중(T<sub>a</sub>)과 Story Shear 비교 &rarr; V<sub>t</sub> / V<sub>s</sub> = ${ratio.toFixed(3)} (${scaled ? '&lt; 0.85 미달 확인' : '&ge; 0.85 충족 확인'})`);
+      setHTML('step-final', scaled
+        ? `Scale Factor란에 ${eta.toFixed(4)}배를 곱한 <strong class="text-emerald-700">${sfTxt}</strong>를 입력하여 설계 부재력 확정`
+        : `보정 불필요: 초기 Scale Factor <strong class="text-emerald-700">${SF_BASE.toFixed(4)}</strong>를 그대로 사용`);
+      document.getElementById('step-drift-note').style.display = scaled ? '' : 'none';
 
       // 3. Update Vertical Bar Chart
-      // Base height reference: Vs (1187.5 kN) corresponds to 156px
+      // Base height reference: Vs corresponds to 156px
       const H_base = 156.0;
       const H_limit = H_base * 0.85; // 132.6px
       const H_vt = Math.min(176, H_base * (Vt / Vs));
       const H_vdes = Math.min(176, H_base * (V_final / Vs));
 
       // Bar 2 (Vt)
-      document.getElementById('chart-vt-val').innerText = Vt.toFixed(1);
-      document.getElementById('chart-vt-pct').innerText = `${ratioPct.toFixed(1)}%`;
+      setText('chart-vt-val', fmt1(Vt));
+      setText('chart-vt-pct', `${ratioPct.toFixed(1)}%`);
 
       const gapEl = document.getElementById('chart-vt-gap');
       const barVtEl = document.getElementById('chart-vt-bar');
 
-      if (Vt < V_limit) {
+      if (scaled) {
         const gapH = Math.max(8, H_limit - H_vt);
         gapEl.style.display = 'flex';
         gapEl.style.height = `${gapH.toFixed(1)}px`;
         gapEl.style.borderTopLeftRadius = '0.5rem';
         gapEl.style.borderTopRightRadius = '0.5rem';
-        document.getElementById('chart-vt-gap-txt').innerText = `+${(V_limit - Vt).toFixed(0)}`;
+        setText('chart-vt-gap-txt', `+${(V_limit - Vt).toFixed(0)}`);
 
         barVtEl.style.height = `${H_vt.toFixed(1)}px`;
         barVtEl.style.borderTopLeftRadius = '0';
@@ -545,21 +596,33 @@
       }
 
       // Bar 3 (Vdesign)
-      document.getElementById('chart-vdes-val').innerText = V_final.toFixed(1);
-      document.getElementById('chart-vdes-pct').innerText = `${((V_final / Vs) * 100).toFixed(1)}%`;
+      setText('chart-vdes-val', fmt1(V_final));
+      setText('chart-vdes-pct', `${((V_final / Vs) * 100).toFixed(1)}%`);
       document.getElementById('chart-vdes-bar').style.height = `${H_vdes.toFixed(1)}px`;
 
-      // 4. Update Waterfall Math Text
-      const massFactor = 0.9172; // sqrt(sum meff^2)
-      const periodFactor = Sa1 / Sa_Ta;
-      const combined = (massFactor * periodFactor * 100).toFixed(1);
+      // 4. Waterfall: f_m (mass split + SRSS) x f_T (first-mode Sa ratio) x f_h (modes 2,3 Sa) = Vt/Vs
+      const MINUS = '\u2212';
+      setText('wf-title-ratio', ratioPct.toFixed(1));
+      setText('wf-sub-ratio', ratioPct.toFixed(1));
 
-      const periodDropPct = ((1 - periodFactor) * 100).toFixed(1);
-      document.getElementById('txt-period-drop').innerText = `${periodDropPct >= 0 ? '-' : '+'}${Math.abs(periodDropPct)}% ${periodDropPct >= 0 ? '절감' : '증가'}`;
-      document.getElementById('txt-period-calc').innerHTML = 
-        `<span class="math-var">S<sub>a</sub>(T₁) / S<sub>a</sub>(T<sub>a</sub>)</span> = ${Sa1.toFixed(4)} / ${Sa_Ta.toFixed(4)} = <strong>${periodFactor.toFixed(4)} (${(periodFactor*100).toFixed(1)}%)</strong>`;
-      document.getElementById('txt-final-mult').innerHTML = 
-        `0.9172 &times; ${periodFactor.toFixed(4)} &approx; <strong>${combined}%</strong>`;
+      setText('wf-m-drop', `${MINUS}${((1 - f_m) * 100).toFixed(1)}% 절감`);
+      setHTML('wf-m-calc', `&radic;(${meff_ratios.map(m => `${m.toFixed(4)}&sup2;`).join(' + ')}) = <strong>${f_m.toFixed(4)} (${(f_m * 100).toFixed(1)}%)</strong>`);
+
+      const periodDrop = (1 - f_T) * 100;
+      setText('wf-period-title', f_T <= 1 ? '② 주기 신장 효과 (경험주기 vs 모델주기)' : '② 주기 단축 효과 (경험주기 vs 모델주기)');
+      setText('txt-period-drop', `${periodDrop >= 0 ? MINUS : '+'}${Math.abs(periodDrop).toFixed(1)}% ${periodDrop >= 0 ? '절감' : '증가'}`);
+      setHTML('txt-period-calc', `${SA}(T₁) / ${SA}(T<sub>a</sub>) = ${Sa[0].toFixed(4)} / ${Sa_Ta.toFixed(4)} = <strong>${f_T.toFixed(4)} (${(f_T * 100).toFixed(1)}%)</strong>`);
+
+      const hDelta = (f_h - 1) * 100;
+      setText('wf-h-delta', `${hDelta >= 0 ? '+' : MINUS}${Math.abs(hDelta).toFixed(1)}% ${hDelta >= 0 ? '가중' : '감소'}`);
+      setHTML('wf-h-desc', `1차 모드 ${SA}만 쓴 SRSS 대비, 2·3차 모드의 실제 ${SA}(${SA}₂ = ${Sa[1].toFixed(3)}g, ${SA}₃ = ${Sa[2].toFixed(3)}g)를 반영한 비:`);
+      setHTML('wf-h-calc', `&radic;&Sigma;(<span class="math-var">S<sub>a,n</sub></span>&middot;<span class="math-var">m<sub>n</sub></span>)&sup2; / (${SA}(T₁)&middot;&radic;&Sigma;<span class="math-var">m<sub>n</sub></span>&sup2;) = ${st.N.toFixed(4)} / ${st.D.toFixed(4)} = <strong>${f_h.toFixed(4)}</strong>`);
+
+      setHTML('txt-final-mult', `${f_m.toFixed(4)} &times; ${f_T.toFixed(4)} &times; ${f_h.toFixed(4)} &approx; <strong>${ratioPct.toFixed(1)}%</strong>`);
+      setHTML('wf-final-note', f_T < 1
+        ? `주기 신장 효과(${MINUS}${periodDrop.toFixed(1)}%)는 질량분할&middot;SRSS 효과(${MINUS}${((1 - f_m) * 100).toFixed(1)}%)의 ${(periodDrop / ((1 - f_m) * 100)).toFixed(2)}배입니다.`
+        : `이 주기에서는 ${SA}(T₁)가 ${SA}(T<sub>a</sub>)보다 커서(+${Math.abs(periodDrop).toFixed(1)}%) 질량분할&middot;SRSS 감소(${MINUS}${((1 - f_m) * 100).toFixed(1)}%)를 상쇄합니다.`);
+      setText('wf-foot', `* 2·3차 모드의 추가 기여는 밑면전단력을 단 ${((ratio - st.mode1) * 100).toFixed(1)}%p만 증가시킵니다 (1차 모드만 ${(st.mode1 * 100).toFixed(1)}% → SRSS ${ratioPct.toFixed(1)}%).`);
 
       drawSpectrum();
     }
@@ -650,7 +713,7 @@
       threeBldgCamera.position.set(0, 18, 36);
 
       threeBldgRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      threeBldgRenderer.setPixelRatio(window.devicePixelRatio || 1);
+      threeBldgRenderer.setPixelRatio(DPR);
       threeBldgRenderer.setSize(w, h);
       threeBldgRenderer.shadowMap.enabled = true;
       container.appendChild(threeBldgRenderer.domElement);
@@ -822,7 +885,7 @@
       });
 
       // Dynamic Building Title Tag
-      const dynamicTitle = createCADSprite('동적 (RSA 85% 보정)', '#047857', 'rgba(236,253,245,0.96)', '#a7f3d0');
+      const dynamicTitle = createCADSprite('동적 (RSA 원값)', '#047857', 'rgba(236,253,245,0.96)', '#a7f3d0');
       dynamicTitle.position.set(rightX, 0.7 + 3 * storyH + 1.8, 0);
       threeBldgDimGroup.add(dynamicTitle);
     }
@@ -868,10 +931,11 @@
         col.geo.computeVertexNormals();
       });
 
-      // 2. Dynamic Building: 1차 주기 T1 기반 실시간 지진 진동 및 85% 스케일링
+      // 2. Dynamic Building: 1차 주기 T1 기반 실시간 지진 진동 (층간변위에는 85% 보정 미적용)
       const omega1 = (2 * Math.PI) / Math.max(0.05, currentT1);
-      const Sa1 = getSa(currentT1);
-      const dynamicScale = Math.max(0.85, (Sa1 / Sa_Ta) * (0.9172)); // 85% 하한선 반영
+      // Drift of the dynamic building is the raw RSA response, proportional to Vt/Vs.
+      // KDS 41 17 00 7.3.3.5(2): the 85% correction factor is NOT applied to story drift (no clamp here).
+      const dynamicScale = simState.ratio;
       const dynamicAmp = (staticTopDrift * dynamicScale);
 
       const groundVibe = 0.15 * Math.sin(simTime * 8.0); // 지반 흔들림
@@ -922,7 +986,7 @@
     }
 
     function resize() {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = DPR;
       const r = canvas.parentElement.getBoundingClientRect();
       canvas.width = r.width * dpr;
       canvas.height = r.height * dpr;
@@ -955,10 +1019,12 @@
     // RESPONSE SPECTRUM (DynamicsChartCanonical 적용)
     // =========================================================================
     function drawSpectrum() {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = DPR;
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       ctx.clearRect(0, 0, w, h);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
 
       // Plot Margins
       // Plot Margins - ample headroom to ensure labels never overlap the graph
@@ -1174,7 +1240,7 @@
 
       // 9. HIGH-QUALITY CALLOUT BADGES (CAD Precision Placement)
       // A. Ta Badge (Static ELF) - Placed securely in top-left headroom
-      const taText = `Ta=0.44s (0.505g) [ELF 기준]`;
+      const taText = `Ta=${Ta.toFixed(3)}s (${Sa_Ta.toFixed(3)}g) [ELF 기준]`;
       const taW = 145, taH = 20;
       const posTa = {
         x: marginL + 6,
@@ -1203,7 +1269,7 @@
       });
 
       // B. T1 Badge (Dynamic RSA) - Dynamic adaptive placement without overlapping Ta or curve
-      const t1Text = `T1=${currentT1.toFixed(2)}s (${Sa1.toFixed(3)}g) [RSA 모델]`;
+      const t1Text = `T1=${currentT1.toFixed(3)}s (${Sa1.toFixed(3)}g) [RSA 모델]`;
       const t1W = 142, t1H = 20;
       let posT1;
       let t1TargetX, t1TargetY;
@@ -1315,6 +1381,7 @@
       mainLoop();
     }
 
+    initPresetLabels();
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       startApp();
     } else {

@@ -466,14 +466,14 @@
       act: 5,
       track: "spectrum",
       num: "정본 38",
-      title: "MIDAS Gen 실무용 30초 CQC 진단 & 85% Scale Factor 계산기",
+      title: "MIDAS Gen 실무용 30초 근접모드(CQC) 진단",
       standard: "실무 설계 / KDS 41",
       badgeClass: "badge-kds",
       status: "실무 자동연산",
-      leadQuestion: "내 구조물이 CQC를 써야 하는지, Scale Factor는 얼마인지 30초 만에 판정하려면?",
-      desc: "모드 주기 3개만 넣으면 β>0.9 근접모드 CQC 필수 경고 및 사잇각 θ 도출, 85% 하한선 미달 시 MIDAS Gen 입력용 Scale Factor 실시간 자동 산출.",
+      leadQuestion: "내 구조물이 KDS상 CQC를 써야 하는지 30초 만에 판정하려면?",
+      desc: "모드 주기 3개만 넣으면 KDS 41 17 00 7.3.3.5(1)(주기 차이 25% 이내) 기준으로 CQC 필수 여부를 판정하고 상관계수 ρ·사잇각 θ·SRSS 과소평가를 보여 줍니다. 85% 보정은 정본 06에서 계산합니다.",
       file: "38_midas_cqc_diagnostic_tool.html",
-      tags: ["MIDAS", "CQC진단", "근접모드", "ScaleFactor", "85%보정", "실무도구"]
+      tags: ["MIDAS", "CQC진단", "근접모드", "주기차이25%", "KDS41", "실무도구"]
     },
     {
       id: "06",
@@ -481,11 +481,11 @@
       track: "code",
       num: "정본 06",
       title: "등가정적(1,188 kN) vs 동적(737 kN) & KDS 85% 최소밑면전단력",
-      standard: "KDS 41 17 00 §4.2",
+      standard: "KDS 41 17 00 7.3.3.5",
       badgeClass: "badge-kds",
       status: "실무 4단계 매핑",
       leadQuestion: "컴퓨터 동적해석이 더 정확한데, 왜 규준은 정적의 85%로 증폭 보정하도록 규정할까요?",
-      desc: "주기 불확실성과 비틀림 위험을 방어하기 위해 동적전단력을 0.85Vs까지 강제 증폭시키는 KDS 규준의 안전 철학 및 MIDAS Gen 수정 계수 산정.",
+      desc: "주기 불확실성과 비틀림 위험을 방어하기 위해 동적해석 설계값을 0.85Vs 기준으로 보정하는 KDS 규준의 안전 철학(층간변위에는 보정계수 미적용) 및 MIDAS Gen 수정 계수 산정.",
       file: "06_static_vs_dynamic_85pct_scaling.html",
       tags: ["등가정적", "85%규정", "ScaleFactor", "KDS41", "실무보정"]
     },

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>구조동역학 38: MIDAS Gen 실무용 30초 근접모드(CQC) 진단 &middot; 85% 스케일 팩터 계산기</title>
+  <title>구조동역학 38: MIDAS Gen 실무용 30초 근접모드(CQC) 진단</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
@@ -27,14 +27,14 @@
       <div>
         <div class="flex items-center gap-3">
           <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-            MIDAS Gen 실무용 30초 근접모드(CQC) 진단 &middot; 85% Scale Factor 연산기
+            MIDAS Gen 실무용 30초 근접모드(CQC) 진단
           </h1>
           <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
             강의노트 §12 &middot; 실무 엔지니어 필수 툴
           </span>
         </div>
         <p class="text-sm text-slate-600 mt-1 font-medium">
-          MIDAS Gen 모달 해석 결과표의 주기를 넣으면 30초 안에 CQC 필수 여부와 85% 하한선 수정 스케일 팩터를 즉시 도출합니다.
+          MIDAS Gen 모달 해석 결과표의 주기를 넣으면 KDS 41 17 00 7.3.3.5(1) 기준(각 모드의 주기 차이 25% 이내)으로 CQC 필수 여부를 30초 안에 판정합니다.
         </p>
       </div>
 
@@ -84,24 +84,34 @@
         </div>
       </div>
 
-      <!-- 2. Right (7 Cols): CQC Vector Matrix & Scale Factor Result -->
+      <!-- 2. Right (7 Cols): CQC Vector Matrix & pointer to the 85% calculator -->
       <div class="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between space-y-4">
         <div>
-          <div class="border-b border-slate-100 pb-2 flex justify-between items-center">
+          <div class="border-b border-slate-100 pb-2 flex flex-wrap justify-between items-center gap-1">
             <span class="text-sm font-bold text-slate-900">CQC 상관계수(&rho;) 및 사잇각(&theta; = arccos &rho;)</span>
             <span class="text-xs font-mono font-bold text-blue-700">&rho; &equiv; cos &theta;</span>
           </div>
 
+          <!-- Close-mode definition (single definition used by badge, banner and table) -->
+          <div class="mt-3 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-700 leading-relaxed">
+            <strong class="text-slate-900">근접모드 판정 (KDS 41 17 00 7.3.3.5(1))</strong><br>
+            주기 차이 <span class="font-mono font-bold">&Delta; = (T<sub>long</sub> &minus; T<sub>short</sub>) / T<sub>long</sub> &le; 0.25</span>
+            &hArr; 주기비 <span class="font-mono font-bold">&beta; = T<sub>short</sub> / T<sub>long</sub> &ge; 0.75</span>
+            &rarr; <strong>CQC 필수</strong><br>
+            <span class="text-slate-500">KDS는 주기 차이의 기준 주기를 정하지 않습니다. 여기서는 긴 주기를 기준으로 잡았고, 짧은 주기 기준(&beta; &ge; 0.8)보다 CQC 대상을 넓게 잡는 쪽입니다.</span>
+          </div>
+
           <!-- Correlation Table -->
           <div class="mt-3 overflow-x-auto">
-            <table class="w-full text-center text-xs font-mono border-collapse">
+            <table class="w-full min-w-[460px] text-center text-xs font-mono border-collapse">
               <thead>
                 <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
                   <th class="p-2">모드 쌍</th>
-                  <th class="p-2">진동수비 &beta;</th>
+                  <th class="p-2">주기 차이 &Delta;</th>
+                  <th class="p-2">주기비 &beta;</th>
                   <th class="p-2">상관계수 &rho;</th>
                   <th class="p-2">사잇각 &theta;</th>
-                  <th class="p-2">SRSS 과소평가</th>
+                  <th class="p-2">SRSS 과소평가<span class="block text-[9px] font-sans font-normal">(CQC 대비, 두 모드 응답이 같을 때 최대)</span></th>
                 </tr>
               </thead>
               <tbody id="table-cqc-body" class="divide-y divide-slate-100">
@@ -109,34 +119,25 @@
               </tbody>
             </table>
           </div>
+          <p class="mt-2 text-[10px] text-slate-500 leading-relaxed">
+            &rho; = 8&zeta;&sup2;(1+&beta;)&beta;<sup>1.5</sup> / [(1&minus;&beta;&sup2;)&sup2; + 4&zeta;&sup2;&beta;(1+&beta;)&sup2;],
+            SRSS 과소평가 = 1 &minus; 1/&radic;(1+&rho;) (CQC 대비). &beta;는 진동수비(&omega;<sub>저</sub>/&omega;<sub>고</sub>)와 같은 값입니다.
+          </p>
         </div>
 
-        <!-- MIDAS Gen Scale Factor Mapping Box -->
-        <div class="p-4 rounded-xl bg-blue-50/70 border border-blue-200 space-y-2 text-xs">
-          <div class="flex justify-between items-center">
-            <span class="font-bold text-blue-900 text-sm">MIDAS Gen RS Load Case 수정 지침</span>
-            <span class="font-mono text-xs px-2 py-0.5 rounded bg-blue-600 text-white font-bold">KDS 85% 자동 보정</span>
+        <!-- Pointer to the base-shear 85% calculator (not computed on this page) -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+          <div class="flex flex-wrap justify-between items-center gap-2">
+            <span class="font-bold text-slate-900 text-sm">밑면전단력 85% 보정은 별도 계산기에서</span>
+            <a href="06_static_vs_dynamic_85pct_scaling.html" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition whitespace-nowrap">
+              06 등가정적 vs 동적 &middot; 85% 최소밑면전단력 열기 &rarr;
+            </a>
           </div>
-
-          <div class="grid grid-cols-3 gap-3 font-mono text-center">
-            <div class="p-2.5 bg-white rounded-lg border border-blue-100">
-              <span class="text-[10px] text-slate-500 block font-sans">초기 Scale Factor</span>
-              <span class="font-bold text-slate-800 text-sm">1.9612</span>
-            </div>
-            <div class="p-2.5 bg-white rounded-lg border border-blue-100">
-              <span class="text-[10px] text-slate-500 block font-sans">보정 승수 (0.85 Vs/Vt)</span>
-              <span id="txt-calc-mult" class="font-bold text-blue-700 text-sm">1.3688배</span>
-            </div>
-            <div class="p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
-              <span class="text-[10px] text-emerald-800 block font-sans font-bold">수정 Scale Factor</span>
-              <span id="txt-final-sf" class="font-bold text-emerald-700 text-sm">2.6845</span>
-            </div>
-          </div>
-
-          <div class="text-[11px] text-slate-600 leading-relaxed pt-1">
-            <strong>실무 조치:</strong> MIDAS Gen &gt; <em>Load &gt; RS Load Case &gt; Scale Factor</em> 입력란에 
-            기존 1.9612 대신 <strong class="text-emerald-700" id="txt-input-guide">2.6845</strong>를 입력하고 재해석하십시오.
-          </div>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            KDS 41 17 00 7.3.3.5(2): 응답스펙트럼해석 밑면전단력이 등가정적해석 밑면전단력의 85%보다 작으면
+            7.3.3.5(1)의 설계값에 보정계수를 곱합니다. 단, 층간변위에는 곱하지 않습니다.
+            이 검사에는 주기 외에 건물 중량·R·설계스펙트럼·모드 유효질량이 필요하므로 이 진단기에서는 계산하지 않습니다.
+          </p>
         </div>
 
       </div>
@@ -146,6 +147,11 @@
   </div>
 
   <script>
+    // KDS 41 17 00 7.3.3.5(1): CQC is mandatory when the period difference of modes is within 25%.
+    // Period difference  Delta = (T_long - T_short) / T_long <= 0.25   <=>   beta = T_short / T_long >= 0.75
+    const KDS_CLOSE_DELTA = 0.25;
+    const TOL = 1e-9; // inputs have <= 3 decimals; keeps the exact boundary Delta = 0.25 inclusive ("이내")
+
     function loadPreset(type) {
       if (type === '3story') {
         document.getElementById('input-t1').value = '0.648';
@@ -167,9 +173,11 @@
     }
 
     function calcCQC(tA, tB, zeta) {
-      const wA = (2 * Math.PI) / tA;
-      const wB = (2 * Math.PI) / tB;
-      const beta = Math.min(wA, wB) / Math.max(wA, wB);
+      const tLong = Math.max(tA, tB);
+      const tShort = Math.min(tA, tB);
+      const delta = (tLong - tShort) / tLong;   // period difference (KDS 7.3.3.5(1))
+      const beta = tShort / tLong;              // = omega_low / omega_high = 1 - delta
+      const isClose = delta <= KDS_CLOSE_DELTA + TOL;
 
       const num = 8 * Math.pow(zeta, 2) * (1 + beta) * Math.pow(beta, 1.5);
       const den = Math.pow(1 - Math.pow(beta, 2), 2) + 4 * Math.pow(zeta, 2) * beta * Math.pow(1 + beta, 2);
@@ -178,85 +186,75 @@
       const clampedRho = Math.min(Math.max(rho, 0), 1);
       const theta = (Math.acos(clampedRho) * 180) / Math.PI;
 
-      // Underestimation of SRSS = sqrt(1 + rho) - 1
-      const underPct = (Math.sqrt(1 + clampedRho) - 1) * 100;
+      // SRSS shortfall relative to CQC for two modes with equal response (worst case): 1 - 1/sqrt(1 + rho)
+      const underPct = (1 - 1 / Math.sqrt(1 + clampedRho)) * 100;
 
-      return { beta, rho: clampedRho, theta, underPct };
+      return { delta, beta, isClose, rho: clampedRho, theta, underPct };
+    }
+
+    function readPositive(id, max) {
+      const v = parseFloat(document.getElementById(id).value);
+      return (Number.isFinite(v) && v > 0 && (max === undefined || v < max)) ? v : NaN;
     }
 
     function calculate() {
-      const t1 = parseFloat(document.getElementById('input-t1').value) || 0.65;
-      const t2 = parseFloat(document.getElementById('input-t2').value) || 0.23;
-      const t3 = parseFloat(document.getElementById('input-t3').value) || 0.16;
-      const zeta = parseFloat(document.getElementById('input-zeta').value) || 0.05;
+      const t1 = readPositive('input-t1');
+      const t2 = readPositive('input-t2');
+      const t3 = readPositive('input-t3');
+      const zeta = readPositive('input-zeta', 1);
+      const tbody = document.getElementById('table-cqc-body');
+      const banner = document.getElementById('diag-banner');
+
+      if (![t1, t2, t3, zeta].every(Number.isFinite)) {
+        tbody.innerHTML = '';
+        banner.className = "p-3.5 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-950 space-y-1";
+        banner.innerHTML = `
+          <strong class="text-amber-800 block text-sm">입력 확인 필요</strong>
+          <span>T₁·T₂·T₃는 0보다 큰 주기[s], &zeta;는 0과 1 사이의 값을 입력하세요.</span>
+        `;
+        return;
+      }
 
       const pairs = [
         { name: '1-2 모드', tA: t1, tB: t2 },
         { name: '1-3 모드', tA: t1, tB: t3 },
         { name: '2-3 모드', tA: t2, tB: t3 }
       ];
+      const results = pairs.map(p => ({ ...p, ...calcCQC(p.tA, p.tB, zeta) }));
+      const closePairs = results.filter(r => r.isClose);
+      const hasCloseMode = closePairs.length > 0;
 
-      let hasCloseMode = false;
-      let maxRho = 0;
-
-      const tbody = document.getElementById('table-cqc-body');
-      tbody.innerHTML = pairs.map(p => {
-        const r = calcCQC(p.tA, p.tB, zeta);
-        if (r.beta > 0.9) hasCloseMode = true;
-        if (r.rho > maxRho) maxRho = r.rho;
-
-        const isClose = r.beta > 0.9;
-        const rowClass = isClose ? 'bg-red-50/80 font-bold text-red-900' : 'text-slate-800';
-
+      tbody.innerHTML = results.map(r => {
+        const rowClass = r.isClose ? 'bg-red-50/80 font-bold text-red-900' : 'text-slate-800';
         return `
           <tr class="${rowClass}">
-            <td class="p-2">${p.name}</td>
-            <td class="p-2">${r.beta.toFixed(3)} ${isClose ? '<span class="text-[9px] px-1 bg-red-200 text-red-800 rounded">β>0.9!</span>' : ''}</td>
+            <td class="p-2">${r.name}</td>
+            <td class="p-2">${(r.delta * 100).toFixed(1)}% ${r.isClose ? '<span class="text-[9px] px-1 bg-red-200 text-red-800 rounded whitespace-nowrap">&Delta;&le;25% CQC</span>' : ''}</td>
+            <td class="p-2">${r.beta.toFixed(3)}</td>
             <td class="p-2 font-bold">${r.rho.toFixed(4)}</td>
             <td class="p-2">${r.theta.toFixed(1)}&deg;</td>
-            <td class="p-2 ${isClose ? 'text-red-700 font-black' : 'text-slate-500'}">-${r.underPct.toFixed(1)}%</td>
+            <td class="p-2 ${r.isClose ? 'text-red-700 font-black' : 'text-slate-500'}">-${r.underPct.toFixed(1)}%</td>
           </tr>
         `;
       }).join('');
 
       // Diagnostic Banner
-      const banner = document.getElementById('diag-banner');
       if (hasCloseMode) {
+        const maxUnder = Math.max(...closePairs.map(r => r.underPct));
+        const list = closePairs.map(r => `${r.name} (&Delta;=${(r.delta * 100).toFixed(1)}%, &beta;=${r.beta.toFixed(3)})`).join(', ');
         banner.className = "p-3.5 rounded-xl border border-red-200 bg-red-50 text-xs text-red-950 space-y-1";
         banner.innerHTML = `
-          <strong class="text-red-700 block text-sm">🚨 CQC 조합 필수 (근접모드 발견: &beta; > 0.90)</strong>
-          <span>인접 주기가 10% 이내로 근접하여 두 모드가 동시에 흔들립니다. SRSS 사용 시 최대 ${((Math.sqrt(1 + maxRho)-1)*100).toFixed(1)}% 과소평가되므로 반드시 <strong>CQC</strong>로 해석해야 합니다.</span>
+          <strong class="text-red-700 block text-sm">🚨 CQC 조합 필수 (KDS 41 17 00 7.3.3.5(1): 주기 차이 &Delta; &le; 25%, &beta; &ge; 0.75)</strong>
+          <span>근접모드 쌍: ${list}. 규준은 "일련된 각 모드의 주기 차이가 25퍼센트 이내일 때에는 CQC를 사용하여야 한다"고 정합니다. 이 쌍에서 SRSS를 쓰면 최대 ${maxUnder.toFixed(1)}% 과소평가될 수 있으므로 <strong>CQC</strong>로 해석해야 합니다.</span>
         `;
       } else {
-        banner.className = "p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-xs text-emerald-950 space-y-1";
+        const minDelta = Math.min(...results.map(r => r.delta));
+        banner.className = "p-3.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-800 space-y-1";
         banner.innerHTML = `
-          <strong class="text-emerald-700 block text-sm">✅ SRSS / CQC 무관 (모드 독립)</strong>
-          <span>모든 인접 주기비가 &beta; &le; 0.90로 충분히 분리되어 있습니다. 모드 사잇각이 거의 90&deg; 직교하므로 CQC와 SRSS 오차는 1% 미만입니다.</span>
+          <strong class="text-slate-900 block text-sm">ℹ️ KDS상 CQC 의무 대상 아님 (SRSS 허용)</strong>
+          <span>모든 모드 쌍의 주기 차이가 25%를 넘습니다 (가장 가까운 쌍 &Delta;=${(minDelta * 100).toFixed(1)}%, KDS 41 17 00 7.3.3.5(1)). 표의 &rho;·과소평가는 참고값이며, CQC를 써도 무방합니다.</span>
         `;
       }
-
-      // Dynamic Base Shear & KDS 85% Scale Factor Calculation
-      const Ts = 0.44;
-      const SDS = 0.55;
-      const sa1 = (t1 <= Ts) ? SDS : Math.min(SDS, 0.24 / t1);
-      const v1 = 1096.9 * sa1 * 9.80665;
-      const v2 = 89.9 * SDS * 9.80665;
-      const v3 = 13.3 * SDS * 9.80665;
-      const vt = Math.round(Math.sqrt(v1 * v1 + v2 * v2 + v3 * v3)); // Dynamic Base Shear (Elastic)
-      const vs = 5938; // Static Base Shear (Elastic, Ta = 0.44s)
-      const target85 = Math.round(0.85 * vs);
-
-      let mult = 1.0;
-      if (vt < target85) {
-        mult = target85 / vt;
-      }
-
-      const baseSF = 1.9612; // g / (2*R) = 9.80665 / (2 * 5 * 0.5) ... or 1.9612 in Gen
-      const finalSF = (baseSF * mult).toFixed(4);
-
-      document.getElementById('txt-calc-mult').innerText = mult > 1.0 ? `${mult.toFixed(4)}배 (증폭)` : `1.0000 (보정 불필요)`;
-      document.getElementById('txt-final-sf').innerText = finalSF;
-      document.getElementById('txt-input-guide').innerText = finalSF;
     }
 
     calculate();
