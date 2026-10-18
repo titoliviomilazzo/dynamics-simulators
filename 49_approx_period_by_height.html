@@ -163,7 +163,9 @@ function Cu(sd1){
 function Sa(T, sds, sd1){ const Ts=sd1/sds, T0=0.2*Ts; return T<T0 ? sds*(0.4+0.6*T/T0) : T<=Ts ? sds : sd1/T; }
 
 function setup(cv){
-  const r=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute("height");
+  // Keep the markup's CSS height in data-h: the height attribute is overwritten below with the DPR-scaled bitmap height.
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute("height");
+  const r=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.dataset.h;
   if (cv.width!==Math.round(w*r)){ cv.width=Math.round(w*r); cv.height=Math.round(h*r); cv.style.height=h+"px"; }
   const g=cv.getContext("2d"); g.setTransform(r,0,0,r,0,0); g.clearRect(0,0,w,h); g.font="12px Pretendard, sans-serif"; return [g,w,h];
 }
