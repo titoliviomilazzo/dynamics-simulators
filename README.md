@@ -70,7 +70,7 @@
 - [정본 39. Newmark 삼분 응답 스펙트럼 (Tripartite) & ADRS 4-in-1](https://titoliviomilazzo.github.io/dynamics-simulators/39_newmark_tripartite_adrs.html)
 - [정본 03. 다층 응답스펙트럼 해석 & 모드중첩(SRSS / CQC)](https://titoliviomilazzo.github.io/dynamics-simulators/03_multistory_response_spectrum.html)
 - [반전 4. ABSSUM = 등가정적(ELF) 완전 항등식 증명기](https://titoliviomilazzo.github.io/dynamics-simulators/35_abssum_equals_static_proof.html)
-- [정본 38. MIDAS Gen 실무용 30초 CQC 진단 & 85% Scale Factor 계산기](https://titoliviomilazzo.github.io/dynamics-simulators/38_midas_cqc_diagnostic_tool.html)
+- [정본 38. MIDAS Gen 실무용 30초 근접모드(CQC) 진단](https://titoliviomilazzo.github.io/dynamics-simulators/38_midas_cqc_diagnostic_tool.html)
 - [정본 07. 2단계 포락선(Envelope)과 P-M 상관도 부호소실(Sign Loss) 함정](https://titoliviomilazzo.github.io/dynamics-simulators/07_envelope_two_tiers.html)
 
 ### 🔹 Track 06. KDS 41 규준 내진설계 (7개 모듈)
