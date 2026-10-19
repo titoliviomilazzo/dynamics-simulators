@@ -159,7 +159,9 @@ const getSpec = (k, z) => { const key=k+"|"+z.toFixed(2); return cache[key] || (
 
 // ---------- drawing ----------
 function setup(cv){
-  const r=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute("height");
+  // Keep the markup's CSS height in data-h: the height attribute is overwritten below with the DPR-scaled bitmap height.
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute("height");
+  const r=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.dataset.h;
   if (cv.width!==Math.round(w*r)){ cv.width=Math.round(w*r); cv.height=Math.round(h*r); cv.style.height=h+"px"; }
   const g=cv.getContext("2d"); g.setTransform(r,0,0,r,0,0); g.clearRect(0,0,w,h); g.font="12px Pretendard, sans-serif"; return [g,w,h];
 }
