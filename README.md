@@ -27,7 +27,7 @@
 ---
 
 <!-- registry:tracks:start -->
-## 📚 8개 전공 트랙 구성 (시뮬레이터 35개 · 정본 33 + 실습 2)
+## 📚 8개 전공 트랙 구성 (시뮬레이터 37개 · 정본 35 + 실습 2)
 
 > 이 목록은 `assets/simulators.js`에서 생성됩니다. 시뮬레이터를 추가하면 `node tools/check-registry.mjs --write`로 갱신하세요.
 
@@ -84,7 +84,7 @@
 - [정본 49. 고유주기 약산식 — 높이 × 구조형식 & 해석 주기 비교](https://titoliviomilazzo.github.io/dynamics-simulators/49_approx_period_by_height.html)
 - [정본 06. 등가정적(1,188 kN) vs 동적(737 kN) & KDS 85% 최소밑면전단력](https://titoliviomilazzo.github.io/dynamics-simulators/06_static_vs_dynamic_85pct_scaling.html)
 
-### 🔹 Track 07. 비선형 성능기반설계 · 손상역학 (5개 모듈)
+### 🔹 Track 07. 비선형 성능기반설계 · 손상역학 (7개 모듈)
 등변위 규칙과 R계수, 능력스펙트럼법 성능점, RC 기둥 P-M 상관도, FEMA 356 백본, 소성힌지 미시손상.
 
 - [정본 37. Newmark 등변위 규칙 & 반응수정계수(R=5 지진력 1/5 삭감)의 실체](https://titoliviomilazzo.github.io/dynamics-simulators/37_newmark_equal_displacement_r_factor.html)
@@ -92,6 +92,8 @@
 - [정본 24. RC 기둥 P-M 상관도 & 강도감소계수(φ) 연성-취성 전이곡면](https://titoliviomilazzo.github.io/dynamics-simulators/24_rc_column_pm_interaction_diagram.html)
 - [정본 28. FEMA 힌지 백본(IO-LS-CP) & 단면 200배 거시-미시 손상 통합](https://titoliviomilazzo.github.io/dynamics-simulators/28_fema_backbone_io_ls_cp.html)
 - [정본 29. 기둥 밑둥 소성힌지 단면 200배 줌인 4단계 미시 손상역학](https://titoliviomilazzo.github.io/dynamics-simulators/29_plastic_hinge_cross_section_damage.html)
+- [정본 50. 이력루프 실험실 — 비저하·강성저하·핀칭·좌굴과 소산에너지](https://titoliviomilazzo.github.io/dynamics-simulators/50_hysteresis_loop_energy_lab.html)
+- [정본 51. 성능기반설계 7단계 — 3D 골조 소성힌지 IO/LS/CP D/C 판정기](https://titoliviomilazzo.github.io/dynamics-simulators/51_pbd_seven_step_dc_check.html)
 
 ### 🔹 Track 08. 제진 · 내진보강 (1개 모듈)
 선형/비선형 점성댐퍼 부가감쇠비, 층별 배치 효율, TMD 최적 튜닝, 보강 전후 응답 비교.

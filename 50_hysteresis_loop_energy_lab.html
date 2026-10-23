@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 50: 이력루프 실험실 — 비저하·강성저하·핀칭·좌굴과 소산에너지</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>
+  :root { --ink:#0f172a; --sub:#475569; --dim:#94a3b8; --line:#e2e8f0; --teal:#0f6e7e; --verm:#c4341a; --bg:#f8fafc; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:1320px; margin:0 auto; padding:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(15,23,42,.06); }
+  header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:center;
+    border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:14px; }
+  .badge { font:700 12px ui-monospace,monospace; padding:3px 9px; border-radius:6px; background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; }
+  h1 { font-size:22px; font-weight:900; margin:0; letter-spacing:-.02em; }
+  .lead { font-size:13px; color:var(--sub); margin:6px 0 0; }
+  a.back { font-size:12px; font-weight:700; padding:8px 14px; border-radius:12px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; text-decoration:none; }
+  .grid { display:grid; grid-template-columns:280px 1fr; gap:18px; }
+  @media (max-width:900px){ .grid { grid-template-columns:1fr; } }
+  .panel h3 { font-size:12px; letter-spacing:.08em; color:var(--dim); margin:14px 0 6px; font-weight:800; }
+  label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; }
+  label span { float:right; font-family:ui-monospace,monospace; color:#3730a3; }
+  input[type=range] { width:100%; accent-color:#4f46e5; }
+  select { width:100%; padding:7px 8px; border:1px solid #cbd5e1; border-radius:8px; font:inherit; font-size:13px; }
+  .btns { display:flex; gap:6px; margin-top:10px; }
+  button { flex:1; padding:8px 0; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; font:700 13px inherit; cursor:pointer; }
+  button.primary { background:#4f46e5; color:#fff; border-color:#4f46e5; }
+  .note { font-size:12px; color:var(--sub); line-height:1.55; background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:12px; }
+  .note b { color:var(--ink); }
+  canvas { width:100%; display:block; }
+  #three { width:100%; height:100%; }
+  .cv { border:1px solid var(--line); border-radius:14px; margin-bottom:10px; background:#fff; position:relative; overflow:hidden; }
+  .cv .cap { position:absolute; left:10px; top:8px; font-size:12px; font-weight:800; color:var(--sub); pointer-events:none; }
+  .row2 { display:grid; grid-template-columns:1fr 1.15fr; gap:10px; }
+  @media (max-width:900px){ .row2 { grid-template-columns:1fr; } }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px; }
+  @media (max-width:700px){ .stats { grid-template-columns:repeat(2,1fr); } }
+  .stat { border:1px solid var(--line); border-radius:12px; padding:8px 10px; }
+  .stat .k { font-size:11px; color:var(--dim); font-weight:800; letter-spacing:.04em; }
+  .stat .v { font:800 20px ui-monospace,monospace; margin-top:2px; }
+  .stat .u { font-size:11px; color:var(--sub); }
+  .bar { height:10px; border-radius:6px; background:#f1f5f9; overflow:hidden; border:1px solid var(--line); margin-top:4px; }
+  .bar i { display:block; height:100%; background:#4f46e5; width:0%; transition:width .15s; }
+  .q { margin-top:6px; border-top:1px solid var(--line); padding-top:12px; font-size:13px; color:var(--sub); line-height:1.6; }
+  .q b { color:var(--verm); }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+  <header>
+    <div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge">SIM 50 · 이력루프 실험실</span>
+        <h1>이력루프 실험실 — 루프 면적이 곧 소산에너지</h1>
+      </div>
+      <p class="lead">같은 변위 이력을 네 가지 부재에 가한다. 3D 기둥이 휘는 동안 F–D 루프가 그려지고, 루프 면적(=부재가 삼킨 지진에너지)이 모델마다 얼마나 달라지는지 본다. (슬라이드 9~11 보조)</p>
+    </div>
+    <a class="back" href="index.html">&larr; 마스터 대시보드</a>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>이력 모델</h3>
+      <select id="model">
+        <option value="bilinear">① 비저하형 (Non-degrading) — 이상적 강재 휨</option>
+        <option value="degrading" selected>② 강성 저하형 (Stiffness-degrading) — RC 휨 부재</option>
+        <option value="pinched">③ 핀칭형 (Pinched) — 전단지배 RC·목구조</option>
+        <option value="brace">④ 좌굴형 (Buckling) — 압축 가새</option>
+      </select>
+      <h3>변위 이력 (프로토콜)</h3>
+      <label>최대 연성비 μ<sub>max</sub> = D<sub>max</sub>/D<sub>y</sub> <span id="muV">6</span></label>
+      <input type="range" id="mu" min="2" max="10" step="1" value="6">
+      <label>진폭당 반복 횟수 <span id="cycV">2</span></label>
+      <input type="range" id="cyc" min="1" max="4" step="1" value="2">
+      <label>항복 후 강성비 α <span id="alV">0.03</span></label>
+      <input type="range" id="al" min="0" max="0.15" step="0.01" value="0.03">
+      <label>반복 저하율 (Cyclic degradation) <span id="cdV">0.00</span></label>
+      <input type="range" id="cd" min="0" max="0.02" step="0.001" value="0">
+      <label>재생 속도 <span id="spV">1.0×</span></label>
+      <input type="range" id="sp" min="0.25" max="4" step="0.25" value="1">
+      <div class="btns">
+        <button id="play" class="primary">▶ 재생</button>
+        <button id="reset">↺ 처음부터</button>
+      </div>
+      <div class="note">
+        <b>읽는 법.</b> F는 항복강도 F<sub>y</sub>, D는 항복변위 D<sub>y</sub>로 나눈 값. 루프가 닫힐 때마다 그 면적만큼 에너지가 열·균열·소성변형으로 사라진다.<br>
+        <b>반복 저하율</b>을 올리면 같은 변위에서도 사이클이 거듭될수록 힘이 줄어든다(강도 저하는 "같은 사이클"이 아니라 "다음 사이클"에서 나타난다).<br>
+        <b>좌굴형</b>은 인장은 항복하지만 압축은 좌굴 후 힘이 급락한다 — 루프가 위로 쏠린다.
+      </div>
+    </div>
+
+    <div>
+      <div class="stats">
+        <div class="stat"><div class="k">현재 D / D<sub>y</sub></div><div class="v" id="sD">0.00</div><div class="u">연성 수요</div></div>
+        <div class="stat"><div class="k">현재 F / F<sub>y</sub></div><div class="v" id="sF">0.00</div><div class="u">정규화 힘</div></div>
+        <div class="stat"><div class="k">소산에너지 E<sub>h</sub></div><div class="v" id="sE">0.0</div><div class="u">F<sub>y</sub>·D<sub>y</sub> 단위 (루프 면적 누적)</div></div>
+        <div class="stat"><div class="k">비저하형 대비</div><div class="v" id="sR">100%</div><div class="u">같은 이력에서 ① 모델의 E<sub>h</sub> = 100%</div><div class="bar"><i id="sBar"></i></div></div>
+      </div>
+      <div class="row2">
+        <div class="cv" style="height:400px"><span class="cap">3D · 캔틸레버 기둥 (밑동 소성힌지 색 = 손상 정도)</span><canvas id="three"></canvas></div>
+        <div class="cv" style="height:400px"><span class="cap">F–D 이력루프 (면적 = 소산에너지)</span><canvas id="loop" height="370"></canvas></div>
+      </div>
+      <div class="cv"><span class="cap">변위 이력 D(t)/D<sub>y</sub> 과 누적 소산에너지</span><canvas id="hist" height="150"></canvas></div>
+      <div class="q">
+        <b>질문 1.</b> ①→②→③ 순서로 루프 면적이 줄어든다. 같은 변위를 겪었는데 왜 에너지를 덜 먹을까? (답: 강성저하·핀칭은 "다시 힘을 받기까지 헛돌이 변형"이 있어서, 루프 가운데가 홀쭉해진다.)<br>
+        <b>질문 2.</b> 반복 저하율을 0.015로 올리고 μ<sub>max</sub>=8로 두면 마지막 사이클의 힘은 첫 사이클의 몇 %인가? 이 숫자가 슬라이드 10의 "강도 저하는 다음 사이클에서 나타난다"의 의미다.<br>
+        <b>질문 3.</b> 좌굴형에서 인장 쪽 면적은 멀쩡한데 압축 쪽이 비어 있다. 가새 골조의 층전단은 어느 쪽 가새가 버티는가?
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  // ---------- 이력 모델 (정규화: k=1, Fy=1, Dy=1) ----------
+  function makeModel(type, alpha, cycDeg){
+    const k=1, fy=1, kh=alpha*k;
+    const pinch = type==='pinched' ? [0.55,0.25] : null;
+    if(type==='bilinear'){
+      let fp=0, E=0;
+      return { step(u,du){ let ft=fp+k*du; const deg=Math.max(0.5,1-cycDeg*E);
+          const up=deg*(fy*(1-alpha)+kh*u), lo=deg*(-fy*(1-alpha)+kh*u);
+          ft=Math.min(Math.max(ft,lo),up); E+=Math.abs(0.5*(ft+fp)*du)/50; fp=ft; return ft; } };
+    }
+    if(type==='brace'){
+      let fp=0, cum=0, fcap=0.5, soft=false; const fcr=0.5, fres=0.15, ksoft=0.12, kd=0.05;
+      return { step(u,du){ let ft;
+          if(du>=0){ soft=false; ft=Math.min(fp+k*du, fy); }
+          else { if(soft){ ft=Math.min(fp-ksoft*du,-fres); cum+=-du; }
+                 else { ft=fp+k*du; if(ft<-fcap){ ft=-fcap; soft=true; } }
+                 fcap=Math.max(fres, fcr-kd*cum-cycDeg*40*cum); }
+          fp=ft; return ft; } };
+    }
+    // peak-oriented (Clough) with optional pinching and cyclic degradation
+    let umax=fy/k, umin=-fy/k, u0p=0, u0n=0, fp=0, E=0;
+    function reload(x,u0,upk,fpk){
+      if(Math.abs(upk-u0)<1e-9) return fpk;
+      if(!pinch) return fpk*(x-u0)/(upk-u0);
+      const [fu,ff]=pinch, upp=u0+fu*(upk-u0), fpp=ff*fpk, t=(x-u0)/(upk-u0);
+      return t<=fu ? fpp*(x-u0)/(upp-u0) : fpp+(fpk-fpp)*(x-upp)/(upk-upp);
+    }
+    return { step(x,du){
+      const deg=Math.max(0.5,1-cycDeg*E);
+      const bbp=z=>deg*(fy*(1-alpha)+kh*z), bbn=z=>deg*(-fy*(1-alpha)+kh*z);
+      let ft=fp+k*du;
+      if(du>=0){ if(fp<0&&ft>0) u0p=x-du-fp/k;
+        if(ft>0){ ft=Math.min(ft, x<umax?reload(x,u0p,umax,bbp(umax)):bbp(x), bbp(x)); if(x>umax&&ft>=bbp(x)-1e-9) umax=x; } }
+      else { if(fp>0&&ft<0) u0n=x-du-fp/k;
+        if(ft<0){ ft=Math.max(ft, x>umin?reload(x,u0n,umin,bbn(umin)):bbn(x), bbn(x)); if(x<umin&&ft<=bbn(x)+1e-9) umin=x; } }
+      E+=Math.abs(0.5*(ft+fp)*du)/50; fp=ft; return ft; } };
+  }
+  function protocol(mu, cycles){
+    const amps=[]; for(let a=0.5;a<=mu+1e-9;a+=(mu<=4?0.5:1)) amps.push(a);
+    if(amps[amps.length-1]!==mu) amps.push(mu);
+    const u=[0]; const n=60;
+    for(const a of amps) for(let c=0;c<cycles;c++) for(const tgt of [a,-a,0]){
+      const s=u[u.length-1]; for(let i=1;i<=n;i++) u.push(s+(tgt-s)*i/n); }
+    return u;
+  }
+  function run(type,alpha,cd,mu,cyc){
+    const u=protocol(mu,cyc), m=makeModel(type,alpha,cd), f=[0], E=[0];
+    for(let i=1;i<u.length;i++){ const ft=m.step(u[i],u[i]-u[i-1]); f.push(ft); E.push(E[i-1]+0.5*(ft+f[i-1])*(u[i]-u[i-1])); }
+    return {u,f,E};
+  }
+
+  // ---------- 상태 ----------
+  const $=id=>document.getElementById(id);
+  let data=null, ref=null, idx=0, playing=false, maxMu=1;
+  function rebuild(){
+    const type=$('model').value, al=+$('al').value, cd=+$('cd').value, mu=+$('mu').value, cyc=+$('cyc').value;
+    data=run(type,al,cd,mu,cyc); ref=run('bilinear',al,0,mu,cyc); idx=0; maxMu=1; drawAll();
+  }
+  ['model','al','cd','mu','cyc'].forEach(id=>$(id).addEventListener('input',()=>{
+    $('muV').textContent=$('mu').value; $('cycV').textContent=$('cyc').value; $('alV').textContent=(+$('al').value).toFixed(2); $('cdV').textContent=(+$('cd').value).toFixed(3); rebuild(); }));
+  $('sp').addEventListener('input',()=>$('spV').textContent=(+$('sp').value).toFixed(2)+'×');
+  $('play').onclick=()=>{ playing=!playing; $('play').textContent=playing?'❚❚ 일시정지':'▶ 재생'; if(playing&&idx>=data.u.length-1){ idx=0; maxMu=1; } };
+  $('reset').onclick=()=>{ idx=0; maxMu=1; playing=false; $('play').textContent='▶ 재생'; drawAll(); };
+
+  // ---------- 2D 캔버스 (DPR 대응) ----------
+  function fit(cv){ const r=window.devicePixelRatio||1, w=cv.clientWidth, h=+(cv.dataset.h||(cv.dataset.h=cv.getAttribute('height'))); cv.style.height=h+'px';
+    if(cv.width!==Math.round(w*r)||cv.height!==Math.round(h*r)){ cv.width=Math.round(w*r); cv.height=Math.round(h*r); }
+    const ctx=cv.getContext('2d'); ctx.setTransform(r,0,0,r,0,0); return {ctx,w,h}; }
+  const COL={bilinear:'#2563eb',degrading:'#d97706',pinched:'#ea580c',brace:'#dc2626'};
+
+  function drawLoop(){
+    const cv=$('loop'); const {ctx,w,h}=fit(cv); ctx.clearRect(0,0,w,h);
+    const mu=+$('mu').value, L=46,R=14,T=30,B=34; const xs=x=>L+(x+mu)/(2*mu)*(w-L-R), ys=y=>T+(1.4-y)/2.8*(h-T-B);
+    ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(xs(-mu),ys(0)); ctx.lineTo(xs(mu),ys(0)); ctx.moveTo(xs(0),ys(-1.4)); ctx.lineTo(xs(0),ys(1.4)); ctx.stroke();
+    ctx.fillStyle='#94a3b8'; ctx.font='11px ui-monospace,monospace'; ctx.textAlign='center';
+    for(let t=-mu;t<=mu;t+=(mu>6?2:1)){ ctx.fillText(t, xs(t), h-B+14); }
+    ctx.textAlign='right'; for(const t of [-1,-0.5,0.5,1]){ ctx.fillText(t.toFixed(1), L-6, ys(t)+4); }
+    ctx.fillStyle='#475569'; ctx.font='12px Pretendard,sans-serif'; ctx.textAlign='center'; ctx.fillText('D / Dy', (L+w-R)/2, h-6);
+    ctx.save(); ctx.translate(12,(T+h-B)/2); ctx.rotate(-Math.PI/2); ctx.fillText('F / Fy',0,0); ctx.restore();
+    // reference (bilinear) ghost
+    const type=$('model').value; const c=COL[type];
+    if(type!=='bilinear'){ ctx.strokeStyle='rgba(37,99,235,.18)'; ctx.lineWidth=1; ctx.beginPath();
+      for(let i=0;i<=idx;i++){ const x=xs(ref.u[i]), y=ys(ref.f[i]); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke(); }
+    // filled loop
+    ctx.fillStyle=c+'22'; ctx.beginPath(); for(let i=0;i<=idx;i++){ const x=xs(data.u[i]), y=ys(data.f[i]); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.fill();
+    ctx.strokeStyle=c; ctx.lineWidth=1.6; ctx.beginPath(); for(let i=0;i<=idx;i++){ const x=xs(data.u[i]), y=ys(data.f[i]); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke();
+    ctx.fillStyle=c; ctx.beginPath(); ctx.arc(xs(data.u[idx]),ys(data.f[idx]),5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#64748b'; ctx.font='11px Pretendard,sans-serif'; ctx.textAlign='left'; if(type!=='bilinear') ctx.fillText('연한 파랑 = 비저하형 참조', L+6, T+2);
+  }
+  function drawHist(){
+    const cv=$('hist'); const {ctx,w,h}=fit(cv); ctx.clearRect(0,0,w,h);
+    const n=data.u.length, mu=+$('mu').value, L=40,R=46,T=24,B=18; const xs=i=>L+i/(n-1)*(w-L-R), ys=y=>T+(mu-y)/(2*mu)*(h-T-B);
+    const Emax=Math.max(ref.E[n-1],1e-9); const ye=e=>T+(1-e/Emax)*(h-T-B);
+    ctx.strokeStyle='#e2e8f0'; ctx.beginPath(); ctx.moveTo(L,ys(0)); ctx.lineTo(w-R,ys(0)); ctx.stroke();
+    ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1.2; ctx.beginPath(); for(let i=0;i<n;i++){ i?ctx.lineTo(xs(i),ys(data.u[i])):ctx.moveTo(xs(i),ys(data.u[i])); } ctx.stroke();
+    ctx.strokeStyle='rgba(37,99,235,.35)'; ctx.setLineDash([4,3]); ctx.beginPath(); for(let i=0;i<n;i++){ i?ctx.lineTo(xs(i),ye(ref.E[i])):ctx.moveTo(xs(i),ye(ref.E[i])); } ctx.stroke(); ctx.setLineDash([]);
+    const c=COL[$('model').value]; ctx.strokeStyle=c; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<=idx;i++){ i?ctx.lineTo(xs(i),ye(data.E[i])):ctx.moveTo(xs(i),ye(data.E[i])); } ctx.stroke();
+    ctx.strokeStyle='#0f172a'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(xs(idx),T); ctx.lineTo(xs(idx),h-B); ctx.stroke();
+    ctx.fillStyle='#64748b'; ctx.font='11px Pretendard,sans-serif'; ctx.textAlign='left'; ctx.fillText('회색 = D/Dy,  굵은 색 = 누적 E_h (점선 = 비저하형)', L+4, 30);
+    ctx.textAlign='right'; ctx.fillText('E_h', w-6, T+10); ctx.fillText('0', w-6, h-B);
+  }
+  function stats(){
+    const E=data.E[idx], Er=ref.E[idx]; $('sD').textContent=data.u[idx].toFixed(2); $('sF').textContent=data.f[idx].toFixed(2);
+    $('sE').textContent=E.toFixed(1); const r=Er>1e-6?E/Er*100:100; $('sR').textContent=r.toFixed(0)+'%'; $('sBar').style.width=Math.min(100,r)+'%';
+  }
+
+  // ---------- three.js 기둥 ----------
+  const tcv=$('three'); const renderer=new THREE.WebGLRenderer({canvas:tcv,antialias:true,alpha:true});
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0xf8fafc);
+  const camera=new THREE.PerspectiveCamera(32,1,0.1,100); camera.position.set(6.5,4.2,8.5); camera.lookAt(0,2.2,0);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x94a3b8,0.95)); const dl=new THREE.DirectionalLight(0xffffff,0.7); dl.position.set(5,8,6); scene.add(dl);
+  const grid=new THREE.GridHelper(10,10,0xcbd5e1,0xe2e8f0); scene.add(grid);
+  const H=4.2, NSEG=40; const colGeo=new THREE.BoxGeometry(0.6,H,0.6,1,NSEG,1); colGeo.translate(0,H/2,0);
+  const base=colGeo.attributes.position.array.slice();
+  const colMat=new THREE.MeshStandardMaterial({color:0x94a3b8,roughness:.6}); const column=new THREE.Mesh(colGeo,colMat); scene.add(column);
+  const footing=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.3,1.8),new THREE.MeshStandardMaterial({color:0x64748b})); footing.position.y=-0.15; scene.add(footing);
+  const mass=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.5,1.4),new THREE.MeshStandardMaterial({color:0x334155})); scene.add(mass);
+  const hinge=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.5,24),new THREE.MeshStandardMaterial({color:0x22c55e,emissive:0x22c55e,emissiveIntensity:.25,transparent:true,opacity:.75})); hinge.position.y=0.25; scene.add(hinge);
+  const arrowDir=new THREE.ArrowHelper(new THREE.Vector3(1,0,0),new THREE.Vector3(0,H+0.3,0),1.2,0x4f46e5,0.35,0.2); scene.add(arrowDir);
+  const SCALE=0.22; // 1 Dy = 0.22 m 시각 배율
+  function bend(uN){
+    const p=colGeo.attributes.position.array; const u=uN*SCALE, mu=Math.abs(uN);
+    const Lp=Math.min(1,0.45+0.1*Math.max(0,mu-1)); // 소성힌지 구간 길이(시각용)
+    for(let i=0;i<p.length;i+=3){ const z=base[i+1]/H; const sh=(mu<=1)?(3*z*z-2*z*z*z):( z<Lp/H ? (3*z*z-2*z*z*z) : 0 );
+      // 소성화되면 힌지 위는 거의 강체 회전
+      const el=(3*z*z-2*z*z*z); const rigid = z<Lp/H ? el*(z/(Lp/H))*0+el : el;
+      let dx;
+      if(mu<=1) dx=u*el; else { const a=Lp/H; const uy=SCALE*Math.sign(uN); const elas=uy*el; const rot=(u-uy)*Math.max(0,(z-a*0.5))/(1-a*0.5); dx=elas+rot; }
+      p[i]=base[i]+dx; }
+    colGeo.attributes.position.needsUpdate=true; colGeo.computeVertexNormals();
+    mass.position.set(u + (mu>1?0:0), H+0.25, 0); mass.rotation.z=-(mu>1?(u-SCALE*Math.sign(uN))/H*1.2:0);
+    arrowDir.position.set(u, H+0.3, 0); arrowDir.setDirection(new THREE.Vector3(Math.sign(uN)||1,0,0)); arrowDir.setLength(0.4+0.5*Math.min(2,Math.abs(data?data.f[idx]:0)),0.3,0.18);
+  }
+  function hingeColor(){
+    const t=Math.min(1,(maxMu-1)/5); const c=new THREE.Color().setHSL(0.33*(1-t),0.85,0.45); hinge.material.color=c; hinge.material.emissive=c;
+    hinge.scale.set(1+0.4*t,1,1+0.4*t);
+  }
+  function resizeThree(){ const w=tcv.clientWidth,h=tcv.clientHeight; const dpr=Math.min(window.devicePixelRatio||1,2);
+    renderer.setPixelRatio(dpr); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+  let drag=false,lx=0,theta=0.65; tcv.addEventListener('pointerdown',e=>{drag=true;lx=e.clientX;}); window.addEventListener('pointerup',()=>drag=false);
+  window.addEventListener('pointermove',e=>{ if(!drag)return; theta+=(e.clientX-lx)*0.01; lx=e.clientX; camera.position.set(10.5*Math.sin(theta),4.2,10.5*Math.cos(theta)); camera.lookAt(0,2.2,0); });
+
+  function drawAll(){ drawLoop(); drawHist(); stats(); bend(data.u[idx]); hingeColor(); resizeThree(); renderer.render(scene,camera); }
+  let acc=0, last=performance.now();
+  function loop(now){ const dt=Math.min(0.05,(now-last)/1000); last=now;
+    if(playing){ acc+=dt*120*(+$('sp').value); while(acc>=1){ acc-=1; if(idx<data.u.length-1){ idx++; maxMu=Math.max(maxMu,Math.abs(data.u[idx])); } else { playing=false; $('play').textContent='▶ 재생'; } } drawAll(); }
+    else { resizeThree(); renderer.render(scene,camera); }
+    requestAnimationFrame(loop); }
+  window.addEventListener('resize',drawAll);
+  rebuild(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

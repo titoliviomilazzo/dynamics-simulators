@@ -587,7 +587,36 @@
       desc: "SDOF·5층 전단건물에 선형/비선형(F=C|v|^α) 점성댐퍼와 옥상 TMD를 설치해 동일 지진의 보강 전/후 응답을 비교. 에너지 등가 부가감쇠비 ζd, ASCE 7 B계수 대비 실제 저감률, 층별 배치 효율, Warburton 최적 튜닝과 FRF.",
       file: "47_viscous_damper_tmd_retrofit.html",
       tags: ["점성댐퍼", "TMD", "부가감쇠비", "제진보강", "이력루프", "B계수", "FEMA356"]
+    },
+    {
+      id: "50",
+      act: 6,
+      track: "pbd",
+      num: "정본 50",
+      title: "이력루프 실험실 — 비저하·강성저하·핀칭·좌굴과 소산에너지",
+      standard: "ASCE 41 §7.5 / FEMA 440 이력모델",
+      badgeClass: "badge-fema",
+      status: "3D 기둥 + 실시간 루프",
+      leadQuestion: "같은 변위를 겪었는데 왜 어떤 부재는 에너지를 절반밖에 못 먹을까?",
+      desc: "네 가지 이력 모델(비저하·강성저하·핀칭·좌굴)에 같은 변위 프로토콜을 가하며 3D 캔틸레버 기둥의 소성힌지와 F–D 루프를 동시에 그린다. 루프 면적=소산에너지, 반복 저하율, 비저하형 대비 비율을 실시간 비교.",
+      file: "50_hysteresis_loop_energy_lab.html",
+      tags: ["이력루프", "소산에너지", "강성저하", "핀칭", "좌굴", "반복저하", "소성힌지"]
+    },
+    {
+      id: "51",
+      act: 6,
+      track: "pbd",
+      num: "정본 51",
+      title: "성능기반설계 7단계 — 3D 골조 소성힌지 IO/LS/CP D/C 판정기",
+      standard: "ASCE 41 / FEMA 356 성능목표·허용기준",
+      badgeClass: "badge-fema",
+      status: "7단계 파이프라인 + 반복 설계",
+      leadQuestion: "MCE·CP를 통과한 설계가 DBE·LS에서는 왜 떨어질 수 있을까?",
+      desc: "지진 수준(SLE/DBE/MCE)과 성능 수준(IO/LS/CP) 짝을 고르면 3층 2경간 골조의 힌지가 손상 색으로 물들고 부재군별 D/C가 판정된다. 불합격이면 기둥 단면·보 상세·댐퍼로 수정해 2~6단계를 반복한다.",
+      file: "51_pbd_seven_step_dc_check.html",
+      tags: ["성능목표", "허용기준", "D/C", "IO_LS_CP", "소성힌지", "7단계", "반복설계", "연층"]
     }
+
   ];
 
   const trackById = Object.fromEntries(SIM_TRACKS.map((t, i) => [t.id, Object.assign(t, { no: i + 1 })]));
