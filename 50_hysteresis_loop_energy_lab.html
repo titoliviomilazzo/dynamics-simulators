@@ -46,6 +46,33 @@
   .bar i { display:block; height:100%; background:#4f46e5; width:0%; transition:width .15s; }
   .q { margin-top:6px; border-top:1px solid var(--line); padding-top:12px; font-size:13px; color:var(--sub); line-height:1.6; }
   .q b { color:var(--verm); }
+  .exp { margin-top:22px; border-top:2px solid var(--line); padding-top:16px; font-size:13.5px; line-height:1.65; color:#1e293b; }
+  .exp h2 { font-size:18px; font-weight:900; margin:0 0 6px; letter-spacing:-.01em; }
+  .exp h3 { font-size:15px; font-weight:800; margin:20px 0 8px; color:var(--teal); }
+  .exp-lead, .exp-note { color:var(--sub); margin:6px 0; }
+  .exp-note { background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+  .exp ul { margin:6px 0; padding-left:20px; } .exp li { margin:4px 0; }
+  .tw { overflow-x:auto; border:1px solid var(--line); border-radius:12px; margin:8px 0; }
+  .exp table { border-collapse:collapse; width:100%; min-width:720px; font-size:12.5px; }
+  .exp th, .exp td { border-bottom:1px solid var(--line); padding:7px 9px; text-align:left; vertical-align:top; }
+  .exp th { background:#f1f5f9; font-weight:800; color:#334155; white-space:nowrap; }
+  .exp tr:last-child td { border-bottom:none; }
+  .fig { border:1px solid var(--line); border-radius:12px; padding:10px; margin:8px 0; background:#fff; }
+  .fig svg { width:100%; max-width:720px; height:auto; display:block; margin:0 auto; }
+  .cap2 { font-size:12px; color:var(--sub); text-align:center; margin-top:4px; }
+  .easy { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:8px 0 12px; }
+  @media (max-width:800px){ .easy { grid-template-columns:1fr; } }
+  .ez { border:1px solid var(--line); border-radius:14px; padding:10px 14px; background:#fff; }
+  .ez p { margin:6px 0; }
+  .ez-k { display:inline-block; font-size:11px; font-weight:900; letter-spacing:.06em; color:#fff; background:var(--teal); border-radius:6px; padding:2px 8px; }
+  .ez .big { font-size:15px; font-weight:800; color:var(--ink); }
+  .exp table.lv { min-width:560px; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .dot.g { background:#22c55e; } .dot.y { background:#eab308; } .dot.r { background:#dc2626; }
+  .try { border:1px solid #c7d2fe; background:#eef2ff; border-radius:12px; padding:10px 14px; margin:10px 0; }
+  .try ol { margin:6px 0 0; padding-left:20px; } .try li { margin:4px 0; }
+  .gl { border:1px solid var(--line); border-radius:12px; padding:8px 14px; margin:10px 0; }
+  .gl summary { cursor:pointer; font-weight:800; }
 </style>
 </head>
 <body>
@@ -56,7 +83,7 @@
         <span class="badge">SIM 50 · 이력루프 실험실</span>
         <h1>이력루프 실험실 — 루프 면적이 곧 소산에너지</h1>
       </div>
-      <p class="lead">같은 변위 이력을 네 가지 부재에 가한다. 3D 기둥이 휘는 동안 F–D 루프가 그려지고, 루프 면적(=부재가 삼킨 지진에너지)이 모델마다 얼마나 달라지는지 본다. (슬라이드 9~11 보조)</p>
+      <p class="lead">같은 변위 이력을 네 가지 부재에 가한다. 3D 기둥이 휘는 동안 F–D 루프가 그려지고, 루프 면적(=부재가 삼킨 지진에너지)이 모델마다 얼마나 달라지는지 본다. (슬라이드 9~11 보조) · <a href="#explain">↓ 성능설계 입문 · 슬라이더 해설 · FEMA 힌지 · PERFORM-3D 대응</a></p>
     </div>
     <a class="back" href="index.html">&larr; 마스터 대시보드</a>
   </header>
@@ -111,6 +138,157 @@
       </div>
     </div>
   </div>
+  <section class="exp" id="explain">
+    <h2>해설 — 성능설계 입문, 슬라이더의 의미, FEMA 힌지·PERFORM-3D 입력과의 대응</h2>
+    <p class="exp-lead">0장은 성능설계를 처음 접하는 사람용 도입, 1~5장은 슬라이더·기준·프로그램 대응의 상세다. 아래 수치는 이 페이지의 계산 코드를 그대로 돌려 얻은 값이다(F<sub>y</sub>·D<sub>y</sub> 단위, 기본값 α=0.03). 시뮬레이터가 <b>실제로 구현한 것</b>과 <b>기준·프로그램의 개념</b>을 섞지 않도록 ✔(구현) / △(비슷하지만 다름) / ✘(구현 안 함)로 구분했다.</p>
+    <h3>0. 성능설계가 처음이라면 — 클립 하나로 시작하기</h3>
+    <div class="easy">
+      <div class="ez"><div class="ez-k">장면</div>
+        <p>종이 클립을 펴서 같은 자리를 손으로 계속 꺾어 보자. 몇 번 꺾으면 그 자리가 <b>따뜻해지고</b>, 더 꺾으면 <b>똑 부러진다</b>.</p>
+        <p>따뜻해진 만큼이 클립이 "삼킨" 에너지다. 위 오른쪽 그래프의 <b>루프 면적</b>이 바로 그 열이다. 부러지기 직전까지 몇 번, 얼마나 크게 꺾을 수 있는지가 그 부재의 <b>성능</b>이다.</p></div>
+      <div class="ez"><div class="ez-k">반전</div>
+        <p>내진설계는 "지진에 안 휘게" 만드는 게 아니다. 큰 지진을 탄성으로 버티게 하려면 기둥이 터무니없이 굵어진다. 그래서 일부러 <b>정해 둔 자리(소성힌지)를 클립처럼 휘게 해서</b> 에너지를 열로 버린다.</p>
+        <p>그러면 질문이 바뀐다. "얼마나 센가?"가 아니라 <b>"얼마나 휘고, 그때 어떤 상태인가?"</b></p></div>
+      <div class="ez"><div class="ez-k">비유</div>
+        <p><b>사양설계</b> = 자동차 철판 두께를 규정대로 쓰면 합격. <b>성능설계</b> = 실제로 충돌시켜 보고 운전석이 얼마나 찌그러졌는지 본다. 건물판 충돌시험이 비선형해석이고, 찌그러짐을 재는 자가 소성회전·연성비다.</p></div>
+      <div class="ez"><div class="ez-k">한 줄</div>
+        <p class="big">성능설계 = "예상 지진에서 부재가 <u>얼마나 휘는지</u> 계산하고, 그 휨이 목표 상태(IO·LS·CP) 안인지 확인하는 설계."</p></div>
+    </div>
+
+    <div class="tw"><table class="lv">
+      <thead><tr><th>성능수준</th><th>쉬운 말</th><th>클립으로 치면</th><th>건물은</th></tr></thead>
+      <tbody>
+      <tr><td><span class="dot g"></span><b>IO</b> 즉시거주</td><td>"다음 날 출근해도 된다"</td><td>살짝 휘었다 거의 펴짐</td><td>마감재 균열 정도, 구조는 거의 그대로</td></tr>
+      <tr><td><span class="dot y"></span><b>LS</b> 인명안전</td><td>"많이 망가졌지만 사람은 걸어 나온다"</td><td>여러 번 꺾여 따뜻해짐, 아직 버팀</td><td>큰 손상·영구 변형, 보수 비용 큼, 붕괴 여유 남음</td></tr>
+      <tr><td><span class="dot r"></span><b>CP</b> 붕괴방지</td><td>"겨우 서 있다"</td><td>금 가기 직전</td><td>중력하중만 간신히 지지, 재사용 어려움</td></tr>
+      </tbody>
+    </table></div>
+
+    <p class="exp-note"><b>성능설계 3단계를 이 화면에 대응시키면</b><br>
+      ① <b>부재가 어떻게 휘고 버티나</b>(부재 성질) = 이력 모델·α·반복 저하율 → FEMA 표의 a·b·c, PERFORM-3D의 YULRX 입력<br>
+      ② <b>지진이 얼마나 크게, 몇 번 흔드나</b>(수요) = μ<sub>max</sub>·진폭당 반복 횟수 → 실제로는 지진파 해석 결과<br>
+      ③ <b>그 휨이 허용치 안인가</b>(판정) = IO·LS·CP와 비교 → 이 화면엔 없고 <a href="51_pbd_seven_step_dc_check.html">sim 51 D/C 판정기</a>에서 한다.</p>
+
+    <div class="try"><b>5분 체험 (순서대로)</b>
+      <ol>
+        <li>① 비저하형, μ<sub>max</sub>=6, 반복 2회로 ▶ 재생 → 루프가 뚱뚱하다. 이게 "에너지를 가장 잘 먹는" 이상적인 부재.</li>
+        <li>② 강성 저하형으로 바꾸기 → 같은 거리만큼 휘었는데 <b>비저하형 대비 약 58%</b>. 휘는 거리(연성)만 보고 판정하면 놓치는 차이다.</li>
+        <li>③ 핀칭형 → 약 40%. 전단 균열이 열렸다 닫히는 동안 힘을 거의 못 받는 "헛돌이" 구간 때문이다.</li>
+        <li>②로 돌아가 μ<sub>max</sub>=10, 반복 4회, 반복 저하율 0.02 → 꼭짓점이 사이클마다 내려가 마지막엔 처음의 약 80%. 클립이 지쳐 가는 장면.</li>
+        <li>④ 좌굴형 → 아래(압축) 쪽 루프가 텅 빈다. 가새는 "당길 때만 일하는 부재"라는 뜻.</li>
+      </ol></div>
+
+    <details class="gl"><summary>용어 미니 사전 (펼치기)</summary>
+      <ul>
+        <li><b>항복</b>: 손을 놓아도 원래 모양으로 안 돌아오기 시작하는 순간. 그래프에서 꺾이는 점(F/F<sub>y</sub>=1).</li>
+        <li><b>연성비 μ</b>: 항복할 때 변위의 몇 배까지 휘었나. μ=6이면 "항복 거리의 6배".</li>
+        <li><b>백본(포락선)</b>: 한 방향으로 끝까지 밀 때의 힘–변형 곡선. 루프들의 바깥 테두리.</li>
+        <li><b>이력루프</b>: 밀고 당기기를 한 바퀴 하면 그려지는 닫힌 고리. 면적 = 열로 버린 에너지.</li>
+        <li><b>강성 저하 / 강도 저하</b>: 강성 저하는 "다시 힘을 받기까지 더 많이 밀어야 함"(루프가 눕고 홀쭉), 강도 저하는 "최대로 낼 수 있는 힘 자체가 줄어듦"(꼭짓점이 내려감).</li>
+        <li><b>핀칭</b>: 루프 허리가 잘록해지는 현상. 균열이 닫히기 전까지 힘이 거의 안 걸림.</li>
+      </ul></details>
+
+
+    <h3>1. 이 시뮬레이터가 실제로 계산하는 것</h3>
+    <ul>
+      <li><b>정규화 1자유도 스프링</b>: 초기강성 k=1, 항복강도 F<sub>y</sub>=1, 항복변위 D<sub>y</sub>=1. 기둥 3D 그림은 시각용이고, 계산은 F–D 스프링 하나다.</li>
+      <li><b>백본(포락선) = 이선형, 강도 저하 없음</b>: 항복 후 기울기 α·k로 끝없이 올라간다. FEMA/ASCE 41의 C점(강도 상실 시작)·D점(잔류)·E점(파괴)은 <b>없다</b>. 좌굴형 압축 쪽만 예외로 힘이 떨어진다.</li>
+      <li><b>이력 규칙</b>: ① 이동경화 이선형, ② Clough형 최대점 지향(재부하 시 직전 최대점을 향함), ③ ②에 핀칭(재부하 경로를 변위 55%·힘 25% 지점으로 꺾음, 고정값), ④ 인장 완전소성 + 압축 좌굴(F<sub>cr</sub>=0.5F<sub>y</sub> → 잔류 0.15F<sub>y</sub>). 제하(unloading) 강성은 모든 모델에서 초기강성 k 그대로다.</li>
+      <li><b>변위 프로토콜</b>: 0.5D<sub>y</sub>부터 μ<sub>max</sub>까지 진폭을 단계적으로 키우는 대칭 삼각파(μ<sub>max</sub>≤4면 0.5씩, 그 이상은 1씩). 각 진폭을 "반복 횟수"만큼 되풀이한다. FEMA 461·ATC-24 같은 시험 프로토콜과 <b>취지는 같지만 진폭 표는 다르다</b>.</li>
+      <li><b>소산에너지 E<sub>h</sub></b> = ∫F dD 누적(= 루프 면적의 합). "비저하형 대비"는 같은 프로토콜·같은 α에서 ①(반복 저하율 0)의 E<sub>h</sub>를 100%로 둔 비율이다.</li>
+    </ul>
+
+    <h3>2. 슬라이더별 영향</h3>
+    <div class="tw"><table>
+      <thead><tr><th>입력</th><th>바꾸는 것</th><th>루프 형상</th><th>강도·강성 저하</th><th>소산에너지 E<sub>h</sub> (계산값)</th></tr></thead>
+      <tbody>
+      <tr><td><b>이력 모델</b></td><td>재부하 규칙(위 ①~④)</td><td>①뚱뚱한 평행사변형 → ②가운데가 홀쭉 → ③허리가 잘록(S자) → ④위로 쏠림</td><td>②③은 <b>재부하 강성</b>만 줄어듦(백본 강도는 그대로). ④는 압축 강도가 실제로 떨어짐</td><td>μ<sub>max</sub>=6, 2회: ① 135 / ② 79(58%) / ③ 54(40%) / ④ 92(68%)</td></tr>
+      <tr><td><b>최대 연성비 μ<sub>max</sub></b></td><td>마지막 진폭 D<sub>max</sub>/D<sub>y</sub> <b>그리고 진폭 단계 수</b></td><td>루프가 옆으로 길어짐. 최대 힘은 1+α(μ−1)까지만 오름(α=0.03, μ=8이면 1.21)</td><td>백본에 C점이 없어서 μ를 키워도 <b>강도는 떨어지지 않음</b>(④ 압축만 감소)</td><td>2회 반복, μ=4/6/8: ① 81/135/244, ② 45/79/145. 진폭도 커지고 사이클 수도 늘어서 μ보다 빠르게(대략 μ²) 증가</td></tr>
+      <tr><td><b>진폭당 반복 횟수</b></td><td>같은 진폭을 몇 번 되풀이하나</td><td>①②③: 반복 저하율=0이면 같은 루프를 그대로 덧그림</td><td>반복 저하율&gt;0일 때만 반복이 저하를 키움. ④는 저하율 0이어도 반복할수록 좌굴 강도 감소(0.50→0.15)</td><td>μ=6, 1→4회: ② 41→79→117→154 (거의 선형 = 안정 루프)</td></tr>
+      <tr><td><b>항복 후 강성비 α</b></td><td>백본의 항복 후 기울기</td><td>루프 위·아래 변이 기울어짐</td><td>저하와 무관(경화). ④에는 <b>적용 안 됨</b></td><td>μ=6, α=0/0.03/0.10: ① 140/135/126(이동경화라 띠 높이 2F<sub>y</sub>(1−α)가 줄어 오히려 감소), ② 71/79/87(최대점이 높아져 증가)</td></tr>
+      <tr><td><b>반복 저하율</b></td><td>누적 에너지에 비례해 백본 강도를 양·음 동시에 깎음(하한 50%)</td><td>사이클이 거듭될수록 루프 꼭짓점이 내려옴</td><td><b>강도</b> 저하(cyclic strength degradation). 강성 저하 규칙은 아님</td><td>기본 프로토콜에선 효과가 작다: μ=6·2회·0.02 → 최종 최대힘 96%, E<sub>h</sub> −2%. μ=10·4회·0.02 → 최대힘 80%, E<sub>h</sub> −10%</td></tr>
+      <tr><td>재생 속도</td><td>애니메이션 속도만</td><td colspan="3">결과 영향 없음. 이 모델은 속도 의존성(점성)이 없다.</td></tr>
+      </tbody>
+    </table></div>
+    <p class="exp-note"><b>읽는 요령.</b> "비저하형 대비 %"가 바로 아래 PERFORM-3D의 <b>에너지 저하 계수</b>와 같은 개념이다. ②를 고르고 μ<sub>max</sub>=6이면 약 58% → "이 부재의 루프 면적은 비저하 루프의 0.6배"라고 입력하는 셈.</p>
+
+    <h3>3. FEMA 356 / ASCE 41 소성힌지 백본과의 대응</h3>
+    <div class="fig">
+      <svg viewBox="0 0 640 270" role="img" aria-label="FEMA/ASCE 41 일반화 힘-변형 곡선과 PERFORM-3D YULRX 점">
+        <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#475569"/></marker></defs>
+        <line x1="60" y1="220" x2="610" y2="220" stroke="#475569" marker-end="url(#ah)"/>
+        <line x1="60" y1="220" x2="60" y2="20" stroke="#475569" marker-end="url(#ah)"/>
+        <text x="605" y="240" font-size="12" fill="#475569" text-anchor="end">변형 (θ 또는 D)</text>
+        <text x="66" y="22" font-size="12" fill="#475569">Q / Q<tspan font-size="9" dy="3">y</tspan></text>
+        <line x1="60" y1="100" x2="610" y2="100" stroke="#e2e8f0" stroke-dasharray="4 3"/>
+        <text x="52" y="104" font-size="11" fill="#94a3b8" text-anchor="end">1.0</text>
+        <line x1="60" y1="172" x2="610" y2="172" stroke="#e2e8f0" stroke-dasharray="4 3"/>
+        <text x="52" y="176" font-size="11" fill="#94a3b8" text-anchor="end">c</text>
+        <polyline points="60,220 130,100 420,82 432,172 540,172 540,220" fill="none" stroke="#0f6e7e" stroke-width="2.5"/>
+        <polyline points="420,82 610,71" fill="none" stroke="#c4341a" stroke-width="1.6" stroke-dasharray="6 4"/>
+        <text x="604" y="62" font-size="11" fill="#c4341a" text-anchor="end">시뮬레이터 백본(끝없이 경화)</text>
+        <g font-size="13" font-weight="800" fill="#0f172a">
+          <text x="50" y="236">A</text><text x="122" y="92">B</text><text x="414" y="74">C</text><text x="438" y="168">D</text><text x="546" y="168">E</text>
+        </g>
+        <g font-size="11" font-weight="700" fill="#4f46e5">
+          <text x="138" y="116">Y</text><text x="400" y="98">U·L</text><text x="440" y="190">R</text><text x="546" y="190">X</text>
+        </g>
+        <line x1="130" y1="232" x2="420" y2="232" stroke="#334155" marker-end="url(#ah)"/><text x="275" y="250" font-size="12" fill="#334155" text-anchor="middle">a (소성변형)</text>
+        <line x1="130" y1="258" x2="540" y2="258" stroke="#334155" marker-end="url(#ah)"/><text x="330" y="268" font-size="11" fill="#334155" text-anchor="middle">b</text>
+        <g stroke="#94a3b8" stroke-dasharray="2 3"><line x1="160" y1="40" x2="160" y2="220"/><line x1="330" y1="40" x2="330" y2="220"/><line x1="395" y1="40" x2="395" y2="220"/></g>
+        <g font-size="11" font-weight="800" fill="#475569"><text x="160" y="36" text-anchor="middle">IO</text><text x="330" y="36" text-anchor="middle">LS</text><text x="395" y="36" text-anchor="middle">CP</text></g>
+        <text x="270" y="140" font-size="11" fill="#0f6e7e" text-anchor="middle">B–C 기울기 ≈ 시뮬레이터 α</text>
+      </svg>
+      <div class="cap2">FEMA 356 / ASCE 41 일반화 힘–변형 관계(검정 글자 A~E)와 PERFORM-3D의 Y·U·L·R·X 점(보라). IO/LS/CP 위치는 개념도이며 실제 값은 부재 표에서 읽는다.</div>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>FEMA/ASCE 41</th><th>의미</th><th>시뮬레이터</th><th>비고</th></tr></thead>
+      <tbody>
+      <tr><td>A–B</td><td>탄성 구간</td><td>✔ k=1</td><td>ASCE 41은 유효강성(예: RC 균열단면)을 별도로 정함. 여기선 정규화로 사라짐</td></tr>
+      <tr><td>B (항복)</td><td>Q<sub>y</sub>, θ<sub>y</sub></td><td>✔ (1, 1)</td><td>F/F<sub>y</sub>, D/D<sub>y</sub> 축의 기준점</td></tr>
+      <tr><td>B–C 기울기</td><td>변형경화</td><td>✔ α 슬라이더</td><td>강재 부재에서 자료가 없을 때 탄성기울기의 3%를 흔히 쓴다(ASCE 41 조항 번호 확인 필요). 기본값 α=0.03이 이 관용값</td></tr>
+      <tr><td><b>a</b> (C점)</td><td>강도 상실 시작까지의 소성변형</td><td>✘</td><td>시뮬레이터 백본은 C점이 없음. 회전 연성으로 바꾸면 μ<sub>θ</sub> = 1 + a/θ<sub>y</sub></td></tr>
+      <tr><td><b>c</b> (D점)</td><td>잔류강도비</td><td>✘ (④ 압축만 △: 0.15F<sub>y</sub>)</td><td>C→D는 수직 낙하로 그리는 게 FEMA 관례</td></tr>
+      <tr><td><b>b</b> (E점)</td><td>잔류강도까지 잃는 변형(붕괴 한계)</td><td>✘</td><td>μ<sub>max</sub>=10까지 밀어도 부재가 "부러지지" 않는다</td></tr>
+      <tr><td>IO / LS / CP</td><td>성능수준별 허용 소성변형</td><td>✘ (힌지 색은 μ 크기만 표시: 초록 μ=1 → 빨강 μ≥6)</td><td>FEMA 356에선 보통 IO&lt;LS&lt;CP≤a 범위. 주부재/부부재 구분, ASCE 41-13 이후 값 변경 — 부재 표에서 확인</td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li><b>숫자로 감 잡기(확인 필요).</b> FEMA 356 표 5-6의 조밀단면 강재 보(휨)는 a=9θ<sub>y</sub>, b=11θ<sub>y</sub>, c=0.6, IO=1θ<sub>y</sub>, LS=6θ<sub>y</sub>, CP=8θ<sub>y</sub>(주부재)로 기억한다 — 원문 표 확인 필요. 이 값이면 C점은 μ<sub>θ</sub>≈10, CP는 μ<sub>θ</sub>≈9. 즉 μ<sub>max</sub> 슬라이더 최댓값 10은 이 보의 "C점 직전"까지 미는 셈이다.</li>
+      <li><b>μ의 종류 주의.</b> FEMA 표는 힌지 <b>회전</b>(θ<sub>p</sub>)이고, 이 시뮬레이터의 μ는 스프링 <b>변위</b> 연성이다. 캔틸레버 기둥에서 θ<sub>p</sub> ≈ Δ<sub>p</sub>/(L − L<sub>p</sub>/2)이므로 μ<sub>Δ</sub>와 μ<sub>θ</sub>는 같지 않다(보통 μ<sub>θ</sub> &gt; μ<sub>Δ</sub>).</li>
+      <li><b>FEMA 표는 백본만 준다.</b> a·b·c는 반복가력 시험의 포락선에서 나온 값이라 반복 저하 효과가 이미 일부 들어 있다. 이력 규칙(①~④ 선택, 반복 저하율)은 FEMA 표에 없고, 비선형 동적해석에선 해석자가 따로 정한다. ASCE 41-17은 "단조 백본 + 명시적 반복저하" 또는 "반복 포락선 백본"처럼 모델링 방법을 구분하는데(조항 번호 확인 필요), <b>반복 포락선 백본에 반복 저하율까지 더 얹으면 저하를 두 번 세는 것</b>이다.</li>
+      <li><b>μ<sub>max</sub>·반복 횟수는 "부재 속성"이 아니라 "수요"다.</b> FEMA 판정은 해석에서 나온 소성변형 수요를 a·IO·LS·CP와 비교하는 것이고, 이 슬라이더 두 개는 그 수요(얼마나 크게, 몇 번)를 흉내낸다.</li>
+    </ul>
+
+    <h3>4. PERFORM-3D 비선형 성분 속성 입력과의 대응</h3>
+    <p class="exp-note">PERFORM-3D(CSI) 기준. 탭·항목 이름은 버전마다 조금씩 달라 <b>메뉴명은 확인 필요</b>로 본다. 개념(YULRX 점, 강도 상실, 에너지 저하 계수, 변형 능력)은 Components and Elements 매뉴얼의 기본 틀이다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>PERFORM-3D 입력</th><th>뜻</th><th>FEMA 대응</th><th>시뮬레이터 대응</th><th>차이</th></tr></thead>
+      <tbody>
+      <tr><td>성분 종류 선택<br>(모멘트 힌지·회전형 / FEMA 보·기둥형 / 비탄성 봉 / 좌굴 봉 등, 명칭 확인 필요)</td><td>어떤 이력 규칙 계열을 쓸지</td><td>부재 종류별 표 선택</td><td>△ 이력 모델 ①~④</td><td>④ 좌굴형은 PF3D에서 좌굴 봉 성분에 대응. ③의 핀칭 "모양" 자체는 PF3D 기본 성분이 직접 그리지 않고 면적으로 맞춘다(아래 에너지 계수)</td></tr>
+      <tr><td>F-D(M-θ) 관계: 기본형 선택<br>(EPP / 3선형, 강도 상실 유·무)</td><td>백본의 모양</td><td>A-B-C-D-E 곡선</td><td>△ 항상 "이선형 + 강도 상실 없음"</td><td>시뮬레이터는 강도 상실 옵션을 켤 수 없음</td></tr>
+      <tr><td><b>Y</b> 점 (DY, FY)</td><td>1차 항복</td><td>B</td><td>✔ (1, 1)</td><td>—</td></tr>
+      <tr><td><b>U</b> 점 (DU, FU)</td><td>최대강도점</td><td>C (강도)</td><td>✔ α: FU/FY = 1 + α(DU/DY − 1)</td><td>EPP를 고르면 α=0과 같음</td></tr>
+      <tr><td><b>L</b> 점 (DL)</td><td>연성 한계 = 강도 상실 시작</td><td>C (변형 a)</td><td>✘</td><td>FEMA C→D 수직 낙하는 PF3D에선 L→R에 작은 변형 폭을 줘서 근사(수치 안정)</td></tr>
+      <tr><td><b>R</b> 점 (DR, FR)</td><td>잔류강도 도달</td><td>D (c·Q<sub>y</sub>)</td><td>✘ (④ 압축만 △)</td><td>—</td></tr>
+      <tr><td><b>X</b> 점 (DX)</td><td>최대 변형(그 너머는 무의미)</td><td>E (b)</td><td>✘</td><td>PF3D는 X 초과 시 처리 방법을 고르는 항목이 있음(확인 필요)</td></tr>
+      <tr><td><b>Strength loss</b> (강도 상실 탭)</td><td>U/L 이후 강도 감소 정의</td><td>C–D–E</td><td>✘ 백본 강도 상실 없음</td><td>시뮬레이터의 "반복 저하율"은 이것과 다름(아래)</td></tr>
+      <tr><td><b>Energy degradation 계수</b><br>(Y·U·L·R·X 각 점에서 값)</td><td>저하 루프 면적 ÷ 비저하 루프 면적. 변형이 커질수록 작게 줌(예: Y 1.0 → X 0.3 식, 값은 시험 보정)</td><td>FEMA 표엔 없음</td><td>△ "비저하형 대비 %" 지표 = 이 계수의 개념.<br>μ=6·2회: ② 0.58, ③ 0.40</td><td>PF3D는 <b>재부하/제하 강성을 바꿔 면적을 맞추고 백본 강도는 유지</b>. 시뮬레이터 ②③도 같은 방향(강성만), 하지만 계수를 직접 입력하지 않고 규칙에서 결과로 나옴. 또 지표는 점별 계수가 아니라 누적 비율</td></tr>
+      <tr><td><b>Cyclic degradation</b> 관련 옵션<br>(제하 강성 계수 등, 명칭 확인 필요)</td><td>반복에 따른 루프 형태 조정</td><td>—</td><td>△ "반복 저하율" 슬라이더</td><td><b>메커니즘이 다르다.</b> 시뮬레이터는 누적에너지에 비례해 <b>강도</b>를 깎는다(Ibarra–Medina–Krawinkler 모델의 강도 저하와 비슷한 발상, 단순화). PF3D 에너지 계수는 강도가 아니라 루프 면적(강성)을 줄인다</td></tr>
+      <tr><td><b>Deformation capacities</b></td><td>성능수준별 허용 변형 → 해석 후 사용률(D/C)</td><td>IO / LS / CP</td><td>✘ (힌지 색은 μ 표시일 뿐)</td><td>sim 51(PBD 7단계 D/C 판정기)이 이 단계를 다룸</td></tr>
+      <tr><td>(속성 아님) 해석 하중·변위 이력</td><td>—</td><td>수요</td><td>μ<sub>max</sub>, 반복 횟수</td><td>PF3D에선 성분 속성이 아니라 해석 케이스(지진파 또는 반복 변위 제어)에서 결정</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>5. 이 시뮬레이터의 한계 (수업에서 미리 말해 둘 것)</h3>
+    <ul>
+      <li>백본에 C·D·E가 없다 → "연성비가 a를 넘으면 강도가 떨어진다"는 FEMA의 핵심은 이 화면으로 보여줄 수 없다(④ 압축 좌굴만 예외).</li>
+      <li>①을 골라도 반복 저하율을 0보다 크게 하면 강도가 깎인다(이름은 "비저하형"이지만 슬라이더가 적용됨). 비교 기준선(연한 파랑)은 항상 저하율 0이다.</li>
+      <li>반복 저하율은 누적 일(|F·dD|)을 임의 배율로 줄여 쓰는 교육용 계수라 물리 단위·시험값과 직접 대응하지 않는다. 기본 프로토콜(μ=6·2회)에선 효과가 몇 %에 그쳐서, 질문 2(μ=8·0.015)의 "마지막/첫 사이클 최대힘"은 같은 진폭 안에서 약 99%로 거의 차이가 없다. 효과를 보이려면 μ=10·반복 4회·0.02로 두는 게 낫다(최종 최대힘 약 80%).</li>
+      <li>핀칭 위치(55%, 25%)와 좌굴 강도(0.5F<sub>y</sub>), 잔류(0.15F<sub>y</sub>)는 고정값이다. α는 좌굴형에 적용되지 않는다.</li>
+      <li>제하 강성은 항상 초기강성 k다. 실제 RC는 제하 강성도 줄어든다(Takeda형 등).</li>
+    </ul>
+  </section>
 </div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
