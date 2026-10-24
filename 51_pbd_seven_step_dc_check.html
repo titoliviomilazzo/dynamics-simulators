@@ -6,10 +6,10 @@
 <title>Sim 51: 성능기반설계 7단계 — 3D 골조 소성힌지 IO/LS/CP D/C 판정</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <style>
-  :root { --ink:#0f172a; --sub:#475569; --dim:#94a3b8; --line:#e2e8f0; --teal:#0f6e7e; --verm:#c4341a; --bg:#f8fafc; }
+  :root { --ink:#0f172a; --sub:#475569; --dim:#94a3b8; --line:#e2e8f0; --teal:#0f6e7e; --verm:#c4341a; --bg:#f8fafc; --ind:#4f46e5; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font-family:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI",sans-serif; }
-  .wrap { max-width:1320px; margin:0 auto; padding:16px; }
+  .wrap { max-width:1360px; margin:0 auto; padding:16px; }
   .card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(15,23,42,.06); }
   header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:center; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:14px; }
   .badge { font:700 12px ui-monospace,monospace; padding:3px 9px; border-radius:6px; background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; }
@@ -18,43 +18,81 @@
   a.back { font-size:12px; font-weight:700; padding:8px 14px; border-radius:12px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; text-decoration:none; }
   .steps { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:14px; }
   @media (max-width:900px){ .steps { grid-template-columns:repeat(4,1fr); } }
-  .st { border:1px solid var(--line); border-radius:10px; padding:6px 8px; font-size:11.5px; color:var(--sub); line-height:1.3; }
+  .st { border:1px solid var(--line); border-radius:10px; padding:6px 8px; font-size:11.5px; color:var(--sub); line-height:1.3; cursor:pointer; }
   .st b { display:block; font-size:12.5px; color:var(--ink); }
-  .st.on { border-color:#4f46e5; background:#eef2ff; box-shadow:0 0 0 2px #c7d2fe inset; }
+  .st.on { border-color:var(--ind); background:#eef2ff; box-shadow:0 0 0 2px #c7d2fe inset; }
   .st.ok { border-color:#059669; background:#ecfdf5; } .st.ng { border-color:#dc2626; background:#fef2f2; }
-  .grid { display:grid; grid-template-columns:290px 1fr; gap:18px; }
-  @media (max-width:900px){ .grid { grid-template-columns:1fr; } }
+  .grid { display:grid; grid-template-columns:280px 1fr; gap:18px; }
+  @media (max-width:980px){ .grid { grid-template-columns:1fr; } }
   .panel h3 { font-size:12px; letter-spacing:.08em; color:var(--dim); margin:14px 0 6px; font-weight:800; }
   label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; }
   label span { float:right; font-family:ui-monospace,monospace; color:#3730a3; }
-  input[type=range] { width:100%; accent-color:#4f46e5; }
+  input[type=range] { width:100%; accent-color:var(--ind); }
   select { width:100%; padding:7px 8px; border:1px solid #cbd5e1; border-radius:8px; font:inherit; font-size:13px; }
   .btns { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
-  button { flex:1; padding:8px 4px; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; font:700 12.5px inherit; cursor:pointer; }
-  button.primary { background:#4f46e5; color:#fff; border-color:#4f46e5; }
+  .btns button { flex:1 1 45%; padding:8px 4px; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; font:700 12.5px inherit; cursor:pointer; }
+  .btns button small { display:block; font-weight:500; font-size:10.5px; color:var(--sub); }
+  .btns button.primary { background:var(--ind); color:#fff; border-color:var(--ind); flex-basis:100%; }
   .note { font-size:12px; color:var(--sub); line-height:1.55; background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:12px; }
   .note b { color:var(--ink); }
   canvas { width:100%; display:block; }
-  #three { width:100%; height:100%; }
-  .cv { border:1px solid var(--line); border-radius:14px; margin-bottom:10px; background:#fff; position:relative; overflow:hidden; }
-  .cv .cap { position:absolute; left:10px; top:8px; font-size:12px; font-weight:800; color:var(--sub); pointer-events:none; z-index:2; }
-  .row2 { display:grid; grid-template-columns:1.2fr 1fr; gap:10px; }
-  @media (max-width:900px){ .row2 { grid-template-columns:1fr; } }
+  #three { width:100%; height:100%; cursor:grab; }
+  .box { border:1px solid var(--line); border-radius:14px; background:#fff; position:relative; transition:box-shadow .3s; }
+  .box.flash { box-shadow:0 0 0 4px #a5b4fc; }
+  .bh { display:flex; align-items:center; gap:8px; padding:9px 12px 0; }
+  .num { flex:none; width:22px; height:22px; border-radius:50%; background:var(--ind); color:#fff; font:900 12.5px/22px inherit; text-align:center; }
+  .bh b { font-size:13.5px; }
+  .read { font-size:12px; color:var(--sub); padding:3px 12px 8px 42px; line-height:1.45; }
+  .read em { font-style:normal; color:var(--ink); font-weight:700; }
+  .rowA { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  .rowB { display:grid; grid-template-columns:1fr 1.15fr; gap:10px; margin-bottom:10px; }
+  @media (max-width:1100px){ .rowA, .rowB { grid-template-columns:1fr; } }
+  /* 판정법 */
+  .how { border:1px solid #c7d2fe; background:#f5f7ff; border-radius:14px; padding:10px 12px; }
+  .how h4 { margin:0 0 6px; font-size:13.5px; }
+  .how ol { margin:0; padding-left:0; list-style:none; font-size:12.5px; line-height:1.5; }
+  .how li { display:flex; gap:7px; margin:4px 0; }
+  .how li .num { width:19px; height:19px; font-size:11px; line-height:19px; margin-top:1px; }
+  .how .ana { margin-top:8px; font-size:12px; color:#3730a3; background:#fff; border:1px dashed #a5b4fc; border-radius:10px; padding:6px 9px; }
+  .verdict { font:900 17px inherit; padding:10px 12px; border-radius:12px; margin-bottom:8px; line-height:1.35; }
+  .verdict small { display:block; font-weight:600; font-size:12.5px; margin-top:3px; }
+  /* 매트릭스 */
+  .mx { display:grid; grid-template-columns:auto repeat(3,1fr); gap:4px; font-size:11.5px; padding:0 12px 6px; }
+  .mx > div { padding:6px 4px; border-radius:8px; text-align:center; border:1px solid var(--line); line-height:1.25; }
+  .mx .h { background:none; border:none; color:var(--sub); font-weight:800; }
+  .mx .h small { display:block; font-weight:500; color:var(--dim); font-size:10.5px; }
+  .mx .rh { text-align:right; }
+  .mx .c { cursor:pointer; font-weight:800; font-size:13px; }
+  .mx .c.p { background:#ecfdf5; color:#059669; } .mx .c.f { background:#fef2f2; color:#dc2626; }
+  .mx .c.bso { border:2px dashed #2563eb; }
+  .mx .c.sel { outline:3px solid var(--ind); outline-offset:1px; }
+  .mx .c small { display:block; font-size:10px; font-weight:600; opacity:.8; }
+  .mxax { display:flex; justify-content:space-between; font-size:10.5px; color:var(--dim); padding:0 12px 10px; }
+  /* 3D 범례 · 툴팁 */
+  .three { height:440px; position:relative; overflow:hidden; border-radius:0 0 14px 14px; }
+  .lg { position:absolute; left:8px; bottom:8px; background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:10px; padding:6px 8px; font-size:11px; line-height:1.55; pointer-events:none; }
+  .lg i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:-1px; }
+  .lg .x { color:#dc2626; font-weight:800; } .lg .o { color:#059669; font-weight:800; }
+  .lg .t { font-weight:800; color:var(--ink); }
+  .tip { position:absolute; display:none; background:#0f172a; color:#fff; font-size:11.5px; padding:6px 8px; border-radius:8px; pointer-events:none; line-height:1.45; z-index:3; white-space:nowrap; }
+  .hint3 { position:absolute; right:8px; top:6px; font-size:11px; color:var(--dim); pointer-events:none; }
+  /* 부재군 탭 */
+  .tabs { display:flex; gap:4px; flex-wrap:wrap; padding:0 12px 6px; }
+  .tabs button { flex:1; min-width:70px; font:700 11.5px inherit; padding:5px 4px; border-radius:8px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; }
+  .tabs button i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; }
+  .tabs button.on { border-color:var(--ind); background:#eef2ff; box-shadow:0 0 0 1px var(--ind) inset; }
+  .tabs button small { display:block; font-weight:600; color:var(--sub); font-size:10.5px; }
   table { width:100%; border-collapse:collapse; font-size:12.5px; }
   th, td { padding:6px 8px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
   th { font-size:11px; color:var(--dim); font-weight:800; }
+  th small { display:block; font-weight:500; }
   td:first-child, th:first-child { text-align:left; }
+  tbody tr { cursor:pointer; } tbody tr.on { background:#eef2ff; }
   td.mono { font-family:ui-monospace,monospace; }
   .tag { font-size:11px; font-weight:800; padding:2px 7px; border-radius:6px; }
   .ok { background:#ecfdf5; color:#059669; } .ng { background:#fef2f2; color:#dc2626; }
-  .tbl { border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-bottom:10px; }
-  .tbl h4 { margin:0 0 6px; font-size:13px; }
-  .verdict { font:900 18px inherit; padding:10px 12px; border-radius:12px; margin-bottom:10px; }
-  .mx { display:grid; grid-template-columns:auto repeat(3,1fr); gap:3px; font-size:11.5px; }
-  .mx div { padding:6px 4px; border-radius:6px; text-align:center; background:#f8fafc; border:1px solid var(--line); }
-  .mx .h { background:none; border:none; color:var(--dim); font-weight:800; }
-  .mx .sel { background:#4f46e5; color:#fff; border-color:#4f46e5; }
-  .mx .bso { background:#dbeafe; }
+  .tblwrap { padding:0 12px 10px; overflow-x:auto; }
+  .bar { display:inline-block; height:8px; border-radius:4px; vertical-align:middle; margin-left:6px; }
   .q { margin-top:6px; border-top:1px solid var(--line); padding-top:12px; font-size:13px; color:var(--sub); line-height:1.6; }
   .q b { color:var(--verm); }
 </style>
@@ -67,19 +105,19 @@
         <span class="badge">SIM 51 · PBD 7단계</span>
         <h1>성능기반설계 7단계 — 골조 소성힌지 D/C 판정기</h1>
       </div>
-      <p class="lead">지진 수준(Demand)과 성능 수준(Capacity)을 고르면, 3층 2경간 골조의 힌지가 IO→LS→CP 색으로 물들고 부재별 D/C ≤ 1이 판정된다. 불합격이면 7단계(설계 수정)로 돌아가 다시 돈다. (슬라이드 5·6·12·13·14 보조)</p>
+      <p class="lead">한 줄 요약: <b>"이만한 지진에서, 이 정도까지만 다치게 하자"</b>를 정하고, 힌지가 얼마나 꺾였는지 재서 <b>허용선 안이면 합격</b>. 불합격이면 7단계(설계 수정)로 돌아가 다시 돈다. (슬라이드 5·6·12·13·14 보조)</p>
     </div>
     <a class="back" href="index.html">&larr; 마스터 대시보드</a>
   </header>
 
   <div class="steps" id="steps">
-    <div class="st"><b>1 초기 설계</b>코드설계(ELF/RSA)</div>
-    <div class="st"><b>2 부재 능력</b>F–D 곡선 + IO/LS/CP</div>
-    <div class="st"><b>3 비선형 모델</b>소성힌지 배치</div>
-    <div class="st"><b>4 지진 정의</b>SLE·DBE·MCE</div>
-    <div class="st"><b>5 해석</b>층간변위 → 힌지 회전</div>
-    <div class="st"><b>6 평가</b>D/C ≤ 1 ?</div>
-    <div class="st"><b>7 수정</b>단면·배근·댐퍼</div>
+    <div class="st" data-go="fixBox" title="코드(ELF/RSA)로 일단 설계한 안 — 출발점"><b>1 초기 설계</b>코드설계(ELF/RSA)</div>
+    <div class="st" data-go="bbBox" title="부재가 얼마나 꺾일 때까지 버티나 = 백본 곡선 ③"><b>2 부재 능력</b>F–D 곡선 + IO/LS/CP</div>
+    <div class="st" data-go="threeBox" title="꺾일 만한 자리에 힌지(구슬)를 둔다 ②"><b>3 비선형 모델</b>소성힌지 배치</div>
+    <div class="st" data-go="mxBox" title="얼마나 큰 지진을 볼지 고른다 ①"><b>4 지진 정의</b>SLE·DBE·MCE</div>
+    <div class="st" data-go="threeBox" title="흔들어서 힌지가 얼마나 꺾였나 계산 ②"><b>5 해석</b>층간변위 → 힌지 회전</div>
+    <div class="st" data-go="tblBox" title="꺾인 양 ÷ 허용량 ≤ 1 인가 ④"><b>6 평가</b>D/C ≤ 1 ?</div>
+    <div class="st" data-go="fixBox" title="불합격이면 고쳐서 다시 5→6"><b>7 수정</b>단면·배근·댐퍼</div>
   </div>
 
   <div class="grid">
@@ -100,7 +138,7 @@
         <option value="1">LS 인명안전</option>
         <option value="2" selected>CP 붕괴방지</option>
       </select>
-      <label>허용 소성회전각 IO / LS / CP (rad)</label>
+      <label>허용 소성회전각 IO / LS / CP (rad, 보 기준)</label>
       <div style="display:flex;gap:6px">
         <input id="aIO" type="number" step="0.001" value="0.010" style="width:33%;padding:5px;border:1px solid #cbd5e1;border-radius:8px">
         <input id="aLS" type="number" step="0.001" value="0.025" style="width:33%;padding:5px;border:1px solid #cbd5e1;border-radius:8px">
@@ -108,39 +146,69 @@
       </div>
       <label>항복 층간변위비 δ<sub>y</sub> <span id="dyV">0.50%</span></label>
       <input type="range" id="dy" min="0.2" max="1.2" step="0.05" value="0.5">
-      <h3>7단계 · 설계 수정 (반복)</h3>
-      <div class="btns">
-        <button id="bCol">1층 기둥 단면 ↑</button>
-        <button id="bBeam">보 상세 ↑ (허용 θ ↑)</button>
-        <button id="bDmp">댐퍼 추가</button>
-        <button id="bRst" class="primary">초기화</button>
+      <div class="box" id="fixBox" style="padding:2px 10px 10px;margin-top:14px">
+        <h3 style="margin-top:10px">7단계 · 설계 수정 (반복)</h3>
+        <div class="btns">
+          <button id="bCol">1층 기둥 단면 ↑<small>연층 완화 (수요 분포↓)</small></button>
+          <button id="bBeam">보 상세 ↑<small>허용선 → 오른쪽 (C↑)</small></button>
+          <button id="bDmp">댐퍼 추가<small>● → 왼쪽 (D↓)</small></button>
+          <button id="bRst" class="primary">초기화</button>
+        </div>
+        <div class="note" id="iter">반복 0회 — 초기 설계안 평가 중</div>
       </div>
-      <div class="note" id="iter">반복 0회 — 초기 설계안 평가 중</div>
       <div class="note">
-        <b>모델 단순화.</b> 힌지 소성회전각 ≈ (층간변위비 − δ<sub>y</sub>), 층간변위 분포는 지붕변위비와 연층 계수로 만든 정성 모델. 허용값 기본치는 ASCE 41 표의 RC 보·기둥 범위를 참고한 예시값 — 실제는 부재·축력비·전단·상세에 따라 다르다(확인 필요). 수업용 개념 모델이지 해석 결과가 아니다.
+        <b>모델 단순화.</b> 힌지 소성회전각 ≈ (층간변위비 − δ<sub>y</sub>), 층간변위 분포는 지붕변위비와 연층 계수로 만든 정성 모델. 허용값 기본치는 ASCE 41 표의 RC 보·기둥 범위를 참고한 예시값이고, 기둥은 축력 영향으로 보 허용값의 80%로 둔 가정 — 실제는 부재·축력비·전단·상세에 따라 다르다(확인 필요). 수업용 개념 모델이지 해석 결과가 아니다.
       </div>
     </div>
 
     <div>
-      <div class="verdict" id="verdict">—</div>
-      <div class="row2">
-        <div class="cv" style="height:420px"><span class="cap">3D · 3층 2경간 골조 (구슬 = 소성힌지, 색 = 손상 상태)</span><canvas id="three"></canvas></div>
+      <div class="rowA">
+        <div class="box" id="mxBox">
+          <div class="bh"><span class="num">1</span><b>목표 고르기 — 지진 크기 × 허용 손상</b></div>
+          <div class="read">줄 = <em>얼마나 큰 지진</em>, 칸 = <em>얼마나 다쳐도 되나</em>. 칸을 누르면 그 짝으로 판정. ✔/✘는 지금 설계로 그 짝을 만족하는지. <span style="color:#2563eb">파란 점선</span> = 기본 목표 예시(세 칸 모두 ✔여야 함).</div>
+          <div class="mx" id="mx"></div>
+          <div class="mxax"><span>↓ 아래로 갈수록 드물고 큰 지진</span><span>오른쪽으로 갈수록 손상 더 허용 →</span></div>
+        </div>
         <div>
-          <div class="cv"><span class="cap">일반화 F–D 백본 (ASCE 41 A–B–C–D–E) 위의 힌지 수요</span><canvas id="bb" height="230"></canvas></div>
-          <div class="tbl">
-            <h4>성능목표 매트릭스 — 선택된 짝 (파랑 = 기본안전목표 BSO형 예시)</h4>
-            <div class="mx" id="mx"></div>
+          <div class="verdict" id="verdict">—</div>
+          <div class="how">
+            <h4>판정하는 법 — 4단계면 끝</h4>
+            <ol>
+              <li><span class="num">1</span><span>표에서 <b>지진(줄)</b>과 <b>목표(칸)</b>를 고른다.</span></li>
+              <li><span class="num">2</span><span>골조에서 <b>가장 진한 색 구슬</b>(가장 많이 꺾인 힌지)을 클릭한다.</span></li>
+              <li><span class="num">3</span><span>곡선에서 <b>●가 굵은 목표선 왼쪽</b>이면 그 힌지는 합격.</span></li>
+              <li><span class="num">4</span><span>표의 <b>모든 줄이 OK</b>여야 최종 합격. NG가 있으면 7단계 버튼으로 고친다.</span></li>
+            </ol>
+            <div class="ana">🛗 엘리베이터 비유: <b>D</b> = 실제 탄 무게, <b>C</b> = 정원. <b>D/C</b>가 1을 넘으면 "삐—".</div>
           </div>
         </div>
       </div>
-      <div class="tbl">
-        <h4>6단계 · 부재군별 D/C 판정</h4>
-        <table><thead><tr><th>부재군</th><th>층간변위비</th><th>θ<sub>p</sub> 수요 (rad)</th><th>허용 θ (rad)</th><th>D/C</th><th>판정</th></tr></thead><tbody id="tb"></tbody></table>
+
+      <div class="rowB">
+        <div class="box" id="threeBox">
+          <div class="bh"><span class="num">2</span><b>골조 — 어디가 얼마나 꺾였나</b></div>
+          <div class="read">구슬 = <em>소성힌지</em>(부재가 접히는 자리, 종이 접은 자국처럼 영구히 남는 꺾임). <em>색이 진할수록 많이 꺾임.</em> 구슬에 올리면 수치, 클릭하면 ③에 표시.</div>
+          <div class="three"><canvas id="three"></canvas><div class="lg" id="lg"></div><div class="tip" id="tip"></div><div class="hint3">드래그 = 회전</div></div>
+        </div>
+        <div class="box" id="bbBox">
+          <div class="bh"><span class="num">3</span><b>백본 곡선 — 이 힌지는 허용선 안인가?</b></div>
+          <div class="read">가로 = <em>얼마나 꺾였나</em>(소성회전각 θ<sub>p</sub>), 세로 = <em>버티는 힘</em>. 오른쪽으로 갈수록 손상이 크다. <em>●</em> = 선택한 힌지의 지금 위치.</div>
+          <div class="tabs" id="tabs"></div>
+          <canvas id="bb" height="330"></canvas>
+        </div>
+      </div>
+
+      <div class="box" id="tblBox">
+        <div class="bh"><span class="num">4</span><b>숫자로 확인 — 부재군별 D/C</b></div>
+        <div class="read"><em>D/C = 꺾인 양 ÷ 허용 꺾임.</em> 1 이하면 OK. 한 줄이라도 NG면 건물 전체가 불합격(가장 약한 고리). 줄을 누르면 ②·③에 표시.</div>
+        <div class="tblwrap">
+        <table><thead><tr><th>부재군</th><th>층간변위비</th><th>D: θ<sub>p</sub> 수요<small>꺾인 양 (rad)</small></th><th>C: 허용 θ<small>목표선 (rad)</small></th><th>D/C</th><th>판정</th></tr></thead><tbody id="tb"></tbody></table>
+        </div>
       </div>
       <div class="q">
-        <b>질문 1.</b> MCE+CP에서 통과한 설계가 DBE+LS에서는 떨어질 수 있다. 성능목표는 "한 점"이 아니라 "여러 짝"을 동시에 만족해야 한다는 뜻 — 매트릭스에서 두 칸을 번갈아 눌러 보라.<br>
+        <b>질문 1.</b> MCE+CP에서 통과한 설계가 DBE+LS에서는 떨어질 수 있다. 성능목표는 "한 점"이 아니라 "여러 짝"을 동시에 만족해야 한다는 뜻 — ① 표의 파란 점선 세 칸이 모두 ✔인지 보라.<br>
         <b>질문 2.</b> 연층 계수를 2.0으로 올리면 1층 기둥만 빨개진다. "1층 기둥 단면 ↑"로 고치면 지붕변위가 같아도 통과한다. 왜 "총량"이 아니라 "분포"가 문제인가?<br>
-        <b>질문 3.</b> "보 상세 ↑"는 수요를 줄이지 않고 허용값(Capacity)을 키운다. "댐퍼 추가"는 수요(Demand)를 줄인다. 같은 D/C 개선이라도 비용·공사 난이도가 어떻게 다를까?
+        <b>질문 3.</b> "보 상세 ↑"는 ③의 목표선을 오른쪽으로 민다(C↑). "댐퍼 추가"는 ●를 왼쪽으로 당긴다(D↓). 같은 D/C 개선이라도 비용·공사 난이도가 어떻게 다를까?
       </div>
     </div>
   </div>
@@ -150,49 +218,71 @@
 <script>
 (function(){
   const $=id=>document.getElementById(id);
-  const HZ=[{n:'SLE',dr:0.5},{n:'DBE',dr:1.2},{n:'MCE',dr:2.0}];
-  const PL=['IO','LS','CP'];
-  let colBoost=1, beamBoost=1, damp=1, iter=0;
+  const HZ=[{n:'SLE',dr:0.5,k:'자주 오는 지진',y:'≈72년'},{n:'DBE',dr:1.2,k:'설계 지진',y:'≈475년'},{n:'MCE',dr:2.0,k:'아주 드문 최대 지진',y:'≈2475년'}];
+  const PL=['IO','LS','CP'], PLK=['바로 입주','사람은 안전','안 무너짐'];
+  const BSO=[[0,0],[1,1],[2,2]];
+  const SC=[0x94a3b8,0x22c55e,0xf59e0b,0xea580c,0xdc2626];
+  const hex=c=>'#'+c.toString(16).padStart(6,'0');
+  const SN=['탄성 (안 꺾임)','IO 이내 · 거의 멀쩡','LS 이내 · 수리 필요','CP 이내 · 붕괴 직전','CP 초과 · 붕괴 위험'];
+  let colBoost=1, beamBoost=1, damp=1, iter=0, pick=null; // pick=null → 가장 위험한 부재군 자동 선택
   $('hz').addEventListener('change',()=>{ $('dr').value=HZ[+$('hz').value].dr; update(); });
   ['dr','ss','pl','aIO','aLS','aCP','dy'].forEach(id=>$(id).addEventListener('input',update));
   $('bCol').onclick=()=>{ colBoost*=1.35; iter++; update(); };
   $('bBeam').onclick=()=>{ beamBoost*=1.25; iter++; update(); };
   $('bDmp').onclick=()=>{ damp*=0.75; iter++; update(); };
-  $('bRst').onclick=()=>{ colBoost=1; beamBoost=1; damp=1; iter=0; update(); };
+  $('bRst').onclick=()=>{ colBoost=1; beamBoost=1; damp=1; iter=0; pick=null; update(); };
+  document.querySelectorAll('#steps .st').forEach(e=>e.onclick=()=>{ const b=$(e.dataset.go); b.scrollIntoView({behavior:'smooth',block:'nearest'}); b.classList.add('flash'); setTimeout(()=>b.classList.remove('flash'),900); });
+
+  // 부재군별 허용값(IO/LS/CP)과 수요. 힌지 색·백본·D/C 모두 같은 허용값을 쓴다.
+  function evalCase(drPct, pl){
+    const dr=drPct/100*damp, ss=+$('ss').value, dy=+$('dy').value/100;
+    // 층간변위비 분포: 기본 1.15,1.0,0.85 × 지붕변위비, 1층은 연층계수/기둥보강 반영 후 지붕변위 재정규화
+    const w=[1.15*ss/colBoost, 1.0, 0.85]; const m=(w[0]+w[1]+w[2])/3; const d=w.map(x=>x/m*dr);
+    const acc=[+$('aIO').value,+$('aLS').value,+$('aCP').value];
+    const cf=0.8*(colBoost>1?1.15:1);
+    const groups=[
+      {n:'1층 기둥 밑동 힌지', s:'1F 기둥', drift:d[0], th:Math.max(0,d[0]-dy)*1.1, lim:acc.map(a=>a*cf)},
+      {n:'1층 보 단부 힌지', s:'1F 보', drift:d[0], th:Math.max(0,d[0]-dy), lim:acc.map(a=>a*beamBoost)},
+      {n:'2층 보 단부 힌지', s:'2F 보', drift:d[1], th:Math.max(0,d[1]-dy), lim:acc.map(a=>a*beamBoost)},
+      {n:'3층 보 단부 힌지', s:'3F 보', drift:d[2], th:Math.max(0,d[2]-dy), lim:acc.map(a=>a*beamBoost)},
+    ];
+    groups.forEach(g=>{ g.cap=g.lim[pl]; g.dc=g.th/g.cap; g.st=stateOf(g.th,g.lim); });
+    let gov=0; groups.forEach((g,i)=>{ if(g.dc>groups[gov].dc) gov=i; });
+    return {d,dy,pl,groups,gov,pass:groups.every(g=>g.dc<=1)};
+  }
+  function stateOf(th,lim){ if(th<=1e-6) return 0; if(th<=lim[0]) return 1; if(th<=lim[1]) return 2; if(th<=lim[2]) return 3; return 4; }
 
   let S=null;
-  function compute(){
-    const dr=+$('dr').value/100*damp, ss=+$('ss').value, dy=+$('dy').value/100;
-    // 층간변위비 분포: 기본 1.15,1.0,0.85 × 지붕변위비, 1층은 연층계수/기둥보강 반영 후 지붕변위 재정규화
-    let w=[1.15*ss/colBoost, 1.0, 0.85]; const m=(w[0]+w[1]+w[2])/3; const d=w.map(x=>x/m*dr);
-    const acc=[+$('aIO').value,+$('aLS').value,+$('aCP').value]; const pl=+$('pl').value;
-    const groups=[
-      {n:'1층 기둥 밑동 힌지', drift:d[0], th:Math.max(0,d[0]-dy)*1.1, cap:acc[pl]*0.8*(colBoost>1?1.15:1)},
-      {n:'1층 보 단부 힌지', drift:d[0], th:Math.max(0,d[0]-dy), cap:acc[pl]*beamBoost},
-      {n:'2층 보 단부 힌지', drift:d[1], th:Math.max(0,d[1]-dy), cap:acc[pl]*beamBoost},
-      {n:'3층 보 단부 힌지', drift:d[2], th:Math.max(0,d[2]-dy), cap:acc[pl]*beamBoost},
-    ];
-    groups.forEach(g=>g.dc=g.th/g.cap);
-    return {d,dy,acc,pl,groups,pass:groups.every(g=>g.dc<=1)};
-  }
-  function stateOf(th,acc){ if(th<=1e-6) return 0; if(th<=acc[0]) return 1; if(th<=acc[1]) return 2; if(th<=acc[2]) return 3; return 4; }
-  const SC=[0x94a3b8,0x22c55e,0xf59e0b,0xea580c,0xdc2626], SN=['탄성','< IO','IO–LS','LS–CP','> CP'];
-
   function update(){
     $('drV').textContent=(+$('dr').value).toFixed(1)+'%'; $('ssV').textContent=(+$('ss').value).toFixed(1); $('dyV').textContent=(+$('dy').value).toFixed(2)+'%';
-    S=compute();
-    const hzn=HZ[+$('hz').value].n, pln=PL[S.pl];
-    $('verdict').textContent=(S.pass?'✔ 통과 — ':'✘ 불합격 — ')+`${hzn} × ${pln} 성능목표 ${S.pass?'만족':'미달'}  (최대 D/C = ${Math.max(...S.groups.map(g=>g.dc)).toFixed(2)})`;
+    const hz=+$('hz').value;
+    S=evalCase(+$('dr').value, +$('pl').value);
+    const sel=pick===null?S.gov:pick; S.sel=sel;
+    const hzn=HZ[hz].n, pln=PL[S.pl], G=S.groups[S.gov];
+    $('verdict').innerHTML=S.pass
+      ? `✔ 합격 — ${hzn} 지진에서 ${pln}(${PLK[S.pl]}) 목표 만족<small>가장 위험한 ${G.s}도 D/C = ${G.dc.toFixed(2)} ≤ 1. ① 표의 다른 칸도 눌러 보자.</small>`
+      : `✘ 불합격 — ${G.s} 힌지가 ${pln}선을 넘음 (D/C = ${G.dc.toFixed(2)})<small>${G.s}의 ●가 ③에서 목표선 오른쪽. 왼쪽 7단계 버튼으로 고쳐 보자.</small>`;
     $('verdict').style.background=S.pass?'#ecfdf5':'#fef2f2'; $('verdict').style.color=S.pass?'#059669':'#dc2626';
-    $('tb').innerHTML=S.groups.map(g=>`<tr><td>${g.n}</td><td class="mono">${(g.drift*100).toFixed(2)}%</td><td class="mono">${g.th.toFixed(4)}</td><td class="mono">${g.cap.toFixed(4)}</td><td class="mono"><b>${g.dc.toFixed(2)}</b></td><td><span class="tag ${g.dc<=1?'ok':'ng'}">${g.dc<=1?'OK':'NG'}</span></td></tr>`).join('');
+    const dcMax=Math.max(1.5,...S.groups.map(g=>g.dc));
+    $('tb').innerHTML=S.groups.map((g,i)=>`<tr data-g="${i}" class="${i===sel?'on':''}"><td><span style="color:${hex(SC[g.st])}">●</span> ${g.n}${i===S.gov?' <b title="가장 위험">★</b>':''}</td><td class="mono">${(g.drift*100).toFixed(2)}%</td><td class="mono">${g.th.toFixed(4)}</td><td class="mono">${g.cap.toFixed(4)}</td><td class="mono"><b>${g.dc.toFixed(2)}</b><span class="bar" style="width:${Math.min(70,g.dc/dcMax*70).toFixed(0)}px;background:${g.dc<=1?'#22c55e':'#dc2626'}"></span></td><td><span class="tag ${g.dc<=1?'ok':'ng'}">${g.dc<=1?'OK':'NG'}</span></td></tr>`).join('');
+    $('tb').querySelectorAll('tr').forEach(r=>r.onclick=()=>{ pick=+r.dataset.g; update(); });
     const st=[...document.querySelectorAll('#steps .st')]; st.forEach(e=>e.className='st');
     st[3].classList.add('on'); st[4].classList.add('on'); st[5].classList.add(S.pass?'ok':'ng'); if(!S.pass) st[6].classList.add('ng'); if(iter>0) st[1].classList.add('on');
     $('iter').innerHTML=`반복 <b>${iter}</b>회 — 기둥 강성 ×${colBoost.toFixed(2)}, 보 허용회전 ×${beamBoost.toFixed(2)}, 댐퍼 변위저감 ×${damp.toFixed(2)}`;
-    // matrix
-    const hz=+$('hz').value; let h='<div class="h"></div><div class="h">IO</div><div class="h">LS</div><div class="h">CP</div>';
-    HZ.forEach((z,i)=>{ h+=`<div class="h">${z.n}</div>`; for(let j=0;j<3;j++){ const cls=(i===hz&&j===S.pl)?'sel':((i===1&&j===1)||(i===2&&j===2)||(i===0&&j===0)?'bso':''); h+=`<div class="${cls}" data-i="${i}" data-j="${j}" style="cursor:pointer">${cls==='sel'?'선택':(cls==='bso'?'기본':'')}</div>`; } });
+    // 매트릭스: 모든 칸을 지금 설계로 판정 (선택한 줄은 슬라이더 값, 나머지 줄은 지진 수준 대표값)
+    let h='<div class="h"></div>'+PL.map((p,j)=>`<div class="h">${p}<small>${PLK[j]}</small></div>`).join('');
+    HZ.forEach((z,i)=>{ h+=`<div class="h rh">${z.n}<small>${z.k} ${z.y}</small></div>`;
+      for(let j=0;j<3;j++){ const r=evalCase(i===hz?+$('dr').value:z.dr, j); const bso=BSO.some(([a,b])=>a===i&&b===j);
+        h+=`<div class="c ${r.pass?'p':'f'} ${bso?'bso':''} ${(i===hz&&j===S.pl)?'sel':''}" data-i="${i}" data-j="${j}" title="${z.n} × ${PL[j]} : 최대 D/C ${r.groups[r.gov].dc.toFixed(2)}">${r.pass?'✔':'✘'}<small>D/C ${r.groups[r.gov].dc.toFixed(2)}</small></div>`; } });
     $('mx').innerHTML=h; $('mx').querySelectorAll('div[data-i]').forEach(e=>e.onclick=()=>{ $('hz').value=e.dataset.i; $('dr').value=HZ[+e.dataset.i].dr; $('pl').value=e.dataset.j; update(); });
-    drawBB(); colorHinges();
+    // 3D 범례: 지금 목표에서 어느 색까지 합격인지
+    $('lg').innerHTML=`<div class="t">목표 ${pln} → ${['초록','노랑','주황'][S.pl]}까지 합격</div>`+SN.map((n,k)=>`<div><i style="background:${hex(SC[k])}"></i>${n} ${k<=S.pl+1?'<span class="o">✔</span>':'<span class="x">✘</span>'}</div>`).join('');
+    drawTabs(); drawBB(); colorHinges();
+  }
+
+  function drawTabs(){
+    $('tabs').innerHTML=S.groups.map((g,i)=>`<button data-g="${i}" class="${i===S.sel?'on':''}"><i style="background:${hex(SC[g.st])}"></i>${g.s}${i===S.gov?' ★':''}<small>D/C ${g.dc.toFixed(2)}</small></button>`).join('');
+    $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{ pick=+b.dataset.g; update(); });
   }
 
   // ---------- 백본 캔버스 ----------
@@ -201,39 +291,67 @@
     const ctx=cv.getContext('2d'); ctx.setTransform(r,0,0,r,0,0); return {ctx,w,h}; }
   function drawBB(){
     const cv=$('bb'); const {ctx,w,h}=fit(cv); ctx.clearRect(0,0,w,h);
-    const acc=S.acc, xmax=Math.max(acc[2]*1.5, ...S.groups.map(g=>g.th*1.1), 0.06);
-    const L=40,R=12,T=30,B=30; const xs=x=>L+x/xmax*(w-L-R), ys=y=>T+(1.3-y)/1.3*(h-T-B);
-    ctx.strokeStyle='#e2e8f0'; ctx.beginPath(); ctx.moveTo(L,ys(0)); ctx.lineTo(w-R,ys(0)); ctx.moveTo(L,T); ctx.lineTo(L,ys(0)); ctx.stroke();
-    // A-B-C-D-E: B at 0, C at acc[2]*0.95, D drop, E at acc[2]*1.3
-    const c=acc[2]*0.95, e=acc[2]*1.3;
-    ctx.strokeStyle='#0f172a'; ctx.lineWidth=2.2; ctx.beginPath(); ctx.moveTo(xs(0)-8,ys(0)); ctx.lineTo(xs(0),ys(1)); ctx.lineTo(xs(c),ys(1.1)); ctx.lineTo(xs(c),ys(0.2)); ctx.lineTo(xs(e),ys(0.2)); ctx.lineTo(xs(e)+4,ys(0)); ctx.stroke();
-    ctx.fillStyle='#475569'; ctx.font='11px Pretendard,sans-serif'; ctx.textAlign='center';
-    [['B',0,1.0],['C',c,1.1],['D',c,0.2],['E',e,0.2]].forEach(([n,x,y])=>ctx.fillText(n,xs(x)+8,ys(y)-6));
-    const cols=['#22c55e','#f59e0b','#dc2626'];
-    PL.forEach((n,i)=>{ ctx.strokeStyle=cols[i]; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(xs(acc[i]),T); ctx.lineTo(xs(acc[i]),ys(0)); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle=cols[i]; ctx.font='bold 12px Pretendard,sans-serif'; ctx.fillText(n,xs(acc[i]),T-4); if(i===S.pl){ ctx.fillRect(xs(acc[i])-1.5,T,3,ys(0)-T); } });
-    S.groups.forEach((g,i)=>{ const st=stateOf(g.th,acc); ctx.fillStyle='#'+SC[st].toString(16).padStart(6,'0'); ctx.beginPath(); const x=xs(g.th), y=ys(0.1+0.14*i); ctx.moveTo(x,y+7); ctx.lineTo(x-6,y-5); ctx.lineTo(x+6,y-5); ctx.closePath(); ctx.fill(); });
-    ctx.fillStyle='#64748b'; ctx.font='11px Pretendard,sans-serif'; ctx.textAlign='center'; ctx.fillText('소성회전각 θp (rad)  —  ▲ = 부재군 수요', (L+w-R)/2, h-8);
-    ctx.textAlign='right'; ctx.fillText('M/My', L-4, T+10);
+    const g=S.groups[S.sel], lim=g.lim, pl=S.pl;
+    const c=lim[2], e=lim[2]*1.3;                       // C = 최대강도 끝(≈CP, 단순화), E = 잔여강도 끝
+    const xmax=Math.max(lim[2]*1.45, g.th*1.08);
+    const L=40,R=14,T=46,EL=46,yb=h-92;                  // EL = 탄성 구간(항복 전) 폭, yb = 곡선 영역 바닥
+    const xs=x=>L+EL+x/xmax*(w-L-EL-R), ys=y=>T+(1.25-y)/1.25*(yb-T);
+    const F="Pretendard,sans-serif";
+    // 손상 구간 색띠
+    const bands=[[0,lim[0],'rgba(34,197,94,.13)','IO 이내','거의 멀쩡'],[lim[0],lim[1],'rgba(245,158,11,.15)','LS 이내','수리 필요'],[lim[1],lim[2],'rgba(234,88,12,.15)','CP 이내','붕괴 직전'],[lim[2],xmax,'rgba(220,38,38,.12)','CP 초과','붕괴 위험']];
+    ctx.fillStyle='rgba(148,163,184,.12)'; ctx.fillRect(L,T,EL,yb-T);
+    ctx.textAlign='center'; ctx.fillStyle='#64748b'; ctx.font=`bold 11px ${F}`; ctx.fillText('탄성',L+EL/2,T-22); ctx.font=`10px ${F}`; ctx.fillText('원상복귀',L+EL/2,T-9);
+    bands.forEach(([a,b,col,t1,t2],k)=>{ const x1=xs(a), x2=xs(b); ctx.fillStyle=col; ctx.fillRect(x1,T,x2-x1,yb-T);
+      if(x2-x1>34){ ctx.fillStyle=hex(SC[k+1]); ctx.font=`bold 11px ${F}`; ctx.fillText(t1,(x1+x2)/2,T-22); ctx.font=`10px ${F}`; ctx.fillStyle='#475569'; ctx.fillText(t2,(x1+x2)/2,T-9); } });
+    // 축
+    ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(L,yb); ctx.lineTo(w-R,yb); ctx.moveTo(L,T); ctx.lineTo(L,yb); ctx.stroke();
+    // 한계 점선 (IO/LS/CP), 선택한 목표는 굵게
+    PL.forEach((n,i)=>{ const x=xs(lim[i]); const on=i===pl; ctx.strokeStyle=hex(SC[i+1]); ctx.lineWidth=on?3.5:1.2; ctx.setLineDash(on?[]:[4,3]); ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,yb); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=hex(SC[i+1]); ctx.font=`bold ${on?12:10.5}px ${F}`; ctx.fillText(on?`목표선 ${n}`:n, x, yb+13); });
+    // A–B–C–D–E 백본
+    ctx.strokeStyle='#0f172a'; ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(L+2,yb); ctx.lineTo(xs(0),ys(1)); ctx.lineTo(xs(c),ys(1.1)); ctx.lineTo(xs(c),ys(0.2)); ctx.lineTo(xs(e),ys(0.2)); ctx.lineTo(xs(e)+4,yb); ctx.stroke();
+    ctx.font=`10.5px ${F}`; ctx.fillStyle='#334155';
+    ctx.textAlign='left';  ctx.fillText('A',L+5,yb-4); ctx.fillText('B 항복',xs(0)+4,ys(1)-7);
+    ctx.textAlign='right'; ctx.fillText('C 최대 힘',xs(c)-4,ys(1.1)-7);
+    ctx.textAlign='left';  ctx.fillText('D–E 힘이 뚝',xs(c)+5,ys(0.2)-6);
+    ctx.save(); ctx.translate(13,(T+yb)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillStyle='#64748b'; ctx.fillText('버티는 힘 M/My',0,0); ctx.restore();
+    // 선택한 힌지의 현재 위치 ●
+    const th=g.th, yv=th<=c?1+0.1*th/c:(th<=e?0.2:0), px=th<=1e-6?xs(0):xs(th), py=th<=1e-6?ys(1):ys(yv);
+    ctx.strokeStyle='#0f172a'; ctx.setLineDash([2,3]); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px,yb); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=hex(SC[g.st]); ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(px,py,8,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='#0f172a'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(px,py,10.5,0,Math.PI*2); ctx.stroke();
+    ctx.font=`bold 11.5px ${F}`; ctx.fillStyle='#0f172a'; const lt=`${g.s} 지금 여기`; ctx.textAlign=px>w*0.62?'right':'left'; ctx.fillText(lt, px+(px>w*0.62?-14:14), py+(yv>0.6?22:-14));
+    // D/C 게이지: D 막대(꺾인 양) vs C 막대(목표선까지)
+    const y1=yb+30, y2=yb+50, x0=xs(0), ok=g.dc<=1;
+    ctx.textAlign='right'; ctx.font=`bold 11px ${F}`; ctx.fillStyle='#334155'; ctx.fillText('D 꺾인 양',x0-4,y1+4); ctx.fillText('C 허용',x0-4,y2+4);
+    ctx.fillStyle=ok?'#22c55e':'#dc2626'; ctx.fillRect(x0,y1-5,Math.max(2,xs(Math.min(th,xmax))-x0),10);
+    ctx.fillStyle=hex(SC[pl+1]); ctx.fillRect(x0,y2-5,xs(g.cap)-x0,10);
+    ctx.textAlign='left'; ctx.fillStyle='#0f172a'; ctx.font=`11px ui-monospace,monospace`;
+    ctx.fillText(th.toFixed(4),Math.min(xs(Math.min(th,xmax))+5,w-R-48),y1+4); ctx.fillText(g.cap.toFixed(4),Math.min(xs(g.cap)+5,w-R-48),y2+4);
+    ctx.textAlign='center'; ctx.font=`bold 12.5px ${F}`; ctx.fillStyle=ok?'#059669':'#dc2626';
+    ctx.fillText(`D/C = ${th.toFixed(4)} ÷ ${g.cap.toFixed(4)} = ${g.dc.toFixed(2)}  ${ok?'≤ 1  → 합격 ✔':'> 1  → 불합격 ✘'}`, (L+w-R)/2, h-10);
   }
 
   // ---------- three.js 골조 ----------
   const tcv=$('three'); const renderer=new THREE.WebGLRenderer({canvas:tcv,antialias:true,alpha:true});
   const scene=new THREE.Scene(); scene.background=new THREE.Color(0xf8fafc);
-  const camera=new THREE.PerspectiveCamera(34,1,0.1,200); let theta=0.55; const look=new THREE.Vector3(0,5,0);
-  function cam(){ camera.position.set(19*Math.sin(theta),8.5,19*Math.cos(theta)); camera.lookAt(look); }
+  const camera=new THREE.PerspectiveCamera(34,1,0.1,200); let theta=0.55, dist=19; const look=new THREE.Vector3(0,5,0);
+  function cam(){ camera.position.set(dist*Math.sin(theta),8.5*dist/19,dist*Math.cos(theta)); camera.lookAt(look); }
   cam(); scene.add(new THREE.HemisphereLight(0xffffff,0x94a3b8,1)); const dl=new THREE.DirectionalLight(0xffffff,.6); dl.position.set(6,12,8); scene.add(dl);
   scene.add(new THREE.GridHelper(24,12,0xcbd5e1,0xeef2f7));
   const Hs=3.4, Lb=5.0, NX=3, NS=3, dep=2.2; const colMat=new THREE.MeshStandardMaterial({color:0x64748b}); const beamMat=new THREE.MeshStandardMaterial({color:0x94a3b8});
-  const cols=[], beams=[], hinges={col:[],b:[[],[],[]]};
+  const cols=[], beams=[], hinges={col:[],b:[[],[],[]]}, allH=[];
   const frames=[-dep,dep];
   for(const z of frames){
     for(let i=0;i<NX;i++) for(let s=0;s<NS;s++){ const m=new THREE.Mesh(new THREE.BoxGeometry(0.45,Hs,0.45),colMat); m.userData={i,s,z}; scene.add(m); cols.push(m); }
     for(let i=0;i<NX-1;i++) for(let s=0;s<NS;s++){ const m=new THREE.Mesh(new THREE.BoxGeometry(Lb,0.5,0.4),beamMat); m.userData={i,s,z}; scene.add(m); beams.push(m);
-      for(const end of [0,1]){ const sp=new THREE.Mesh(new THREE.SphereGeometry(0.3,18,18),new THREE.MeshStandardMaterial({color:0x94a3b8,emissive:0x000000})); sp.userData={i,s,z,end}; scene.add(sp); hinges.b[s].push(sp); } }
-    for(let i=0;i<NX;i++){ const sp=new THREE.Mesh(new THREE.SphereGeometry(0.34,18,18),new THREE.MeshStandardMaterial({color:0x94a3b8})); sp.userData={i,z}; scene.add(sp); hinges.col.push(sp); }
+      for(const end of [0,1]){ const sp=new THREE.Mesh(new THREE.SphereGeometry(0.3,18,18),new THREE.MeshStandardMaterial({color:0x94a3b8,emissive:0x000000})); sp.userData={i,s,z,end,g:s+1}; scene.add(sp); hinges.b[s].push(sp); allH.push(sp); } }
+    for(let i=0;i<NX;i++){ const sp=new THREE.Mesh(new THREE.SphereGeometry(0.34,18,18),new THREE.MeshStandardMaterial({color:0x94a3b8})); sp.userData={i,z,g:0}; scene.add(sp); hinges.col.push(sp); allH.push(sp); }
   }
   for(let s=0;s<NS;s++){ for(let i=0;i<NX-1;i++){ const m=new THREE.Mesh(new THREE.BoxGeometry(Lb,0.12,dep*2),new THREE.MeshStandardMaterial({color:0xe2e8f0,transparent:true,opacity:.7})); m.userData={i,s,slab:true}; scene.add(m); beams.push(m);} }
+  // 선택한 부재군 표시용 링
+  const ringGeo=new THREE.TorusGeometry(0.62,0.06,8,32), ringMat=new THREE.MeshBasicMaterial({color:0x4f46e5});
+  const rings=allH.map(()=>{ const r=new THREE.Mesh(ringGeo,ringMat); scene.add(r); return r; });
   const VIS=6; // 변위 시각 배율
   function layout(){
     const d=S?S.d:[0,0,0]; const off=[0]; for(let s=0;s<NS;s++) off.push(off[s]+d[s]*Hs*VIS);
@@ -244,16 +362,26 @@
     for(let s=0;s<NS;s++) hinges.b[s].forEach(sp=>{ const {i,z,end}=sp.userData; sp.position.set(x0(i)+(end?Lb-0.55:0.55)+off[s+1],(s+1)*Hs-0.25,z); });
   }
   function colorHinges(){
-    const acc=S.acc; const g=S.groups;
-    const setc=(sp,st)=>{ sp.material.color.setHex(SC[st]); sp.material.emissive.setHex(st>=3?SC[st]:0x000000); sp.material.emissiveIntensity=.35; sp.scale.setScalar(st===0?0.7:1+0.15*st); };
-    hinges.col.forEach(sp=>setc(sp,stateOf(g[0].th,acc)));
-    for(let s=0;s<NS;s++) hinges.b[s].forEach(sp=>setc(sp,stateOf(g[s+1].th,acc)));
+    const setc=(sp,st)=>{ sp.material.color.setHex(SC[st]); sp.material.emissive.setHex(st>=3?SC[st]:0x000000); sp.material.emissiveIntensity=.35; sp.userData.base=st===0?0.7:1+0.15*st; sp.scale.setScalar(sp.userData.base); };
+    allH.forEach(sp=>setc(sp,S.groups[sp.userData.g].st));
     layout();
   }
-  let drag=false,lx=0; tcv.addEventListener('pointerdown',e=>{drag=true;lx=e.clientX;}); window.addEventListener('pointerup',()=>drag=false);
-  window.addEventListener('pointermove',e=>{ if(!drag)return; theta+=(e.clientX-lx)*0.01; lx=e.clientX; cam(); });
-  function resizeThree(){ const w=tcv.clientWidth,h=tcv.clientHeight; const dpr=Math.min(window.devicePixelRatio||1,2); renderer.setPixelRatio(dpr); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
-  function loop(){ resizeThree(); renderer.render(scene,camera); requestAnimationFrame(loop); }
+  // 회전(드래그)과 클릭 구분, 호버 툴팁
+  const ray=new THREE.Raycaster(), mv=new THREE.Vector2(), tip=$('tip');
+  function hit(e){ const r=tcv.getBoundingClientRect(); mv.set((e.clientX-r.left)/r.width*2-1, -(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(mv,camera); const o=ray.intersectObjects(allH)[0]; return o?{sp:o.object,x:e.clientX-r.left,y:e.clientY-r.top}:null; }
+  let drag=false,moved=0,lx=0;
+  tcv.addEventListener('pointerdown',e=>{drag=true;moved=0;lx=e.clientX;});
+  window.addEventListener('pointerup',e=>{ if(drag&&moved<5&&e.target===tcv){ const o=hit(e); if(o){ pick=o.sp.userData.g; update(); } } drag=false; });
+  window.addEventListener('pointermove',e=>{ if(drag){ moved+=Math.abs(e.clientX-lx); theta+=(e.clientX-lx)*0.01; lx=e.clientX; cam(); tip.style.display='none'; return; }
+    if(e.target!==tcv){ tip.style.display='none'; return; }
+    const o=hit(e); tcv.style.cursor=o?'pointer':'grab'; if(!o){ tip.style.display='none'; return; }
+    const g=S.groups[o.sp.userData.g]; tip.innerHTML=`<b>${g.n}</b><br>${SN[g.st]}<br>꺾인 양 ${g.th.toFixed(4)} / 허용 ${g.cap.toFixed(4)} rad<br>D/C = <b>${g.dc.toFixed(2)}</b> ${g.dc<=1?'✔':'✘'} · 클릭 → ③`;
+    tip.style.display='block'; const pw=tcv.clientWidth; tip.style.left=Math.min(o.x+12,pw-tip.offsetWidth-6)+'px'; tip.style.top=Math.max(4,o.y-tip.offsetHeight-8)+'px'; });
+  function resizeThree(){ const w=tcv.clientWidth,h=tcv.clientHeight; const dpr=Math.min(window.devicePixelRatio||1,2); renderer.setPixelRatio(dpr); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); const nd=19*Math.max(1,1.45/camera.aspect); if(Math.abs(nd-dist)>0.01){ dist=nd; cam(); } }
+  function loop(t){ resizeThree();
+    const pulse=1+0.12*Math.sin((t||0)/220);
+    allH.forEach((sp,k)=>{ const on=S&&sp.userData.g===S.sel; const r=rings[k]; r.visible=on; if(on){ r.position.copy(sp.position); r.lookAt(camera.position); r.scale.setScalar(pulse*Math.max(1,sp.userData.base||1)); } });
+    renderer.render(scene,camera); requestAnimationFrame(loop); }
   window.addEventListener('resize',()=>{ drawBB(); });
   update(); requestAnimationFrame(loop);
 })();
