@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim 52: 풍하중 사다리 — 조도·높이·주기와 지진 역전</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root { --ink:#0f172a; --sub:#475569; --dim:#94a3b8; --line:#e2e8f0; --red:#dc2626; --blue:#2563eb; --teal:#0f766e; --amber:#d97706; --bg:#f8fafc; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:1320px; margin:0 auto; padding:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(15,23,42,.06); }
+  header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:center; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:14px; }
+  .badge { font:700 12px ui-monospace,monospace; padding:3px 9px; border-radius:6px; background:#ecfeff; color:#155e75; border:1px solid #a5f3fc; }
+  h1 { font-size:22px; font-weight:900; margin:0; letter-spacing:-.02em; }
+  .lead { font-size:13px; color:var(--sub); margin:6px 0 0; }
+  a.back { font-size:12px; font-weight:700; padding:8px 14px; border-radius:12px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; text-decoration:none; }
+  .grid { display:grid; grid-template-columns:280px 1fr; gap:18px; }
+  @media (max-width:960px){ .grid { grid-template-columns:1fr; } }
+  .panel h3 { font-size:12px; letter-spacing:.08em; color:var(--dim); margin:14px 0 6px; font-weight:800; }
+  label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; }
+  label span { float:right; font-family:ui-monospace,monospace; color:#155e75; }
+  input[type=range] { width:100%; accent-color:#0f766e; }
+  .seg { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; }
+  .seg button { font:700 13px inherit; font-family:inherit; padding:7px 0; border-radius:10px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; }
+  .seg button.on { background:#0f766e; color:#fff; border-color:#0f766e; }
+  .hint { font-size:11px; color:var(--sub); margin-top:4px; line-height:1.4; }
+  .chk { display:flex; align-items:center; gap:6px; font-size:13px; margin:8px 0; }
+  .chk label { margin:0; font-weight:500; }
+  canvas.c2 { width:100%; display:block; }
+  .cv { border:1px solid var(--line); border-radius:14px; background:#fff; padding:6px; }
+  .cv h4 { margin:2px 6px 4px; font-size:13px; }
+  .cv .cap { font-size:12px; color:var(--sub); margin:2px 8px 4px; }
+  .row { display:grid; grid-template-columns:1.05fr 1fr; gap:10px; margin-bottom:10px; }
+  .row3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; }
+  @media (max-width:960px){ .row, .row3 { grid-template-columns:1fr; } }
+  #three { width:100%; height:420px; display:block; border-radius:10px; cursor:grab; touch-action:none; }
+  .ladder { display:flex; flex-direction:column; gap:6px; padding:4px 6px; }
+  .step { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; border:1px solid var(--line); border-radius:12px; padding:8px 10px; font-size:13px; }
+  .step b { font-size:15px; font-family:ui-monospace,monospace; }
+  .step small { display:block; color:var(--sub); font-size:11px; }
+  .step.hot { border-color:var(--red); background:#fff5f5; }
+  .step.out { border-color:#0f172a; background:#f8fafc; }
+  .pill { display:inline-block; font-size:12px; font-weight:800; padding:3px 8px; border-radius:8px; }
+  .ok { background:#dcfce7; color:#166534; } .ng { background:#fee2e2; color:#991b1b; } .mid { background:#fef3c7; color:#92400e; }
+  details { margin-top:10px; border:1px solid var(--line); border-radius:12px; padding:8px 12px; font-size:13px; color:var(--sub); line-height:1.6; }
+  details summary { font-weight:800; color:var(--ink); cursor:pointer; }
+  .wow { margin-top:10px; border:2px solid var(--amber); background:#fffbeb; border-radius:14px; padding:10px 14px; font-size:14px; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+  <header>
+    <div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge">SIM 52 · 풍하중 사다리</span>
+        <h1>풍하중 사다리 — 조도 · 높이 · 주기와 지진 역전</h1>
+      </div>
+      <p class="lead">V₀ → V<sub>H</sub> → q<sub>H</sub> = ½ρV<sub>H</sub>² → G<sub>D</sub> → W<sub>D</sub>. KDS 41 10 15:2019 밀폐형 주골조 풍방향 식으로 한 칸씩 올라가며, 같은 건물의 등가정적 지진력과 비교한다.</p>
+    </div>
+    <a class="back" href="index.html">&larr; 마스터 대시보드</a>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>바람 · 부지</h3>
+      <label>기본풍속 V₀ <span id="v0V"></span></label>
+      <input id="v0" type="range" min="20" max="50" step="1" value="30">
+      <label>지표면 조도</label>
+      <div class="seg" id="terr"><button data-t="A">A</button><button data-t="B" class="on">B</button><button data-t="C">C</button><button data-t="D">D</button></div>
+      <div class="hint" id="terrHint"></div>
+
+      <h3>건물</h3>
+      <label>층수 N <span id="nV"></span></label>
+      <input id="n" type="range" min="5" max="80" step="1" value="30">
+      <label>바람 받는 폭 B <span id="bV"></span></label>
+      <input id="b" type="range" min="10" max="80" step="1" value="30">
+      <label>바람 방향 깊이 D <span id="dV"></span></label>
+      <input id="d" type="range" min="10" max="80" step="1" value="30">
+      <div class="chk"><input type="checkbox" id="autoT" checked><label for="autoT">주기 자동: T = 1.4 × 0.0488·h<sup>0.75</sup></label></div>
+      <label>1차 주기 T <span id="tV"></span></label>
+      <input id="t" type="range" min="0.3" max="8" step="0.05" value="2.0" disabled>
+      <label>감쇠비 ζ <span id="zV"></span></label>
+      <input id="z" type="range" min="0.01" max="0.08" step="0.005" value="0.02">
+
+      <h3>비교용 지진</h3>
+      <label>S<sub>DS</sub> <span id="sdsV"></span></label>
+      <input id="sds" type="range" min="0.2" max="1.0" step="0.01" value="0.5">
+      <label>S<sub>D1</sub> <span id="sd1V"></span></label>
+      <input id="sd1" type="range" min="0.1" max="0.6" step="0.01" value="0.3">
+      <label>반응수정계수 R <span id="rV"></span></label>
+      <input id="r" type="range" min="3" max="8" step="0.5" value="5">
+      <label>층 하중 w <span id="wV"></span></label>
+      <input id="w" type="range" min="8" max="16" step="0.5" value="12">
+      <div class="hint">층고 3 m, I<sub>E</sub> 1.0, K<sub>zt</sub> 1.0, 공기밀도 1.22 kg/m³ 고정.</div>
+    </div>
+
+    <div>
+      <div class="row">
+        <div class="cv"><h4>3D: 앞에서 밀고(빨강) 뒤에서 당긴다(파랑)</h4><canvas id="three"></canvas><div class="cap">드래그로 회전. 왼쪽 청록 화살표 = 높이별 풍속(K<sub>zr</sub>).</div></div>
+        <div class="cv"><h4>사다리: 기본풍속에서 밑면전단력까지</h4><div class="ladder" id="ladder"></div></div>
+      </div>
+      <div class="row3">
+        <div class="cv"><h4>① 조도별 풍속고도분포 K<sub>zr</sub></h4><canvas class="c2" id="cK" height="300"></canvas></div>
+        <div class="cv"><h4>② 주기가 길면 G<sub>D</sub>가 커진다</h4><canvas class="c2" id="cG" height="300"></canvas></div>
+        <div class="cv"><h4>③ 몇 층부터 바람이 이기나</h4><canvas class="c2" id="cV" height="300"></canvas></div>
+      </div>
+      <div class="wow" id="wow"></div>
+      <details><summary>식과 근거 (KDS 41 10 15:2019)</summary>
+        <div>· 설계속도압 q<sub>H</sub> = ½ρV<sub>H</sub>², V<sub>H</sub> = V₀K<sub>zr</sub>K<sub>zt</sub>I<sub>w</sub> (식 5.5-1, 5.5-2). I<sub>w</sub>: 50층 이상 또는 200 m 이상 1.05 (표 5.5-6).</div>
+        <div>· K<sub>zr</sub>: 표 5.5-3·5.5-4 (A 0.22z<sup>0.33</sup> … D 0.98z<sup>0.10</sup>, z<sub>b</sub>·Z<sub>g</sub> 구간).</div>
+        <div>· 밀폐형 W<sub>D</sub> = p<sub>F</sub>A, p<sub>F</sub> = G<sub>D</sub>q<sub>H</sub>(C<sub>pe1</sub> − C<sub>pe2</sub>) ≥ 500 N/m² (식 5.2-1·5.2-2). C<sub>pe1</sub> = 0.8k<sub>z</sub> + 0.03(D/B), C<sub>pe2</sub> = −0.5 (D/B ≤ 1), −0.5 + 0.25(ln D/B)<sup>0.8</sup> (D/B &gt; 1) (표 5.7-1).</div>
+        <div>· G<sub>D</sub>: n<sub>D</sub> &gt; 1 Hz 식 5.6-1(강체), n<sub>D</sub> ≤ 1 Hz 식 5.6-2(유연, 공진계수 R<sub>D</sub> 포함). 1 Hz에서 식이 바뀌어 계단이 생긴다.</div>
+        <div>· 지진: C<sub>s</sub> = S<sub>DS</sub>/R ≤ S<sub>D1</sub>/(T·R), 하한 max(0.044S<sub>DS</sub>, 0.01), V = C<sub>s</sub>W, W = N·B·D·w. 자동 주기 C<sub>t</sub> 0.0488·x 0.75·C<sub>u</sub> 1.4는 예시값(KDS 41 17 00 원문 확인 필요).</div>
+        <div>· 와류 공진 점검: U<sub>cr</sub> = f₁·B/St, St 0.12(사각 단면 예시). 풍직각·비틀림 하중 자체는 계산하지 않는다(5.9·5.10 또는 풍동실험).</div>
+        <div>· 교육용 단순화: 현행판(KDS 41 12 00)의 풍향계수 K<sub>D</sub> 등은 반영하지 않았다. 실무 설계값으로 쓰지 말 것.</div>
+      </details>
+    </div>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const TER = { A:{zb:20,Zg:550,a:0.33,k0:0.58,c:0.22,txt:"대도시 중심, 10층 이상 고층 밀집"}, B:{zb:15,Zg:450,a:0.22,k0:0.81,c:0.45,txt:"3.5 m 주택 밀집·4~9층 중층 산재"}, C:{zb:10,Zg:350,a:0.15,k0:1.0,c:0.71,txt:"1.5~10 m 장애물 산재, 교외·농지"}, D:{zb:5,Zg:250,a:0.10,k0:1.13,c:0.98,txt:"해안·초원·비행장, 장애물 거의 없음"} };
+const RHO = 1.22, STORY = 3.0, ST = 0.12;
+let terr = "B";
+const kzr = (z,t) => { const T = TER[t]; return z <= T.zb ? T.k0 : T.c*Math.pow(Math.min(z, T.Zg), T.a); };
+const kzf = (z,H,t) => { const T = TER[t]; if (z <= T.zb) return Math.pow(T.zb/H, 2*T.a); if (z < 0.8*H) return Math.pow(z/H, 2*T.a); return Math.pow(0.8, 2*T.a); };
+function gustGD(H, B, VH, n, t, zeta) {
+  const T = TER[t], a = T.a; const IH = 0.1*Math.pow(H/T.Zg, -a-0.05), LH = 100*Math.sqrt(H/30);
+  const gam = (3+3*a)/(2+a)*IH, k = H >= B ? 0.33 : -0.33;
+  const BD = 1 - 1/Math.pow(1 + 5.1*Math.pow(LH/Math.sqrt(H*B), 1.3)*Math.pow(B/H, k), 1/3);
+  if (n > 1) return { G: 1 + 4*gam*Math.sqrt(BD), BD, RD: 0, rigid: true };
+  const SD = 0.84/((1 + 2.1*n*H/VH)*(1 + 2.1*n*B/VH)); const x = n*LH/VH; const FD = 4*x/Math.pow(1 + 71*x*x, 5/6);
+  const RD = Math.PI/(4*zeta)*SD*FD; const g = Math.sqrt(2*Math.log(600*n)) + 1.2;
+  return { G: 1 + g*gam*Math.sqrt(BD + RD), BD, RD, rigid: false };
+}
+const autoT = H => 1.4*0.0488*Math.pow(H, 0.75);
+function wind(P, N, Tover) {
+  const H = N*STORY, Iw = (N >= 50 || H >= 200) ? 1.05 : 1.0;
+  const VH = P.v0*kzr(H, P.t)*Iw, qH = 0.5*RHO*VH*VH; const T = Tover ?? autoT(H);
+  const gd = gustGD(H, P.B, VH, 1/T, P.t, P.z);
+  const r = P.D/P.B, cpe2 = r <= 1 ? -0.5 : -0.5 + 0.25*Math.pow(Math.log(r), 0.8);
+  let V = 0, M = 0, pw = 0, n = 200; const dz = H/n; const prof = [];
+  for (let i=0;i<n;i++) { const z = (i+0.5)*dz; const cpe1 = 0.8*kzf(z, H, P.t) + 0.03*r; const p = Math.max(500, gd.G*qH*(cpe1 - cpe2));
+    V += p*P.B*dz; M += p*P.B*dz*z; pw += cpe1/n; }
+  for (let i=0;i<=20;i++) { const z = i/20*H; prof.push({ z, cpe1: 0.8*kzf(Math.max(z,0.01), H, P.t) + 0.03*r }); }
+  return { H, Iw, VH, qH, T, gd, cpe2, V: V/1000, M: M/1e6, pw, prof };
+}
+function quake(P, N, Tover) {
+  const H = N*STORY, T = Tover ?? autoT(H), W = N*P.B*P.D*P.w;
+  let Cs = Math.min(P.sds/P.R, P.sd1/(T*P.R)); Cs = Math.max(Cs, 0.044*P.sds, 0.01);
+  return { T, W, Cs, V: Cs*W };
+}
+function params() { return { v0:+$("v0").value, t:terr, B:+$("b").value, D:+$("d").value, z:+$("z").value, sds:+$("sds").value, sd1:+$("sd1").value, R:+$("r").value, w:+$("w").value, N:+$("n").value }; }
+
+// ---------- 2D helpers ----------
+function setup(cv) { const r = window.devicePixelRatio||1, w = cv.clientWidth, h = +(cv.dataset.h || (cv.dataset.h = cv.getAttribute("height")));
+  if (cv.width !== Math.round(w*r) || cv.height !== Math.round(h*r)) { cv.width = Math.round(w*r); cv.height = Math.round(h*r); cv.style.height = h+"px"; }
+  const g = cv.getContext("2d"); g.setTransform(r,0,0,r,0,0); g.clearRect(0,0,w,h); g.font = "12px Pretendard, sans-serif"; return [g,w,h]; }
+function axes(g, w, h, o) { const L=48, R=12, T=12, B=36; const X = v => L + (v-o.x0)/(o.x1-o.x0)*(w-L-R), Y = v => T + (o.y1-v)/(o.y1-o.y0)*(h-T-B);
+  g.strokeStyle="#eef2f7"; g.lineWidth=1; g.fillStyle="#475569"; g.textAlign="center"; g.textBaseline="top";
+  for (const t of o.xt) { g.beginPath(); g.moveTo(X(t),T); g.lineTo(X(t),h-B); g.stroke(); g.fillText(o.fx?o.fx(t):t, X(t), h-B+4); }
+  g.textAlign="right"; g.textBaseline="middle"; for (const t of o.yt) { g.beginPath(); g.moveTo(L,Y(t)); g.lineTo(w-R,Y(t)); g.stroke(); g.fillText(o.fy?o.fy(t):t, L-5, Y(t)); }
+  g.strokeStyle="#94a3b8"; g.lineWidth=1.2; g.beginPath(); g.moveTo(L,T); g.lineTo(L,h-B); g.lineTo(w-R,h-B); g.stroke();
+  g.fillStyle="#0f172a"; g.font="600 12px Pretendard, sans-serif"; g.textAlign="center"; g.textBaseline="alphabetic"; g.fillText(o.xl, (L+w-R)/2, h-4);
+  g.save(); g.translate(12,(T+h-B)/2); g.rotate(-Math.PI/2); g.fillText(o.yl,0,0); g.restore(); g.font="12px Pretendard, sans-serif"; return {X,Y}; }
+function poly(g, A, xs, ys, col, lw=2, dash=[]) { g.strokeStyle=col; g.lineWidth=lw; g.setLineDash(dash); g.beginPath(); xs.forEach((x,i)=> i? g.lineTo(A.X(x),A.Y(ys[i])) : g.moveTo(A.X(x),A.Y(ys[i]))); g.stroke(); g.setLineDash([]); }
+function dot(g, A, x, y, col, r=5) { g.fillStyle=col; g.beginPath(); g.arc(A.X(x),A.Y(y),r,0,7); g.fill(); g.strokeStyle="#fff"; g.lineWidth=2; g.stroke(); }
+function txt(g, A, x, y, s, col, opt={}) { g.font=`${opt.w||700} ${opt.s||12}px Pretendard, sans-serif`; g.fillStyle=col; g.textAlign=opt.a||"left"; g.textBaseline="middle"; g.fillText(s, A.X(x)+(opt.dx||0), A.Y(y)+(opt.dy||0)); }
+
+// ---------- 3D ----------
+const cv3 = $("three"); const R3 = new THREE.WebGLRenderer({ canvas: cv3, antialias: true });
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xffffff);
+const cam = new THREE.PerspectiveCamera(32, 1, 0.1, 2000);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x94a3b8, 0.75)); const dl = new THREE.DirectionalLight(0xffffff, 0.75); dl.position.set(-60, 120, 80); scene.add(dl);
+const grid = new THREE.GridHelper(400, 40, 0xdbe3ee, 0xeef2f7); scene.add(grid);
+let dyn = new THREE.Group(); scene.add(dyn); let yaw = 0.0, pitch = 0.25;
+function arrow3(a, b, hex, r) { const g = new THREE.Group(), dir = new THREE.Vector3().subVectors(b,a), len = dir.length(); if (len < 1e-6) return g; const hl = Math.min(len*0.4, r*7);
+  const m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.5 }); const s = new THREE.Mesh(new THREE.CylinderGeometry(r, r, Math.max(len-hl, 0.01), 12), m); s.position.y = (len-hl)/2;
+  const c = new THREE.Mesh(new THREE.ConeGeometry(r*2.4, hl, 16), m); c.position.y = len - hl/2; g.add(s, c); g.position.copy(a); g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize()); return g; }
+function build3D(P, Wd) {
+  scene.remove(dyn); dyn = new THREE.Group(); scene.add(dyn);
+  const H = Wd.H, B = P.B, D = P.D; // wind along +x, B along z, D along x
+  const bm = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.75 }); const blk = new THREE.Mesh(new THREE.BoxGeometry(D, H, B), bm); blk.position.y = H/2; dyn.add(blk);
+  const fl = new THREE.LineBasicMaterial({ color: 0x64748b }); const step = Math.max(1, Math.round(P.N/20));
+  for (let s=step; s<P.N; s+=step) { const y = s*STORY; const pts = [[-D/2,-B/2],[D/2,-B/2],[D/2,B/2],[-D/2,B/2],[-D/2,-B/2]].map(([x,z]) => new THREE.Vector3(x*1.002, y, z*1.002)); dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), fl)); }
+  const ws = new THREE.Mesh(new THREE.PlaneGeometry(B, H), new THREE.MeshStandardMaterial({ color: 0xfca5a5, side: THREE.DoubleSide })); ws.rotation.y = -Math.PI/2; ws.position.set(-D/2-0.05, H/2, 0); dyn.add(ws);
+  const ls = new THREE.Mesh(new THREE.PlaneGeometry(B, H), new THREE.MeshStandardMaterial({ color: 0x93c5fd, side: THREE.DoubleSide })); ls.rotation.y = Math.PI/2; ls.position.set(D/2+0.05, H/2, 0); dyn.add(ls);
+  const sc = 0.32*Math.max(H, B, D)/1.4, r = Math.max(0.35, H/180);
+  for (let i=1;i<=8;i++) { const z = i/8.6*H; const cpe1 = 0.8*kzf(z, H, P.t) + 0.03*D/B;
+    const zf = B*0.38; dyn.add(arrow3(new THREE.Vector3(-D/2-0.3-sc*cpe1, z, zf), new THREE.Vector3(-D/2-0.3, z, zf), 0xdc2626, r));
+    dyn.add(arrow3(new THREE.Vector3(D/2+0.3, z, zf), new THREE.Vector3(D/2+0.3-sc*Wd.cpe2, z, zf), 0x2563eb, r)); }
+  const x0 = -D/2 - sc*1.6 - 8;
+  for (let i=1;i<=8;i++) { const z = i/8.6*H; const k = kzr(z, P.t); dyn.add(arrow3(new THREE.Vector3(x0 - 0.45*sc*k, z, -B/2-4), new THREE.Vector3(x0, z, -B/2-4), 0x0f766e, r*0.8)); }
+  const span = D + sc*3.2 + 12 + B*0.6; const R = 1.25*Math.max(H, span*0.75)/(2*Math.tan(16*Math.PI/180)); const tgt = new THREE.Vector3(-sc*0.9, H*0.48, 0);
+  cam.position.set(tgt.x + R*Math.sin(yaw)*Math.cos(pitch), tgt.y + R*Math.sin(pitch), tgt.z + R*Math.cos(yaw)*Math.cos(pitch)); cam.lookAt(tgt);
+  render3();
+}
+function render3() { const w = cv3.clientWidth, h = cv3.clientHeight; R3.setPixelRatio(window.devicePixelRatio||1); R3.setSize(w, h, false); cam.aspect = w/h; cam.updateProjectionMatrix(); R3.render(scene, cam); }
+let drag = null; cv3.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, yaw, pitch }; cv3.setPointerCapture(e.pointerId); });
+cv3.addEventListener("pointermove", e => { if (!drag) return; yaw = drag.yaw - (e.clientX-drag.x)*0.01; pitch = Math.min(1.2, Math.max(0.05, drag.pitch + (e.clientY-drag.y)*0.006)); update(); });
+cv3.addEventListener("pointerup", () => drag = null);
+
+// ---------- main ----------
+function update() {
+  const P = params(); const manual = !$("autoT").checked; $("t").disabled = !manual;
+  const H = P.N*STORY; if (!manual) $("t").value = autoT(H).toFixed(2);
+  const T = +$("t").value;
+  $("v0V").textContent = P.v0 + " m/s"; $("nV").textContent = P.N + "층 · " + H + " m"; $("bV").textContent = P.B + " m"; $("dV").textContent = P.D + " m";
+  $("tV").textContent = T.toFixed(2) + " s"; $("zV").textContent = (P.z*100).toFixed(1) + " %"; $("sdsV").textContent = P.sds.toFixed(2) + " g"; $("sd1V").textContent = P.sd1.toFixed(2) + " g";
+  $("rV").textContent = P.R.toFixed(1); $("wV").textContent = P.w.toFixed(1) + " kN/m²"; $("terrHint").textContent = "조도 " + terr + ": " + TER[terr].txt;
+  const Wd = wind(P, P.N, T), Eq = quake(P, P.N, T);
+  const water = Wd.qH/9.81/10, f1 = 1/T, Ucr = f1*P.B/ST;
+  const st = (lbl, val, sub, cls="") => `<div class="step ${cls}"><div>${lbl}<small>${sub}</small></div><b>${val}</b></div>`;
+  $("ladder").innerHTML =
+    st("기본풍속 V₀", P.v0 + " m/s", "조도 C·10 m·10분 평균·재현 100년") +
+    st("× K<sub>zr</sub>(H) × I<sub>w</sub>", (kzr(H,terr)).toFixed(3) + " × " + Wd.Iw.toFixed(2), "조도 " + terr + ", 높이 " + H + " m" + (Wd.Iw > 1 ? " · 초고층 1.05" : "")) +
+    st("설계풍속 V<sub>H</sub>", Wd.VH.toFixed(1) + " m/s", "K<sub>zt</sub> = 1 (평지)") +
+    st("설계속도압 q<sub>H</sub> = ½ρV<sub>H</sub>²", Math.round(Wd.qH) + " N/m²", "≈ 벽 1 m²마다 물 " + water.toFixed(1) + " cm", "hot") +
+    st("가스트영향계수 G<sub>D</sub>", Wd.gd.G.toFixed(2), (Wd.gd.rigid ? "강체식 (f₁ > 1 Hz)" : "유연식: B<sub>D</sub> " + Wd.gd.BD.toFixed(2) + " + 공진 R<sub>D</sub> " + Wd.gd.RD.toFixed(2))) +
+    st("외압계수 C<sub>pe1</sub> − C<sub>pe2</sub>", (Wd.pw).toFixed(2) + " + " + (-Wd.cpe2).toFixed(2), "풍상벽 평균 + 풍하벽(당김)  → 뒤에서 " + Math.round(-Wd.cpe2/(Wd.pw - Wd.cpe2)*100) + "%") +
+    st("풍하중 밑면전단력 W<sub>D</sub>", (Wd.V/1000).toFixed(2) + " MN", "전도모멘트 " + Math.round(Wd.M) + " MN·m", "out") +
+    st("지진 밑면전단력 V", (Eq.V/1000).toFixed(2) + " MN", "C<sub>s</sub> " + Eq.Cs.toFixed(3) + " × W " + Math.round(Eq.W/1000) + " MN  →  " + (Wd.V > Eq.V ? '<span class="pill ng">바람 지배</span>' : '<span class="pill ok">지진 지배</span>')) +
+    st("와류 공진 풍속 U<sub>cr</sub> = f₁B/St", Ucr.toFixed(0) + " m/s", "설계풍속 " + Wd.VH.toFixed(0) + " m/s 대비 " + (Ucr < Wd.VH ? '<span class="pill ng">설계풍속 안</span>' : (Ucr < 1.3*Wd.VH ? '<span class="pill mid">근접</span>' : '<span class="pill ok">여유</span>')));
+  build3D(P, Wd);
+
+  // ① Kzr
+  { const [g,w,h] = setup($("cK")); const A = axes(g,w,h,{x0:0.5,x1:1.85,y0:0,y1:500,xt:[0.6,0.8,1.0,1.2,1.4,1.6,1.8],yt:[0,100,200,300,400,500],xl:"K_zr",yl:"높이 z (m)",fx:v=>v.toFixed(1)});
+    const cols = {A:"#64748b",B:"#2563eb",C:"#0f766e",D:"#d97706"}; const zs = []; for (let z=0; z<=500; z+=2) zs.push(z);
+    for (const t of "ABCD") { poly(g, A, zs.map(z=>kzr(z,t)), zs, cols[t], t===terr?3.5:1.6); txt(g, A, kzr(60,t), 60, t, cols[t], {dx:6, dy:8, s:13}); }
+    g.strokeStyle="#dc2626"; g.setLineDash([5,4]); g.beginPath(); g.moveTo(A.X(0.5),A.Y(Math.min(H,500))); g.lineTo(A.X(1.85),A.Y(Math.min(H,500))); g.stroke(); g.setLineDash([]);
+    dot(g, A, kzr(H,terr), Math.min(H,500), "#dc2626"); txt(g, A, 0.52, Math.min(H,500), "H " + H + " m", "#dc2626", {dy:-10}); }
+  // ② GD vs T
+  { const [g,w,h] = setup($("cG")); const Ts=[], Gs=[]; for (let t=0.3; t<=8.001; t+=0.05) { Ts.push(t); Gs.push(gustGD(H, P.B, Wd.VH, 1/t, terr, P.z).G); }
+    const gmax = Math.max(...Gs, Wd.gd.G), gmin = Math.min(...Gs); const y0 = Math.floor(gmin*5)/5 - 0.1, y1 = Math.ceil(gmax*5)/5 + 0.1;
+    const yt = []; for (let v = Math.ceil(y0*5)/5; v <= y1; v += 0.2) yt.push(+v.toFixed(1));
+    const A = axes(g,w,h,{x0:0,x1:8,y0,y1,xt:[0,1,2,3,4,5,6,7,8],yt,xl:"1차 주기 T (s)",yl:"G_D",fy:v=>v.toFixed(1)});
+    const i1 = Ts.findIndex(t => t >= 1.0); poly(g, A, Ts.slice(0,i1), Gs.slice(0,i1), "#64748b", 2.5); poly(g, A, Ts.slice(i1), Gs.slice(i1), "#dc2626", 2.5);
+    dot(g, A, T, Wd.gd.G, "#0f172a", 6); txt(g, A, T, Wd.gd.G, Wd.gd.G.toFixed(2), "#0f172a", {dx:8, dy:-12, s:13}); txt(g, A, 1.1, y1-0.05, "유연식(공진 포함) →", "#dc2626", {s:11}); }
+  // ③ base shear vs storeys
+  { const [g,w,h] = setup($("cV")); const Ns=[], Vw=[], Vs=[]; for (let n=5;n<=80;n++) { Ns.push(n); Vw.push(wind(P,n).V/1000); Vs.push(quake(P,n).V/1000); }
+    const ym = Math.max(...Vw, ...Vs); const yst = ym > 40 ? 10 : (ym > 15 ? 5 : 2); const yt=[]; for (let v=0; v<=ym*1.05+yst; v+=yst) yt.push(v);
+    const A = axes(g,w,h,{x0:5,x1:80,y0:0,y1:yt[yt.length-1],xt:[10,20,30,40,50,60,70,80],yt,xl:"층수 (자동 주기)",yl:"밑면전단력 (MN)"});
+    poly(g, A, Ns, Vs, "#0f172a", 2.5); poly(g, A, Ns, Vw, "#2563eb", 2.5);
+    const k = Ns.findIndex((n,i) => Vw[i] > Vs[i]);
+    if (k >= 0) { dot(g, A, Ns[k], Vs[k], "#dc2626", 6); txt(g, A, Ns[k], Vs[k], Ns[k] + "층 역전", "#dc2626", {dx:8, dy:14, s:13}); }
+    g.strokeStyle="#0f766e"; g.setLineDash([4,4]); g.beginPath(); g.moveTo(A.X(P.N),A.Y(0)); g.lineTo(A.X(P.N),A.Y(yt[yt.length-1])); g.stroke(); g.setLineDash([]);
+    txt(g, A, 6, yt[yt.length-1]*0.95, "— 지진", "#0f172a", {s:12}); txt(g, A, 6, yt[yt.length-1]*0.86, "— 바람", "#2563eb", {s:12});
+    $("wow").innerHTML = "💡 " + (k >= 0 ? `이 조건(V₀ ${P.v0} m/s · 조도 ${terr} · 평면 ${P.B}×${P.D} m)에서는 <b style="color:#dc2626">${Ns[k]}층</b>부터 풍하중이 지진하중을 넘는다. V₀나 조도를 바꿔 역전 층수가 얼마나 움직이는지 보라.` : `이 조건에서는 80층까지 지진하중이 지배한다. V₀를 올리거나 조도를 D로 바꿔 보라.`); }
+}
+document.querySelectorAll("#terr button").forEach(b => b.addEventListener("click", () => { terr = b.dataset.t; document.querySelectorAll("#terr button").forEach(x => x.classList.toggle("on", x === b)); update(); }));
+document.querySelectorAll("input").forEach(i => i.addEventListener("input", update));
+window.addEventListener("resize", update);
+update();
+</script>
+</body>
+</html>

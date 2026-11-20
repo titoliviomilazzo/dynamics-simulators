@@ -27,7 +27,7 @@
 ---
 
 <!-- registry:tracks:start -->
-## 📚 8개 전공 트랙 구성 (시뮬레이터 37개 · 정본 35 + 실습 2)
+## 📚 8개 전공 트랙 구성 (시뮬레이터 38개 · 정본 36 + 실습 2)
 
 > 이 목록은 `assets/simulators.js`에서 생성됩니다. 시뮬레이터를 추가하면 `node tools/check-registry.mjs --write`로 갱신하세요.
 
@@ -55,11 +55,12 @@
 - [정본 02. 모드참여계수(Γn) & 유효질량(Mn*) 90% 완전성 규준](https://titoliviomilazzo.github.io/dynamics-simulators/02_modal_participation_effective_mass.html)
 - [정본 36. 강체운동 지분 분해(그림 9) & 옥탑 가속도 역설](https://titoliviomilazzo.github.io/dynamics-simulators/36_rigid_body_participation_penthouse.html)
 
-### 🔹 Track 04. 풍하중 vs 지진하중 메커니즘 (2개 모듈)
+### 🔹 Track 04. 풍하중 vs 지진하중 메커니즘 (3개 모듈)
 외표면 압력(바람)과 내부 관성력(지진)의 층전단 분포 대조, 유연 골조의 채찍 효과 증폭.
 
 - [정본 11. 풍하중(외표면 압력) vs 지진하중(내부 관성력) 역학 메커니즘 대조](https://titoliviomilazzo.github.io/dynamics-simulators/11_wind_vs_seismic_load.html)
 - [반전 0. 강체(F=ma) vs 채찍(유연 골조) 42% 지진력 폭증의 배신](https://titoliviomilazzo.github.io/dynamics-simulators/34_rigid_vs_flexible_whip.html)
+- [정본 52. 풍하중 사다리 — 조도·높이·주기와 지진 역전 층수](https://titoliviomilazzo.github.io/dynamics-simulators/52_wind_load_ladder.html)
 
 ### 🔹 Track 05. 응답스펙트럼 · 모드조합 (8개 모듈)
 진자 배열 스펙트럼 생성, 삼분도표·ADRS, SRSS/CQC와 근접모드 절벽, ABSSUM 항등식, 포락선 부호소실.
